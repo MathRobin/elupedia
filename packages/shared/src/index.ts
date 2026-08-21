@@ -1,1 +1,1 @@
-export const name = '@elupedia/shared';
+export { createDb } from './db.js';
