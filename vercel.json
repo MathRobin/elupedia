@@ -1,6 +1,6 @@
 {
   "buildCommand": "yarn workspace @elupedia/site build",
-  "outputDirectory": "packages/site/dist",
+  "outputDirectory": "dist",
   "installCommand": "yarn install",
   "framework": null
 }
