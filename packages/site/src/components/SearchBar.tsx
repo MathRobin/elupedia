@@ -33,13 +33,11 @@ export default function SearchBar() {
   useEffect(() => {
     async function loadPagefind() {
       if (!import.meta.env.PROD) {
-        // Pagefind n'existe qu'après un build + indexation, inutile en dev
         return;
       }
       try {
-        pagefindRef.current = await import(
-            /* @vite-ignore */ '/pagefind/pagefind.js'
-            );
+        const pagefindPath = '/pagefind/pagefind.js';
+        pagefindRef.current = await import(/* @vite-ignore */ pagefindPath);
         await pagefindRef.current!.init();
       } catch {
         // Pagefind index not available
