@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { withRetry } from './utils/retry.js';
-import { fetchDeputes } from './sources/nosdeputes.js';
+import { fetchDeputes } from './sources/assemblee-nationale.js';
 import { fetchVotesForDepute } from './sources/nosdeputes-votes.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
 import { fetchAffiliations } from './sources/nosdeputes-affiliations.js';
@@ -56,7 +56,7 @@ export async function run() {
   let officialResults: Awaited<ReturnType<typeof upsertOfficials>> = [];
   const step1 = await runStep('officials', async () => {
     deputes = await withRetry(() => fetchDeputes(), {
-      source: 'nosdeputes',
+      source: 'assemblee-nationale',
     });
     officialResults = await upsertOfficials(db, deputes);
     return { source: 'officials', created: officialResults.length, updated: 0 };
@@ -77,9 +77,7 @@ export async function run() {
         let created = 0;
         const updated = 0;
         for (const official of officialResults) {
-          const depute = deputes.find(
-            (d) => (d.id_an ?? `nosdeputes-${d.id}`) === official.anId,
-          );
+          const depute = deputes.find((d) => d.id_an === official.anId);
           if (!depute) continue;
           const voteDetails = await withRetry(
             () => fetchVotesForDepute(depute.slug),

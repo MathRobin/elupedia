@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import type { Depute } from '../sources/nosdeputes.js';
+import type { Depute } from '../sources/assemblee-nationale.js';
 
 const mockDepute: Depute = {
-  id: 1,
+  id_an: 'PA100001',
   nom: 'Dupont',
   prenom: 'Marie',
   sexe: 'F',
@@ -13,8 +13,8 @@ const mockDepute: Depute = {
   mandat_debut: '2022-06-19',
   groupe_sigle: 'RE',
   slug: 'marie-dupont',
-  id_an: 'PA100001',
-  photo_url: 'https://example.com/photo.jpg',
+  photo_url:
+    'https://www2.assemblee-nationale.fr/static/tribun/17/photos/100001.jpg',
 };
 
 const DRIZZLE_NAME = Symbol.for('drizzle:Name');
@@ -89,16 +89,5 @@ describe('upsertOfficials', () => {
 
     expect(store.officials).toHaveLength(1);
     expect(store.mandates).toHaveLength(1);
-  });
-
-  it('handles depute without id_an', async () => {
-    const { db, store } = createMockDb();
-    const { upsertOfficials } = await import('./officials.js');
-    const deputeNoAnId = { ...mockDepute, id_an: undefined };
-
-    const results = await upsertOfficials(db as never, [deputeNoAnId]);
-
-    expect(results[0].anId).toBe('nosdeputes-1');
-    expect(store.officials).toHaveLength(1);
   });
 });

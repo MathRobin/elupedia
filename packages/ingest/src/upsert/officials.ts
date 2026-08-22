@@ -2,13 +2,13 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials } from '@elupedia/shared';
 import { mandates } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
-import type { Depute } from '../sources/nosdeputes.js';
+import type { Depute } from '../sources/assemblee-nationale.js';
 
 export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
   const results = [];
 
   for (const depute of deputes) {
-    const anId = depute.id_an ?? `nosdeputes-${depute.id}`;
+    const anId = depute.id_an;
 
     const existing = await db
       .select()

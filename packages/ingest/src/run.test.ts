@@ -19,7 +19,7 @@ vi.mock('./utils/retry.js', () => ({
   withRetry: vi.fn((fn: () => Promise<unknown>) => fn()),
 }));
 
-vi.mock('./sources/nosdeputes.js', () => ({
+vi.mock('./sources/assemblee-nationale.js', () => ({
   fetchDeputes: vi.fn(),
 }));
 vi.mock('./sources/nosdeputes-votes.js', () => ({
@@ -75,7 +75,7 @@ vi.mock('./upsert/electoral-results.js', () => ({
 }));
 
 import { run } from './run.js';
-import { fetchDeputes } from './sources/nosdeputes.js';
+import { fetchDeputes } from './sources/assemblee-nationale.js';
 import { fetchVotesForDepute } from './sources/nosdeputes-votes.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
 import { fetchAffiliations } from './sources/nosdeputes-affiliations.js';
@@ -96,8 +96,21 @@ import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 function setupHappyPath() {
   vi.mocked(fetchDeputes).mockResolvedValue([
-    { id: 1, slug: 'marie-dupont', id_an: 'PA100001' },
-  ] as never);
+    {
+      id_an: 'PA100001',
+      nom: 'Dupont',
+      prenom: 'Marie',
+      sexe: 'F',
+      date_naissance: '1975-03-14',
+      nom_circo: 'Gironde',
+      num_deptmt: '33',
+      num_circo: 3,
+      mandat_debut: '2024-07-07',
+      slug: 'marie-dupont',
+      photo_url:
+        'https://www2.assemblee-nationale.fr/static/tribun/17/photos/100001.jpg',
+    },
+  ]);
   vi.mocked(upsertOfficials).mockResolvedValue([
     { officialId: 'uuid-1', anId: 'PA100001' },
   ]);

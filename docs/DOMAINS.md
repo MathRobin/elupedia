@@ -5,8 +5,8 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Élus et mandats
 
 - **Tables** : `officials`, `mandates`
-- **Source** : NosDéputés.fr, data.assemblee-nationale.fr, data.senat.fr
-- **Client M1** : `nosdeputes.ts` (tous les députés) → `upsert/officials.ts`
+- **Source** : data.assemblee-nationale.fr (open data AN), data.senat.fr
+- **Client M1** : `assemblee-nationale.ts` (tous les députés) → `upsert/officials.ts`
 - **Description** : Identité des élus (nom, prénom, date de naissance, photo) et historique de leurs mandats (législature, circonscription, dates de début/fin).
 - **Pages M4** : page d'accueil (grille des élus actifs), fiche élu (identité, mandat, prédécesseur/successeur)
 
