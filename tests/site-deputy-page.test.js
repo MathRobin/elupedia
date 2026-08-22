@@ -491,3 +491,25 @@ describe('Fiche élu — timeline unifiée (#65)', () => {
     expect(content).toContain('Aucun événement à afficher');
   });
 });
+
+describe('Fiche élu — indicateur dernière mise à jour (#67)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('computes lastUpdated from all related data dates', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('lastUpdated');
+    expect(content).toContain('dates.sort');
+  });
+
+  it('includes lastUpdated in props', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('lastUpdated: string');
+    expect(content).toContain('lastUpdated,');
+  });
+
+  it('displays last updated indicator', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Dernière mise à jour le');
+    expect(content).toContain('lastUpdated');
+  });
+});

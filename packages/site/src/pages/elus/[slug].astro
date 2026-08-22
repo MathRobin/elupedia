@@ -245,24 +245,58 @@ export async function getStaticPaths() {
     }
   }
 
-  return rows.map((row) => ({
-    params: { slug: row.id },
-    props: {
-      deputy: row,
-      deputyVotes: votesByOfficial.get(row.id) ?? [],
-      deputyAffiliations: affiliationsByOfficial.get(row.id) ?? [],
-      deputyStaffers: staffersByOfficial.get(row.id) ?? [],
-      deputyInterests: interestsByOfficial.get(row.id) ?? [],
-      deputyPress: pressByOfficial.get(row.id) ?? [],
-      deputyAddresses: addressesByOfficial.get(row.id) ?? [],
-      deputyLinks: linksByOfficial.get(row.id) ?? [],
-      deputyActivities: activitiesByOfficial.get(row.id) ?? [],
-      deputyCommittees: committeesByOfficial.get(row.id) ?? [],
-      deputyElectoralResults: electoralByOfficial.get(row.id) ?? [],
-      predecessor: predecessorMap.get(row.id) ?? null,
-      successor: successorMap.get(row.id) ?? null,
-    },
-  }));
+  return rows.map((row) => {
+    const dates: string[] = [row.startDate];
+    for (const a of affiliationsByOfficial.get(row.id) ?? []) {
+      dates.push(a.startDate);
+      if (a.endDate) dates.push(a.endDate);
+    }
+    for (const s of staffersByOfficial.get(row.id) ?? []) {
+      dates.push(s.startDate);
+      if (s.endDate) dates.push(s.endDate);
+    }
+    for (const v of votesByOfficial.get(row.id) ?? []) {
+      dates.push(v.ballotDate);
+    }
+    for (const i of interestsByOfficial.get(row.id) ?? []) {
+      dates.push(i.declaredDate);
+    }
+    for (const p of pressByOfficial.get(row.id) ?? []) {
+      dates.push(p.publishedDate);
+    }
+    for (const act of activitiesByOfficial.get(row.id) ?? []) {
+      dates.push(act.date);
+    }
+    for (const c of committeesByOfficial.get(row.id) ?? []) {
+      dates.push(c.startDate);
+      if (c.endDate) dates.push(c.endDate);
+    }
+    for (const er of electoralByOfficial.get(row.id) ?? []) {
+      dates.push(er.electionDate);
+    }
+    dates.sort((a, b) => b.localeCompare(a));
+    const lastUpdated = dates[0] ?? row.startDate;
+
+    return {
+      params: { slug: row.id },
+      props: {
+        deputy: row,
+        deputyVotes: votesByOfficial.get(row.id) ?? [],
+        deputyAffiliations: affiliationsByOfficial.get(row.id) ?? [],
+        deputyStaffers: staffersByOfficial.get(row.id) ?? [],
+        deputyInterests: interestsByOfficial.get(row.id) ?? [],
+        deputyPress: pressByOfficial.get(row.id) ?? [],
+        deputyAddresses: addressesByOfficial.get(row.id) ?? [],
+        deputyLinks: linksByOfficial.get(row.id) ?? [],
+        deputyActivities: activitiesByOfficial.get(row.id) ?? [],
+        deputyCommittees: committeesByOfficial.get(row.id) ?? [],
+        deputyElectoralResults: electoralByOfficial.get(row.id) ?? [],
+        lastUpdated,
+        predecessor: predecessorMap.get(row.id) ?? null,
+        successor: successorMap.get(row.id) ?? null,
+      },
+    };
+  });
 }
 
 type Vote = {
@@ -368,11 +402,12 @@ type Props = {
   deputyActivities: Activity[];
   deputyCommittees: Committee[];
   deputyElectoralResults: ElectoralResult[];
+  lastUpdated: string;
   predecessor: { id: string; firstName: string; lastName: string } | null;
   successor: { id: string; firstName: string; lastName: string } | null;
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, predecessor, successor } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, lastUpdated, predecessor, successor } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -505,6 +540,10 @@ const timelineCategoryColors: Record<string, string> = {
         )}
       </div>
     </div>
+
+    <p class="mt-4 text-xs text-gray-400">
+      Dernière mise à jour le {new Date(lastUpdated).toLocaleDateString('fr-FR')}
+    </p>
 
     <section class="mt-8">
       <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">Mandat en cours</h2>
