@@ -527,7 +527,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@elupedia/shared@npm:*, @elupedia/shared@workspace:*, @elupedia/shared@workspace:packages/shared":
+"@elupedia/shared@npm:*, @elupedia/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@elupedia/shared@workspace:packages/shared"
   dependencies:
@@ -544,7 +544,7 @@ __metadata:
     "@astrojs/react": "npm:^6.0.4"
     "@astrojs/sitemap": "npm:^3.7.3"
     "@astrojs/tailwind": "npm:^6.0.2"
-    "@elupedia/shared": "workspace:*"
+    "@elupedia/shared": "npm:*"
     "@tailwindcss/vite": "npm:^4.3.3"
     "@types/react": "npm:^19.2.18"
     "@types/react-dom": "npm:^19.2.4"
