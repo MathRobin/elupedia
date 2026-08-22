@@ -18,11 +18,13 @@ flowchart LR
 
 Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script interroge une API publique (NosDéputés.fr, données ouvertes de l'Assemblée nationale, HATVP, data.gouv.fr) et effectue un upsert en base.
 
-- Exécution : scheduled workflows GitHub Actions
-- Fréquence : quotidienne ou hebdomadaire selon la source
+- Exécution : cron GitHub Actions quotidien (`.github/workflows/ingest.yml`, 04:00 heure de Paris)
+- Déclenchement manuel : `workflow_dispatch`
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
 - Orchestration : `run.ts` exécute les 9 étapes séquentiellement, isole les erreurs par étape et affiche un résumé
+- Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions et écrit `ingest-report.json`
+- Point d'entrée : `src/main.ts` → script `yarn workspace @elupedia/ingest ingest`
 
 #### Clients API (M1)
 
@@ -100,11 +102,12 @@ Contient le client DB (Drizzle + Neon), le schéma complet (13 tables), les type
 
 ## CI / CD
 
-- **GitHub Actions** (`.github/workflows/ci.yml`) : lint, format, typecheck et tests sur chaque PR et push sur `main`
+- **GitHub Actions CI** (`.github/workflows/ci.yml`) : lint, format, typecheck et tests sur chaque PR et push sur `main`
+- **GitHub Actions Ingestion** (`.github/workflows/ingest.yml`) : cron quotidien 02:00 UTC, lance le pipeline d'ingestion complet, expose `has_changes` pour conditionner un rebuild du site
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 
 ## Tests
 
 - **Framework** : Vitest (configuré à la racine et dans chaque package)
 - **Commande** : `yarn test` lance les tests racine puis ceux de chaque workspace
-- **Couverture M1** : ~280 tests (structure monorepo, configs, schéma DB, migration, CI, clients API, upsert/diff, retry, orchestration)
+- **Couverture M2** : ~295 tests (structure monorepo, configs, schéma DB, migration, CI, clients API, upsert/diff, retry, orchestration, cron workflow, change detection)
