@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull } from 'drizzle-orm';
 
 export async function getStaticPaths() {
@@ -184,6 +184,25 @@ export async function getStaticPaths() {
     committeesByOfficial.set(c.officialId, list);
   }
 
+  const allElectoralResults = await db
+    .select({
+      officialId: electoralResults.officialId,
+      electionType: electoralResults.electionType,
+      electionDate: electoralResults.electionDate,
+      round: electoralResults.round,
+      scorePercent: electoralResults.scorePercent,
+      opponentCount: electoralResults.opponentCount,
+    })
+    .from(electoralResults)
+    .orderBy(desc(electoralResults.electionDate));
+
+  const electoralByOfficial = new Map<string, typeof allElectoralResults>();
+  for (const er of allElectoralResults) {
+    const list = electoralByOfficial.get(er.officialId) ?? [];
+    list.push(er);
+    electoralByOfficial.set(er.officialId, list);
+  }
+
   const allMandates = await db
     .select({
       officialId: mandates.officialId,
@@ -239,6 +258,7 @@ export async function getStaticPaths() {
       deputyLinks: linksByOfficial.get(row.id) ?? [],
       deputyActivities: activitiesByOfficial.get(row.id) ?? [],
       deputyCommittees: committeesByOfficial.get(row.id) ?? [],
+      deputyElectoralResults: electoralByOfficial.get(row.id) ?? [],
       predecessor: predecessorMap.get(row.id) ?? null,
       successor: successorMap.get(row.id) ?? null,
     },
@@ -316,6 +336,15 @@ type Committee = {
   endDate: string | null;
 };
 
+type ElectoralResult = {
+  officialId: string;
+  electionType: string;
+  electionDate: string;
+  round: number;
+  scorePercent: number;
+  opponentCount: number;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -338,11 +367,12 @@ type Props = {
   deputyLinks: ExternalLink[];
   deputyActivities: Activity[];
   deputyCommittees: Committee[];
+  deputyElectoralResults: ElectoralResult[];
   predecessor: { id: string; firstName: string; lastName: string } | null;
   successor: { id: string; firstName: string; lastName: string } | null;
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, predecessor, successor } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, predecessor, successor } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -359,6 +389,11 @@ const platformLabels: Record<string, string> = {
   official_page: 'Fiche officielle',
   personal_website: 'Site personnel',
   madada: 'MaDada.fr',
+};
+
+const roundLabels: Record<number, string> = {
+  1: '1er tour',
+  2: '2nd tour',
 };
 
 const committeeTypeLabels: Record<string, string> = {
@@ -659,6 +694,50 @@ const positionColors: Record<string, string> = {
             </li>
           ))}
         </ul>
+      )}
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+        Historique électoral
+        {deputyElectoralResults.length > 0 && (
+          <span class="ml-2 text-sm font-normal text-gray-400">({deputyElectoralResults.length})</span>
+        )}
+      </h2>
+
+      {deputyElectoralResults.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucun résultat électoral enregistré.</p>
+      ) : (
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-left text-gray-500">
+                <th class="pb-2 pr-4 font-medium">Date</th>
+                <th class="pb-2 pr-4 font-medium">Élection</th>
+                <th class="pb-2 pr-4 font-medium">Tour</th>
+                <th class="pb-2 pr-4 font-medium">Score</th>
+                <th class="pb-2 font-medium">Candidats</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deputyElectoralResults.map((er) => (
+                <tr class="border-b border-gray-100">
+                  <td class="py-2 pr-4 whitespace-nowrap">
+                    {new Date(er.electionDate).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td class="py-2 pr-4">{er.electionType}</td>
+                  <td class="py-2 pr-4 whitespace-nowrap">
+                    {roundLabels[er.round] ?? `Tour ${er.round}`}
+                  </td>
+                  <td class="py-2 pr-4 whitespace-nowrap font-medium">
+                    {er.scorePercent.toFixed(1)} %
+                  </td>
+                  <td class="py-2">{er.opponentCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
 

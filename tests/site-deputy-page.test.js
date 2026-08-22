@@ -416,3 +416,39 @@ describe('Fiche élu — commissions & groupes (#63)', () => {
     expect(content).toContain('Aucune commission enregistrée');
   });
 });
+
+describe('Fiche élu — historique électoral (#64)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries electoral_results table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('electoralResults');
+    expect(content).toContain('electoralByOfficial');
+  });
+
+  it('displays election table with date, type, round, score, opponents', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('er.electionDate');
+    expect(content).toContain('er.electionType');
+    expect(content).toContain('er.round');
+    expect(content).toContain('er.scorePercent');
+    expect(content).toContain('er.opponentCount');
+  });
+
+  it('translates round numbers to French', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('roundLabels');
+    expect(content).toContain('1er tour');
+    expect(content).toContain('2nd tour');
+  });
+
+  it('formats score as percentage', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('scorePercent.toFixed(1)');
+  });
+
+  it('handles empty electoral results list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucun résultat électoral enregistré');
+  });
+});
