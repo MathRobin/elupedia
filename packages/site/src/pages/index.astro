@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import SearchBar from '../components/SearchBar';
 import { getDb } from '../lib/db.js';
 import { officials, mandates } from '@elupedia/shared';
 import { eq, isNull } from 'drizzle-orm';
@@ -44,6 +45,10 @@ try {
       ? `${deputesList.length} députés en exercice`
       : 'Aucun député trouvé'}
   </p>
+
+  <div class="mt-6">
+    <SearchBar client:load />
+  </div>
 
   {error && (
     <p class="mt-4 text-sm text-red-600">
