@@ -132,3 +132,31 @@ describe('Fiche élu — section affiliations (#55)', () => {
     expect(content).toContain('Aucune affiliation enregistrée');
   });
 });
+
+describe('Fiche élu — section collaborateurs (#56)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries staffers table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('staffers');
+    expect(content).toContain('staffersByOfficial');
+  });
+
+  it('displays staffer name and dates', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('s.firstName');
+    expect(content).toContain('s.lastName');
+    expect(content).toContain('s.startDate');
+  });
+
+  it('shows active/inactive badges', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('actif');
+    expect(content).toContain('inactif');
+  });
+
+  it('handles empty staffers list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucun collaborateur enregistré');
+  });
+});
