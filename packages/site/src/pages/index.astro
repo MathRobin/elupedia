@@ -4,14 +4,16 @@ import { getDb } from '../lib/db.js';
 import { officials, mandates } from '@elupedia/shared';
 import { eq, isNull } from 'drizzle-orm';
 
-type Official = {
+type Deputy = {
   id: string;
   firstName: string;
   lastName: string;
+  photoUrl: string | null;
   district: string | null;
+  politicalGroup: string | null;
 };
 
-let deputesList: Official[] = [];
+let deputesList: Deputy[] = [];
 let error: string | null = null;
 
 try {
@@ -21,7 +23,9 @@ try {
       id: officials.id,
       firstName: officials.firstName,
       lastName: officials.lastName,
+      photoUrl: officials.photoUrl,
       district: mandates.district,
+      politicalGroup: mandates.politicalGroup,
     })
     .from(officials)
     .innerJoin(mandates, eq(mandates.officialId, officials.id))
@@ -51,14 +55,31 @@ try {
     {deputesList.map((d) => (
       <a
         href={`/deputes/${d.id}`}
-        class="block rounded-lg border border-gray-200 p-4 hover:border-gray-400 transition-colors no-underline"
+        class="group flex items-start gap-4 rounded-lg border border-gray-200 p-4 hover:border-gray-400 hover:shadow-sm transition-all no-underline"
       >
-        <p class="font-semibold text-gray-900">
-          {d.firstName} {d.lastName}
-        </p>
-        {d.district && (
-          <p class="mt-1 text-sm text-gray-500">{d.district}</p>
+        {d.photoUrl ? (
+          <img
+            src={d.photoUrl}
+            alt={`${d.firstName} ${d.lastName}`}
+            class="h-16 w-16 shrink-0 rounded-full object-cover bg-gray-100"
+            loading="lazy"
+          />
+        ) : (
+          <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xl font-medium text-gray-400">
+            {d.firstName[0]}{d.lastName[0]}
+          </div>
         )}
+        <div class="min-w-0">
+          <p class="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+            {d.firstName} {d.lastName}
+          </p>
+          {d.district && (
+            <p class="mt-1 text-sm text-gray-500">{d.district}</p>
+          )}
+          {d.politicalGroup && (
+            <p class="mt-1 text-xs text-gray-400">{d.politicalGroup}</p>
+          )}
+        </div>
       </a>
     ))}
   </div>

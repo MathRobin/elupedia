@@ -53,3 +53,36 @@ describe("Page d'accueil — structure (#51)", () => {
     expect(content).toContain('<BaseLayout>');
   });
 });
+
+describe('Styling grille de cartes (#52)', () => {
+  const indexPath = resolve(root, 'packages/site/src/pages/index.astro');
+
+  it('displays photo or initials fallback', () => {
+    const content = readFileSync(indexPath, 'utf-8');
+    expect(content).toContain('d.photoUrl');
+    expect(content).toContain('<img');
+    expect(content).toContain('rounded-full');
+  });
+
+  it('shows political group', () => {
+    const content = readFileSync(indexPath, 'utf-8');
+    expect(content).toContain('d.politicalGroup');
+  });
+
+  it('has hover effects on cards', () => {
+    const content = readFileSync(indexPath, 'utf-8');
+    expect(content).toContain('hover:');
+    expect(content).toContain('transition');
+  });
+
+  it('uses lazy loading for images', () => {
+    const content = readFileSync(indexPath, 'utf-8');
+    expect(content).toContain('loading="lazy"');
+  });
+
+  it('links cards to deputy detail page', () => {
+    const content = readFileSync(indexPath, 'utf-8');
+    expect(content).toContain('/deputes/');
+    expect(content).toContain('d.id');
+  });
+});
