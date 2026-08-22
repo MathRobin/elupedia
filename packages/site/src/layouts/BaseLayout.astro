@@ -12,6 +12,8 @@ const {
 } = Astro.props;
 
 const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL('/og-default.png', Astro.site);
 ---
 
 <html lang="fr">
@@ -21,6 +23,14 @@ const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{fullTitle}</title>
+    <link rel="canonical" href={canonicalUrl.href} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl.href} />
+    <meta property="og:image" content={ogImage.href} />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="Elupedia" />
     <script is:inline src="/tarteaucitron/tarteaucitron.min.js"></script>
     <script is:inline>
       tarteaucitron.init({

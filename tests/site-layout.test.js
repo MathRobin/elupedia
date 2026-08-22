@@ -80,3 +80,48 @@ describe('tarteaucitron.js integration (#46)', () => {
     ).toBe(true);
   });
 });
+
+describe('SEO de base (#47)', () => {
+  const layoutPath = resolve(
+    root,
+    'packages/site/src/layouts/BaseLayout.astro',
+  );
+  const configPath = resolve(root, 'packages/site/astro.config.ts');
+
+  it('astro config has sitemap integration', () => {
+    const content = readFileSync(configPath, 'utf-8');
+    expect(content).toContain("import sitemap from '@astrojs/sitemap'");
+    expect(content).toContain('sitemap()');
+  });
+
+  it('astro config has site URL for sitemap generation', () => {
+    const content = readFileSync(configPath, 'utf-8');
+    expect(content).toContain("site: 'https://elupedia.fr'");
+  });
+
+  it('has Open Graph meta tags', () => {
+    const content = readFileSync(layoutPath, 'utf-8');
+    expect(content).toContain('og:title');
+    expect(content).toContain('og:description');
+    expect(content).toContain('og:image');
+    expect(content).toContain('og:type');
+    expect(content).toContain('og:url');
+  });
+
+  it('has og:locale set to fr_FR', () => {
+    const content = readFileSync(layoutPath, 'utf-8');
+    expect(content).toContain('og:locale');
+    expect(content).toContain('fr_FR');
+  });
+
+  it('has canonical URL', () => {
+    const content = readFileSync(layoutPath, 'utf-8');
+    expect(content).toContain('rel="canonical"');
+  });
+
+  it('has og:site_name', () => {
+    const content = readFileSync(layoutPath, 'utf-8');
+    expect(content).toContain('og:site_name');
+    expect(content).toContain('Elupedia');
+  });
+});
