@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations } from '@elupedia/shared';
 import { eq, isNull, desc } from 'drizzle-orm';
 
 export async function getStaticPaths() {
@@ -42,11 +42,29 @@ export async function getStaticPaths() {
     votesByOfficial.set(v.officialId, list);
   }
 
+  const allAffiliations = await db
+    .select({
+      officialId: affiliations.officialId,
+      partyOrGroup: affiliations.partyOrGroup,
+      startDate: affiliations.startDate,
+      endDate: affiliations.endDate,
+    })
+    .from(affiliations)
+    .orderBy(desc(affiliations.startDate));
+
+  const affiliationsByOfficial = new Map<string, typeof allAffiliations>();
+  for (const a of allAffiliations) {
+    const list = affiliationsByOfficial.get(a.officialId) ?? [];
+    list.push(a);
+    affiliationsByOfficial.set(a.officialId, list);
+  }
+
   return rows.map((row) => ({
     params: { slug: row.id },
     props: {
       deputy: row,
       deputyVotes: votesByOfficial.get(row.id) ?? [],
+      deputyAffiliations: affiliationsByOfficial.get(row.id) ?? [],
     },
   }));
 }
@@ -56,6 +74,13 @@ type Vote = {
   position: string;
   ballotTitle: string;
   ballotDate: string;
+};
+
+type Affiliation = {
+  officialId: string;
+  partyOrGroup: string;
+  startDate: string;
+  endDate: string | null;
 };
 
 type Props = {
@@ -72,9 +97,10 @@ type Props = {
     mandateType: string;
   };
   deputyVotes: Vote[];
+  deputyAffiliations: Affiliation[];
 };
 
-const { deputy, deputyVotes } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations } = Astro.props as Props;
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
 
 const positionLabels: Record<string, string> = {
@@ -149,6 +175,32 @@ const positionColors: Record<string, string> = {
           <dd class="font-medium">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
         </div>
       </dl>
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+        Affiliations politiques
+        {deputyAffiliations.length > 0 && (
+          <span class="ml-2 text-sm font-normal text-gray-400">({deputyAffiliations.length})</span>
+        )}
+      </h2>
+
+      {deputyAffiliations.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucune affiliation enregistrée.</p>
+      ) : (
+        <ul class="mt-4 space-y-3">
+          {deputyAffiliations.map((a) => (
+            <li class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+              <span class="font-medium">{a.partyOrGroup}</span>
+              <span class="text-sm text-gray-500">
+                {new Date(a.startDate).toLocaleDateString('fr-FR')}
+                {' — '}
+                {a.endDate ? new Date(a.endDate).toLocaleDateString('fr-FR') : 'en cours'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
 
     <section class="mt-8">

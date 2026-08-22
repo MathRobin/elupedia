@@ -100,3 +100,35 @@ describe('Fiche élu — section votes (#54)', () => {
     expect(content).toContain('text-red-700');
   });
 });
+
+describe('Fiche élu — section affiliations (#55)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries affiliations table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('affiliations');
+    expect(content).toContain('affiliationsByOfficial');
+  });
+
+  it('sorts affiliations by date descending', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('desc(affiliations.startDate)');
+  });
+
+  it('displays party/group name and date range', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('a.partyOrGroup');
+    expect(content).toContain('a.startDate');
+    expect(content).toContain('a.endDate');
+  });
+
+  it('shows "en cours" for active affiliations', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('en cours');
+  });
+
+  it('handles empty affiliations list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucune affiliation enregistrée');
+  });
+});
