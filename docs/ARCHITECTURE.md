@@ -16,11 +16,41 @@ flowchart LR
 
 ### 1. Ingestion (`packages/ingest`)
 
-Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script interroge une API publique (NosDéputés.fr, données ouvertes de l'Assemblée nationale, HATVP) et effectue un upsert en base.
+Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script interroge une API publique (NosDéputés.fr, données ouvertes de l'Assemblée nationale, HATVP, data.gouv.fr) et effectue un upsert en base.
 
 - Exécution : scheduled workflows GitHub Actions
 - Fréquence : quotidienne ou hebdomadaire selon la source
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
+- Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
+- Orchestration : `run.ts` exécute les 9 étapes séquentiellement, isole les erreurs par étape et affiche un résumé
+
+#### Clients API (M1)
+
+| Client                  | Fichier                              | Source API                  |
+| ----------------------- | ------------------------------------ | --------------------------- |
+| Députés Gironde         | `sources/nosdeputes.ts`              | nosdeputes.fr               |
+| Votes par député        | `sources/nosdeputes-votes.ts`        | nosdeputes.fr               |
+| Affiliations            | `sources/nosdeputes-affiliations.ts` | nosdeputes.fr               |
+| Collaborateurs          | `sources/an-collaborateurs.ts`       | data.assemblee-nationale.fr |
+| Adresses/contacts       | `sources/an-adresses.ts`             | data.assemblee-nationale.fr |
+| Activité parlementaire  | `sources/an-activite.ts`             | data.assemblee-nationale.fr |
+| Commissions/délégations | `sources/an-commissions.ts`          | data.assemblee-nationale.fr |
+| Intérêts (HATVP)        | `sources/hatvp.ts`                   | hatvp.fr                    |
+| Résultats électoraux    | `sources/datagouv-elections.ts`      | data.gouv.fr                |
+
+#### Upsert / Diff (M1)
+
+| Upsert                 | Fichier                            | Stratégie                              |
+| ---------------------- | ---------------------------------- | -------------------------------------- |
+| Officials + mandates   | `upsert/officials.ts`              | Upsert sur an_id                       |
+| Votes + ballots        | `upsert/votes.ts`                  | Upsert sur ballot_id + official        |
+| Collaborateurs         | `upsert/staffers-diff.ts`          | Diff (set end_date si parti)           |
+| Affiliations           | `upsert/affiliations-diff.ts`      | Diff (set end_date si changé)          |
+| Intérêts               | `upsert/interests.ts`              | Upsert sur official + entity           |
+| Adresses               | `upsert/addresses.ts`              | Upsert sur official + type             |
+| Activité parlementaire | `upsert/parliamentary-activity.ts` | Upsert sur official + title + date     |
+| Commissions            | `upsert/committees.ts`             | Upsert sur official + name + type      |
+| Résultats électoraux   | `upsert/electoral-results.ts`      | Upsert sur official + election + round |
 
 ### 2. Base de données (PostgreSQL / Neon)
 
@@ -31,7 +61,7 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 - Migrations dans `drizzle/`
 - Client de connexion : `packages/shared/src/db.ts` (lit `DATABASE_URL`)
 
-#### Tables livrées (M0)
+#### Tables (M0 — schéma)
 
 | Table                    | Colonnes clés                                                         | FK vers            |
 | ------------------------ | --------------------------------------------------------------------- | ------------------ |
@@ -77,4 +107,4 @@ Contient le client DB (Drizzle + Neon), le schéma complet (13 tables), les type
 
 - **Framework** : Vitest (configuré à la racine et dans chaque package)
 - **Commande** : `yarn test` lance les tests racine puis ceux de chaque workspace
-- **Couverture M0** : 149 tests (structure monorepo, configs, schéma DB, migration, CI, documentation)
+- **Couverture M1** : ~280 tests (structure monorepo, configs, schéma DB, migration, CI, clients API, upsert/diff, retry, orchestration)
