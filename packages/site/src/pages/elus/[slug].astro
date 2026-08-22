@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks } from '@elupedia/shared';
 import { eq, isNull, desc } from 'drizzle-orm';
 
 export async function getStaticPaths() {
@@ -133,6 +133,21 @@ export async function getStaticPaths() {
     addressesByOfficial.set(addr.officialId, list);
   }
 
+  const allLinks = await db
+    .select({
+      officialId: externalLinks.officialId,
+      platform: externalLinks.platform,
+      url: externalLinks.url,
+    })
+    .from(externalLinks);
+
+  const linksByOfficial = new Map<string, typeof allLinks>();
+  for (const l of allLinks) {
+    const list = linksByOfficial.get(l.officialId) ?? [];
+    list.push(l);
+    linksByOfficial.set(l.officialId, list);
+  }
+
   return rows.map((row) => ({
     params: { slug: row.id },
     props: {
@@ -143,6 +158,7 @@ export async function getStaticPaths() {
       deputyInterests: interestsByOfficial.get(row.id) ?? [],
       deputyPress: pressByOfficial.get(row.id) ?? [],
       deputyAddresses: addressesByOfficial.get(row.id) ?? [],
+      deputyLinks: linksByOfficial.get(row.id) ?? [],
     },
   }));
 }
@@ -196,6 +212,12 @@ type Address = {
   email: string | null;
 };
 
+type ExternalLink = {
+  officialId: string;
+  platform: string;
+  url: string;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -215,13 +237,26 @@ type Props = {
   deputyInterests: Interest[];
   deputyPress: PressMention[];
   deputyAddresses: Address[];
+  deputyLinks: ExternalLink[];
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
   assembly_office: 'Bureau AN/Sénat',
+};
+
+const platformLabels: Record<string, string> = {
+  twitter: 'X (Twitter)',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
+  wikipedia_fr: 'Wikipédia',
+  official_page: 'Fiche officielle',
+  personal_website: 'Site personnel',
+  madada: 'MaDada.fr',
 };
 
 const interestTypeLabels: Record<string, string> = {
@@ -503,6 +538,29 @@ const positionColors: Record<string, string> = {
               {p.summary && (
                 <p class="mt-2 text-sm text-gray-600">{p.summary}</p>
               )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">Liens extérieurs</h2>
+
+      {deputyLinks.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucun lien externe enregistré.</p>
+      ) : (
+        <ul class="mt-4 flex flex-wrap gap-3">
+          {deputyLinks.map((l) => (
+            <li>
+              <a
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-sm text-blue-700 hover:border-blue-300 hover:bg-blue-50 transition-colors no-underline"
+              >
+                {platformLabels[l.platform] ?? l.platform}
+              </a>
             </li>
           ))}
         </ul>

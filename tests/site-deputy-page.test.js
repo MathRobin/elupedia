@@ -262,3 +262,41 @@ describe('Fiche élu — section adresses (#59)', () => {
     expect(content).toContain('Aucune adresse enregistrée');
   });
 });
+
+describe('Fiche élu — section liens extérieurs (#60)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries external_links table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('externalLinks');
+    expect(content).toContain('linksByOfficial');
+  });
+
+  it('has platform labels for all supported platforms', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('X (Twitter)');
+    expect(content).toContain('Facebook');
+    expect(content).toContain('Instagram');
+    expect(content).toContain('YouTube');
+    expect(content).toContain('TikTok');
+    expect(content).toContain('MaDada.fr');
+    expect(content).toContain('Wikipédia');
+  });
+
+  it('renders links as external with noopener', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('l.url');
+    expect(content).toContain('target="_blank"');
+    expect(content).toContain('noopener noreferrer');
+  });
+
+  it('displays platform label for each link', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('platformLabels[l.platform]');
+  });
+
+  it('handles empty links list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucun lien externe enregistré');
+  });
+});
