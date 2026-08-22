@@ -52,6 +52,6 @@ describe('Page À propos (#68)', () => {
   it('mentions roadmap', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('Feuille de route');
-    expect(content).toContain('Gironde');
+    expect(content).toContain('députés français');
   });
 });

@@ -6,7 +6,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 
 - **Tables** : `officials`, `mandates`
 - **Source** : NosDéputés.fr, data.assemblee-nationale.fr, data.senat.fr
-- **Client M1** : `nosdeputes.ts` (députés Gironde) → `upsert/officials.ts`
+- **Client M1** : `nosdeputes.ts` (tous les députés) → `upsert/officials.ts`
 - **Description** : Identité des élus (nom, prénom, date de naissance, photo) et historique de leurs mandats (législature, circonscription, dates de début/fin).
 - **Pages M4** : page d'accueil (grille des élus actifs), fiche élu (identité, mandat, prédécesseur/successeur)
 

@@ -32,10 +32,10 @@ export type DeputesResponse = z.infer<typeof DeputesResponseSchema>;
 
 export const BASE_URL = 'https://www.nosdeputes.fr';
 
-export async function fetchDeputesGironde(
+export async function fetchDeputes(
   fetchFn: typeof fetch = fetch,
 ): Promise<Depute[]> {
-  const url = `${BASE_URL}/33/json`;
+  const url = `${BASE_URL}/deputes/enmandat/json`;
   const response = await fetchFn(url);
 
   if (!response.ok) {

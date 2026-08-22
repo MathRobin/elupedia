@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
-  fetchDeputesGironde,
+  fetchDeputes,
   DeputeSchema,
   DeputesResponseSchema,
 } from './nosdeputes.js';
@@ -32,8 +32,8 @@ const mockDeputesResponse = {
         prenom: 'Jean',
         sexe: 'H',
         date_naissance: '1968-11-22',
-        num_deptmt: '33',
-        nom_circo: 'Gironde',
+        num_deptmt: '75',
+        nom_circo: 'Paris',
         num_circo: 1,
         mandat_debut: '2022-06-19',
         groupe_sigle: 'LFI-NUPES',
@@ -54,9 +54,9 @@ function mockFetch(data: unknown, status = 200): typeof fetch {
 }
 
 describe('NosDéputés client', () => {
-  it('fetches and parses Gironde deputies', async () => {
+  it('fetches and parses deputies', async () => {
     const fakeFetch = mockFetch(mockDeputesResponse);
-    const deputes = await fetchDeputesGironde(fakeFetch);
+    const deputes = await fetchDeputes(fakeFetch);
 
     expect(deputes).toHaveLength(2);
     expect(deputes[0].nom).toBe('Dupont');
@@ -67,21 +67,23 @@ describe('NosDéputés client', () => {
 
   it('calls the correct URL', async () => {
     const fakeFetch = mockFetch(mockDeputesResponse);
-    await fetchDeputesGironde(fakeFetch);
+    await fetchDeputes(fakeFetch);
 
-    expect(fakeFetch).toHaveBeenCalledWith('https://www.nosdeputes.fr/33/json');
+    expect(fakeFetch).toHaveBeenCalledWith(
+      'https://www.nosdeputes.fr/deputes/enmandat/json',
+    );
   });
 
   it('throws on HTTP error', async () => {
     const fakeFetch = mockFetch({}, 500);
-    await expect(fetchDeputesGironde(fakeFetch)).rejects.toThrow(
+    await expect(fetchDeputes(fakeFetch)).rejects.toThrow(
       'NosDéputés API error: 500',
     );
   });
 
   it('throws on invalid response shape', async () => {
     const fakeFetch = mockFetch({ invalid: true });
-    await expect(fetchDeputesGironde(fakeFetch)).rejects.toThrow();
+    await expect(fetchDeputes(fakeFetch)).rejects.toThrow();
   });
 });
 

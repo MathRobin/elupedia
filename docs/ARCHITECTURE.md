@@ -30,7 +30,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script inter
 
 | Client                  | Fichier                              | Source API                  |
 | ----------------------- | ------------------------------------ | --------------------------- |
-| Députés Gironde         | `sources/nosdeputes.ts`              | nosdeputes.fr               |
+| Députés (tous)          | `sources/nosdeputes.ts`              | nosdeputes.fr               |
 | Votes par député        | `sources/nosdeputes-votes.ts`        | nosdeputes.fr               |
 | Affiliations            | `sources/nosdeputes-affiliations.ts` | nosdeputes.fr               |
 | Collaborateurs          | `sources/an-collaborateurs.ts`       | data.assemblee-nationale.fr |

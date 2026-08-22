@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { withRetry } from './utils/retry.js';
-import { fetchDeputesGironde } from './sources/nosdeputes.js';
+import { fetchDeputes } from './sources/nosdeputes.js';
 import { fetchVotesForDepute } from './sources/nosdeputes-votes.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
 import { fetchAffiliations } from './sources/nosdeputes-affiliations.js';
@@ -52,10 +52,10 @@ export async function run() {
   console.log('=== Ingestion started ===\n');
 
   console.log('[1/9] Officials & mandates...');
-  let deputes: Awaited<ReturnType<typeof fetchDeputesGironde>> = [];
+  let deputes: Awaited<ReturnType<typeof fetchDeputes>> = [];
   let officialResults: Awaited<ReturnType<typeof upsertOfficials>> = [];
   const step1 = await runStep('officials', async () => {
-    deputes = await withRetry(() => fetchDeputesGironde(), {
+    deputes = await withRetry(() => fetchDeputes(), {
       source: 'nosdeputes',
     });
     officialResults = await upsertOfficials(db, deputes);

@@ -20,7 +20,7 @@ vi.mock('./utils/retry.js', () => ({
 }));
 
 vi.mock('./sources/nosdeputes.js', () => ({
-  fetchDeputesGironde: vi.fn(),
+  fetchDeputes: vi.fn(),
 }));
 vi.mock('./sources/nosdeputes-votes.js', () => ({
   fetchVotesForDepute: vi.fn(),
@@ -75,7 +75,7 @@ vi.mock('./upsert/electoral-results.js', () => ({
 }));
 
 import { run } from './run.js';
-import { fetchDeputesGironde } from './sources/nosdeputes.js';
+import { fetchDeputes } from './sources/nosdeputes.js';
 import { fetchVotesForDepute } from './sources/nosdeputes-votes.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
 import { fetchAffiliations } from './sources/nosdeputes-affiliations.js';
@@ -95,7 +95,7 @@ import { upsertCommittees } from './upsert/committees.js';
 import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 function setupHappyPath() {
-  vi.mocked(fetchDeputesGironde).mockResolvedValue([
+  vi.mocked(fetchDeputes).mockResolvedValue([
     { id: 1, slug: 'marie-dupont', id_an: 'PA100001' },
   ] as never);
   vi.mocked(upsertOfficials).mockResolvedValue([
@@ -149,7 +149,7 @@ describe('run', () => {
     expect(results).toHaveLength(9);
     expect(results[0].source).toBe('officials');
     expect(results.every((r) => !r.error)).toBe(true);
-    expect(fetchDeputesGironde).toHaveBeenCalledTimes(1);
+    expect(fetchDeputes).toHaveBeenCalledTimes(1);
     expect(upsertOfficials).toHaveBeenCalledTimes(1);
   });
 
