@@ -192,3 +192,37 @@ describe('Fiche élu — section participations (#57)', () => {
     expect(content).toContain('Aucun intérêt déclaré');
   });
 });
+
+describe('Fiche élu — section presse (#58)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries press_mentions table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('pressMentions');
+    expect(content).toContain('pressByOfficial');
+  });
+
+  it('displays article title as link to source', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('p.sourceUrl');
+    expect(content).toContain('p.title');
+    expect(content).toContain('target="_blank"');
+    expect(content).toContain('rel="noopener noreferrer"');
+  });
+
+  it('shows source name and published date', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('p.sourceName');
+    expect(content).toContain('p.publishedDate');
+  });
+
+  it('shows summary when available', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('p.summary');
+  });
+
+  it('handles empty press list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucune mention presse enregistrée');
+  });
+});

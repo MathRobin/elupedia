@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions } from '@elupedia/shared';
 import { eq, isNull, desc } from 'drizzle-orm';
 
 export async function getStaticPaths() {
@@ -95,6 +95,25 @@ export async function getStaticPaths() {
     interestsByOfficial.set(i.officialId, list);
   }
 
+  const allPress = await db
+    .select({
+      officialId: pressMentions.officialId,
+      title: pressMentions.title,
+      sourceName: pressMentions.sourceName,
+      sourceUrl: pressMentions.sourceUrl,
+      publishedDate: pressMentions.publishedDate,
+      summary: pressMentions.summary,
+    })
+    .from(pressMentions)
+    .orderBy(desc(pressMentions.publishedDate));
+
+  const pressByOfficial = new Map<string, typeof allPress>();
+  for (const p of allPress) {
+    const list = pressByOfficial.get(p.officialId) ?? [];
+    list.push(p);
+    pressByOfficial.set(p.officialId, list);
+  }
+
   return rows.map((row) => ({
     params: { slug: row.id },
     props: {
@@ -103,6 +122,7 @@ export async function getStaticPaths() {
       deputyAffiliations: affiliationsByOfficial.get(row.id) ?? [],
       deputyStaffers: staffersByOfficial.get(row.id) ?? [],
       deputyInterests: interestsByOfficial.get(row.id) ?? [],
+      deputyPress: pressByOfficial.get(row.id) ?? [],
     },
   }));
 }
@@ -137,6 +157,15 @@ type Interest = {
   declaredDate: string;
 };
 
+type PressMention = {
+  officialId: string;
+  title: string;
+  sourceName: string;
+  sourceUrl: string;
+  publishedDate: string;
+  summary: string | null;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -154,9 +183,10 @@ type Props = {
   deputyAffiliations: Affiliation[];
   deputyStaffers: Staffer[];
   deputyInterests: Interest[];
+  deputyPress: PressMention[];
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress } = Astro.props as Props;
 
 const interestTypeLabels: Record<string, string> = {
   company_share: 'Participation en entreprise',
@@ -369,6 +399,42 @@ const positionColors: Record<string, string> = {
             </tbody>
           </table>
         </div>
+      )}
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+        Dans la presse
+        {deputyPress.length > 0 && (
+          <span class="ml-2 text-sm font-normal text-gray-400">({deputyPress.length})</span>
+        )}
+      </h2>
+
+      {deputyPress.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucune mention presse enregistrée.</p>
+      ) : (
+        <ul class="mt-4 space-y-4">
+          {deputyPress.map((p) => (
+            <li class="border-b border-gray-100 pb-4">
+              <a
+                href={p.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="font-medium text-blue-700 hover:underline"
+              >
+                {p.title}
+              </a>
+              <div class="mt-1 flex items-center gap-2 text-sm text-gray-500">
+                <span>{p.sourceName}</span>
+                <span>&middot;</span>
+                <span>{new Date(p.publishedDate).toLocaleDateString('fr-FR')}</span>
+              </div>
+              {p.summary && (
+                <p class="mt-2 text-sm text-gray-600">{p.summary}</p>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   </div>
