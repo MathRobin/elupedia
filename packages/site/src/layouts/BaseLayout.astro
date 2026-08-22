@@ -64,15 +64,23 @@ const ogImage = new URL('/og-default.png', Astro.site);
     <link rel="stylesheet" href="/tarteaucitron/css/tarteaucitron.css" />
   </head>
   <body class="min-h-screen bg-white text-gray-900 flex flex-col">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:text-sm">
+      Aller au contenu principal
+    </a>
+
     <header class="border-b border-gray-200">
-      <nav class="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+      <nav class="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between" aria-label="Navigation principale">
         <a href="/" class="text-xl font-bold text-gray-900 no-underline">
           Elupedia
         </a>
+        <ul class="flex items-center gap-4 text-sm">
+          <li><a href="/a-propos" class="text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 no-underline">À propos</a></li>
+          <li><a href="/donnees-personnelles" class="text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 no-underline">Données personnelles</a></li>
+        </ul>
       </nav>
     </header>
 
-    <main class="mx-auto max-w-6xl px-4 py-8 flex-1">
+    <main id="main-content" class="mx-auto max-w-6xl px-4 py-8 flex-1">
       <slot />
     </main>
 
