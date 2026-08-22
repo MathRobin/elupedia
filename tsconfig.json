@@ -1,8 +1,4 @@
 {
   "files": [],
-  "references": [
-    { "path": "packages/shared" },
-    { "path": "packages/ingest" },
-    { "path": "packages/site" }
-  ]
+  "references": [{ "path": "packages/shared" }, { "path": "packages/ingest" }]
 }

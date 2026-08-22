@@ -59,15 +59,14 @@ describe('typescript config', () => {
     expect(base.compilerOptions.strict).toBe(true);
   });
 
-  it('root tsconfig.json references all packages', () => {
+  it('root tsconfig.json references composite packages', () => {
     const root_ = readJson('tsconfig.json');
     const paths = root_.references.map((r) => r.path);
     expect(paths).toContain('packages/shared');
     expect(paths).toContain('packages/ingest');
-    expect(paths).toContain('packages/site');
   });
 
-  for (const pkg of ['ingest', 'site', 'shared']) {
+  for (const pkg of ['ingest', 'shared']) {
     it(`packages/${pkg}/tsconfig.json extends base`, () => {
       const tsconfig = readJson(`packages/${pkg}/tsconfig.json`);
       expect(tsconfig.extends).toBe('../../tsconfig.base.json');
@@ -78,6 +77,11 @@ describe('typescript config', () => {
       expect(tsconfig.compilerOptions.composite).toBe(true);
     });
   }
+
+  it('packages/site/tsconfig.json extends astro strict', () => {
+    const tsconfig = readJson('packages/site/tsconfig.json');
+    expect(tsconfig.extends).toBe('astro/tsconfigs/strict');
+  });
 });
 
 describe('error cases', () => {
