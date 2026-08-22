@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull } from 'drizzle-orm';
 
 export async function getStaticPaths() {
@@ -148,6 +148,24 @@ export async function getStaticPaths() {
     linksByOfficial.set(l.officialId, list);
   }
 
+  const allActivities = await db
+    .select({
+      officialId: parliamentaryActivity.officialId,
+      type: parliamentaryActivity.type,
+      title: parliamentaryActivity.title,
+      date: parliamentaryActivity.date,
+      status: parliamentaryActivity.status,
+    })
+    .from(parliamentaryActivity)
+    .orderBy(desc(parliamentaryActivity.date));
+
+  const activitiesByOfficial = new Map<string, typeof allActivities>();
+  for (const act of allActivities) {
+    const list = activitiesByOfficial.get(act.officialId) ?? [];
+    list.push(act);
+    activitiesByOfficial.set(act.officialId, list);
+  }
+
   const allMandates = await db
     .select({
       officialId: mandates.officialId,
@@ -201,6 +219,7 @@ export async function getStaticPaths() {
       deputyPress: pressByOfficial.get(row.id) ?? [],
       deputyAddresses: addressesByOfficial.get(row.id) ?? [],
       deputyLinks: linksByOfficial.get(row.id) ?? [],
+      deputyActivities: activitiesByOfficial.get(row.id) ?? [],
       predecessor: predecessorMap.get(row.id) ?? null,
       successor: successorMap.get(row.id) ?? null,
     },
@@ -262,6 +281,14 @@ type ExternalLink = {
   url: string;
 };
 
+type Activity = {
+  officialId: string;
+  type: string;
+  title: string;
+  date: string;
+  status: string | null;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -282,11 +309,12 @@ type Props = {
   deputyPress: PressMention[];
   deputyAddresses: Address[];
   deputyLinks: ExternalLink[];
+  deputyActivities: Activity[];
   predecessor: { id: string; firstName: string; lastName: string } | null;
   successor: { id: string; firstName: string; lastName: string } | null;
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, predecessor, successor } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, predecessor, successor } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -303,6 +331,25 @@ const platformLabels: Record<string, string> = {
   official_page: 'Fiche officielle',
   personal_website: 'Site personnel',
   madada: 'MaDada.fr',
+};
+
+const activityTypeLabels: Record<string, string> = {
+  written_question: 'Question écrite',
+  oral_question: 'Question orale',
+  amendment: 'Amendement',
+  report: 'Rapport',
+};
+
+const statusLabels: Record<string, string> = {
+  adopted: 'Adopté',
+  rejected: 'Rejeté',
+  withdrawn: 'Retiré',
+};
+
+const statusColors: Record<string, string> = {
+  adopted: 'text-green-700 bg-green-50',
+  rejected: 'text-red-700 bg-red-50',
+  withdrawn: 'text-yellow-700 bg-yellow-50',
 };
 
 const interestTypeLabels: Record<string, string> = {
@@ -497,6 +544,54 @@ const positionColors: Record<string, string> = {
             </li>
           ))}
         </ul>
+      )}
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+        Activité parlementaire
+        {deputyActivities.length > 0 && (
+          <span class="ml-2 text-sm font-normal text-gray-400">({deputyActivities.length})</span>
+        )}
+      </h2>
+
+      {deputyActivities.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucune activité parlementaire enregistrée.</p>
+      ) : (
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-left text-gray-500">
+                <th class="pb-2 pr-4 font-medium">Date</th>
+                <th class="pb-2 pr-4 font-medium">Type</th>
+                <th class="pb-2 pr-4 font-medium">Intitulé</th>
+                <th class="pb-2 font-medium">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deputyActivities.map((act) => (
+                <tr class="border-b border-gray-100">
+                  <td class="py-2 pr-4 whitespace-nowrap">
+                    {new Date(act.date).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td class="py-2 pr-4 whitespace-nowrap">
+                    {activityTypeLabels[act.type] ?? act.type}
+                  </td>
+                  <td class="py-2 pr-4">{act.title}</td>
+                  <td class="py-2">
+                    {act.status ? (
+                      <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusColors[act.status] ?? ''}`}>
+                        {statusLabels[act.status] ?? act.status}
+                      </span>
+                    ) : (
+                      <span class="text-gray-400">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
 

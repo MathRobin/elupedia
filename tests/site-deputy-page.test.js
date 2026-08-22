@@ -338,3 +338,43 @@ describe('Fiche élu — prédécesseur/successeur (#61)', () => {
     expect(content).toContain('/elus/${successor.id}');
   });
 });
+
+describe('Fiche élu — activité parlementaire (#62)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries parliamentary_activity table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('parliamentaryActivity');
+    expect(content).toContain('activitiesByOfficial');
+  });
+
+  it('translates activity types to French', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Question écrite');
+    expect(content).toContain('Question orale');
+    expect(content).toContain('Amendement');
+    expect(content).toContain('Rapport');
+  });
+
+  it('displays activity table with date, type, title, status', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('act.date');
+    expect(content).toContain('act.type');
+    expect(content).toContain('act.title');
+    expect(content).toContain('act.status');
+  });
+
+  it('shows amendment status with colored badges', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('statusLabels');
+    expect(content).toContain('statusColors');
+    expect(content).toContain('Adopté');
+    expect(content).toContain('Rejeté');
+    expect(content).toContain('Retiré');
+  });
+
+  it('handles empty activities list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucune activité parlementaire enregistrée');
+  });
+});
