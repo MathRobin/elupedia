@@ -1345,6 +1345,7 @@ __metadata:
     eslint: "npm:^10.9.0"
     eslint-config-prettier: "npm:^10.1.8"
     prettier: "npm:^3.9.6"
+    tsx: "npm:^4.23.12"
     typescript: "npm:~5.8"
     typescript-eslint: "npm:^8.67.0"
     vitest: "npm:^4.1.11"
@@ -2499,7 +2500,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:^4.21.0":
+"tsx@npm:^4.21.0, tsx@npm:^4.23.12":
   version: 4.23.12
   resolution: "tsx@npm:4.23.12"
   dependencies:
