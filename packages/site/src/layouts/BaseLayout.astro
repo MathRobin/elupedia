@@ -21,6 +21,37 @@ const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{fullTitle}</title>
+    <script is:inline src="/tarteaucitron/tarteaucitron.min.js"></script>
+    <script is:inline>
+      tarteaucitron.init({
+        privacyUrl: '/mentions-legales',
+        bodyPosition: 'bottom',
+        hashtag: '#tarteaucitron',
+        cookieName: 'tarteaucitron',
+        orientation: 'middle',
+        groupServices: false,
+        showDetailsOnClick: true,
+        serviceDefaultState: 'wait',
+        showAlertSmall: false,
+        cookieslist: false,
+        closePopup: false,
+        showIcon: true,
+        iconPosition: 'BottomRight',
+        adblocker: false,
+        DenyAllCta: true,
+        AcceptAllCta: true,
+        highPrivacy: true,
+        handleBrowserDNTRequest: false,
+        removeCredit: false,
+        moreInfoLink: true,
+        useExternalCss: true,
+        useExternalJs: false,
+        readmoreLink: '',
+        mandatory: true,
+        mandatoryCta: true,
+      });
+    </script>
+    <link rel="stylesheet" href="/tarteaucitron/css/tarteaucitron.css" />
   </head>
   <body class="min-h-screen bg-white text-gray-900 flex flex-col">
     <header class="border-b border-gray-200">

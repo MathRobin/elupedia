@@ -4,7 +4,13 @@ import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['**/node_modules/', '**/dist/', '.yarn/', '**/.astro/'],
+    ignores: [
+      '**/node_modules/',
+      '**/dist/',
+      '.yarn/',
+      '**/.astro/',
+      '**/public/',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
