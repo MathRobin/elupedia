@@ -87,7 +87,7 @@ const sortedByName = [...ballotVotes].sort((a, b) =>
 ---
 
 <BaseLayout title={ballot.title} description={`Scrutin du ${new Date(ballot.date).toLocaleDateString('fr-FR')}`}>
-  <div class="max-w-3xl">
+  <div class="max-w-3xl" data-pagefind-body>
     <a href="/" class="text-sm text-blue-600 hover:underline">&larr; Retour à la liste</a>
 
     <h1 class="mt-6 text-3xl font-bold">{ballot.title}</h1>
