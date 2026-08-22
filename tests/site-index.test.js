@@ -82,7 +82,7 @@ describe('Styling grille de cartes (#52)', () => {
 
   it('links cards to deputy detail page', () => {
     const content = readFileSync(indexPath, 'utf-8');
-    expect(content).toContain('/deputes/');
+    expect(content).toContain('/elus/');
     expect(content).toContain('d.id');
   });
 });

@@ -1,0 +1,111 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getDb } from '../../lib/db.js';
+import { officials, mandates } from '@elupedia/shared';
+import { eq, isNull } from 'drizzle-orm';
+
+export async function getStaticPaths() {
+  const db = getDb();
+
+  const rows = await db
+    .select({
+      id: officials.id,
+      firstName: officials.firstName,
+      lastName: officials.lastName,
+      birthDate: officials.birthDate,
+      photoUrl: officials.photoUrl,
+      district: mandates.district,
+      department: mandates.department,
+      startDate: mandates.startDate,
+      politicalGroup: mandates.politicalGroup,
+      mandateType: mandates.type,
+    })
+    .from(officials)
+    .innerJoin(mandates, eq(mandates.officialId, officials.id))
+    .where(isNull(mandates.endDate));
+
+  return rows.map((row) => ({
+    params: { slug: row.id },
+    props: { deputy: row },
+  }));
+}
+
+type Props = {
+  deputy: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    birthDate: string | null;
+    photoUrl: string | null;
+    district: string | null;
+    department: string | null;
+    startDate: string;
+    politicalGroup: string | null;
+    mandateType: string;
+  };
+};
+
+const { deputy } = Astro.props as Props;
+const fullName = `${deputy.firstName} ${deputy.lastName}`;
+---
+
+<BaseLayout title={fullName} description={`Fiche de ${fullName}, ${deputy.mandateType}`}>
+  <div class="max-w-3xl">
+    <a href="/" class="text-sm text-blue-600 hover:underline">&larr; Retour à la liste</a>
+
+    <div class="mt-6 flex items-start gap-6">
+      {deputy.photoUrl ? (
+        <img
+          src={deputy.photoUrl}
+          alt={fullName}
+          class="h-32 w-32 shrink-0 rounded-full object-cover bg-gray-100"
+        />
+      ) : (
+        <div class="flex h-32 w-32 shrink-0 items-center justify-center rounded-full bg-gray-100 text-3xl font-medium text-gray-400">
+          {deputy.firstName[0]}{deputy.lastName[0]}
+        </div>
+      )}
+
+      <div>
+        <h1 class="text-3xl font-bold">{fullName}</h1>
+        {deputy.birthDate && (
+          <p class="mt-1 text-gray-500">
+            Né{deputy.firstName.endsWith('e') ? 'e' : ''} le {new Date(deputy.birthDate).toLocaleDateString('fr-FR')}
+          </p>
+        )}
+      </div>
+    </div>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">Mandat en cours</h2>
+      <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <dt class="text-sm text-gray-500">Type</dt>
+          <dd class="font-medium">{deputy.mandateType}</dd>
+        </div>
+        {deputy.district && (
+          <div>
+            <dt class="text-sm text-gray-500">Circonscription</dt>
+            <dd class="font-medium">{deputy.district}</dd>
+          </div>
+        )}
+        {deputy.department && (
+          <div>
+            <dt class="text-sm text-gray-500">Département</dt>
+            <dd class="font-medium">{deputy.department}</dd>
+          </div>
+        )}
+        {deputy.politicalGroup && (
+          <div>
+            <dt class="text-sm text-gray-500">Groupe politique</dt>
+            <dd class="font-medium">{deputy.politicalGroup}</dd>
+          </div>
+        )}
+        <div>
+          <dt class="text-sm text-gray-500">Début de mandat</dt>
+          <dd class="font-medium">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+</BaseLayout>
