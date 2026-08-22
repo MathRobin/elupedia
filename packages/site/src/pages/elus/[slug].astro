@@ -442,6 +442,41 @@ const positionColors: Record<string, string> = {
   abstain: 'text-yellow-700 bg-yellow-50',
   absent: 'text-gray-500 bg-gray-50',
 };
+
+type TimelineEvent = { date: string; category: string; label: string };
+
+const timelineEvents: TimelineEvent[] = [];
+
+for (const a of deputyAffiliations) {
+  timelineEvents.push({ date: a.startDate, category: 'Affiliation', label: `Rejoint ${a.partyOrGroup}` });
+  if (a.endDate) {
+    timelineEvents.push({ date: a.endDate, category: 'Affiliation', label: `Quitte ${a.partyOrGroup}` });
+  }
+}
+
+for (const s of deputyStaffers) {
+  timelineEvents.push({ date: s.startDate, category: 'Collaborateur', label: `Arrivée de ${s.firstName} ${s.lastName}` });
+  if (s.endDate) {
+    timelineEvents.push({ date: s.endDate, category: 'Collaborateur', label: `Départ de ${s.firstName} ${s.lastName}` });
+  }
+}
+
+for (const v of deputyVotes) {
+  timelineEvents.push({ date: v.ballotDate, category: 'Vote', label: `${positionLabels[v.position] ?? v.position} — ${v.ballotTitle}` });
+}
+
+for (const p of deputyPress) {
+  timelineEvents.push({ date: p.publishedDate, category: 'Presse', label: p.title });
+}
+
+timelineEvents.sort((a, b) => b.date.localeCompare(a.date));
+
+const timelineCategoryColors: Record<string, string> = {
+  Affiliation: 'text-purple-700 bg-purple-50',
+  Collaborateur: 'text-teal-700 bg-teal-50',
+  Vote: 'text-blue-700 bg-blue-50',
+  Presse: 'text-orange-700 bg-orange-50',
+};
 ---
 
 <BaseLayout title={fullName} description={`Fiche de ${fullName}, ${deputy.mandateType}`}>
@@ -845,6 +880,33 @@ const positionColors: Record<string, string> = {
               {p.summary && (
                 <p class="mt-2 text-sm text-gray-600">{p.summary}</p>
               )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+        Chronologie
+        {timelineEvents.length > 0 && (
+          <span class="ml-2 text-sm font-normal text-gray-400">({timelineEvents.length})</span>
+        )}
+      </h2>
+
+      {timelineEvents.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucun événement à afficher.</p>
+      ) : (
+        <ul class="mt-4 space-y-3">
+          {timelineEvents.map((evt) => (
+            <li class="flex items-baseline gap-4 border-b border-gray-100 pb-3">
+              <span class="shrink-0 text-sm text-gray-500 whitespace-nowrap">
+                {new Date(evt.date).toLocaleDateString('fr-FR')}
+              </span>
+              <span class={`shrink-0 inline-block rounded px-2 py-0.5 text-xs font-medium ${timelineCategoryColors[evt.category] ?? ''}`}>
+                {evt.category}
+              </span>
+              <span class="text-sm">{evt.label}</span>
             </li>
           ))}
         </ul>

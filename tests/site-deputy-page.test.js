@@ -452,3 +452,42 @@ describe('Fiche élu — historique électoral (#64)', () => {
     expect(content).toContain('Aucun résultat électoral enregistré');
   });
 });
+
+describe('Fiche élu — timeline unifiée (#65)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('builds timeline from affiliations, staffers, votes and press', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('timelineEvents');
+    expect(content).toContain('deputyAffiliations');
+    expect(content).toContain('deputyStaffers');
+    expect(content).toContain('deputyVotes');
+    expect(content).toContain('deputyPress');
+  });
+
+  it('sorts timeline by date descending', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('b.date.localeCompare(a.date)');
+  });
+
+  it('displays category badges with colors', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('timelineCategoryColors');
+    expect(content).toContain('evt.category');
+    expect(content).toContain('evt.label');
+    expect(content).toContain('evt.date');
+  });
+
+  it('has color-coded categories', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Affiliation');
+    expect(content).toContain('Collaborateur');
+    expect(content).toContain('Vote');
+    expect(content).toContain('Presse');
+  });
+
+  it('handles empty timeline', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucun événement à afficher');
+  });
+});
