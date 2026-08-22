@@ -9,6 +9,11 @@ on:
 jobs:
   ingest:
     runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.run.outputs.has_changes }}
+      total_created: ${{ steps.run.outputs.total_created }}
+      total_updated: ${{ steps.run.outputs.total_updated }}
+      changed_sources: ${{ steps.run.outputs.changed_sources }}
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +29,15 @@ jobs:
         run: yarn install --immutable
 
       - name: Run ingestion
+        id: run
         run: yarn workspace @elupedia/ingest ingest
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingest-report
+          path: packages/ingest/ingest-report.json
+          if-no-files-found: ignore
