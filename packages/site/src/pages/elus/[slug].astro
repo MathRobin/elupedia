@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks } from '@elupedia/shared';
-import { eq, isNull, desc } from 'drizzle-orm';
+import { eq, isNull, desc, and, lt, gt, isNotNull } from 'drizzle-orm';
 
 export async function getStaticPaths() {
   const db = getDb();
@@ -148,6 +148,48 @@ export async function getStaticPaths() {
     linksByOfficial.set(l.officialId, list);
   }
 
+  const allMandates = await db
+    .select({
+      officialId: mandates.officialId,
+      firstName: officials.firstName,
+      lastName: officials.lastName,
+      type: mandates.type,
+      district: mandates.district,
+      startDate: mandates.startDate,
+      endDate: mandates.endDate,
+    })
+    .from(mandates)
+    .innerJoin(officials, eq(officials.id, mandates.officialId))
+    .orderBy(mandates.startDate);
+
+  type Neighbor = { id: string; firstName: string; lastName: string } | null;
+  const predecessorMap = new Map<string, Neighbor>();
+  const successorMap = new Map<string, Neighbor>();
+
+  const seatMap = new Map<string, typeof allMandates>();
+  for (const m of allMandates) {
+    const key = `${m.type}::${m.district ?? ''}`;
+    const list = seatMap.get(key) ?? [];
+    list.push(m);
+    seatMap.set(key, list);
+  }
+
+  for (const row of rows) {
+    const key = `${row.mandateType}::${row.district ?? ''}`;
+    const seat = seatMap.get(key) ?? [];
+    const idx = seat.findIndex((m) => m.officialId === row.id);
+    if (idx > 0) {
+      const prev = seat[idx - 1];
+      predecessorMap.set(row.id, { id: prev.officialId, firstName: prev.firstName, lastName: prev.lastName });
+    }
+    if (idx >= 0 && idx < seat.length - 1) {
+      const next = seat[idx + 1];
+      if (next.officialId !== row.id) {
+        successorMap.set(row.id, { id: next.officialId, firstName: next.firstName, lastName: next.lastName });
+      }
+    }
+  }
+
   return rows.map((row) => ({
     params: { slug: row.id },
     props: {
@@ -159,6 +201,8 @@ export async function getStaticPaths() {
       deputyPress: pressByOfficial.get(row.id) ?? [],
       deputyAddresses: addressesByOfficial.get(row.id) ?? [],
       deputyLinks: linksByOfficial.get(row.id) ?? [],
+      predecessor: predecessorMap.get(row.id) ?? null,
+      successor: successorMap.get(row.id) ?? null,
     },
   }));
 }
@@ -238,9 +282,11 @@ type Props = {
   deputyPress: PressMention[];
   deputyAddresses: Address[];
   deputyLinks: ExternalLink[];
+  predecessor: { id: string; firstName: string; lastName: string } | null;
+  successor: { id: string; firstName: string; lastName: string } | null;
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, predecessor, successor } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -336,6 +382,26 @@ const positionColors: Record<string, string> = {
           <dt class="text-sm text-gray-500">Début de mandat</dt>
           <dd class="font-medium">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
         </div>
+        {predecessor && (
+          <div>
+            <dt class="text-sm text-gray-500">Prédécesseur</dt>
+            <dd class="font-medium">
+              <a href={`/elus/${predecessor.id}`} class="text-blue-600 hover:underline">
+                {predecessor.firstName} {predecessor.lastName}
+              </a>
+            </dd>
+          </div>
+        )}
+        {successor && (
+          <div>
+            <dt class="text-sm text-gray-500">Successeur</dt>
+            <dd class="font-medium">
+              <a href={`/elus/${successor.id}`} class="text-blue-600 hover:underline">
+                {successor.firstName} {successor.lastName}
+              </a>
+            </dd>
+          </div>
+        )}
       </dl>
     </section>
 

@@ -300,3 +300,41 @@ describe('Fiche élu — section liens extérieurs (#60)', () => {
     expect(content).toContain('Aucun lien externe enregistré');
   });
 });
+
+describe('Fiche élu — prédécesseur/successeur (#61)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries all mandates to find predecessors/successors', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('allMandates');
+    expect(content).toContain('predecessorMap');
+    expect(content).toContain('successorMap');
+  });
+
+  it('groups mandates by district and type', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('seatMap');
+    expect(content).toContain('m.type');
+    expect(content).toContain('m.district');
+  });
+
+  it('displays predecessor link when available', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('predecessor');
+    expect(content).toContain('Prédécesseur');
+    expect(content).toContain('predecessor.id');
+  });
+
+  it('displays successor link when available', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('successor');
+    expect(content).toContain('Successeur');
+    expect(content).toContain('successor.id');
+  });
+
+  it('links to /elus/ pages', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('/elus/${predecessor.id}');
+    expect(content).toContain('/elus/${successor.id}');
+  });
+});
