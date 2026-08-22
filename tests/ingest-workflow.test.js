@@ -38,9 +38,9 @@ describe('Ingest workflow (#40)', () => {
     expect(content).toContain('yarn workspace @elupedia/ingest ingest');
   });
 
-  it('uses Node.js 22', () => {
+  it('uses Node.js 26', () => {
     const content = readFileSync(wfPath, 'utf-8');
-    expect(content).toContain('node-version: 22');
+    expect(content).toContain('node-version: 26');
   });
 });
 

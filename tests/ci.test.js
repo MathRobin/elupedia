@@ -31,9 +31,9 @@ describe('CI GitHub Actions (#21)', () => {
     expect(content).toContain('yarn test');
   });
 
-  it('uses Node.js 22', () => {
+  it('uses Node.js 26', () => {
     const content = readFileSync(ciPath, 'utf-8');
-    expect(content).toContain('node-version: 22');
+    expect(content).toContain('node-version: 26');
   });
 });
 

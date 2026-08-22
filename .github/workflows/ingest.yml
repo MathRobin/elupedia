@@ -3,7 +3,7 @@ name: Ingestion
 on:
   schedule:
     # 02:00 UTC = 04:00 Paris (CEST) / 03:00 Paris (CET)
-    - cron: '0 2 * * *'
+  #    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
 
       - name: Enable Corepack
         run: corepack enable
@@ -52,7 +52,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
 
       - name: Enable Corepack
         run: corepack enable
