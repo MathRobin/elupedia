@@ -92,6 +92,9 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
 - SEO : sitemap XML généré au build (`@astrojs/sitemap`), meta tags Open Graph (title, description, image, url, type, locale, site_name), URL canonique
 - Site URL : `https://elupedia.fr`
 - Consentement cookies : tarteaucitron.js vendorisé dans `public/tarteaucitron/`, conforme CNIL (highPrivacy, DenyAllCta, AcceptAllCta)
+- Recherche : Pagefind (indexation au postbuild, recherche côté client sans backend)
+- Composants React : `src/components/SearchBar.tsx` (barre de recherche Pagefind, ARIA combobox)
+- Accessibilité : skip-to-content, focus-visible global, aria-label sur la navigation, contraste WCAG AA (minimum text-gray-500 pour le texte informatif)
 - Pages :
   - `src/pages/index.astro` — page d'accueil (grille de cartes des élus avec photo, nom, circonscription, groupe politique)
   - `src/pages/elus/[slug].astro` — fiche détaillée d'un élu (identité, mandat avec prédécesseur/successeur, coordonnées, affiliations, collaborateurs, activité parlementaire, commissions & groupes, historique électoral, intérêts déclarés, votes, presse, liens extérieurs, timeline unifiée, indicateur de dernière mise à jour)
@@ -120,4 +123,4 @@ Contient le client DB (Drizzle + Neon), le schéma complet (13 tables), les type
 
 - **Framework** : Vitest (configuré à la racine et dans chaque package)
 - **Commande** : `yarn test` lance les tests racine puis ceux de chaque workspace
-- **Couverture M4** : ~427 tests (structure monorepo, configs, schéma DB, migration, CI, clients API, upsert/diff, retry, orchestration, cron workflow, change detection, layout, tarteaucitron, SEO, page d'accueil, fiche élu avec 14 sections, page scrutin, page à propos, page RGPD)
+- **Couverture M5** : ~448 tests (structure monorepo, configs, schéma DB, migration, CI, clients API, upsert/diff, retry, orchestration, cron workflow, change detection, layout, tarteaucitron, SEO, page d'accueil, fiche élu avec 14 sections, page scrutin, page à propos, page RGPD, Pagefind, barre de recherche, accessibilité)
