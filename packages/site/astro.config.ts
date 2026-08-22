@@ -8,6 +8,9 @@ export default defineConfig({
   integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()],
+    define: {
+      'import.meta.env.DATABASE_URL': 'undefined',
+    },
   },
   output: 'static',
 });
