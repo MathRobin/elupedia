@@ -520,14 +520,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@elupedia/ingest@workspace:packages/ingest"
   dependencies:
-    "@elupedia/shared": "workspace:^"
+    "@elupedia/shared": "npm:*"
     "@neondatabase/serverless": "npm:^1.1.0"
     drizzle-orm: "npm:^0.45.2"
     zod: "npm:^4.4.3"
   languageName: unknown
   linkType: soft
 
-"@elupedia/shared@workspace:*, @elupedia/shared@workspace:^, @elupedia/shared@workspace:packages/shared":
+"@elupedia/shared@npm:*, @elupedia/shared@workspace:*, @elupedia/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@elupedia/shared@workspace:packages/shared"
   dependencies:
