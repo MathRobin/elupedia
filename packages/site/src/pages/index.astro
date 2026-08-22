@@ -1,10 +1,65 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getDb } from '../lib/db.js';
+import { officials, mandates } from '@elupedia/shared';
+import { eq, isNull } from 'drizzle-orm';
+
+type Official = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  district: string | null;
+};
+
+let deputesList: Official[] = [];
+let error: string | null = null;
+
+try {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: officials.id,
+      firstName: officials.firstName,
+      lastName: officials.lastName,
+      district: mandates.district,
+    })
+    .from(officials)
+    .innerJoin(mandates, eq(mandates.officialId, officials.id))
+    .where(isNull(mandates.endDate));
+
+  deputesList = rows;
+} catch (e) {
+  error = e instanceof Error ? e.message : String(e);
+}
 ---
 
 <BaseLayout>
-  <h1 class="text-4xl font-bold">Elupedia</h1>
-  <p class="mt-4 text-lg text-gray-600">
-    Encyclopédie ouverte des élus français.
+  <h1 class="text-4xl font-bold">Députés de Gironde</h1>
+  <p class="mt-2 text-lg text-gray-600">
+    {deputesList.length > 0
+      ? `${deputesList.length} députés en exercice`
+      : 'Aucun député trouvé'}
   </p>
+
+  {error && (
+    <p class="mt-4 text-sm text-red-600">
+      Impossible de charger les données : {error}
+    </p>
+  )}
+
+  <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {deputesList.map((d) => (
+      <a
+        href={`/deputes/${d.id}`}
+        class="block rounded-lg border border-gray-200 p-4 hover:border-gray-400 transition-colors no-underline"
+      >
+        <p class="font-semibold text-gray-900">
+          {d.firstName} {d.lastName}
+        </p>
+        {d.district && (
+          <p class="mt-1 text-sm text-gray-500">{d.district}</p>
+        )}
+      </a>
+    ))}
+  </div>
 </BaseLayout>
