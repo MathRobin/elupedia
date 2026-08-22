@@ -1,0 +1,44 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Elupedia',
+  description = 'Encyclopédie ouverte des élus français',
+} = Astro.props;
+
+const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{fullTitle}</title>
+  </head>
+  <body class="min-h-screen bg-white text-gray-900 flex flex-col">
+    <header class="border-b border-gray-200">
+      <nav class="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+        <a href="/" class="text-xl font-bold text-gray-900 no-underline">
+          Elupedia
+        </a>
+      </nav>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8 flex-1">
+      <slot />
+    </main>
+
+    <footer class="border-t border-gray-200 mt-auto">
+      <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-gray-500">
+        <p>Elupedia — Données ouvertes sur les élus français.</p>
+      </div>
+    </footer>
+  </body>
+</html>

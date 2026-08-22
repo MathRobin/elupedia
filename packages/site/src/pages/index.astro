@@ -1,19 +1,10 @@
 ---
-import '../styles/global.css';
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Elupedia</title>
-  </head>
-  <body class="min-h-screen bg-white text-gray-900">
-    <main class="mx-auto max-w-4xl px-4 py-16">
-      <h1 class="text-4xl font-bold">Elupedia</h1>
-      <p class="mt-4 text-lg text-gray-600">
-        Encyclopédie ouverte des élus français.
-      </p>
-    </main>
-  </body>
-</html>
+<BaseLayout>
+  <h1 class="text-4xl font-bold">Elupedia</h1>
+  <p class="mt-4 text-lg text-gray-600">
+    Encyclopédie ouverte des élus français.
+  </p>
+</BaseLayout>
