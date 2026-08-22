@@ -522,6 +522,7 @@ __metadata:
   dependencies:
     "@elupedia/shared": "npm:*"
     "@neondatabase/serverless": "npm:^1.1.0"
+    dotenv: "npm:^17.4.2"
     drizzle-orm: "npm:^0.45.2"
     zod: "npm:^4.4.3"
   languageName: unknown

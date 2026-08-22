@@ -1,4 +1,8 @@
 import { createDb } from '@elupedia/shared';
+import { config as loadDotenv } from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { withRetry } from './utils/retry.js';
 import { fetchDeputesGironde } from './sources/nosdeputes.js';
 import { fetchVotesForDepute } from './sources/nosdeputes-votes.js';
@@ -18,6 +22,9 @@ import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
 import { upsertCommittees } from './upsert/committees.js';
 import { upsertElectoralResults } from './upsert/electoral-results.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+loadDotenv({ path: path.resolve(__dirname, '../../../.env') });
 
 interface StepResult {
   source: string;
@@ -45,36 +52,46 @@ export async function run() {
   console.log('=== Ingestion started ===\n');
 
   console.log('[1/9] Officials & mandates...');
-  const deputes = await withRetry(() => fetchDeputesGironde(), {
-    source: 'nosdeputes',
+  let deputes: Awaited<ReturnType<typeof fetchDeputesGironde>> = [];
+  let officialResults: Awaited<ReturnType<typeof upsertOfficials>> = [];
+  const step1 = await runStep('officials', async () => {
+    deputes = await withRetry(() => fetchDeputesGironde(), {
+      source: 'nosdeputes',
+    });
+    officialResults = await upsertOfficials(db, deputes);
+    return { source: 'officials', created: officialResults.length, updated: 0 };
   });
-  const officialResults = await upsertOfficials(db, deputes);
-  results.push({
-    source: 'officials',
-    created: officialResults.length,
-    updated: 0,
-  });
+  results.push(step1);
 
   console.log('[2/9] Votes...');
-  results.push(
-    await runStep('votes', async () => {
-      let created = 0;
-      const updated = 0;
-      for (const official of officialResults) {
-        const depute = deputes.find(
-          (d) => (d.id_an ?? `nosdeputes-${d.id}`) === official.anId,
-        );
-        if (!depute) continue;
-        const voteDetails = await withRetry(
-          () => fetchVotesForDepute(depute.slug),
-          { source: `votes/${depute.slug}` },
-        );
-        const r = await upsertVotes(db, official.officialId, voteDetails);
-        created += r.length;
-      }
-      return { source: 'votes', created, updated };
-    }),
-  );
+  if (step1.error) {
+    results.push({
+      source: 'votes',
+      created: 0,
+      updated: 0,
+      error: 'skipped: officials fetch failed',
+    });
+  } else {
+    results.push(
+      await runStep('votes', async () => {
+        let created = 0;
+        const updated = 0;
+        for (const official of officialResults) {
+          const depute = deputes.find(
+            (d) => (d.id_an ?? `nosdeputes-${d.id}`) === official.anId,
+          );
+          if (!depute) continue;
+          const voteDetails = await withRetry(
+            () => fetchVotesForDepute(depute.slug),
+            { source: `votes/${depute.slug}` },
+          );
+          const r = await upsertVotes(db, official.officialId, voteDetails);
+          created += r.length;
+        }
+        return { source: 'votes', created, updated };
+      }),
+    );
+  }
 
   console.log('[3/9] Collaborateurs...');
   results.push(
@@ -92,19 +109,28 @@ export async function run() {
   );
 
   console.log('[4/9] Affiliations...');
-  results.push(
-    await runStep('affiliations', async () => {
-      const affiliations = await withRetry(() => fetchAffiliations(), {
-        source: 'nosdeputes-affiliations',
-      });
-      const r = await diffAffiliations(db, affiliations);
-      return {
-        source: 'affiliations',
-        created: r.created,
-        updated: r.ended,
-      };
-    }),
-  );
+  if (step1.error) {
+    results.push({
+      source: 'affiliations',
+      created: 0,
+      updated: 0,
+      error: 'skipped: officials fetch failed',
+    });
+  } else {
+    results.push(
+      await runStep('affiliations', async () => {
+        const affiliations = await withRetry(() => fetchAffiliations(), {
+          source: 'nosdeputes-affiliations',
+        });
+        const r = await diffAffiliations(db, affiliations);
+        return {
+          source: 'affiliations',
+          created: r.created,
+          updated: r.ended,
+        };
+      }),
+    );
+  }
 
   console.log('[5/9] Interests (HATVP)...');
   results.push(

@@ -10,6 +10,7 @@
   "dependencies": {
     "@elupedia/shared": "*",
     "@neondatabase/serverless": "^1.1.0",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "zod": "^4.4.3"
   }
