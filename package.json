@@ -15,7 +15,8 @@
     "typecheck": "tsc --build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx packages/shared/src/seed.ts"
+    "db:seed": "tsx packages/shared/src/seed.ts",
+    "smoke-test": "bash scripts/smoke-test.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
