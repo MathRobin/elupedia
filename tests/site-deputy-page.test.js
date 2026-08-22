@@ -226,3 +226,39 @@ describe('Fiche élu — section presse (#58)', () => {
     expect(content).toContain('Aucune mention presse enregistrée');
   });
 });
+
+describe('Fiche élu — section adresses (#59)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries addresses table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('addresses');
+    expect(content).toContain('addressesByOfficial');
+  });
+
+  it('translates address types to French', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Permanence');
+    expect(content).toContain('Bureau AN');
+  });
+
+  it('displays address details', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('addr.street');
+    expect(content).toContain('addr.postalCode');
+    expect(content).toContain('addr.city');
+  });
+
+  it('shows phone and email as clickable links', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('tel:');
+    expect(content).toContain('mailto:');
+    expect(content).toContain('addr.phone');
+    expect(content).toContain('addr.email');
+  });
+
+  it('handles empty addresses list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucune adresse enregistrée');
+  });
+});

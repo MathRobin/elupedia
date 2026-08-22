@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses } from '@elupedia/shared';
 import { eq, isNull, desc } from 'drizzle-orm';
 
 export async function getStaticPaths() {
@@ -114,6 +114,25 @@ export async function getStaticPaths() {
     pressByOfficial.set(p.officialId, list);
   }
 
+  const allAddresses = await db
+    .select({
+      officialId: addresses.officialId,
+      type: addresses.type,
+      street: addresses.street,
+      postalCode: addresses.postalCode,
+      city: addresses.city,
+      phone: addresses.phone,
+      email: addresses.email,
+    })
+    .from(addresses);
+
+  const addressesByOfficial = new Map<string, typeof allAddresses>();
+  for (const addr of allAddresses) {
+    const list = addressesByOfficial.get(addr.officialId) ?? [];
+    list.push(addr);
+    addressesByOfficial.set(addr.officialId, list);
+  }
+
   return rows.map((row) => ({
     params: { slug: row.id },
     props: {
@@ -123,6 +142,7 @@ export async function getStaticPaths() {
       deputyStaffers: staffersByOfficial.get(row.id) ?? [],
       deputyInterests: interestsByOfficial.get(row.id) ?? [],
       deputyPress: pressByOfficial.get(row.id) ?? [],
+      deputyAddresses: addressesByOfficial.get(row.id) ?? [],
     },
   }));
 }
@@ -166,6 +186,16 @@ type PressMention = {
   summary: string | null;
 };
 
+type Address = {
+  officialId: string;
+  type: string;
+  street: string | null;
+  postalCode: string | null;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -184,9 +214,15 @@ type Props = {
   deputyStaffers: Staffer[];
   deputyInterests: Interest[];
   deputyPress: PressMention[];
+  deputyAddresses: Address[];
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses } = Astro.props as Props;
+
+const addressTypeLabels: Record<string, string> = {
+  constituency_office: 'Permanence',
+  assembly_office: 'Bureau AN/Sénat',
+};
 
 const interestTypeLabels: Record<string, string> = {
   company_share: 'Participation en entreprise',
@@ -266,6 +302,41 @@ const positionColors: Record<string, string> = {
           <dd class="font-medium">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
         </div>
       </dl>
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">Coordonnées</h2>
+
+      {deputyAddresses.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucune adresse enregistrée.</p>
+      ) : (
+        <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {deputyAddresses.map((addr) => (
+            <div class="rounded-lg border border-gray-200 p-4">
+              <p class="text-sm font-semibold text-gray-700">
+                {addressTypeLabels[addr.type] ?? addr.type}
+              </p>
+              {(addr.street || addr.city) && (
+                <p class="mt-2 text-sm text-gray-600">
+                  {addr.street && <span>{addr.street}<br /></span>}
+                  {addr.postalCode && <span>{addr.postalCode} </span>}
+                  {addr.city}
+                </p>
+              )}
+              {addr.phone && (
+                <p class="mt-2 text-sm">
+                  <a href={`tel:${addr.phone}`} class="text-blue-600 hover:underline">{addr.phone}</a>
+                </p>
+              )}
+              {addr.email && (
+                <p class="mt-1 text-sm">
+                  <a href={`mailto:${addr.email}`} class="text-blue-600 hover:underline">{addr.email}</a>
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </section>
 
     <section class="mt-8">
