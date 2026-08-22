@@ -57,3 +57,46 @@ describe('Fiche élu (#53)', () => {
     expect(content).toContain('/elus/');
   });
 });
+
+describe('Fiche élu — section votes (#54)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries votes and ballots', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('votes');
+    expect(content).toContain('ballots');
+  });
+
+  it('sorts votes by date descending', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('desc(ballots.date)');
+  });
+
+  it('displays vote history table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('<table');
+    expect(content).toContain('v.ballotTitle');
+    expect(content).toContain('v.ballotDate');
+    expect(content).toContain('v.position');
+  });
+
+  it('translates vote positions to French', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain("for: 'Pour'");
+    expect(content).toContain("against: 'Contre'");
+    expect(content).toContain("abstain: 'Abstention'");
+    expect(content).toContain("absent: 'Absent'");
+  });
+
+  it('handles empty votes list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucun vote enregistré');
+  });
+
+  it('has color-coded position badges', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('positionColors');
+    expect(content).toContain('text-green-700');
+    expect(content).toContain('text-red-700');
+  });
+});
