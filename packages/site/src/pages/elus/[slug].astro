@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull } from 'drizzle-orm';
 
 export async function getStaticPaths() {
@@ -166,6 +166,24 @@ export async function getStaticPaths() {
     activitiesByOfficial.set(act.officialId, list);
   }
 
+  const allCommittees = await db
+    .select({
+      officialId: committees.officialId,
+      name: committees.name,
+      type: committees.type,
+      startDate: committees.startDate,
+      endDate: committees.endDate,
+    })
+    .from(committees)
+    .orderBy(desc(committees.startDate));
+
+  const committeesByOfficial = new Map<string, typeof allCommittees>();
+  for (const c of allCommittees) {
+    const list = committeesByOfficial.get(c.officialId) ?? [];
+    list.push(c);
+    committeesByOfficial.set(c.officialId, list);
+  }
+
   const allMandates = await db
     .select({
       officialId: mandates.officialId,
@@ -220,6 +238,7 @@ export async function getStaticPaths() {
       deputyAddresses: addressesByOfficial.get(row.id) ?? [],
       deputyLinks: linksByOfficial.get(row.id) ?? [],
       deputyActivities: activitiesByOfficial.get(row.id) ?? [],
+      deputyCommittees: committeesByOfficial.get(row.id) ?? [],
       predecessor: predecessorMap.get(row.id) ?? null,
       successor: successorMap.get(row.id) ?? null,
     },
@@ -289,6 +308,14 @@ type Activity = {
   status: string | null;
 };
 
+type Committee = {
+  officialId: string;
+  name: string;
+  type: string;
+  startDate: string;
+  endDate: string | null;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -310,11 +337,12 @@ type Props = {
   deputyAddresses: Address[];
   deputyLinks: ExternalLink[];
   deputyActivities: Activity[];
+  deputyCommittees: Committee[];
   predecessor: { id: string; firstName: string; lastName: string } | null;
   successor: { id: string; firstName: string; lastName: string } | null;
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, predecessor, successor } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, predecessor, successor } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -331,6 +359,14 @@ const platformLabels: Record<string, string> = {
   official_page: 'Fiche officielle',
   personal_website: 'Site personnel',
   madada: 'MaDada.fr',
+};
+
+const committeeTypeLabels: Record<string, string> = {
+  standing_committee: 'Commission permanente',
+  special_committee: 'Commission spéciale',
+  delegation: 'Délégation',
+  study_group: "Groupe d'études",
+  friendship_group: "Groupe d'amitié",
 };
 
 const activityTypeLabels: Record<string, string> = {
@@ -592,6 +628,37 @@ const positionColors: Record<string, string> = {
             </tbody>
           </table>
         </div>
+      )}
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+        Commissions & groupes
+        {deputyCommittees.length > 0 && (
+          <span class="ml-2 text-sm font-normal text-gray-400">({deputyCommittees.length})</span>
+        )}
+      </h2>
+
+      {deputyCommittees.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucune commission enregistrée.</p>
+      ) : (
+        <ul class="mt-4 space-y-3">
+          {deputyCommittees.map((c) => (
+            <li class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+              <div>
+                <span class="font-medium">{c.name}</span>
+                <span class="ml-2 inline-block rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                  {committeeTypeLabels[c.type] ?? c.type}
+                </span>
+              </div>
+              <span class="text-sm text-gray-500">
+                {new Date(c.startDate).toLocaleDateString('fr-FR')}
+                {' — '}
+                {c.endDate ? new Date(c.endDate).toLocaleDateString('fr-FR') : 'en cours'}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
 

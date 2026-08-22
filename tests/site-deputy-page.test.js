@@ -378,3 +378,41 @@ describe('Fiche élu — activité parlementaire (#62)', () => {
     expect(content).toContain('Aucune activité parlementaire enregistrée');
   });
 });
+
+describe('Fiche élu — commissions & groupes (#63)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries committees table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('committees');
+    expect(content).toContain('committeesByOfficial');
+  });
+
+  it('translates committee types to French', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('committeeTypeLabels');
+    expect(content).toContain('Commission permanente');
+    expect(content).toContain('Commission spéciale');
+    expect(content).toContain('Délégation');
+    expect(content).toContain("Groupe d'études");
+    expect(content).toContain("Groupe d'amitié");
+  });
+
+  it('displays committee name and type badge', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('c.name');
+    expect(content).toContain('c.type');
+  });
+
+  it('shows date range with "en cours" for active', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('c.startDate');
+    expect(content).toContain('c.endDate');
+    expect(content).toContain('en cours');
+  });
+
+  it('handles empty committees list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucune commission enregistrée');
+  });
+});
