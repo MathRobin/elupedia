@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests } from '@elupedia/shared';
 import { eq, isNull, desc } from 'drizzle-orm';
 
 export async function getStaticPaths() {
@@ -77,6 +77,24 @@ export async function getStaticPaths() {
     staffersByOfficial.set(s.officialId, list);
   }
 
+  const allInterests = await db
+    .select({
+      officialId: interests.officialId,
+      type: interests.type,
+      entityName: interests.entityName,
+      roleDescription: interests.roleDescription,
+      declaredDate: interests.declaredDate,
+    })
+    .from(interests)
+    .orderBy(desc(interests.declaredDate));
+
+  const interestsByOfficial = new Map<string, typeof allInterests>();
+  for (const i of allInterests) {
+    const list = interestsByOfficial.get(i.officialId) ?? [];
+    list.push(i);
+    interestsByOfficial.set(i.officialId, list);
+  }
+
   return rows.map((row) => ({
     params: { slug: row.id },
     props: {
@@ -84,6 +102,7 @@ export async function getStaticPaths() {
       deputyVotes: votesByOfficial.get(row.id) ?? [],
       deputyAffiliations: affiliationsByOfficial.get(row.id) ?? [],
       deputyStaffers: staffersByOfficial.get(row.id) ?? [],
+      deputyInterests: interestsByOfficial.get(row.id) ?? [],
     },
   }));
 }
@@ -110,6 +129,14 @@ type Staffer = {
   endDate: string | null;
 };
 
+type Interest = {
+  officialId: string;
+  type: string;
+  entityName: string;
+  roleDescription: string | null;
+  declaredDate: string;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -126,9 +153,15 @@ type Props = {
   deputyVotes: Vote[];
   deputyAffiliations: Affiliation[];
   deputyStaffers: Staffer[];
+  deputyInterests: Interest[];
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests } = Astro.props as Props;
+
+const interestTypeLabels: Record<string, string> = {
+  company_share: 'Participation en entreprise',
+  nonprofit_role: 'Fonction associative/bénévole',
+};
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
 
 const positionLabels: Record<string, string> = {
@@ -259,6 +292,40 @@ const positionColors: Record<string, string> = {
                 {' — '}
                 {s.endDate ? new Date(s.endDate).toLocaleDateString('fr-FR') : "aujourd'hui"}
               </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+        Intérêts déclarés
+        {deputyInterests.length > 0 && (
+          <span class="ml-2 text-sm font-normal text-gray-400">({deputyInterests.length})</span>
+        )}
+      </h2>
+
+      {deputyInterests.length === 0 ? (
+        <p class="mt-4 text-gray-500">Aucun intérêt déclaré.</p>
+      ) : (
+        <ul class="mt-4 space-y-3">
+          {deputyInterests.map((i) => (
+            <li class="border-b border-gray-100 pb-3">
+              <div class="flex items-baseline justify-between">
+                <span class="font-medium">{i.entityName}</span>
+                <span class="text-sm text-gray-500">
+                  {new Date(i.declaredDate).toLocaleDateString('fr-FR')}
+                </span>
+              </div>
+              <div class="mt-1 flex items-center gap-2">
+                <span class="inline-block rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                  {interestTypeLabels[i.type] ?? i.type}
+                </span>
+                {i.roleDescription && (
+                  <span class="text-sm text-gray-500">{i.roleDescription}</span>
+                )}
+              </div>
             </li>
           ))}
         </ul>

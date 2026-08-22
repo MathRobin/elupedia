@@ -160,3 +160,35 @@ describe('Fiche élu — section collaborateurs (#56)', () => {
     expect(content).toContain('Aucun collaborateur enregistré');
   });
 });
+
+describe('Fiche élu — section participations (#57)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('queries interests table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('interests');
+    expect(content).toContain('interestsByOfficial');
+  });
+
+  it('displays entity name and declared date', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('i.entityName');
+    expect(content).toContain('i.declaredDate');
+  });
+
+  it('translates interest types to French', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Participation en entreprise');
+    expect(content).toContain('Fonction associative');
+  });
+
+  it('shows role description when available', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('i.roleDescription');
+  });
+
+  it('handles empty interests list', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('Aucun intérêt déclaré');
+  });
+});
