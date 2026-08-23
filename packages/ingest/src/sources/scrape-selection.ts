@@ -2,7 +2,6 @@ import { sql, eq, and } from 'drizzle-orm';
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { externalLinks } from '@elupedia/shared';
 
-const SOCIAL_PLATFORMS = ['instagram', 'tiktok', 'youtube'] as const;
 const BATCH_SIZE = 50;
 
 export interface ScrapeCandidate {

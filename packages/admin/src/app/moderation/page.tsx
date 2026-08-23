@@ -35,7 +35,10 @@ export default function ModerationPage() {
     loadLinks();
   }, []);
 
-  async function handleAction(linkId: string, action: 'published' | 'rejected' | 'deleted') {
+  async function handleAction(
+    linkId: string,
+    action: 'published' | 'rejected' | 'deleted',
+  ) {
     await moderateLink(linkId, action);
     await loadLinks();
   }

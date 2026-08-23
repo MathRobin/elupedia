@@ -7,15 +7,15 @@ const adminDir = resolve(root, 'packages/admin');
 
 describe('Moderation queue page (#144)', () => {
   it('moderation page exists', () => {
-    expect(
-      existsSync(resolve(adminDir, 'src/app/moderation/page.tsx')),
-    ).toBe(true);
+    expect(existsSync(resolve(adminDir, 'src/app/moderation/page.tsx'))).toBe(
+      true,
+    );
   });
 
   it('moderation actions file exists', () => {
-    expect(
-      existsSync(resolve(adminDir, 'src/app/moderation/actions.ts')),
-    ).toBe(true);
+    expect(existsSync(resolve(adminDir, 'src/app/moderation/actions.ts'))).toBe(
+      true,
+    );
   });
 
   const page = readFileSync(

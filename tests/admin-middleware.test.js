@@ -3,10 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const middlewarePath = resolve(
-  root,
-  'packages/admin/src/middleware.ts',
-);
+const middlewarePath = resolve(root, 'packages/admin/src/middleware.ts');
 
 describe('Admin route protection middleware (#141)', () => {
   it('middleware.ts exists', () => {

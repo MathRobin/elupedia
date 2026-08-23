@@ -81,6 +81,26 @@ describe('tarteaucitron.js integration (#46)', () => {
   });
 });
 
+describe('Vercel Web Analytics (#82)', () => {
+  const layoutPath = resolve(
+    root,
+    'packages/site/src/layouts/BaseLayout.astro',
+  );
+
+  it('imports and injects @vercel/analytics', () => {
+    const content = readFileSync(layoutPath, 'utf-8');
+    expect(content).toContain("import { inject } from '@vercel/analytics'");
+    expect(content).toContain('inject()');
+  });
+
+  it('@vercel/analytics is a dependency of @elupedia/site', () => {
+    const pkg = JSON.parse(
+      readFileSync(resolve(root, 'packages/site/package.json'), 'utf-8'),
+    );
+    expect(pkg.dependencies['@vercel/analytics']).toBeDefined();
+  });
+});
+
 describe('SEO de base (#47)', () => {
   const layoutPath = resolve(
     root,

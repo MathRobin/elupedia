@@ -18,11 +18,7 @@ async function main() {
   for (const candidate of candidates) {
     try {
       const links = await scrapePersonalWebsite(candidate.websiteUrl);
-      const result = await upsertScrapedLinks(
-        db,
-        candidate.officialId,
-        links,
-      );
+      const result = await upsertScrapedLinks(db, candidate.officialId, links);
       await updateLastScrapedAt(db, candidate.officialId);
       totalCreated += result.created;
       totalSkipped += result.skipped;

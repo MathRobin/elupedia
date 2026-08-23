@@ -8,11 +8,7 @@ const licensesMd = readFileSync(
   'utf-8',
 );
 
-const sources = [
-  'data.assemblee-nationale.fr',
-  'HATVP',
-  'data.gouv.fr',
-];
+const sources = ['data.assemblee-nationale.fr', 'HATVP', 'data.gouv.fr'];
 
 describe('docs/DATA-LICENSES.md', () => {
   it('exists', () => {

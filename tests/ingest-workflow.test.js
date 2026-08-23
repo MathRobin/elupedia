@@ -45,10 +45,7 @@ describe('Ingest workflow (#40)', () => {
 });
 
 describe('Scrape social links workflow (#135)', () => {
-  const wfPath = resolve(
-    root,
-    '.github/workflows/scrape-social-links.yml',
-  );
+  const wfPath = resolve(root, '.github/workflows/scrape-social-links.yml');
 
   it('scrape-social-links.yml exists', () => {
     expect(existsSync(wfPath)).toBe(true);

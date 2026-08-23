@@ -15,7 +15,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     >
       <AppShell.Header>
         <Group h="100%" px="md">
-          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
+          <Burger
+            opened={opened}
+            onClick={toggle}
+            hiddenFrom="sm"
+            size="sm"
+            aria-label="Menu"
+          />
           <Title order={3}>Elupedia Admin</Title>
         </Group>
       </AppShell.Header>

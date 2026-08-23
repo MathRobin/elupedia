@@ -1,6 +1,6 @@
 'use server';
 
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { createDb, externalLinks, officials } from '@elupedia/shared';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';

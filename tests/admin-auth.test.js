@@ -14,38 +14,27 @@ describe('Auth email magic link (#140)', () => {
   });
 
   it('auth.ts configures Nodemailer provider', () => {
-    const auth = readFileSync(
-      resolve(adminDir, 'src/lib/auth.ts'),
-      'utf-8',
-    );
+    const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
     expect(auth).toContain('Nodemailer');
     expect(auth).toContain('EMAIL_SERVER');
   });
 
   it('auth.ts checks user exists in DB on signIn', () => {
-    const auth = readFileSync(
-      resolve(adminDir, 'src/lib/auth.ts'),
-      'utf-8',
-    );
+    const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
     expect(auth).toContain('signIn');
     expect(auth).toContain('users');
     expect(auth).toContain('eq(users.email');
   });
 
   it('auth.ts injects role into session', () => {
-    const auth = readFileSync(
-      resolve(adminDir, 'src/lib/auth.ts'),
-      'utf-8',
-    );
+    const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
     expect(auth).toContain('session');
     expect(auth).toContain('role');
   });
 
   it('NextAuth API route exists', () => {
     expect(
-      existsSync(
-        resolve(adminDir, 'src/app/api/auth/[...nextauth]/route.ts'),
-      ),
+      existsSync(resolve(adminDir, 'src/app/api/auth/[...nextauth]/route.ts')),
     ).toBe(true);
   });
 

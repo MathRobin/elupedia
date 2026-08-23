@@ -290,8 +290,7 @@ describe('#18 — electoral_results', () => {
 
 describe('#130 — users', () => {
   it('users table has correct columns', async () => {
-    const { users } =
-      await import('../packages/shared/src/schema/users.js');
+    const { users } = await import('../packages/shared/src/schema/users.js');
     expect(getTableName(users)).toBe('users');
     const cols = Object.keys(users);
     expect(cols).toContain('id');

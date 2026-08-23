@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const filePath = resolve(
-  import.meta.dirname,
-  'scrape-selection.ts',
-);
+const filePath = resolve(import.meta.dirname, 'scrape-selection.ts');
 
 describe('scrape-selection (#133)', () => {
   const content = readFileSync(filePath, 'utf-8');

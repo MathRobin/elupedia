@@ -25,7 +25,7 @@ describe('Mantine integration (#137)', () => {
       resolve(adminDir, 'src/app/layout.tsx'),
       'utf-8',
     );
-    expect(layout).toContain("@mantine/core/styles.css");
+    expect(layout).toContain('@mantine/core/styles.css');
     expect(layout).toContain('Providers');
     expect(layout).toContain('ColorSchemeScript');
   });
@@ -40,19 +40,13 @@ describe('Mantine integration (#137)', () => {
   });
 
   it('theme.ts defines a custom theme', () => {
-    const theme = readFileSync(
-      resolve(adminDir, 'src/app/theme.ts'),
-      'utf-8',
-    );
+    const theme = readFileSync(resolve(adminDir, 'src/app/theme.ts'), 'utf-8');
     expect(theme).toContain('createTheme');
     expect(theme).toContain('primaryColor');
   });
 
   it('page uses Mantine components', () => {
-    const page = readFileSync(
-      resolve(adminDir, 'src/app/page.tsx'),
-      'utf-8',
-    );
+    const page = readFileSync(resolve(adminDir, 'src/app/page.tsx'), 'utf-8');
     expect(page).toContain("from '@mantine/core'");
   });
 });

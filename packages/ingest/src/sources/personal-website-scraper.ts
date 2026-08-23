@@ -1,11 +1,4 @@
-const USER_AGENT =
-  'ElupediaBot/1.0 (+https://elupedia.fr/mentions-legales)';
-
-const SOCIAL_DOMAINS = [
-  'instagram.com',
-  'tiktok.com',
-  'youtube.com',
-] as const;
+const USER_AGENT = 'ElupediaBot/1.0 (+https://elupedia.fr/mentions-legales)';
 
 type SocialPlatform = 'instagram' | 'tiktok' | 'youtube';
 
@@ -54,7 +47,10 @@ export async function checkRobotsTxt(
   }
 }
 
-export function extractSocialLinks(html: string, baseUrl: string): DetectedLink[] {
+export function extractSocialLinks(
+  html: string,
+  baseUrl: string,
+): DetectedLink[] {
   const seen = new Set<string>();
   const results: DetectedLink[] = [];
   const hrefRegex = /href=["']([^"']+)["']/gi;
@@ -62,7 +58,8 @@ export function extractSocialLinks(html: string, baseUrl: string): DetectedLink[
   while ((match = hrefRegex.exec(html)) !== null) {
     try {
       const resolved = new URL(match[1], baseUrl);
-      if (resolved.protocol !== 'http:' && resolved.protocol !== 'https:') continue;
+      if (resolved.protocol !== 'http:' && resolved.protocol !== 'https:')
+        continue;
       const platform = domainToPlatform(resolved.hostname);
       if (!platform) continue;
       const canonical = resolved.href;

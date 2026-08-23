@@ -49,10 +49,7 @@ describe('packages/admin scaffold (#136)', () => {
   });
 
   it('transpiles @elupedia/shared in next config', () => {
-    const config = readFileSync(
-      resolve(adminDir, 'next.config.ts'),
-      'utf-8',
-    );
+    const config = readFileSync(resolve(adminDir, 'next.config.ts'), 'utf-8');
     expect(config).toContain('@elupedia/shared');
   });
 });

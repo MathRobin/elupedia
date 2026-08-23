@@ -24,7 +24,8 @@ describe('personal-website-scraper (#132)', () => {
     });
 
     it('returns empty array when no social links found', () => {
-      const html = '<a href="/contact">Contact</a><a href="https://twitter.com/x">X</a>';
+      const html =
+        '<a href="/contact">Contact</a><a href="https://twitter.com/x">X</a>';
       const links = extractSocialLinks(html, 'https://depute.fr');
       expect(links).toHaveLength(0);
     });
@@ -88,16 +89,14 @@ describe('personal-website-scraper (#132)', () => {
 
   describe('scrapePersonalWebsite', () => {
     it('returns social links from a page', async () => {
-      const mockFetch = vi
-        .fn()
-        .mockImplementation(async (url: string) => {
-          if (url.endsWith('/robots.txt')) return { ok: false };
-          return {
-            ok: true,
-            text: async () =>
-              '<html><a href="https://instagram.com/test">IG</a></html>',
-          };
-        });
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.endsWith('/robots.txt')) return { ok: false };
+        return {
+          ok: true,
+          text: async () =>
+            '<html><a href="https://instagram.com/test">IG</a></html>',
+        };
+      });
       const links = await scrapePersonalWebsite('https://depute.fr', mockFetch);
       expect(links).toHaveLength(1);
       expect(links[0].platform).toBe('instagram');
@@ -113,12 +112,10 @@ describe('personal-website-scraper (#132)', () => {
     });
 
     it('returns empty when page fetch fails', async () => {
-      const mockFetch = vi
-        .fn()
-        .mockImplementation(async (url: string) => {
-          if (url.endsWith('/robots.txt')) return { ok: false };
-          return { ok: false };
-        });
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.endsWith('/robots.txt')) return { ok: false };
+        return { ok: false };
+      });
       const links = await scrapePersonalWebsite('https://depute.fr', mockFetch);
       expect(links).toHaveLength(0);
     });

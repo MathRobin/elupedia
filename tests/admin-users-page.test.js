@@ -7,15 +7,13 @@ const adminDir = resolve(root, 'packages/admin');
 
 describe('User management page (#143)', () => {
   it('users page exists', () => {
-    expect(
-      existsSync(resolve(adminDir, 'src/app/users/page.tsx')),
-    ).toBe(true);
+    expect(existsSync(resolve(adminDir, 'src/app/users/page.tsx'))).toBe(true);
   });
 
   it('users actions file exists', () => {
-    expect(
-      existsSync(resolve(adminDir, 'src/app/users/actions.ts')),
-    ).toBe(true);
+    expect(existsSync(resolve(adminDir, 'src/app/users/actions.ts'))).toBe(
+      true,
+    );
   });
 
   const page = readFileSync(

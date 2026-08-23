@@ -2,7 +2,14 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { Container, Title, TextInput, Button, Alert, Stack } from '@mantine/core';
+import {
+  Container,
+  Title,
+  TextInput,
+  Button,
+  Alert,
+  Stack,
+} from '@mantine/core';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,7 +34,8 @@ export default function LoginPage() {
     return (
       <Container size="xs" py="xl">
         <Alert color="green" title="Lien envoyé">
-          Un lien de connexion a été envoyé à {email}. Vérifiez votre boîte mail.
+          Un lien de connexion a été envoyé à {email}. Vérifiez votre boîte
+          mail.
         </Alert>
       </Container>
     );
@@ -35,7 +43,9 @@ export default function LoginPage() {
 
   return (
     <Container size="xs" py="xl">
-      <Title order={2} mb="lg">Connexion</Title>
+      <Title order={2} mb="lg">
+        Connexion
+      </Title>
       <form onSubmit={handleSubmit}>
         <Stack>
           <TextInput
