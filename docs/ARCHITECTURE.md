@@ -100,6 +100,7 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
   - `src/pages/scrutins/[id].astro` — détail d'un scrutin (titre, date, type, votes des élus triés par nom avec position)
   - `src/pages/a-propos.astro` — page À propos (présentation, feuille de route, piliers, indépendance, contribution)
   - `src/pages/donnees-personnelles.astro` — page droits RGPD (données publiées, base légale, droits, contact, CNIL, cookies)
+  - `src/pages/mentions-legales.astro` — mentions légales (sources de données, licences, hébergeur, licence code AGPL-3.0)
 
 ### 4. Déploiement (Vercel)
 
@@ -107,10 +108,23 @@ Le site statique généré est déployé sur Vercel. Chaque push sur `main` déc
 
 - Hébergement : Vercel (CDN mondial)
 - Mode : statique uniquement (pas de fonctions serverless)
+- Configuration : `vercel.json` (buildCommand, outputDirectory, installCommand)
+- Domaine : `elupedia.fr` (DNS configuré vers Vercel)
+- Variables d'environnement : `DATABASE_URL` configurée sur Vercel pour le build
+- Analytics : Vercel Web Analytics (`@vercel/analytics`, cookieless, injecté dans le layout)
+- Chaîne ingestion → rebuild : le workflow `ingest.yml` expose `has_changes`, qui conditionne un rebuild Vercel via deploy hook
 
 ## Packages partagés (`packages/shared`)
 
 Contient le client DB (Drizzle + Neon), le schéma complet (13 tables), les types TypeScript et les helpers utilisés à la fois par `ingest` et `site`.
+
+## Documentation et conformité
+
+- **README.md** : présentation du projet, stack, sources de données, instructions de setup, contribution, badge CI
+- **LICENSE** : texte complet AGPL-3.0
+- **docs/DATA-LICENSES.md** : inventaire des sources de données et leurs licences de réutilisation
+- **docs/ARCHITECTURE.md** : ce fichier
+- **docs/DOMAINS.md** : domaines métier et sources associées
 
 ## CI / CD
 
@@ -122,4 +136,4 @@ Contient le client DB (Drizzle + Neon), le schéma complet (13 tables), les type
 
 - **Framework** : Vitest (configuré à la racine et dans chaque package)
 - **Commande** : `yarn test` lance les tests racine puis ceux de chaque workspace
-- **Couverture M5** : structure monorepo, configs, schéma DB, migration, CI, clients API, upsert/diff, retry, orchestration, cron workflow, change detection, layout, tarteaucitron, SEO, page d'accueil, fiche élu avec 14 sections, page scrutin, page à propos, page RGPD, Pagefind, barre de recherche, accessibilité
+- **Couverture M7** : structure monorepo, configs, schéma DB, migration, CI, clients API (ZIP/JSON et CSV), upsert/diff, retry, orchestration, cron workflow, change detection, layout, tarteaucitron, SEO, Vercel Web Analytics, page d'accueil, fiche élu avec 14 sections et âge calculé, page scrutin, page à propos, page RGPD, page mentions légales, Pagefind, barre de recherche, accessibilité, README, DATA-LICENSES
