@@ -643,39 +643,70 @@ const timelineCategoryColors: Record<string, string> = {
       {deputyActivities.length === 0 ? (
         <p class="mt-4 text-slate-500">Aucune activité parlementaire enregistrée/trouvée.</p>
       ) : (
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-slate-200 text-left text-slate-500">
-                <th class="pb-2 pr-4 font-medium">Date</th>
-                <th class="pb-2 pr-4 font-medium">Type</th>
-                <th class="pb-2 pr-4 font-medium">Intitulé</th>
-                <th class="pb-2 font-medium">Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deputyActivities.map((act) => (
-                <tr class="border-b border-slate-100">
-                  <td class="py-2 pr-4 whitespace-nowrap">
-                    {new Date(act.date).toLocaleDateString('fr-FR')}
-                  </td>
-                  <td class="py-2 pr-4 whitespace-nowrap">
-                    {activityTypeLabels[act.type] ?? act.type}
-                  </td>
-                  <td class="py-2 pr-4">{act.title}</td>
-                  <td class="py-2">
-                    {act.status ? (
-                      <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusColors[act.status] ?? ''}`}>
-                        {statusLabels[act.status] ?? act.status}
-                      </span>
-                    ) : (
-                      <span class="text-slate-400">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div class="mt-4 space-y-6">
+          {(() => {
+            const byYear = new Map<number, Map<number, typeof deputyActivities>>();
+            for (const act of deputyActivities) {
+              const d = new Date(act.date);
+              const y = d.getFullYear();
+              const m = d.getMonth();
+              if (!byYear.has(y)) byYear.set(y, new Map());
+              const months = byYear.get(y)!;
+              if (!months.has(m)) months.set(m, []);
+              months.get(m)!.push(act);
+            }
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            return [...byYear.entries()]
+              .sort(([a], [b]) => b - a)
+              .map(([year, months]) => (
+                <div>
+                  <h3 class="text-base font-semibold text-slate-800">{year}</h3>
+                  <div class="mt-3 space-y-4">
+                    {[...months.entries()]
+                      .sort(([a], [b]) => b - a)
+                      .map(([month, acts]) => (
+                        <div>
+                          <h4 class="text-sm font-medium text-slate-500 mb-2">{monthNames[month]}</h4>
+                          <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                              <thead>
+                                <tr class="border-b border-slate-200 text-left text-slate-500">
+                                  <th class="pb-2 pr-4 font-medium">Date</th>
+                                  <th class="pb-2 pr-4 font-medium">Type</th>
+                                  <th class="pb-2 pr-4 font-medium">Intitulé</th>
+                                  <th class="pb-2 font-medium">Statut</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {acts.map((act) => (
+                                  <tr class="border-b border-slate-100">
+                                    <td class="py-2 pr-4 whitespace-nowrap">
+                                      {new Date(act.date).toLocaleDateString('fr-FR')}
+                                    </td>
+                                    <td class="py-2 pr-4 whitespace-nowrap">
+                                      {activityTypeLabels[act.type] ?? act.type}
+                                    </td>
+                                    <td class="py-2 pr-4">{act.title}</td>
+                                    <td class="py-2">
+                                      {act.status ? (
+                                        <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusColors[act.status] ?? ''}`}>
+                                          {statusLabels[act.status] ?? act.status}
+                                        </span>
+                                      ) : (
+                                        <span class="text-slate-400">—</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+                </div>
+            ));
+          })()}
         </div>
       )}
     </section>
