@@ -21,6 +21,7 @@ describe('schema files exist', () => {
     'parliamentary-activity.ts',
     'committees.ts',
     'electoral-results.ts',
+    'users.ts',
     'index.ts',
   ];
 
@@ -287,6 +288,25 @@ describe('#18 — electoral_results', () => {
   });
 });
 
+describe('#130 — users', () => {
+  it('users table has correct columns', async () => {
+    const { users } =
+      await import('../packages/shared/src/schema/users.js');
+    expect(getTableName(users)).toBe('users');
+    const cols = Object.keys(users);
+    expect(cols).toContain('id');
+    expect(cols).toContain('email');
+    expect(cols).toContain('role');
+    expect(cols).toContain('createdAt');
+  });
+
+  it('userRoleEnum has valid values', async () => {
+    const { userRoleEnum } =
+      await import('../packages/shared/src/schema/users.js');
+    expect(userRoleEnum).toEqual(['admin', 'moderator']);
+  });
+});
+
 describe('schema index re-exports', () => {
   it('index.ts re-exports all tables', async () => {
     const schema = await import('../packages/shared/src/schema/index.js');
@@ -306,6 +326,8 @@ describe('schema index re-exports', () => {
       'parliamentaryActivity',
       'committees',
       'electoralResults',
+      'users',
+      'userRoleEnum',
     ];
     for (const name of expectedExports) {
       expect(schema[name]).toBeDefined();
