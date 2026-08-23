@@ -505,7 +505,25 @@ const timelineCategoryColors: Record<string, string> = {
       Dernière mise à jour le {new Date(lastUpdated).toLocaleDateString('fr-FR')}
     </p>
 
-    <section class="mt-8">
+    <nav class="mt-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5" aria-label="Sommaire">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Sommaire</p>
+      <ul class="columns-2 gap-x-6 text-sm space-y-1">
+        <li><a href="#mandat" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Mandat en cours</a></li>
+        <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Coordonnées</a></li>
+        <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Affiliations politiques</a></li>
+        <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Collaborateurs</a></li>
+        <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Activité parlementaire</a></li>
+        <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Commissions & groupes</a></li>
+        <li><a href="#electoral" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Historique électoral</a></li>
+        <li><a href="#interets" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Intérêts déclarés</a></li>
+        <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Historique des votes</a></li>
+        <li><a href="#presse" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Dans la presse</a></li>
+        <li><a href="#chronologie" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Chronologie</a></li>
+        <li><a href="#liens" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Liens extérieurs</a></li>
+      </ul>
+    </nav>
+
+    <section id="mandat" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Mandat en cours</h2>
       <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -537,7 +555,7 @@ const timelineCategoryColors: Record<string, string> = {
       </dl>
     </section>
 
-    <section class="mt-8">
+    <section id="coordonnees" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Coordonnées</h2>
 
       {deputyAddresses.length === 0 ? (
@@ -572,7 +590,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="affiliations" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Affiliations politiques
         {deputyAffiliations.length > 0 && (
@@ -598,7 +616,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="collaborateurs" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Collaborateurs
         {deputyStaffers.length > 0 && (
@@ -632,7 +650,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="activite" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Activité parlementaire
         {deputyActivities.length > 0 && (
@@ -711,7 +729,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="commissions" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Commissions & groupes
         {deputyCommittees.length > 0 && (
@@ -742,7 +760,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="electoral" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Historique électoral
         {deputyElectoralResults.length > 0 && (
@@ -786,7 +804,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="interets" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Intérêts déclarés
         {deputyInterests.length > 0 && (
@@ -820,7 +838,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="votes" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Historique des votes
         {deputyVotes.length > 0 && (
@@ -860,7 +878,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="presse" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Dans la presse
         {deputyPress.length > 0 && (
@@ -896,7 +914,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="chronologie" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Chronologie
         {timelineEvents.length > 0 && (
@@ -923,7 +941,7 @@ const timelineCategoryColors: Record<string, string> = {
       )}
     </section>
 
-    <section class="mt-8">
+    <section id="liens" class="mt-8 scroll-mt-4">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Liens extérieurs</h2>
 
       {deputyLinks.length === 0 ? (
