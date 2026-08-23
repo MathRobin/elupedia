@@ -9,11 +9,10 @@ const licensesMd = readFileSync(
 );
 
 const sources = [
-  'NosDéputés.fr',
-  'NosSénateurs.fr',
   'data.assemblee-nationale.fr',
   'data.senat.fr',
   'HATVP',
+  'data.gouv.fr',
 ];
 
 describe('docs/DATA-LICENSES.md', () => {
@@ -28,7 +27,6 @@ describe('docs/DATA-LICENSES.md', () => {
   }
 
   it('mentions license types', () => {
-    expect(licensesMd).toContain('CC BY-SA');
     expect(licensesMd).toContain('Licence Ouverte');
   });
 

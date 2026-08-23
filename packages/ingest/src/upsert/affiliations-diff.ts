@@ -1,7 +1,12 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, affiliations } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
-import type { AffiliationData } from '../sources/nosdeputes-affiliations.js';
+export interface AffiliationData {
+  slug: string;
+  id_an?: string;
+  groupe_sigle?: string;
+  parti_ratt_financier?: string;
+}
 
 export async function diffAffiliations(
   db: NeonHttpDatabase,

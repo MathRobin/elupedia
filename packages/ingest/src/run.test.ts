@@ -22,14 +22,8 @@ vi.mock('./utils/retry.js', () => ({
 vi.mock('./sources/assemblee-nationale.js', () => ({
   fetchDeputes: vi.fn(),
 }));
-vi.mock('./sources/nosdeputes-votes.js', () => ({
-  fetchVotesForDepute: vi.fn(),
-}));
 vi.mock('./sources/an-collaborateurs.js', () => ({
   fetchCollaborateurs: vi.fn(),
-}));
-vi.mock('./sources/nosdeputes-affiliations.js', () => ({
-  fetchAffiliations: vi.fn(),
 }));
 vi.mock('./sources/hatvp.js', () => ({
   fetchDeclarations: vi.fn(),
@@ -49,14 +43,8 @@ vi.mock('./sources/datagouv-elections.js', () => ({
 vi.mock('./upsert/officials.js', () => ({
   upsertOfficials: vi.fn(),
 }));
-vi.mock('./upsert/votes.js', () => ({
-  upsertVotes: vi.fn(),
-}));
 vi.mock('./upsert/staffers-diff.js', () => ({
   diffStaffers: vi.fn(),
-}));
-vi.mock('./upsert/affiliations-diff.js', () => ({
-  diffAffiliations: vi.fn(),
 }));
 vi.mock('./upsert/interests.js', () => ({
   upsertInterests: vi.fn(),
@@ -76,18 +64,14 @@ vi.mock('./upsert/electoral-results.js', () => ({
 
 import { run } from './run.js';
 import { fetchDeputes } from './sources/assemblee-nationale.js';
-import { fetchVotesForDepute } from './sources/nosdeputes-votes.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
-import { fetchAffiliations } from './sources/nosdeputes-affiliations.js';
 import { fetchDeclarations } from './sources/hatvp.js';
 import { fetchAddresses } from './sources/an-adresses.js';
 import { fetchActivities } from './sources/an-activite.js';
 import { fetchCommittees } from './sources/an-commissions.js';
 import { fetchElectionResults } from './sources/datagouv-elections.js';
 import { upsertOfficials } from './upsert/officials.js';
-import { upsertVotes } from './upsert/votes.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
-import { diffAffiliations } from './upsert/affiliations-diff.js';
 import { upsertInterests } from './upsert/interests.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
@@ -114,19 +98,11 @@ function setupHappyPath() {
   vi.mocked(upsertOfficials).mockResolvedValue([
     { officialId: 'uuid-1', anId: 'PA100001' },
   ]);
-  vi.mocked(fetchVotesForDepute).mockResolvedValue([]);
-  vi.mocked(upsertVotes).mockResolvedValue([]);
   vi.mocked(fetchCollaborateurs).mockResolvedValue([]);
   vi.mocked(diffStaffers).mockResolvedValue({
     created: 1,
     ended: 0,
     unchanged: 0,
-  });
-  vi.mocked(fetchAffiliations).mockResolvedValue([]);
-  vi.mocked(diffAffiliations).mockResolvedValue({
-    created: 0,
-    ended: 0,
-    unchanged: 1,
   });
   vi.mocked(fetchDeclarations).mockResolvedValue([]);
   vi.mocked(upsertInterests).mockResolvedValue({ created: 0, updated: 0 });
@@ -159,7 +135,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(9);
+    expect(results).toHaveLength(7);
     expect(results[0].source).toBe('officials');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -174,7 +150,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(9);
+    expect(results).toHaveLength(7);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

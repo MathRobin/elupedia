@@ -13,7 +13,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Activité parlementaire
 
 - **Tables** : `parliamentary_activity`
-- **Source** : NosDéputés.fr, data.assemblee-nationale.fr
+- **Source** : data.assemblee-nationale.fr
 - **Client M1** : `an-activite.ts` → `upsert/parliamentary-activity.ts`
 - **Description** : Indicateurs d'activité : questions écrites/orales, amendements (avec sort : adopted/rejected/withdrawn), rapports.
 - **Pages M4** : fiche élu (section activité parlementaire avec table triée par date)
@@ -21,16 +21,16 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Votes et scrutins
 
 - **Tables** : `votes`, `ballots`
-- **Source** : NosDéputés.fr
-- **Client M1** : `nosdeputes-votes.ts` → `upsert/votes.ts`
+- **Source** : data.assemblee-nationale.fr
+- **Client M1** : `upsert/votes.ts`
 - **Description** : Scrutins publics et position de chaque élu (pour, contre, abstention, absent). Mapping FR→EN des positions.
 - **Pages M4** : fiche élu (section historique des votes), page détail scrutin (liste des votes par élu)
 
 ## Affiliations politiques
 
 - **Tables** : `affiliations`
-- **Source** : data.assemblee-nationale.fr, NosDéputés.fr
-- **Client M1** : `nosdeputes-affiliations.ts` → `upsert/affiliations-diff.ts`
+- **Source** : data.assemblee-nationale.fr
+- **Client M1** : `upsert/affiliations-diff.ts`
 - **Description** : Appartenance aux groupes parlementaires et partis politiques, avec historique des changements. Stratégie diff : ferme l'affiliation précédente (end_date) si le groupe change.
 - **Pages M4** : fiche élu (section affiliations politiques), timeline unifiée
 

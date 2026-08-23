@@ -2,15 +2,6 @@
 
 Inventaire des sources de données utilisées par Elupedia et de leurs conditions de réutilisation.
 
-## NosDéputés.fr / NosSénateurs.fr
-
-- **Éditeur** : Regards Citoyens
-- **Licence** : CC BY-SA (Creative Commons Attribution - Partage dans les mêmes conditions)
-- **Obligations** :
-  - Attribution obligatoire : mentionner NosDéputés.fr / NosSénateurs.fr comme source
-  - Partage à l'identique : toute modification doit être redistribuée sous la même licence
-- **URL** : https://www.nosdeputes.fr / https://www.nossenateurs.fr
-
 ## data.assemblee-nationale.fr
 
 - **Éditeur** : Assemblée nationale
@@ -51,8 +42,6 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 
 | Source              | Licence             | Attribution | Partage identique |
 | ------------------- | ------------------- | ----------- | ----------------- |
-| NosDéputés.fr       | CC BY-SA            | Oui         | Oui               |
-| NosSénateurs.fr     | CC BY-SA            | Oui         | Oui               |
 | Assemblée nationale | Licence Ouverte 2.0 | Oui         | Non               |
 | Sénat               | Licence Ouverte 2.0 | Oui         | Non               |
 | HATVP               | Licence Ouverte 2.0 | Oui         | Non               |

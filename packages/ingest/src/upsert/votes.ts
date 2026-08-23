@@ -2,7 +2,13 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { ballots } from '@elupedia/shared';
 import { votes } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
-import type { VoteDetail } from '../sources/nosdeputes-votes.js';
+export interface VoteDetail {
+  scrutin_id: number;
+  scrutin_titre: string;
+  scrutin_date: string;
+  scrutin_type?: string;
+  position: string;
+}
 
 function mapPosition(
   position: string,

@@ -80,14 +80,14 @@ describe('withRetry', () => {
       withRetry(fn, {
         maxAttempts: 2,
         baseDelayMs: 1,
-        source: 'nosdeputes',
+        source: 'assemblee-nationale',
       }),
     ).rejects.toThrow('network down');
 
     expect(callCount).toBe(2);
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy.mock.calls[0][0]).toContain('nosdeputes');
+    expect(warnSpy.mock.calls[0][0]).toContain('assemblee-nationale');
     expect(warnSpy.mock.calls[0][0]).toContain('attempt 1/2');
 
     expect(errorSpy).toHaveBeenCalledTimes(1);

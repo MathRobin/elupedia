@@ -5,18 +5,14 @@ import { fileURLToPath } from 'node:url';
 
 import { withRetry } from './utils/retry.js';
 import { fetchDeputes } from './sources/assemblee-nationale.js';
-import { fetchVotesForDepute } from './sources/nosdeputes-votes.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
-import { fetchAffiliations } from './sources/nosdeputes-affiliations.js';
 import { fetchDeclarations } from './sources/hatvp.js';
 import { fetchAddresses } from './sources/an-adresses.js';
 import { fetchActivities } from './sources/an-activite.js';
 import { fetchCommittees } from './sources/an-commissions.js';
 import { fetchElectionResults } from './sources/datagouv-elections.js';
 import { upsertOfficials } from './upsert/officials.js';
-import { upsertVotes } from './upsert/votes.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
-import { diffAffiliations } from './upsert/affiliations-diff.js';
 import { upsertInterests } from './upsert/interests.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
@@ -51,47 +47,17 @@ export async function run() {
 
   console.log('=== Ingestion started ===\n');
 
-  console.log('[1/9] Officials & mandates...');
-  let deputes: Awaited<ReturnType<typeof fetchDeputes>> = [];
-  let officialResults: Awaited<ReturnType<typeof upsertOfficials>> = [];
+  console.log('[1/7] Officials & mandates...');
   const step1 = await runStep('officials', async () => {
-    deputes = await withRetry(() => fetchDeputes(), {
+    const deputes = await withRetry(() => fetchDeputes(), {
       source: 'assemblee-nationale',
     });
-    officialResults = await upsertOfficials(db, deputes);
+    const officialResults = await upsertOfficials(db, deputes);
     return { source: 'officials', created: officialResults.length, updated: 0 };
   });
   results.push(step1);
 
-  console.log('[2/9] Votes...');
-  if (step1.error) {
-    results.push({
-      source: 'votes',
-      created: 0,
-      updated: 0,
-      error: 'skipped: officials fetch failed',
-    });
-  } else {
-    results.push(
-      await runStep('votes', async () => {
-        let created = 0;
-        const updated = 0;
-        for (const official of officialResults) {
-          const depute = deputes.find((d) => d.id_an === official.anId);
-          if (!depute) continue;
-          const voteDetails = await withRetry(
-            () => fetchVotesForDepute(depute.slug),
-            { source: `votes/${depute.slug}` },
-          );
-          const r = await upsertVotes(db, official.officialId, voteDetails);
-          created += r.length;
-        }
-        return { source: 'votes', created, updated };
-      }),
-    );
-  }
-
-  console.log('[3/9] Collaborateurs...');
+  console.log('[2/7] Collaborateurs...');
   results.push(
     await runStep('collaborateurs', async () => {
       const collabs = await withRetry(() => fetchCollaborateurs(), {
@@ -106,31 +72,7 @@ export async function run() {
     }),
   );
 
-  console.log('[4/9] Affiliations...');
-  if (step1.error) {
-    results.push({
-      source: 'affiliations',
-      created: 0,
-      updated: 0,
-      error: 'skipped: officials fetch failed',
-    });
-  } else {
-    results.push(
-      await runStep('affiliations', async () => {
-        const affiliations = await withRetry(() => fetchAffiliations(), {
-          source: 'nosdeputes-affiliations',
-        });
-        const r = await diffAffiliations(db, affiliations);
-        return {
-          source: 'affiliations',
-          created: r.created,
-          updated: r.ended,
-        };
-      }),
-    );
-  }
-
-  console.log('[5/9] Interests (HATVP)...');
+  console.log('[3/7] Interests (HATVP)...');
   results.push(
     await runStep('interests', async () => {
       const declarations = await withRetry(() => fetchDeclarations(), {
@@ -141,7 +83,7 @@ export async function run() {
     }),
   );
 
-  console.log('[6/9] Addresses...');
+  console.log('[4/7] Addresses...');
   results.push(
     await runStep('addresses', async () => {
       const addr = await withRetry(() => fetchAddresses(), {
@@ -152,7 +94,7 @@ export async function run() {
     }),
   );
 
-  console.log('[7/9] Parliamentary activity...');
+  console.log('[5/7] Parliamentary activity...');
   results.push(
     await runStep('parliamentary-activity', async () => {
       const activities = await withRetry(() => fetchActivities(), {
@@ -167,7 +109,7 @@ export async function run() {
     }),
   );
 
-  console.log('[8/9] Committees...');
+  console.log('[6/7] Committees...');
   results.push(
     await runStep('committees', async () => {
       const comm = await withRetry(() => fetchCommittees(), {
@@ -178,7 +120,7 @@ export async function run() {
     }),
   );
 
-  console.log('[9/9] Electoral results...');
+  console.log('[7/7] Electoral results...');
   results.push(
     await runStep('electoral-results', async () => {
       const elec = await withRetry(() => fetchElectionResults(), {

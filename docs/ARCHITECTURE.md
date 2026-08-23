@@ -6,7 +6,7 @@ Elupedia suit un pipeline linéaire : les données publiques sont collectées p�
 
 ```mermaid
 flowchart LR
-    A["Sources ouvertes\n(NosDéputés, AN, HATVP)"] -->|cron GitHub Actions| B["packages/ingest\n(Node.js)"]
+    A["Sources ouvertes\n(AN, Sénat, HATVP, data.gouv)"] -->|cron GitHub Actions| B["packages/ingest\n(Node.js)"]
     B -->|upsert| C["PostgreSQL\n(Neon)"]
     C -->|query au build| D["packages/site\n(Astro)"]
     D -->|build statique| E["Vercel\n(CDN)"]
@@ -16,29 +16,27 @@ flowchart LR
 
 ### 1. Ingestion (`packages/ingest`)
 
-Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script interroge une API publique (NosDéputés.fr, données ouvertes de l'Assemblée nationale, HATVP, data.gouv.fr) et effectue un upsert en base.
+Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script interroge une API publique (données ouvertes de l'Assemblée nationale, HATVP, data.gouv.fr) et effectue un upsert en base.
 
 - Exécution : cron GitHub Actions quotidien (`.github/workflows/ingest.yml`, 04:00 heure de Paris)
 - Déclenchement manuel : `workflow_dispatch`
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run.ts` exécute les 9 étapes séquentiellement, isole les erreurs par étape et affiche un résumé
+- Orchestration : `run.ts` exécute les 7 étapes séquentiellement, isole les erreurs par étape et affiche un résumé
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions et écrit `ingest-report.json`
 - Point d'entrée : `src/main.ts` → script `yarn workspace @elupedia/ingest ingest`
 
 #### Clients API (M1)
 
-| Client                  | Fichier                              | Source API                  |
-| ----------------------- | ------------------------------------ | --------------------------- |
-| Députés (tous)          | `sources/assemblee-nationale.ts`     | data.assemblee-nationale.fr |
-| Votes par député        | `sources/nosdeputes-votes.ts`        | nosdeputes.fr               |
-| Affiliations            | `sources/nosdeputes-affiliations.ts` | nosdeputes.fr               |
-| Collaborateurs          | `sources/an-collaborateurs.ts`       | data.assemblee-nationale.fr |
-| Adresses/contacts       | `sources/an-adresses.ts`             | data.assemblee-nationale.fr |
-| Activité parlementaire  | `sources/an-activite.ts`             | data.assemblee-nationale.fr |
-| Commissions/délégations | `sources/an-commissions.ts`          | data.assemblee-nationale.fr |
-| Intérêts (HATVP)        | `sources/hatvp.ts`                   | hatvp.fr                    |
-| Résultats électoraux    | `sources/datagouv-elections.ts`      | data.gouv.fr                |
+| Client                  | Fichier                          | Source API                  |
+| ----------------------- | -------------------------------- | --------------------------- |
+| Députés (tous)          | `sources/assemblee-nationale.ts` | data.assemblee-nationale.fr |
+| Collaborateurs          | `sources/an-collaborateurs.ts`   | data.assemblee-nationale.fr |
+| Adresses/contacts       | `sources/an-adresses.ts`         | data.assemblee-nationale.fr |
+| Activité parlementaire  | `sources/an-activite.ts`         | data.assemblee-nationale.fr |
+| Commissions/délégations | `sources/an-commissions.ts`      | data.assemblee-nationale.fr |
+| Intérêts (HATVP)        | `sources/hatvp.ts`               | hatvp.fr                    |
+| Résultats électoraux    | `sources/datagouv-elections.ts`  | data.gouv.fr                |
 
 #### Upsert / Diff (M1)
 
