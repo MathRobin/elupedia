@@ -76,6 +76,7 @@ const ogImage = new URL('/og-default.png', Astro.site);
         <ul class="flex items-center gap-4 text-sm">
           <li><a href="/a-propos" class="text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 no-underline">À propos</a></li>
           <li><a href="/donnees-personnelles" class="text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 no-underline">Données personnelles</a></li>
+          <li><a href="/mentions-legales" class="text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 no-underline">Mentions légales</a></li>
         </ul>
       </nav>
     </header>
@@ -89,5 +90,9 @@ const ogImage = new URL('/og-default.png', Astro.site);
         <p>Elupedia — Données ouvertes sur les élus français.</p>
       </div>
     </footer>
+    <script>
+      import { inject } from '@vercel/analytics';
+      inject();
+    </script>
   </body>
 </html>
