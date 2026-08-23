@@ -13,6 +13,13 @@ export const platformEnum = [
   'madada',
 ] as const;
 
+export const linkStatusEnum = [
+  'pending',
+  'published',
+  'deleted',
+  'rejected',
+] as const;
+
 export const externalLinks = pgTable('external_links', {
   id: uuid('id').defaultRandom().primaryKey(),
   officialId: uuid('official_id')
@@ -20,4 +27,5 @@ export const externalLinks = pgTable('external_links', {
     .references(() => officials.id),
   platform: varchar('platform', { length: 50 }).notNull(),
   url: varchar('url', { length: 1024 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('published'),
 });

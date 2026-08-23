@@ -161,6 +161,18 @@ describe('#14 — addresses, external_links', () => {
     expect(cols).toContain('officialId');
     expect(cols).toContain('platform');
     expect(cols).toContain('url');
+    expect(cols).toContain('status');
+  });
+
+  it('linkStatusEnum has valid values', async () => {
+    const { linkStatusEnum } =
+      await import('../packages/shared/src/schema/external-links.js');
+    expect(linkStatusEnum).toEqual([
+      'pending',
+      'published',
+      'deleted',
+      'rejected',
+    ]);
   });
 
   it('platformEnum includes all required platforms', async () => {
@@ -280,6 +292,7 @@ describe('schema index re-exports', () => {
       'interests',
       'addresses',
       'externalLinks',
+      'linkStatusEnum',
       'pressMentions',
       'parliamentaryActivity',
       'committees',

@@ -1,0 +1,1 @@
+ALTER TABLE "external_links" ADD COLUMN "status" varchar(20) DEFAULT 'published' NOT NULL;

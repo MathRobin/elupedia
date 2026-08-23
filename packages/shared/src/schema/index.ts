@@ -6,7 +6,11 @@ export { staffers } from './staffers.js';
 export { affiliations } from './affiliations.js';
 export { interests, interestTypeEnum } from './interests.js';
 export { addresses, addressTypeEnum } from './addresses.js';
-export { externalLinks, platformEnum } from './external-links.js';
+export {
+  externalLinks,
+  platformEnum,
+  linkStatusEnum,
+} from './external-links.js';
 export { pressMentions } from './press-mentions.js';
 export {
   parliamentaryActivity,
