@@ -988,7 +988,7 @@ const timelineCategoryColors: Record<string, string> = {
     const tocInline = document.getElementById('toc-inline');
     const tocSticky = document.getElementById('toc-sticky');
     if (tocInline && tocSticky) {
-      const observer = new IntersectionObserver(
+      const visibilityObserver = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting) {
             tocSticky.classList.add('-translate-y-full');
@@ -1000,7 +1000,50 @@ const timelineCategoryColors: Record<string, string> = {
         },
         { threshold: 0 },
       );
-      observer.observe(tocInline);
+      visibilityObserver.observe(tocInline);
+
+      const sectionIds = [
+        'mandat', 'coordonnees', 'affiliations', 'collaborateurs',
+        'activite', 'commissions', 'electoral', 'interets',
+        'votes', 'presse', 'chronologie', 'liens',
+      ];
+
+      let currentId = '';
+
+      function setActive(id: string) {
+        if (id === currentId) return;
+        currentId = id;
+        for (const nav of [tocInline, tocSticky]) {
+          for (const link of nav.querySelectorAll('a')) {
+            const href = link.getAttribute('href');
+            if (href === `#${id}`) {
+              link.classList.remove('text-slate-600', 'text-slate-500');
+              link.classList.add('text-indigo-600', 'font-semibold');
+            } else {
+              link.classList.remove('text-indigo-600', 'font-semibold');
+              link.classList.add(
+                nav === tocInline ? 'text-slate-600' : 'text-slate-500',
+              );
+            }
+          }
+        }
+      }
+
+      const spyObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              setActive(entry.target.id);
+            }
+          }
+        },
+        { rootMargin: '-10% 0px -80% 0px' },
+      );
+
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) spyObserver.observe(el);
+      }
     }
   </script>
 </BaseLayout>
