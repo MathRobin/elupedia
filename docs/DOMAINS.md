@@ -5,23 +5,23 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Élus et mandats
 
 - **Tables** : `officials`, `mandates`
-- **Source** : data.assemblee-nationale.fr (open data AN), data.senat.fr
-- **Client M1** : `assemblee-nationale.ts` (tous les députés) → `upsert/officials.ts`
+- **Source** : data.assemblee-nationale.fr (open data AN)
+- **Client M1** : `assemblee-nationale.ts` (ZIP AMO30, tous les acteurs historiques) → `upsert/officials.ts`
 - **Description** : Identité des élus (nom, prénom, date de naissance, photo) et historique de leurs mandats (législature, circonscription, dates de début/fin).
 - **Pages M4** : page d'accueil (grille des élus actifs), fiche élu (identité, mandat, prédécesseur/successeur)
 
 ## Activité parlementaire
 
 - **Tables** : `parliamentary_activity`
-- **Source** : data.assemblee-nationale.fr
+- **Source** : data.assemblee-nationale.fr — ZIP questions écrites (~17 800 fichiers) + ZIP questions au gouvernement (~1 800 fichiers)
 - **Client M1** : `an-activite.ts` → `upsert/parliamentary-activity.ts`
-- **Description** : Indicateurs d'activité : questions écrites/orales, amendements (avec sort : adopted/rejected/withdrawn), rapports.
+- **Description** : Questions écrites (written_question) et questions au gouvernement (oral_question). Amendements et rapports prévus ultérieurement (volumes trop importants pour l'instant).
 - **Pages M4** : fiche élu (section activité parlementaire avec table triée par date)
 
 ## Votes et scrutins
 
 - **Tables** : `votes`, `ballots`
-- **Source** : data.assemblee-nationale.fr
+- **Source** : pas de source active (module upsert prêt, en attente d'un client API)
 - **Client M1** : `upsert/votes.ts`
 - **Description** : Scrutins publics et position de chaque élu (pour, contre, abstention, absent). Mapping FR→EN des positions.
 - **Pages M4** : fiche élu (section historique des votes), page détail scrutin (liste des votes par élu)
@@ -29,7 +29,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Affiliations politiques
 
 - **Tables** : `affiliations`
-- **Source** : data.assemblee-nationale.fr
+- **Source** : pas de source active (le groupe politique courant est stocké dans `mandates.political_group` via `assemblee-nationale.ts`)
 - **Client M1** : `upsert/affiliations-diff.ts`
 - **Description** : Appartenance aux groupes parlementaires et partis politiques, avec historique des changements. Stratégie diff : ferme l'affiliation précédente (end_date) si le groupe change.
 - **Pages M4** : fiche élu (section affiliations politiques), timeline unifiée
@@ -37,7 +37,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Collaborateurs
 
 - **Tables** : `staffers`
-- **Source** : data.assemblee-nationale.fr (open data)
+- **Source** : data.assemblee-nationale.fr — CSV des collaborateurs parlementaires
 - **Client M1** : `an-collaborateurs.ts` → `upsert/staffers-diff.ts`
 - **Description** : Collaborateurs parlementaires déclarés, avec suivi des arrivées et départs. Stratégie diff : set end_date sur les collaborateurs partis.
 - **Pages M4** : fiche élu (section collaborateurs avec badges actif/inactif), timeline unifiée
@@ -45,7 +45,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Intérêts et patrimoine (HATVP)
 
 - **Tables** : `interests`
-- **Source** : HATVP (Haute Autorité pour la Transparence de la Vie Publique)
+- **Source** : HATVP (Haute Autorité pour la Transparence de la Vie Publique) — ⏸ désactivé, source API à câbler
 - **Client M1** : `hatvp.ts` → `upsert/interests.ts`
 - **Description** : Déclarations d'intérêts et d'activités des élus soumis à obligation déclarative. Types : company_share, nonprofit_role.
 - **Pages M4** : fiche élu (section intérêts déclarés)
@@ -53,7 +53,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Commissions
 
 - **Tables** : `committees`
-- **Source** : data.assemblee-nationale.fr, data.senat.fr
+- **Source** : data.assemblee-nationale.fr — ⏸ désactivé, source API à câbler
 - **Client M1** : `an-commissions.ts` → `upsert/committees.ts`
 - **Description** : Composition des commissions permanentes/spéciales, délégations, groupes d'études et d'amitié.
 - **Pages M4** : fiche élu (section commissions & groupes)
@@ -68,15 +68,15 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Adresses et contacts
 
 - **Tables** : `addresses`, `external_links`
-- **Source** : data.assemblee-nationale.fr, data.senat.fr
+- **Source** : data.assemblee-nationale.fr — ZIP acteurs actifs (AMO10), extraction des adresses postales, téléphones et emails
 - **Client M1** : `an-adresses.ts` → `upsert/addresses.ts`
-- **Description** : Adresses de permanence et de l'Assemblée, coordonnées (téléphone, email).
+- **Description** : Adresses de permanence (constituency_office) et de l'Assemblée (assembly_office), coordonnées (téléphone rattaché, email).
 - **Pages M4** : fiche élu (section coordonnées, section liens extérieurs)
 
 ## Historique électoral
 
 - **Tables** : `electoral_results`
-- **Source** : data.gouv.fr (résultats électoraux)
+- **Source** : data.gouv.fr — ⏸ désactivé, source API à câbler
 - **Client M1** : `datagouv-elections.ts` → `upsert/electoral-results.ts`
 - **Description** : Résultats des élections par circonscription : pourcentage, tour, nombre d'opposants.
 - **Pages M4** : fiche élu (section historique électoral)
