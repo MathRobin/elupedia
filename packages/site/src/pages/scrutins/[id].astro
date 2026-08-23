@@ -78,7 +78,7 @@ const positionColors: Record<string, string> = {
   for: 'text-green-700 bg-green-50',
   against: 'text-red-700 bg-red-50',
   abstain: 'text-yellow-700 bg-yellow-50',
-  absent: 'text-gray-500 bg-gray-50',
+  absent: 'text-slate-500 bg-gray-50',
 };
 
 const sortedByName = [...ballotVotes].sort((a, b) =>
@@ -88,28 +88,31 @@ const sortedByName = [...ballotVotes].sort((a, b) =>
 
 <BaseLayout title={ballot.title} description={`Scrutin du ${new Date(ballot.date).toLocaleDateString('fr-FR')}`}>
   <div class="max-w-3xl" data-pagefind-body>
-    <a href="/" class="text-sm text-blue-600 hover:underline">&larr; Retour à la liste</a>
+    <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      Retour à la liste
+    </a>
 
-    <h1 class="mt-6 text-3xl font-bold">{ballot.title}</h1>
-    <p class="mt-2 text-gray-500">
+    <h1 class="mt-6 text-3xl font-extrabold tracking-tight">{ballot.title}</h1>
+    <p class="mt-2 text-slate-500">
       {ballot.type} — {new Date(ballot.date).toLocaleDateString('fr-FR')}
     </p>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Votes des élus
         {ballotVotes.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({ballotVotes.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({ballotVotes.length})</span>
         )}
       </h2>
 
       {ballotVotes.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucun vote enregistré pour ce scrutin.</p>
+        <p class="mt-4 text-slate-500">Aucun vote enregistré pour ce scrutin.</p>
       ) : (
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-200 text-left text-gray-500">
+              <tr class="border-b border-slate-200 text-left text-slate-500">
                 <th class="pb-2 pr-4 font-medium">Élu</th>
                 <th class="pb-2 pr-4 font-medium">Groupe politique</th>
                 <th class="pb-2 font-medium">Position</th>
@@ -117,13 +120,13 @@ const sortedByName = [...ballotVotes].sort((a, b) =>
             </thead>
             <tbody>
               {sortedByName.map((v) => (
-                <tr class="border-b border-gray-100">
+                <tr class="border-b border-slate-100">
                   <td class="py-2 pr-4">
-                    <a href={`/elus/${v.officialId}`} class="text-blue-600 hover:underline">
+                    <a href={`/elus/${v.officialId}`} class="text-indigo-600 hover:underline">
                       {v.firstName} {v.lastName}
                     </a>
                   </td>
-                  <td class="py-2 pr-4 text-gray-500">
+                  <td class="py-2 pr-4 text-slate-500">
                     {v.politicalGroup ?? '—'}
                   </td>
                   <td class="py-2">

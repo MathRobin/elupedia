@@ -24,6 +24,9 @@ const ogImage = new URL('/og-default.png', Astro.site);
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{fullTitle}</title>
     <link rel="canonical" href={canonicalUrl.href} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
@@ -63,31 +66,51 @@ const ogImage = new URL('/og-default.png', Astro.site);
     </script>
     <link rel="stylesheet" href="/tarteaucitron/css/tarteaucitron.css" />
   </head>
-  <body class="min-h-screen bg-white text-gray-900 flex flex-col">
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:text-sm">
+  <body class="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:text-sm">
       Aller au contenu principal
     </a>
 
-    <header class="border-b border-gray-200">
+    <div class="h-1 bg-gradient-to-r from-blue-700 via-white to-red-600" aria-hidden="true"></div>
+
+    <header class="bg-slate-900 shadow-lg">
       <nav class="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between" aria-label="Navigation principale">
-        <a href="/" class="text-xl font-bold text-gray-900 no-underline">
+        <a href="/" class="flex items-center gap-2.5 text-xl font-bold text-white no-underline tracking-tight">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500 text-sm font-extrabold text-white">E</span>
           Elupedia
         </a>
-        <ul class="flex items-center gap-4 text-sm">
-          <li><a href="/a-propos" class="text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 no-underline">À propos</a></li>
-          <li><a href="/donnees-personnelles" class="text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 no-underline">Données personnelles</a></li>
-          <li><a href="/mentions-legales" class="text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 no-underline">Mentions légales</a></li>
+        <ul class="flex items-center gap-6 text-sm font-medium">
+          <li><a href="/a-propos" class="text-slate-300 hover:text-white transition-colors no-underline">À propos</a></li>
+          <li><a href="/donnees-personnelles" class="text-slate-300 hover:text-white transition-colors no-underline">Données personnelles</a></li>
+          <li><a href="/mentions-legales" class="text-slate-300 hover:text-white transition-colors no-underline">Mentions légales</a></li>
         </ul>
       </nav>
     </header>
 
-    <main id="main-content" class="mx-auto max-w-6xl px-4 py-8 flex-1">
+    <main id="main-content" class="mx-auto max-w-6xl px-4 py-10 flex-1 w-full">
       <slot />
     </main>
 
-    <footer class="border-t border-gray-200 mt-auto">
-      <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-gray-500">
-        <p>Elupedia — Données ouvertes sur les élus français.</p>
+    <footer class="bg-slate-900 mt-auto">
+      <div class="mx-auto max-w-6xl px-4 py-8">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p class="font-semibold text-white">Elupedia</p>
+            <p class="mt-1 text-sm text-slate-400">Données ouvertes sur les élus français.</p>
+          </div>
+          <ul class="flex gap-6 text-sm text-slate-400">
+            <li><a href="/a-propos" class="hover:text-white transition-colors no-underline">À propos</a></li>
+            <li><a href="/mentions-legales" class="hover:text-white transition-colors no-underline">Mentions légales</a></li>
+            <li>
+              <a href="https://github.com/MathRobin/elupedia" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors no-underline">
+                GitHub
+              </a>
+            </li>
+          </ul>
+        </div>
+        <p class="mt-6 pt-6 border-t border-slate-800 text-xs text-slate-500">
+          © 2024–2026 Elupedia · Licence AGPL-3.0 · Données sous Licence Ouverte 2.0
+        </p>
       </div>
     </footer>
     <script>

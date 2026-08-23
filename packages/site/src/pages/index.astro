@@ -39,15 +39,19 @@ try {
 ---
 
 <BaseLayout>
-  <h1 class="text-4xl font-bold">Députés de France</h1>
-  <p class="mt-2 text-lg text-gray-600">
-    {deputesList.length > 0
-      ? `${deputesList.length} députés en exercice`
-      : 'Aucun député trouvé'}
-  </p>
+  <div class="text-center mb-10">
+    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
+      Députés de France
+    </h1>
+    <p class="mt-3 text-lg text-slate-500">
+      {deputesList.length > 0
+        ? `${deputesList.length} députés en exercice`
+        : 'Aucun député trouvé'}
+    </p>
 
-  <div class="mt-6">
-    <SearchBar client:load />
+    <div class="mt-6 flex justify-center">
+      <SearchBar client:load />
+    </div>
   </div>
 
   {error && (
@@ -56,33 +60,33 @@ try {
     </p>
   )}
 
-  <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {deputesList.map((d) => (
       <a
         href={`/elus/${d.id}`}
-        class="group flex items-start gap-4 rounded-lg border border-gray-200 p-4 hover:border-gray-400 hover:shadow-sm transition-all no-underline"
+        class="group flex items-start gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 hover:shadow-md hover:ring-indigo-400/40 transition-all no-underline"
       >
         {d.photoUrl ? (
           <img
             src={d.photoUrl}
             alt={`${d.firstName} ${d.lastName}`}
-            class="h-16 w-16 shrink-0 rounded-full object-cover bg-gray-100"
+            class="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-slate-100"
             loading="lazy"
           />
         ) : (
-          <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xl font-medium text-gray-400">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-lg font-semibold text-indigo-600">
             {d.firstName[0]}{d.lastName[0]}
           </div>
         )}
         <div class="min-w-0">
-          <p class="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+          <p class="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
             {d.firstName} {d.lastName}
           </p>
           {d.district && (
-            <p class="mt-1 text-sm text-gray-500">{d.district}</p>
+            <p class="mt-0.5 text-sm text-slate-500 truncate">{d.district}</p>
           )}
           {d.politicalGroup && (
-            <p class="mt-1 text-xs text-gray-500">{d.politicalGroup}</p>
+            <p class="mt-0.5 text-xs text-slate-400">{d.politicalGroup}</p>
           )}
         </div>
       </a>

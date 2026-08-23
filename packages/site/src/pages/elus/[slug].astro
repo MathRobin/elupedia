@@ -478,7 +478,7 @@ const positionColors: Record<string, string> = {
   for: 'text-green-700 bg-green-50',
   against: 'text-red-700 bg-red-50',
   abstain: 'text-yellow-700 bg-yellow-50',
-  absent: 'text-gray-500 bg-gray-50',
+  absent: 'text-slate-500 bg-slate-50',
 };
 
 type TimelineEvent = { date: string; category: string; label: string };
@@ -512,76 +512,79 @@ timelineEvents.sort((a, b) => b.date.localeCompare(a.date));
 const timelineCategoryColors: Record<string, string> = {
   Affiliation: 'text-purple-700 bg-purple-50',
   Collaborateur: 'text-teal-700 bg-teal-50',
-  Vote: 'text-blue-700 bg-blue-50',
+  Vote: 'text-indigo-600 bg-indigo-50',
   Presse: 'text-orange-700 bg-orange-50',
 };
 ---
 
 <BaseLayout title={fullName} description={`Fiche de ${fullName}, ${deputy.mandateType}`}>
   <div class="max-w-3xl" data-pagefind-body>
-    <a href="/" class="text-sm text-blue-600 hover:underline">&larr; Retour à la liste</a>
+    <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      Retour à la liste
+    </a>
 
     <div class="mt-6 flex items-start gap-6">
       {deputy.photoUrl ? (
         <img
           src={deputy.photoUrl}
           alt={fullName}
-          class="h-32 w-32 shrink-0 rounded-full object-cover bg-gray-100"
+          class="h-28 w-28 shrink-0 rounded-2xl object-cover ring-4 ring-white shadow-lg"
         />
       ) : (
-        <div class="flex h-32 w-32 shrink-0 items-center justify-center rounded-full bg-gray-100 text-3xl font-medium text-gray-400">
+        <div class="flex h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-3xl font-semibold text-indigo-600 ring-4 ring-white shadow-lg">
           {deputy.firstName[0]}{deputy.lastName[0]}
         </div>
       )}
 
       <div>
-        <h1 class="text-3xl font-bold">{fullName}</h1>
+        <h1 class="text-3xl font-extrabold tracking-tight">{fullName}</h1>
         {deputy.birthDate && (
-          <p class="mt-1 text-gray-500">
+          <p class="mt-1 text-slate-500">
             Né{deputy.firstName.endsWith('e') ? 'e' : ''} le {new Date(deputy.birthDate).toLocaleDateString('fr-FR')} ({differenceInYears(new Date(), new Date(deputy.birthDate))} ans)
           </p>
         )}
       </div>
     </div>
 
-    <p class="mt-4 text-xs text-gray-500">
+    <p class="mt-4 text-xs text-slate-500">
       Dernière mise à jour le {new Date(lastUpdated).toLocaleDateString('fr-FR')}
     </p>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">Mandat en cours</h2>
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Mandat en cours</h2>
       <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <dt class="text-sm text-gray-500">Type</dt>
+          <dt class="text-sm text-slate-500">Type</dt>
           <dd class="font-medium">{deputy.mandateType}</dd>
         </div>
         {deputy.district && (
           <div>
-            <dt class="text-sm text-gray-500">Circonscription</dt>
+            <dt class="text-sm text-slate-500">Circonscription</dt>
             <dd class="font-medium">{deputy.district}</dd>
           </div>
         )}
         {deputy.department && (
           <div>
-            <dt class="text-sm text-gray-500">Département</dt>
+            <dt class="text-sm text-slate-500">Département</dt>
             <dd class="font-medium">{deputy.department}</dd>
           </div>
         )}
         {deputy.politicalGroup && (
           <div>
-            <dt class="text-sm text-gray-500">Groupe politique</dt>
+            <dt class="text-sm text-slate-500">Groupe politique</dt>
             <dd class="font-medium">{deputy.politicalGroup}</dd>
           </div>
         )}
         <div>
-          <dt class="text-sm text-gray-500">Début de mandat</dt>
+          <dt class="text-sm text-slate-500">Début de mandat</dt>
           <dd class="font-medium">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
         </div>
         {predecessor && (
           <div>
-            <dt class="text-sm text-gray-500">Prédécesseur</dt>
+            <dt class="text-sm text-slate-500">Prédécesseur</dt>
             <dd class="font-medium">
-              <a href={`/elus/${predecessor.id}`} class="text-blue-600 hover:underline">
+              <a href={`/elus/${predecessor.id}`} class="text-indigo-600 hover:underline">
                 {predecessor.firstName} {predecessor.lastName}
               </a>
             </dd>
@@ -589,9 +592,9 @@ const timelineCategoryColors: Record<string, string> = {
         )}
         {successor && (
           <div>
-            <dt class="text-sm text-gray-500">Successeur</dt>
+            <dt class="text-sm text-slate-500">Successeur</dt>
             <dd class="font-medium">
-              <a href={`/elus/${successor.id}`} class="text-blue-600 hover:underline">
+              <a href={`/elus/${successor.id}`} class="text-indigo-600 hover:underline">
                 {successor.firstName} {successor.lastName}
               </a>
             </dd>
@@ -601,19 +604,19 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">Coordonnées</h2>
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Coordonnées</h2>
 
       {deputyAddresses.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucune adresse enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune adresse enregistrée.</p>
       ) : (
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {deputyAddresses.map((addr) => (
-            <div class="rounded-lg border border-gray-200 p-4">
-              <p class="text-sm font-semibold text-gray-700">
+            <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5">
+              <p class="text-sm font-semibold text-slate-700">
                 {addressTypeLabels[addr.type] ?? addr.type}
               </p>
               {(addr.street || addr.city) && (
-                <p class="mt-2 text-sm text-gray-600">
+                <p class="mt-2 text-sm text-slate-600">
                   {addr.street && <span>{addr.street}<br /></span>}
                   {addr.postalCode && <span>{addr.postalCode} </span>}
                   {addr.city}
@@ -621,12 +624,12 @@ const timelineCategoryColors: Record<string, string> = {
               )}
               {addr.phone && (
                 <p class="mt-2 text-sm">
-                  <a href={`tel:${addr.phone}`} class="text-blue-600 hover:underline">{addr.phone}</a>
+                  <a href={`tel:${addr.phone}`} class="text-indigo-600 hover:underline">{addr.phone}</a>
                 </p>
               )}
               {addr.email && (
                 <p class="mt-1 text-sm">
-                  <a href={`mailto:${addr.email}`} class="text-blue-600 hover:underline">{addr.email}</a>
+                  <a href={`mailto:${addr.email}`} class="text-indigo-600 hover:underline">{addr.email}</a>
                 </p>
               )}
             </div>
@@ -636,21 +639,21 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Affiliations politiques
         {deputyAffiliations.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({deputyAffiliations.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyAffiliations.length})</span>
         )}
       </h2>
 
       {deputyAffiliations.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucune affiliation enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune affiliation enregistrée.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {deputyAffiliations.map((a) => (
-            <li class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+            <li class="flex items-baseline justify-between border-b border-slate-100 pb-3">
               <span class="font-medium">{a.partyOrGroup}</span>
-              <span class="text-sm text-gray-500">
+              <span class="text-sm text-slate-500">
                 {new Date(a.startDate).toLocaleDateString('fr-FR')}
                 {' — '}
                 {a.endDate ? new Date(a.endDate).toLocaleDateString('fr-FR') : 'en cours'}
@@ -662,29 +665,29 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Collaborateurs
         {deputyStaffers.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({deputyStaffers.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyStaffers.length})</span>
         )}
       </h2>
 
       {deputyStaffers.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucun collaborateur enregistré.</p>
+        <p class="mt-4 text-slate-500">Aucun collaborateur enregistré.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {deputyStaffers.map((s) => (
-            <li class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+            <li class="flex items-baseline justify-between border-b border-slate-100 pb-3">
               <div>
                 <span class="font-medium">{s.firstName} {s.lastName}</span>
                 {!s.endDate && (
                   <span class="ml-2 inline-block rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">actif</span>
                 )}
                 {s.endDate && (
-                  <span class="ml-2 inline-block rounded bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500">inactif</span>
+                  <span class="ml-2 inline-block rounded bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">inactif</span>
                 )}
               </div>
-              <span class="text-sm text-gray-500">
+              <span class="text-sm text-slate-500">
                 {new Date(s.startDate).toLocaleDateString('fr-FR')}
                 {' — '}
                 {s.endDate ? new Date(s.endDate).toLocaleDateString('fr-FR') : "aujourd'hui"}
@@ -696,20 +699,20 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Activité parlementaire
         {deputyActivities.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({deputyActivities.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyActivities.length})</span>
         )}
       </h2>
 
       {deputyActivities.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucune activité parlementaire enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune activité parlementaire enregistrée.</p>
       ) : (
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-200 text-left text-gray-500">
+              <tr class="border-b border-slate-200 text-left text-slate-500">
                 <th class="pb-2 pr-4 font-medium">Date</th>
                 <th class="pb-2 pr-4 font-medium">Type</th>
                 <th class="pb-2 pr-4 font-medium">Intitulé</th>
@@ -718,7 +721,7 @@ const timelineCategoryColors: Record<string, string> = {
             </thead>
             <tbody>
               {deputyActivities.map((act) => (
-                <tr class="border-b border-gray-100">
+                <tr class="border-b border-slate-100">
                   <td class="py-2 pr-4 whitespace-nowrap">
                     {new Date(act.date).toLocaleDateString('fr-FR')}
                   </td>
@@ -732,7 +735,7 @@ const timelineCategoryColors: Record<string, string> = {
                         {statusLabels[act.status] ?? act.status}
                       </span>
                     ) : (
-                      <span class="text-gray-400">—</span>
+                      <span class="text-slate-400">—</span>
                     )}
                   </td>
                 </tr>
@@ -744,26 +747,26 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Commissions & groupes
         {deputyCommittees.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({deputyCommittees.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyCommittees.length})</span>
         )}
       </h2>
 
       {deputyCommittees.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucune commission enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune commission enregistrée.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {deputyCommittees.map((c) => (
-            <li class="flex items-baseline justify-between border-b border-gray-100 pb-3">
+            <li class="flex items-baseline justify-between border-b border-slate-100 pb-3">
               <div>
                 <span class="font-medium">{c.name}</span>
-                <span class="ml-2 inline-block rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                <span class="ml-2 inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
                   {committeeTypeLabels[c.type] ?? c.type}
                 </span>
               </div>
-              <span class="text-sm text-gray-500">
+              <span class="text-sm text-slate-500">
                 {new Date(c.startDate).toLocaleDateString('fr-FR')}
                 {' — '}
                 {c.endDate ? new Date(c.endDate).toLocaleDateString('fr-FR') : 'en cours'}
@@ -775,20 +778,20 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Historique électoral
         {deputyElectoralResults.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({deputyElectoralResults.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyElectoralResults.length})</span>
         )}
       </h2>
 
       {deputyElectoralResults.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucun résultat électoral enregistré.</p>
+        <p class="mt-4 text-slate-500">Aucun résultat électoral enregistré.</p>
       ) : (
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-200 text-left text-gray-500">
+              <tr class="border-b border-slate-200 text-left text-slate-500">
                 <th class="pb-2 pr-4 font-medium">Date</th>
                 <th class="pb-2 pr-4 font-medium">Élection</th>
                 <th class="pb-2 pr-4 font-medium">Tour</th>
@@ -798,7 +801,7 @@ const timelineCategoryColors: Record<string, string> = {
             </thead>
             <tbody>
               {deputyElectoralResults.map((er) => (
-                <tr class="border-b border-gray-100">
+                <tr class="border-b border-slate-100">
                   <td class="py-2 pr-4 whitespace-nowrap">
                     {new Date(er.electionDate).toLocaleDateString('fr-FR')}
                   </td>
@@ -819,31 +822,31 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Intérêts déclarés
         {deputyInterests.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({deputyInterests.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyInterests.length})</span>
         )}
       </h2>
 
       {deputyInterests.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucun intérêt déclaré.</p>
+        <p class="mt-4 text-slate-500">Aucun intérêt déclaré.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {deputyInterests.map((i) => (
-            <li class="border-b border-gray-100 pb-3">
+            <li class="border-b border-slate-100 pb-3">
               <div class="flex items-baseline justify-between">
                 <span class="font-medium">{i.entityName}</span>
-                <span class="text-sm text-gray-500">
+                <span class="text-sm text-slate-500">
                   {new Date(i.declaredDate).toLocaleDateString('fr-FR')}
                 </span>
               </div>
               <div class="mt-1 flex items-center gap-2">
-                <span class="inline-block rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
                   {interestTypeLabels[i.type] ?? i.type}
                 </span>
                 {i.roleDescription && (
-                  <span class="text-sm text-gray-500">{i.roleDescription}</span>
+                  <span class="text-sm text-slate-500">{i.roleDescription}</span>
                 )}
               </div>
             </li>
@@ -853,20 +856,20 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Historique des votes
         {deputyVotes.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({deputyVotes.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyVotes.length})</span>
         )}
       </h2>
 
       {deputyVotes.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucun vote enregistré.</p>
+        <p class="mt-4 text-slate-500">Aucun vote enregistré.</p>
       ) : (
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-200 text-left text-gray-500">
+              <tr class="border-b border-slate-200 text-left text-slate-500">
                 <th class="pb-2 pr-4 font-medium">Date</th>
                 <th class="pb-2 pr-4 font-medium">Scrutin</th>
                 <th class="pb-2 font-medium">Position</th>
@@ -874,7 +877,7 @@ const timelineCategoryColors: Record<string, string> = {
             </thead>
             <tbody>
               {deputyVotes.map((v) => (
-                <tr class="border-b border-gray-100">
+                <tr class="border-b border-slate-100">
                   <td class="py-2 pr-4 whitespace-nowrap">
                     {new Date(v.ballotDate).toLocaleDateString('fr-FR')}
                   </td>
@@ -893,34 +896,34 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Dans la presse
         {deputyPress.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({deputyPress.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyPress.length})</span>
         )}
       </h2>
 
       {deputyPress.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucune mention presse enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune mention presse enregistrée.</p>
       ) : (
         <ul class="mt-4 space-y-4">
           {deputyPress.map((p) => (
-            <li class="border-b border-gray-100 pb-4">
+            <li class="border-b border-slate-100 pb-4">
               <a
                 href={p.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="font-medium text-blue-700 hover:underline"
+                class="font-medium text-indigo-600 hover:underline"
               >
                 {p.title}
               </a>
-              <div class="mt-1 flex items-center gap-2 text-sm text-gray-500">
+              <div class="mt-1 flex items-center gap-2 text-sm text-slate-500">
                 <span>{p.sourceName}</span>
                 <span>&middot;</span>
                 <span>{new Date(p.publishedDate).toLocaleDateString('fr-FR')}</span>
               </div>
               {p.summary && (
-                <p class="mt-2 text-sm text-gray-600">{p.summary}</p>
+                <p class="mt-2 text-sm text-slate-600">{p.summary}</p>
               )}
             </li>
           ))}
@@ -929,20 +932,20 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Chronologie
         {timelineEvents.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-gray-500">({timelineEvents.length})</span>
+          <span class="ml-2 text-sm font-normal text-slate-500">({timelineEvents.length})</span>
         )}
       </h2>
 
       {timelineEvents.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucun événement à afficher.</p>
+        <p class="mt-4 text-slate-500">Aucun événement à afficher.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {timelineEvents.map((evt) => (
-            <li class="flex items-baseline gap-4 border-b border-gray-100 pb-3">
-              <span class="shrink-0 text-sm text-gray-500 whitespace-nowrap">
+            <li class="flex items-baseline gap-4 border-b border-slate-100 pb-3">
+              <span class="shrink-0 text-sm text-slate-500 whitespace-nowrap">
                 {new Date(evt.date).toLocaleDateString('fr-FR')}
               </span>
               <span class={`shrink-0 inline-block rounded px-2 py-0.5 text-xs font-medium ${timelineCategoryColors[evt.category] ?? ''}`}>
@@ -956,10 +959,10 @@ const timelineCategoryColors: Record<string, string> = {
     </section>
 
     <section class="mt-8">
-      <h2 class="text-xl font-semibold border-b border-gray-200 pb-2">Liens extérieurs</h2>
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Liens extérieurs</h2>
 
       {deputyLinks.length === 0 ? (
-        <p class="mt-4 text-gray-500">Aucun lien externe enregistré.</p>
+        <p class="mt-4 text-slate-500">Aucun lien externe enregistré.</p>
       ) : (
         <ul class="mt-4 flex flex-wrap gap-3">
           {deputyLinks.map((l) => (
@@ -968,7 +971,7 @@ const timelineCategoryColors: Record<string, string> = {
                 href={l.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-sm text-blue-700 hover:border-blue-300 hover:bg-blue-50 transition-colors no-underline"
+                class="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-indigo-600 shadow-sm ring-1 ring-slate-900/5 hover:ring-indigo-400/40 hover:shadow-md transition-all no-underline"
               >
                 {platformLabels[l.platform] ?? l.platform}
               </a>
