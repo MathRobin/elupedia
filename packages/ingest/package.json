@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "ingest": "tsx src/main.ts",
+    "scrape-social": "tsx src/scrape-social.ts",
     "test": "vitest run"
   },
   "dependencies": {
