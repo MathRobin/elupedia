@@ -17,11 +17,11 @@ Elupedia collecte les données publiques des portails open data institutionnels 
 
 ## Sources de données
 
-| Source | Données | Licence |
-| --- | --- | --- |
+| Source                                                             | Données                                               | Licence             |
+| ------------------------------------------------------------------ | ----------------------------------------------------- | ------------------- |
 | [data.assemblee-nationale.fr](https://data.assemblee-nationale.fr) | Députés, mandats, adresses, questions, collaborateurs | Licence Ouverte 2.0 |
-| [HATVP](https://www.hatvp.fr/open-data/) | Déclarations d'intérêts *(prévue)* | Licence Ouverte 2.0 |
-| [data.gouv.fr](https://www.data.gouv.fr) | Résultats électoraux *(prévue)* | Licence Ouverte 2.0 |
+| [HATVP](https://www.hatvp.fr/open-data/)                           | Déclarations d'intérêts _(prévue)_                    | Licence Ouverte 2.0 |
+| [data.gouv.fr](https://www.data.gouv.fr)                           | Résultats électoraux _(prévue)_                       | Licence Ouverte 2.0 |
 
 Détails dans [docs/DATA-LICENSES.md](docs/DATA-LICENSES.md).
 

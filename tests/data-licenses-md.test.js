@@ -10,7 +10,6 @@ const licensesMd = readFileSync(
 
 const sources = [
   'data.assemblee-nationale.fr',
-  'data.senat.fr',
   'HATVP',
   'data.gouv.fr',
 ];

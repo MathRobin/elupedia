@@ -43,9 +43,9 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 
 ## Résumé des obligations
 
-| Source              | Licence             | Attribution | Usage commercial | Statut     |
-| ------------------- | ------------------- | ----------- | ---------------- | ---------- |
-| Assemblée nationale | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active  |
+| Source              | Licence             | Attribution | Usage commercial | Statut    |
+| ------------------- | ------------------- | ----------- | ---------------- | --------- |
+| Assemblée nationale | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
 | data.gouv.fr        | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
 
