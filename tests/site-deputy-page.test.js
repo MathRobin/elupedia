@@ -266,10 +266,11 @@ describe('Fiche élu — section adresses (#59)', () => {
 describe('Fiche élu — section liens extérieurs (#60)', () => {
   const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
 
-  it('queries external_links table', () => {
+  it('queries external_links table filtered by published status', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('externalLinks');
     expect(content).toContain('linksByOfficial');
+    expect(content).toContain("eq(externalLinks.status, 'published')");
   });
 
   it('has platform labels for all supported platforms', () => {

@@ -139,8 +139,10 @@ export async function getStaticPaths() {
       officialId: externalLinks.officialId,
       platform: externalLinks.platform,
       url: externalLinks.url,
+      source: externalLinks.source,
     })
-    .from(externalLinks);
+    .from(externalLinks)
+    .where(eq(externalLinks.status, 'published'));
 
   const linksByOfficial = new Map<string, typeof allLinks>();
   for (const l of allLinks) {
