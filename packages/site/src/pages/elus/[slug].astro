@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull } from 'drizzle-orm';
+import { differenceInYears } from 'date-fns';
 
 export async function getStaticPaths() {
   const db = getDb();
@@ -535,7 +536,7 @@ const timelineCategoryColors: Record<string, string> = {
         <h1 class="text-3xl font-bold">{fullName}</h1>
         {deputy.birthDate && (
           <p class="mt-1 text-gray-500">
-            Né{deputy.firstName.endsWith('e') ? 'e' : ''} le {new Date(deputy.birthDate).toLocaleDateString('fr-FR')}
+            Né{deputy.firstName.endsWith('e') ? 'e' : ''} le {new Date(deputy.birthDate).toLocaleDateString('fr-FR')} ({differenceInYears(new Date(), new Date(deputy.birthDate))} ans)
           </p>
         )}
       </div>

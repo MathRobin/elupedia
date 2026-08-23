@@ -6,18 +6,18 @@ import { fileURLToPath } from 'node:url';
 import { withRetry } from './utils/retry.js';
 import { fetchDeputes } from './sources/assemblee-nationale.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
-import { fetchDeclarations } from './sources/hatvp.js';
+// import { fetchDeclarations } from './sources/hatvp.js';
 import { fetchAddresses } from './sources/an-adresses.js';
 import { fetchActivities } from './sources/an-activite.js';
-import { fetchCommittees } from './sources/an-commissions.js';
-import { fetchElectionResults } from './sources/datagouv-elections.js';
+// import { fetchCommittees } from './sources/an-commissions.js';
+// import { fetchElectionResults } from './sources/datagouv-elections.js';
 import { upsertOfficials } from './upsert/officials.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
-import { upsertInterests } from './upsert/interests.js';
+// import { upsertInterests } from './upsert/interests.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
-import { upsertCommittees } from './upsert/committees.js';
-import { upsertElectoralResults } from './upsert/electoral-results.js';
+// import { upsertCommittees } from './upsert/committees.js';
+// import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 loadDotenv({ path: path.resolve(__dirname, '../../../.env') });
@@ -72,16 +72,17 @@ export async function run() {
     }),
   );
 
-  console.log('[3/7] Interests (HATVP)...');
-  results.push(
-    await runStep('interests', async () => {
-      const declarations = await withRetry(() => fetchDeclarations(), {
-        source: 'hatvp',
-      });
-      const r = await upsertInterests(db, declarations);
-      return { source: 'interests', created: r.created, updated: r.updated };
-    }),
-  );
+  // TODO: étape 3 (HATVP) désactivée — source API à câbler
+  // console.log('[3/7] Interests (HATVP)...');
+  // results.push(
+  //   await runStep('interests', async () => {
+  //     const declarations = await withRetry(() => fetchDeclarations(), {
+  //       source: 'hatvp',
+  //     });
+  //     const r = await upsertInterests(db, declarations);
+  //     return { source: 'interests', created: r.created, updated: r.updated };
+  //   }),
+  // );
 
   console.log('[4/7] Addresses...');
   results.push(
@@ -109,31 +110,33 @@ export async function run() {
     }),
   );
 
-  console.log('[6/7] Committees...');
-  results.push(
-    await runStep('committees', async () => {
-      const comm = await withRetry(() => fetchCommittees(), {
-        source: 'an-commissions',
-      });
-      const r = await upsertCommittees(db, comm);
-      return { source: 'committees', created: r.created, updated: r.updated };
-    }),
-  );
+  // TODO: étape 6 (commissions) désactivée — source API à câbler
+  // console.log('[6/7] Committees...');
+  // results.push(
+  //   await runStep('committees', async () => {
+  //     const comm = await withRetry(() => fetchCommittees(), {
+  //       source: 'an-commissions',
+  //     });
+  //     const r = await upsertCommittees(db, comm);
+  //     return { source: 'committees', created: r.created, updated: r.updated };
+  //   }),
+  // );
 
-  console.log('[7/7] Electoral results...');
-  results.push(
-    await runStep('electoral-results', async () => {
-      const elec = await withRetry(() => fetchElectionResults(), {
-        source: 'datagouv-elections',
-      });
-      const r = await upsertElectoralResults(db, elec);
-      return {
-        source: 'electoral-results',
-        created: r.created,
-        updated: r.updated,
-      };
-    }),
-  );
+  // TODO: étape 7 (résultats électoraux) désactivée — source API à câbler
+  // console.log('[7/7] Electoral results...');
+  // results.push(
+  //   await runStep('electoral-results', async () => {
+  //     const elec = await withRetry(() => fetchElectionResults(), {
+  //       source: 'datagouv-elections',
+  //     });
+  //     const r = await upsertElectoralResults(db, elec);
+  //     return {
+  //       source: 'electoral-results',
+  //       created: r.created,
+  //       updated: r.updated,
+  //     };
+  //   }),
+  // );
 
   console.log('\n=== Ingestion summary ===');
   const errors = results.filter((r) => r.error);

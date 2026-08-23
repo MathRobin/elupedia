@@ -1,33 +1,49 @@
-import { z } from 'zod/v4';
+export const DATASET_URL =
+  'https://data.assemblee-nationale.fr/static/openData/repository/17/amo/collaborateurs_csv_opendata/liste_collaborateurs_libre_office.csv';
 
-const CollaborateurSchema = z.object({
-  prenom: z.string(),
-  nom: z.string(),
-  id_an: z.string(),
-});
+export interface Collaborateur {
+  prenom: string;
+  nom: string;
+}
 
-const CollaborateursDeputeSchema = z.object({
-  id_an: z.string(),
-  collaborateurs: z.array(CollaborateurSchema),
-});
+export interface CollaborateursDepute {
+  id_an: string;
+  collaborateurs: Collaborateur[];
+}
 
-const CollaborateursResponseSchema = z.object({
-  deputes: z.array(CollaborateursDeputeSchema),
-});
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
 
-export type Collaborateur = z.infer<typeof CollaborateurSchema>;
-export type CollaborateursDepute = z.infer<typeof CollaborateursDeputeSchema>;
-export type CollaborateursResponse = z.infer<
-  typeof CollaborateursResponseSchema
->;
-
-export const BASE_URL = 'https://data.assemblee-nationale.fr';
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      fields.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current);
+  return fields;
+}
 
 export async function fetchCollaborateurs(
   fetchFn: typeof fetch = fetch,
 ): Promise<CollaborateursDepute[]> {
-  const url = `${BASE_URL}/api/collaborateurs/json`;
-  const response = await fetchFn(url);
+  const response = await fetchFn(DATASET_URL);
 
   if (!response.ok) {
     throw new Error(
@@ -35,9 +51,35 @@ export async function fetchCollaborateurs(
     );
   }
 
-  const data = await response.json();
-  const parsed = CollaborateursResponseSchema.parse(data);
-  return parsed.deputes;
-}
+  const text = await response.text();
+  const lines = text.split('\n').filter((l) => l.trim().length > 0);
 
-export { CollaborateurSchema, CollaborateursResponseSchema };
+  if (lines.length < 2) return [];
+
+  const byDepute = new Map<string, Collaborateur[]>();
+
+  for (let i = 1; i < lines.length; i++) {
+    const fields = parseCsvLine(lines[i]);
+    if (fields.length < 5) continue;
+
+    const idAn = fields[0];
+    const nomCollab = fields[3];
+    const prenomCollab = fields[4];
+
+    if (!idAn || !nomCollab || !prenomCollab) continue;
+
+    let list = byDepute.get(idAn);
+    if (!list) {
+      list = [];
+      byDepute.set(idAn, list);
+    }
+    list.push({ prenom: prenomCollab, nom: nomCollab });
+  }
+
+  const result: CollaborateursDepute[] = [];
+  for (const [id_an, collaborateurs] of byDepute) {
+    result.push({ id_an, collaborateurs });
+  }
+
+  return result;
+}
