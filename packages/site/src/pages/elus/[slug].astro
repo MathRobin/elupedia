@@ -206,48 +206,6 @@ export async function getStaticPaths() {
     electoralByOfficial.set(er.officialId, list);
   }
 
-  const allMandates = await db
-    .select({
-      officialId: mandates.officialId,
-      firstName: officials.firstName,
-      lastName: officials.lastName,
-      type: mandates.type,
-      district: mandates.district,
-      startDate: mandates.startDate,
-      endDate: mandates.endDate,
-    })
-    .from(mandates)
-    .innerJoin(officials, eq(officials.id, mandates.officialId))
-    .orderBy(mandates.startDate);
-
-  type Neighbor = { id: string; firstName: string; lastName: string } | null;
-  const predecessorMap = new Map<string, Neighbor>();
-  const successorMap = new Map<string, Neighbor>();
-
-  const seatMap = new Map<string, typeof allMandates>();
-  for (const m of allMandates) {
-    const key = `${m.type}::${m.district ?? ''}`;
-    const list = seatMap.get(key) ?? [];
-    list.push(m);
-    seatMap.set(key, list);
-  }
-
-  for (const row of rows) {
-    const key = `${row.mandateType}::${row.district ?? ''}`;
-    const seat = seatMap.get(key) ?? [];
-    const idx = seat.findIndex((m) => m.officialId === row.id);
-    if (idx > 0) {
-      const prev = seat[idx - 1];
-      predecessorMap.set(row.id, { id: prev.officialId, firstName: prev.firstName, lastName: prev.lastName });
-    }
-    if (idx >= 0 && idx < seat.length - 1) {
-      const next = seat[idx + 1];
-      if (next.officialId !== row.id) {
-        successorMap.set(row.id, { id: next.officialId, firstName: next.firstName, lastName: next.lastName });
-      }
-    }
-  }
-
   return rows.map((row) => {
     const dates: string[] = [row.startDate];
     for (const a of affiliationsByOfficial.get(row.id) ?? []) {
@@ -295,8 +253,6 @@ export async function getStaticPaths() {
         deputyCommittees: committeesByOfficial.get(row.id) ?? [],
         deputyElectoralResults: electoralByOfficial.get(row.id) ?? [],
         lastUpdated,
-        predecessor: predecessorMap.get(row.id) ?? null,
-        successor: successorMap.get(row.id) ?? null,
       },
     };
   });
@@ -406,11 +362,9 @@ type Props = {
   deputyCommittees: Committee[];
   deputyElectoralResults: ElectoralResult[];
   lastUpdated: string;
-  predecessor: { id: string; firstName: string; lastName: string } | null;
-  successor: { id: string; firstName: string; lastName: string } | null;
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, lastUpdated, predecessor, successor } = Astro.props as Props;
+const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, lastUpdated } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -580,26 +534,6 @@ const timelineCategoryColors: Record<string, string> = {
           <dt class="text-sm text-slate-500">Début de mandat</dt>
           <dd class="font-medium">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
         </div>
-        {predecessor && (
-          <div>
-            <dt class="text-sm text-slate-500">Prédécesseur</dt>
-            <dd class="font-medium">
-              <a href={`/elus/${predecessor.id}`} class="text-indigo-600 hover:underline">
-                {predecessor.firstName} {predecessor.lastName}
-              </a>
-            </dd>
-          </div>
-        )}
-        {successor && (
-          <div>
-            <dt class="text-sm text-slate-500">Successeur</dt>
-            <dd class="font-medium">
-              <a href={`/elus/${successor.id}`} class="text-indigo-600 hover:underline">
-                {successor.firstName} {successor.lastName}
-              </a>
-            </dd>
-          </div>
-        )}
       </dl>
     </section>
 
@@ -607,7 +541,7 @@ const timelineCategoryColors: Record<string, string> = {
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Coordonnées</h2>
 
       {deputyAddresses.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune adresse enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune adresse enregistrée/trouvée.</p>
       ) : (
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {deputyAddresses.map((addr) => (
@@ -647,7 +581,7 @@ const timelineCategoryColors: Record<string, string> = {
       </h2>
 
       {deputyAffiliations.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune affiliation enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune affiliation enregistrée/trouvée.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {deputyAffiliations.map((a) => (
@@ -707,7 +641,7 @@ const timelineCategoryColors: Record<string, string> = {
       </h2>
 
       {deputyActivities.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune activité parlementaire enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune activité parlementaire enregistrée/trouvée.</p>
       ) : (
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
@@ -755,7 +689,7 @@ const timelineCategoryColors: Record<string, string> = {
       </h2>
 
       {deputyCommittees.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune commission enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune commission enregistrée/trouvée.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {deputyCommittees.map((c) => (
@@ -904,7 +838,7 @@ const timelineCategoryColors: Record<string, string> = {
       </h2>
 
       {deputyPress.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune mention presse enregistrée.</p>
+        <p class="mt-4 text-slate-500">Aucune mention presse enregistrée/trouvée.</p>
       ) : (
         <ul class="mt-4 space-y-4">
           {deputyPress.map((p) => (
