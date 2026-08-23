@@ -1,83 +1,94 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  fetchCollaborateurs,
-  CollaborateurSchema,
-  CollaborateursResponseSchema,
-} from './an-collaborateurs.js';
+import { fetchCollaborateurs, DATASET_URL } from './an-collaborateurs.js';
 
-const mockResponse = {
-  deputes: [
-    {
-      id_an: 'PA100001',
-      collaborateurs: [
-        { prenom: 'Alice', nom: 'Bernard', id_an: 'C001' },
-        { prenom: 'Bob', nom: 'Charrier', id_an: 'C002' },
-      ],
-    },
-    {
-      id_an: 'PA100002',
-      collaborateurs: [{ prenom: 'Claire', nom: 'Duval', id_an: 'C003' }],
-    },
-  ],
-};
+const CSV_CONTENT = [
+  '"Identifiant du député","Nom du député","Prénom du député","Nom du collaborateur","Prénom du collaborateur"',
+  '"PA100001","Dupont","Marie","Bernard","Alice"',
+  '"PA100001","Dupont","Marie","Charrier","Bob"',
+  '"PA100002","Martin","Jean","Duval","Claire"',
+].join('\n');
 
-function mockFetch(data: unknown, status = 200): typeof fetch {
+function mockFetch(text: string, status = 200): typeof fetch {
   return vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
     status,
-    statusText: status === 200 ? 'OK' : 'Internal Server Error',
-    json: () => Promise.resolve(data),
+    statusText: status === 200 ? 'OK' : 'Not Found',
+    text: () => Promise.resolve(text),
   }) as unknown as typeof fetch;
 }
 
 describe('AN collaborateurs client', () => {
-  it('fetches and parses collaborateurs', async () => {
-    const fakeFetch = mockFetch(mockResponse);
-    const deputes = await fetchCollaborateurs(fakeFetch);
+  it('parses CSV and groups by deputy', async () => {
+    const result = await fetchCollaborateurs(mockFetch(CSV_CONTENT));
 
-    expect(deputes).toHaveLength(2);
-    expect(deputes[0].collaborateurs).toHaveLength(2);
-    expect(deputes[0].collaborateurs[0].prenom).toBe('Alice');
-    expect(deputes[1].id_an).toBe('PA100002');
+    expect(result).toHaveLength(2);
+
+    const dep1 = result.find((d) => d.id_an === 'PA100001');
+    expect(dep1).toBeDefined();
+    expect(dep1!.collaborateurs).toHaveLength(2);
+    expect(dep1!.collaborateurs[0]).toEqual({
+      prenom: 'Alice',
+      nom: 'Bernard',
+    });
+    expect(dep1!.collaborateurs[1]).toEqual({ prenom: 'Bob', nom: 'Charrier' });
+
+    const dep2 = result.find((d) => d.id_an === 'PA100002');
+    expect(dep2).toBeDefined();
+    expect(dep2!.collaborateurs).toHaveLength(1);
+    expect(dep2!.collaborateurs[0]).toEqual({
+      prenom: 'Claire',
+      nom: 'Duval',
+    });
   });
 
   it('calls the correct URL', async () => {
-    const fakeFetch = mockFetch(mockResponse);
+    const fakeFetch = mockFetch(CSV_CONTENT);
     await fetchCollaborateurs(fakeFetch);
-
-    expect(fakeFetch).toHaveBeenCalledWith(
-      'https://data.assemblee-nationale.fr/api/collaborateurs/json',
-    );
+    expect(fakeFetch).toHaveBeenCalledWith(DATASET_URL);
   });
 
   it('throws on HTTP error', async () => {
-    const fakeFetch = mockFetch({}, 500);
-    await expect(fetchCollaborateurs(fakeFetch)).rejects.toThrow(
-      'AN collaborateurs API error: 500',
+    await expect(fetchCollaborateurs(mockFetch('', 404))).rejects.toThrow(
+      'AN collaborateurs API error: 404',
     );
   });
 
-  it('throws on invalid response', async () => {
-    const fakeFetch = mockFetch({ invalid: true });
-    await expect(fetchCollaborateurs(fakeFetch)).rejects.toThrow();
-  });
-});
-
-describe('Zod schemas', () => {
-  it('CollaborateurSchema validates a valid collaborateur', () => {
-    const result = CollaborateurSchema.safeParse(
-      mockResponse.deputes[0].collaborateurs[0],
-    );
-    expect(result.success).toBe(true);
+  it('returns empty array for header-only CSV', async () => {
+    const headerOnly =
+      '"Identifiant du député","Nom du député","Prénom du député","Nom du collaborateur","Prénom du collaborateur"';
+    const result = await fetchCollaborateurs(mockFetch(headerOnly));
+    expect(result).toEqual([]);
   });
 
-  it('CollaborateurSchema rejects missing fields', () => {
-    const result = CollaborateurSchema.safeParse({ prenom: 'Alice' });
-    expect(result.success).toBe(false);
+  it('skips lines with missing fields', async () => {
+    const csv = [
+      '"Identifiant du député","Nom du député","Prénom du député","Nom du collaborateur","Prénom du collaborateur"',
+      '"PA100001","Dupont","Marie"',
+      '"PA100001","Dupont","Marie","Bernard","Alice"',
+    ].join('\n');
+    const result = await fetchCollaborateurs(mockFetch(csv));
+    expect(result).toHaveLength(1);
+    expect(result[0].collaborateurs).toHaveLength(1);
   });
 
-  it('CollaborateursResponseSchema validates full response', () => {
-    const result = CollaborateursResponseSchema.safeParse(mockResponse);
-    expect(result.success).toBe(true);
+  it('handles quoted fields with commas', async () => {
+    const csv = [
+      '"Identifiant du député","Nom du député","Prénom du député","Nom du collaborateur","Prénom du collaborateur"',
+      '"PA100001","Du,pont","Marie","Ber,nard","Ali,ce"',
+    ].join('\n');
+    const result = await fetchCollaborateurs(mockFetch(csv));
+    expect(result[0].collaborateurs[0]).toEqual({
+      prenom: 'Ali,ce',
+      nom: 'Ber,nard',
+    });
+  });
+
+  it('handles escaped double quotes', async () => {
+    const csv = [
+      '"Identifiant du député","Nom du député","Prénom du député","Nom du collaborateur","Prénom du collaborateur"',
+      '"PA100001","Dupont","Marie","O""Brien","Jean"',
+    ].join('\n');
+    const result = await fetchCollaborateurs(mockFetch(csv));
+    expect(result[0].collaborateurs[0].nom).toBe('O"Brien');
   });
 });
