@@ -162,6 +162,8 @@ describe('#14 — addresses, external_links', () => {
     expect(cols).toContain('platform');
     expect(cols).toContain('url');
     expect(cols).toContain('status');
+    expect(cols).toContain('source');
+    expect(cols).toContain('capturedAt');
   });
 
   it('linkStatusEnum has valid values', async () => {
@@ -173,6 +175,12 @@ describe('#14 — addresses, external_links', () => {
       'deleted',
       'rejected',
     ]);
+  });
+
+  it('linkSourceEnum has valid values', async () => {
+    const { linkSourceEnum } =
+      await import('../packages/shared/src/schema/external-links.js');
+    expect(linkSourceEnum).toEqual(['official', 'scraped_personal_website']);
   });
 
   it('platformEnum includes all required platforms', async () => {
@@ -293,6 +301,7 @@ describe('schema index re-exports', () => {
       'addresses',
       'externalLinks',
       'linkStatusEnum',
+      'linkSourceEnum',
       'pressMentions',
       'parliamentaryActivity',
       'committees',

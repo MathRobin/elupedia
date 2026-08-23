@@ -10,6 +10,7 @@ export {
   externalLinks,
   platformEnum,
   linkStatusEnum,
+  linkSourceEnum,
 } from './external-links.js';
 export { pressMentions } from './press-mentions.js';
 export {
