@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ColorSchemeScript } from '@mantine/core';
 import '@mantine/core/styles.css';
 import { Providers } from './providers';
+import { AdminLayout } from '../components/AdminLayout';
 
 export const metadata: Metadata = {
   title: 'Elupedia Admin',
@@ -19,7 +20,9 @@ export default function RootLayout({
         <ColorSchemeScript />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <AdminLayout>{children}</AdminLayout>
+        </Providers>
       </body>
     </html>
   );
