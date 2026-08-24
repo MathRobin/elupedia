@@ -81,7 +81,7 @@ export async function run(enabledSteps?: Set<string>) {
   logger.info('=== Ingestion started ===\n');
 
   if (enabled('officials')) {
-    logger.info('[1/7] Officials & mandates...');
+    logger.info('[1/12] Officials & mandates...');
     const step1 = await runStep('officials', async () => {
       const deputes = await withRetry(() => fetchDeputes(), {
         source: 'assemblee-nationale',
@@ -97,8 +97,26 @@ export async function run(enabledSteps?: Set<string>) {
     results.push(step1);
   }
 
+  if (enabled('senators')) {
+    logger.info('[2/12] Senators & mandates...');
+    results.push(
+      await runStep('senators', async () => {
+        const senateurs = await withRetry(() => fetchSenateurs(), {
+          source: 'senat',
+        });
+        const r = await upsertSenators(db, senateurs);
+        return {
+          source: 'senators',
+          created: r.officials,
+          updated: r.mandates,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
   if (enabled('collaborateurs')) {
-    logger.info('[2/7] Collaborateurs...');
+    logger.info('[3/12] Collaborateurs...');
     results.push(
       await runStep('collaborateurs', async () => {
         const collabs = await withRetry(() => fetchCollaborateurs(), {
@@ -116,7 +134,7 @@ export async function run(enabledSteps?: Set<string>) {
   }
 
   if (enabled('interests')) {
-    logger.info('[3/7] Interests (HATVP)...');
+    logger.info('[4/12] Interests (HATVP)...');
     results.push(
       await runStep('interests', async () => {
         const declarations = await withRetry(() => fetchDeclarations(), {
@@ -134,7 +152,7 @@ export async function run(enabledSteps?: Set<string>) {
   }
 
   if (enabled('addresses')) {
-    logger.info('[4/7] Addresses...');
+    logger.info('[5/12] Addresses...');
     results.push(
       await runStep('addresses', async () => {
         const addr = await withRetry(() => fetchAddresses(), {
@@ -152,7 +170,7 @@ export async function run(enabledSteps?: Set<string>) {
   }
 
   if (enabled('activity')) {
-    logger.info('[5/7] Parliamentary activity...');
+    logger.info('[6/12] Parliamentary activity...');
     results.push(
       await runStep('parliamentary-activity', async () => {
         const activities = await withRetry(() => fetchActivities(), {
@@ -170,7 +188,7 @@ export async function run(enabledSteps?: Set<string>) {
   }
 
   if (enabled('committees')) {
-    logger.info('[6/7] Committees...');
+    logger.info('[7/12] Committees...');
     results.push(
       await runStep('committees', async () => {
         const comm = await withRetry(() => fetchCommittees(), {
@@ -187,26 +205,8 @@ export async function run(enabledSteps?: Set<string>) {
     );
   }
 
-  if (enabled('senators')) {
-    logger.info('[7/7] Senators & mandates...');
-    results.push(
-      await runStep('senators', async () => {
-        const senateurs = await withRetry(() => fetchSenateurs(), {
-          source: 'senat',
-        });
-        const r = await upsertSenators(db, senateurs);
-        return {
-          source: 'senators',
-          created: r.officials,
-          updated: r.mandates,
-          durationMs: 0,
-        };
-      }),
-    );
-  }
-
   if (enabled('senat-votes')) {
-    logger.info('[8/8] Senate votes...');
+    logger.info('[8/12] Senate votes...');
     results.push(
       await runStep('senat-votes', async () => {
         const scrutins = await withRetry(
@@ -225,7 +225,7 @@ export async function run(enabledSteps?: Set<string>) {
   }
 
   if (enabled('senat-affiliations')) {
-    logger.info('[9/9] Senate affiliations...');
+    logger.info('[9/12] Senate affiliations...');
     results.push(
       await runStep('senat-affiliations', async () => {
         const groupes = await withRetry(() => fetchSenatGroupes(), {
@@ -243,7 +243,7 @@ export async function run(enabledSteps?: Set<string>) {
   }
 
   if (enabled('senat-collaborateurs')) {
-    logger.info('[10/10] Senate collaborateurs...');
+    logger.info('[10/12] Senate collaborateurs...');
     results.push(
       await runStep('senat-collaborateurs', async () => {
         const collabs = await withRetry(() => fetchSenatCollaborateurs(), {
@@ -261,7 +261,7 @@ export async function run(enabledSteps?: Set<string>) {
   }
 
   if (enabled('senat-adresses')) {
-    logger.info('[11/11] Senate addresses...');
+    logger.info('[11/12] Senate addresses...');
     results.push(
       await runStep('senat-adresses', async () => {
         const addr = await withRetry(() => fetchSenatAdresses(), {

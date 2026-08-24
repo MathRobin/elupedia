@@ -3,12 +3,12 @@ import { logger } from './logger.js';
 
 export const STEP_NAMES = [
   'officials',
+  'senators',
   'collaborateurs',
   'interests',
   'addresses',
   'activity',
   'committees',
-  'senators',
   'senat-votes',
   'senat-affiliations',
   'senat-collaborateurs',
