@@ -20,6 +20,8 @@ import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js'
 import { upsertCommittees } from './upsert/committees.js';
 import { fetchSenateurs } from './sources/senat.js';
 import { upsertSenators } from './upsert/senators.js';
+import { fetchSenatScrutins } from './sources/senat-scrutins.js';
+import { upsertSenatVotes } from './upsert/senat-votes.js';
 // import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -189,6 +191,25 @@ export async function run(enabledSteps?: Set<string>) {
           source: 'senators',
           created: r.officials,
           updated: r.mandates,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('senat-votes')) {
+    logger.info('[8/8] Senate votes...');
+    results.push(
+      await runStep('senat-votes', async () => {
+        const scrutins = await withRetry(
+          () => fetchSenatScrutins('2025'),
+          { source: 'senat-scrutins' },
+        );
+        const r = await upsertSenatVotes(db, scrutins);
+        return {
+          source: 'senat-votes',
+          created: r.ballots,
+          updated: r.votes,
           durationMs: 0,
         };
       }),
