@@ -18,6 +18,8 @@ import { upsertInterests } from './upsert/interests.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
 import { upsertCommittees } from './upsert/committees.js';
+import { fetchSenateurs } from './sources/senat.js';
+import { upsertSenators } from './upsert/senators.js';
 // import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -175,7 +177,25 @@ export async function run(enabledSteps?: Set<string>) {
     );
   }
 
-  // TODO: étape 7 (résultats électoraux) désactivée — source API à câbler
+  if (enabled('senators')) {
+    logger.info('[7/7] Senators & mandates...');
+    results.push(
+      await runStep('senators', async () => {
+        const senateurs = await withRetry(() => fetchSenateurs(), {
+          source: 'senat',
+        });
+        const r = await upsertSenators(db, senateurs);
+        return {
+          source: 'senators',
+          created: r.officials,
+          updated: r.mandates,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  // TODO: étape résultats électoraux désactivée — source API à câbler
   // logger.info('[7/7] Electoral results...');
   // results.push(
   //   await runStep('electoral-results', async () => {

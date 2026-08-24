@@ -8,6 +8,7 @@ export const STEP_NAMES = [
   'addresses',
   'activity',
   'committees',
+  'senators',
 ] as const;
 
 export type StepName = (typeof STEP_NAMES)[number];
