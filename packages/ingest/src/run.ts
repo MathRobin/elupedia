@@ -24,6 +24,8 @@ import { fetchSenatScrutins } from './sources/senat-scrutins.js';
 import { upsertSenatVotes } from './upsert/senat-votes.js';
 import { fetchSenatGroupes } from './sources/senat-groupes.js';
 import { upsertSenatAffiliations } from './upsert/senat-affiliations.js';
+import { fetchSenatCollaborateurs } from './sources/senat-collaborateurs.js';
+import { diffSenatStaffers } from './upsert/senat-staffers-diff.js';
 // import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -230,6 +232,24 @@ export async function run(enabledSteps?: Set<string>) {
           source: 'senat-affiliations',
           created: r.created,
           updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('senat-collaborateurs')) {
+    logger.info('[10/10] Senate collaborateurs...');
+    results.push(
+      await runStep('senat-collaborateurs', async () => {
+        const collabs = await withRetry(() => fetchSenatCollaborateurs(), {
+          source: 'senat-collaborateurs',
+        });
+        const r = await diffSenatStaffers(db, collabs);
+        return {
+          source: 'senat-collaborateurs',
+          created: r.created,
+          updated: r.ended,
           durationMs: 0,
         };
       }),
