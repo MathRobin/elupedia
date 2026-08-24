@@ -1,4 +1,3 @@
-import { z } from 'zod/v4';
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -6,21 +5,14 @@ import { Readable } from 'node:stream';
 import { Extract } from 'unzipper';
 
 import { DATASET_URL } from './assemblee-nationale.js';
+import {
+  ActeurFileSchema,
+  OrganeFileSchema,
+  CommitteeItemSchema,
+  type CommitteeItem,
+} from '../schemas.js';
 
-export const CommitteeItemSchema = z.object({
-  name: z.string(),
-  type: z.enum([
-    'standing_committee',
-    'special_committee',
-    'delegation',
-    'study_group',
-    'friendship_group',
-  ]),
-  start_date: z.string(),
-  end_date: z.string().optional(),
-});
-
-export type CommitteeItem = z.infer<typeof CommitteeItemSchema>;
+export { CommitteeItemSchema, type CommitteeItem };
 
 export interface DeputeCommittees {
   id_an: string;
@@ -39,31 +31,6 @@ interface OrganeInfo {
   name: string;
   type: CommitteeItem['type'];
 }
-
-const OrganeFileSchema = z.object({
-  organe: z.object({
-    uid: z.string(),
-    codeType: z.string(),
-    libelle: z.string().optional().nullable(),
-    libelleAbrege: z.string().optional().nullable(),
-  }),
-});
-
-const MandatSchema = z.object({
-  typeOrgane: z.string(),
-  dateDebut: z.string(),
-  dateFin: z.string().optional().nullable(),
-  organes: z.object({ organeRef: z.string() }).optional().nullable(),
-});
-
-const ActeurFileSchema = z.object({
-  acteur: z.object({
-    uid: z.object({ '#text': z.string() }),
-    mandats: z.object({
-      mandat: z.union([z.array(MandatSchema), MandatSchema]),
-    }),
-  }),
-});
 
 export async function fetchCommittees(
   fetchFn: typeof fetch = fetch,
@@ -120,7 +87,11 @@ async function loadCommitteeOrganes(
     if (!committeeType) continue;
 
     map.set(o.uid, {
-      name: o.libelle ?? o.libelleAbrege ?? '',
+      name:
+        o.libelle && o.libelleAbrege
+          ? `${o.libelle} (${o.libelleAbrege})`
+          : (o.libelle ?? o.libelleAbrege ?? ''),
+
       type: committeeType,
     });
   }

@@ -1,66 +1,10 @@
-import { z } from 'zod/v4';
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { Extract } from 'unzipper';
 
-const IdentSchema = z.object({
-  civ: z.string(),
-  prenom: z.string(),
-  nom: z.string(),
-});
-
-const InfoNaissanceSchema = z.object({
-  dateNais: z.string().optional().nullable(),
-  villeNais: z.string().optional().nullable(),
-  depNais: z.string().optional().nullable(),
-});
-
-const EtatCivilSchema = z.object({
-  ident: IdentSchema,
-  infoNaissance: InfoNaissanceSchema,
-});
-
-const ElectionLieuSchema = z.object({
-  region: z.string().optional().nullable(),
-  departement: z.string().optional().nullable(),
-  numDepartement: z.string().optional().nullable(),
-  numCirco: z.string().optional().nullable(),
-});
-
-const MandatSchema = z.object({
-  uid: z.string(),
-  legislature: z.string().optional().nullable(),
-  typeOrgane: z.string(),
-  dateDebut: z.string(),
-  dateFin: z.string().optional().nullable(),
-  organes: z.object({ organeRef: z.string() }).optional().nullable(),
-  election: z.object({ lieu: ElectionLieuSchema }).optional().nullable(),
-});
-
-const ActeurSchema = z.object({
-  uid: z.object({ '#text': z.string() }),
-  etatCivil: EtatCivilSchema,
-  mandats: z.object({
-    mandat: z.union([z.array(MandatSchema), MandatSchema]),
-  }),
-});
-
-const ActeurFileSchema = z.object({
-  acteur: ActeurSchema,
-});
-
-const OrganeSchema = z.object({
-  uid: z.string(),
-  codeType: z.string(),
-  libelleAbrege: z.string().optional().nullable(),
-  libelle: z.string().optional().nullable(),
-});
-
-const OrganeFileSchema = z.object({
-  organe: OrganeSchema,
-});
+import { ActeurFileSchema, OrganeFileSchema } from '../schemas.js';
 
 export interface Depute {
   id_an: string;
@@ -76,6 +20,7 @@ export interface Depute {
   groupe_sigle?: string;
   slug: string;
   photo_url?: string;
+  mandat_type: 'depute' | 'senateur';
   full: unknown;
 }
 
@@ -145,8 +90,12 @@ async function loadOrganes(extractDir: string): Promise<Map<string, string>> {
     const parsed = OrganeFileSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) continue;
     const o = parsed.data.organe;
-    if (o.codeType === 'GP') {
-      map.set(o.uid, o.libelleAbrege ?? o.libelle ?? '');
+    if (o.codeType === 'GP' || o.codeType === 'GROUPESENAT') {
+      const label =
+        o.libelle && o.libelleAbrege
+          ? `${o.libelle} (${o.libelleAbrege})`
+          : (o.libelle ?? o.libelleAbrege ?? '');
+      map.set(o.uid, label);
     }
   }
 
@@ -181,23 +130,27 @@ async function loadActeurs(
       ? acteur.mandats.mandat
       : [acteur.mandats.mandat];
 
-    const assembleeMandats = allMandats.filter(
-      (m) => m.typeOrgane === 'ASSEMBLEE',
+    const parlMandats = allMandats.filter(
+      (m) => m.typeOrgane === 'ASSEMBLEE' || m.typeOrgane === 'SENAT',
     );
 
-    if (assembleeMandats.length === 0) continue;
+    if (parlMandats.length === 0) continue;
+
+    const latestMandat = parlMandats.sort((a, b) =>
+      b.dateDebut.localeCompare(a.dateDebut),
+    )[0];
+
+    const isSenat = latestMandat.typeOrgane === 'SENAT';
+    const gpTypes = isSenat ? ['GROUPESENAT'] : ['GP'];
 
     const latestGp = allMandats
-      .filter((m) => m.typeOrgane === 'GP' && !m.dateFin)
+      .filter((m) => gpTypes.includes(m.typeOrgane) && !m.dateFin)
       .sort((a, b) => b.dateDebut.localeCompare(a.dateDebut))[0];
 
     const groupeSigle = latestGp?.organes?.organeRef
       ? organes.get(latestGp.organes.organeRef)
       : undefined;
 
-    const latestMandat = assembleeMandats.sort((a, b) =>
-      b.dateDebut.localeCompare(a.dateDebut),
-    )[0];
     const lieu = latestMandat.election?.lieu;
 
     deputes.push({
@@ -213,7 +166,8 @@ async function loadActeurs(
       mandat_fin: latestMandat.dateFin ?? undefined,
       groupe_sigle: groupeSigle,
       slug: slugify(ec.ident.prenom, ec.ident.nom),
-      photo_url: photoUrl(anId),
+      photo_url: isSenat ? undefined : photoUrl(anId),
+      mandat_type: isSenat ? 'senateur' : 'depute',
       full: rawJson,
     });
   }

@@ -1,19 +1,10 @@
-import { z } from 'zod/v4';
+import {
+  ElectionResultSchema,
+  ElectionsResponseSchema,
+  type ElectionResult,
+} from '../schemas.js';
 
-const ElectionResultSchema = z.object({
-  id_an: z.string(),
-  election_type: z.string(),
-  election_date: z.string(),
-  round: z.number().int(),
-  score_percent: z.number(),
-  opponent_count: z.number().int(),
-});
-
-const ElectionsResponseSchema = z.object({
-  results: z.array(ElectionResultSchema),
-});
-
-export type ElectionResult = z.infer<typeof ElectionResultSchema>;
+export { ElectionResultSchema, type ElectionResult };
 
 export const BASE_URL = 'https://www.data.gouv.fr';
 
@@ -33,5 +24,3 @@ export async function fetchElectionResults(
   const parsed = ElectionsResponseSchema.parse(data);
   return parsed.results;
 }
-
-export { ElectionResultSchema, ElectionsResponseSchema };

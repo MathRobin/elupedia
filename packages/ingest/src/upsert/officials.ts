@@ -54,7 +54,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
     if (existingMandate.length === 0) {
       await db.insert(mandates).values({
         officialId,
-        type: 'depute',
+        type: depute.mandat_type,
         district: `${depute.num_circo}e circonscription`,
         department: depute.nom_circo,
         startDate: depute.mandat_debut,

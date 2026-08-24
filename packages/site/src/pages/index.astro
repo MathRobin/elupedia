@@ -30,7 +30,8 @@ try {
     })
     .from(officials)
     .innerJoin(mandates, eq(mandates.officialId, officials.id))
-    .where(isNull(mandates.endDate));
+    .where(isNull(mandates.endDate))
+      .orderBy(officials.lastName);
 
   deputesList = rows;
 } catch (e) {
@@ -41,11 +42,11 @@ try {
 <BaseLayout>
   <div class="text-center mb-10">
     <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
-      Députés de France
+      Parlementaires de France
     </h1>
     <p class="mt-3 text-lg text-slate-500">
       {deputesList.length > 0
-        ? `${deputesList.length} députés en exercice`
+        ? `${deputesList.length} députés et sénateurs en exercice`
         : 'Aucun député trouvé'}
     </p>
 

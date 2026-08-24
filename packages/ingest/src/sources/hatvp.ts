@@ -1,23 +1,11 @@
-import { z } from 'zod/v4';
+import {
+  InterestItemSchema,
+  HatvpResponseSchema,
+  type InterestItem,
+  type Declaration,
+} from '../schemas.js';
 
-const InterestItemSchema = z.object({
-  type: z.enum(['company_share', 'nonprofit_role']),
-  entity_name: z.string(),
-  role_description: z.string().optional(),
-  declared_date: z.string(),
-});
-
-const DeclarationSchema = z.object({
-  id_an: z.string(),
-  interests: z.array(InterestItemSchema),
-});
-
-const HatvpResponseSchema = z.object({
-  declarations: z.array(DeclarationSchema),
-});
-
-export type InterestItem = z.infer<typeof InterestItemSchema>;
-export type Declaration = z.infer<typeof DeclarationSchema>;
+export { InterestItemSchema, type InterestItem, type Declaration };
 
 export const BASE_URL = 'https://www.hatvp.fr/api';
 
@@ -37,5 +25,3 @@ export async function fetchDeclarations(
   const parsed = HatvpResponseSchema.parse(data);
   return parsed.declarations;
 }
-
-export { InterestItemSchema, HatvpResponseSchema };

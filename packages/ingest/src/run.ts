@@ -72,7 +72,12 @@ export async function run() {
       source: 'assemblee-nationale',
     });
     const officialResults = await upsertOfficials(db, deputes);
-    return { source: 'officials', created: officialResults.length, updated: 0, durationMs: 0 };
+    return {
+      source: 'officials',
+      created: officialResults.length,
+      updated: 0,
+      durationMs: 0,
+    };
   });
   results.push(step1);
 
@@ -111,7 +116,12 @@ export async function run() {
         source: 'an-adresses',
       });
       const r = await upsertAddresses(db, addr);
-      return { source: 'addresses', created: r.created, updated: r.updated, durationMs: 0 };
+      return {
+        source: 'addresses',
+        created: r.created,
+        updated: r.updated,
+        durationMs: 0,
+      };
     }),
   );
 
@@ -138,7 +148,12 @@ export async function run() {
         source: 'an-commissions',
       });
       const r = await upsertCommittees(db, comm);
-      return { source: 'committees', created: r.created, updated: r.updated, durationMs: 0 };
+      return {
+        source: 'committees',
+        created: r.created,
+        updated: r.updated,
+        durationMs: 0,
+      };
     }),
   );
 
