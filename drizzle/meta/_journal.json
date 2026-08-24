@@ -36,6 +36,20 @@
       "when": 1787575255171,
       "tag": "0004_violet_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787593518057,
+      "tag": "0005_nice_famine",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787594500307,
+      "tag": "0006_tough_fabian_cortez",
+      "breakpoints": true
     }
   ]
 }

@@ -42,6 +42,7 @@ describe('#9 — officials, mandates', () => {
     expect(cols).toContain('firstName');
     expect(cols).toContain('lastName');
     expect(cols).toContain('anId');
+    expect(cols).toContain('senatId');
     expect(cols).toContain('birthDate');
     expect(cols).toContain('photoUrl');
   });
