@@ -1,3 +1,5 @@
+import { logger } from '../logger.js';
+
 export interface RetryOptions {
   maxAttempts?: number;
   baseDelayMs?: number;
@@ -17,16 +19,12 @@ export async function withRetry<T>(
       const reason = error instanceof Error ? error.message : String(error);
 
       if (attempt === maxAttempts) {
-        console.error(
-          `[${new Date().toISOString()}] ${source}: failed after ${maxAttempts} attempts — ${reason}`,
-        );
+        logger.error(`${source}: failed after ${maxAttempts} attempts — ${reason}`);
         throw error;
       }
 
       const delay = baseDelayMs * 2 ** (attempt - 1);
-      console.warn(
-        `[${new Date().toISOString()}] ${source}: attempt ${attempt}/${maxAttempts} failed — retrying in ${delay}ms`,
-      );
+      logger.warn(`${source}: attempt ${attempt}/${maxAttempts} failed — retrying in ${delay}ms`);
       await sleep(delay);
     }
   }

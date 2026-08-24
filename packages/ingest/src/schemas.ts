@@ -83,15 +83,14 @@ export const InterestItemSchema = z.object({
   entity_name: z.string(),
   role_description: z.string().optional(),
   declared_date: z.string(),
+  full: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const DeclarationSchema = z.object({
-  id_an: z.string(),
+  nom: z.string(),
+  prenom: z.string(),
+  date_depot: z.string(),
   interests: z.array(InterestItemSchema),
-});
-
-export const HatvpResponseSchema = z.object({
-  declarations: z.array(DeclarationSchema),
 });
 
 export type InterestItem = z.infer<typeof InterestItemSchema>;

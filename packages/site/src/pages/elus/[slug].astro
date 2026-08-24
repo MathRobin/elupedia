@@ -25,6 +25,26 @@ export async function getStaticPaths() {
     .innerJoin(mandates, eq(mandates.officialId, officials.id))
     .where(isNull(mandates.endDate));
 
+  const allMandates = await db
+    .select({
+      officialId: mandates.officialId,
+      type: mandates.type,
+      district: mandates.district,
+      department: mandates.department,
+      startDate: mandates.startDate,
+      endDate: mandates.endDate,
+      politicalGroup: mandates.politicalGroup,
+    })
+    .from(mandates)
+    .orderBy(desc(mandates.startDate));
+
+  const mandatesByOfficial = new Map<string, typeof allMandates>();
+  for (const m of allMandates) {
+    const list = mandatesByOfficial.get(m.officialId) ?? [];
+    list.push(m);
+    mandatesByOfficial.set(m.officialId, list);
+  }
+
   const allVotes = await db
     .select({
       officialId: votes.officialId,
@@ -69,7 +89,7 @@ export async function getStaticPaths() {
       endDate: staffers.endDate,
     })
     .from(staffers)
-    .orderBy(desc(staffers.startDate));
+    .orderBy(desc(staffers.startDate), staffers.lastName);
 
   const staffersByOfficial = new Map<string, typeof allStaffers>();
   for (const s of allStaffers) {
@@ -242,6 +262,7 @@ export async function getStaticPaths() {
       params: { slug: row.id },
       props: {
         deputy: row,
+        deputyMandates: mandatesByOfficial.get(row.id) ?? [],
         deputyVotes: votesByOfficial.get(row.id) ?? [],
         deputyAffiliations: affiliationsByOfficial.get(row.id) ?? [],
         deputyStaffers: staffersByOfficial.get(row.id) ?? [],
@@ -257,6 +278,16 @@ export async function getStaticPaths() {
     };
   });
 }
+
+type Mandate = {
+  officialId: string;
+  type: string;
+  district: string | null;
+  department: string | null;
+  startDate: string;
+  endDate: string | null;
+  politicalGroup: string | null;
+};
 
 type Vote = {
   officialId: string;
@@ -351,6 +382,7 @@ type Props = {
     politicalGroup: string | null;
     mandateType: string;
   };
+  deputyMandates: Mandate[];
   deputyVotes: Vote[];
   deputyAffiliations: Affiliation[];
   deputyStaffers: Staffer[];
@@ -364,11 +396,24 @@ type Props = {
   lastUpdated: string;
 };
 
-const { deputy, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, lastUpdated } = Astro.props as Props;
+const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, lastUpdated } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
   assembly_office: 'Bureau AN/Sénat',
+};
+
+const addressImages: Record<string, { src: string; alt: string; credit: string }> = {
+  assembly_office: {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Fa%C3%A7ade_Palais_Bourbon_3.jpg/960px-Fa%C3%A7ade_Palais_Bourbon_3.jpg',
+    alt: 'Palais Bourbon, siège de l\'Assemblée nationale',
+    credit: 'ZeusUpsistos / CC BY-SA 4.0',
+  },
+  constituency_office: {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Dresden%2C_Hammerweg_26%2C_Oberlandesgericht_Dresden%2C_17.6.2.40-080161.jpg/960px-Dresden%2C_Hammerweg_26%2C_Oberlandesgericht_Dresden%2C_17.6.2.40-080161.jpg',
+    alt: 'Immeuble de bureaux',
+    credit: 'Albrecht Voß / CC BY-SA 4.0',
+  },
 };
 
 const platformLabels: Record<string, string> = {
@@ -429,6 +474,23 @@ const mandateTypeLabels: Record<string, string> = {
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
 const mandateLabel = mandateTypeLabels[deputy.mandateType] ?? deputy.mandateType;
 
+const personJsonLd: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: fullName,
+  givenName: deputy.firstName,
+  familyName: deputy.lastName,
+  jobTitle: mandateLabel,
+  ...(deputy.photoUrl && { image: deputy.photoUrl }),
+  ...(deputy.birthDate && { birthDate: deputy.birthDate }),
+  ...(deputy.politicalGroup && {
+    memberOf: {
+      '@type': 'Organization',
+      name: deputy.politicalGroup,
+    },
+  }),
+};
+
 const positionLabels: Record<string, string> = {
   for: 'Pour',
   against: 'Contre',
@@ -479,7 +541,7 @@ const timelineCategoryColors: Record<string, string> = {
 };
 ---
 
-<BaseLayout title={fullName} description={`Fiche de ${fullName}, ${mandateLabel}`}>
+<BaseLayout title={fullName} description={`Fiche de ${fullName}, ${mandateLabel}`} image={deputy.photoUrl ?? undefined} jsonLd={personJsonLd}>
   <div class="max-w-3xl" data-pagefind-body>
     <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
@@ -517,6 +579,7 @@ const timelineCategoryColors: Record<string, string> = {
       <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Sommaire</p>
       <ul class="columns-2 gap-x-6 text-sm space-y-1">
         <li><a href="#mandat" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Mandat en cours</a></li>
+        <li><a href="#tous-mandats" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Tous les mandats</a></li>
         <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Coordonnées</a></li>
         <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Affiliations politiques</a></li>
         <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Collaborateurs</a></li>
@@ -535,6 +598,7 @@ const timelineCategoryColors: Record<string, string> = {
       <div class="mx-auto max-w-6xl px-4 py-2 overflow-x-auto">
         <ul class="flex items-center gap-4 text-xs font-medium whitespace-nowrap">
           <li><a href="#mandat" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Mandat</a></li>
+          <li><a href="#tous-mandats" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Mandats</a></li>
           <li><a href="#coordonnees" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Coordonnées</a></li>
           <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Affiliations</a></li>
           <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Collaborateurs</a></li>
@@ -582,6 +646,44 @@ const timelineCategoryColors: Record<string, string> = {
       </dl>
     </section>
 
+    <section id="tous-mandats" class="mt-8 scroll-mt-12">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Tous les mandats</h2>
+      {deputyMandates.length === 0 ? (
+        <p class="mt-4 text-slate-500">Aucun mandat enregistré.</p>
+      ) : (
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <th class="py-2 pr-4">Type</th>
+                <th class="py-2 pr-4">Circonscription</th>
+                <th class="py-2 pr-4">Département</th>
+                <th class="py-2 pr-4">Groupe politique</th>
+                <th class="py-2 pr-4">Début</th>
+                <th class="py-2">Fin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deputyMandates.map((m) => (
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                  <td class="py-2 pr-4 font-medium">{mandateTypeLabels[m.type] ?? m.type}</td>
+                  <td class="py-2 pr-4">{m.district ?? '—'}</td>
+                  <td class="py-2 pr-4">{m.department ?? '—'}</td>
+                  <td class="py-2 pr-4">{m.politicalGroup ?? '—'}</td>
+                  <td class="py-2 pr-4 whitespace-nowrap">{new Date(m.startDate).toLocaleDateString('fr-FR')}</td>
+                  <td class="py-2 whitespace-nowrap">
+                    {m.endDate ? new Date(m.endDate).toLocaleDateString('fr-FR') : (
+                      <span class="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">En cours</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+
     <section id="coordonnees" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Coordonnées</h2>
 
@@ -589,30 +691,77 @@ const timelineCategoryColors: Record<string, string> = {
         <p class="mt-4 text-slate-500">Aucune adresse enregistrée/trouvée.</p>
       ) : (
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {deputyAddresses.map((addr) => (
-            <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5">
-              <p class="text-sm font-semibold text-slate-700">
-                {addressTypeLabels[addr.type] ?? addr.type}
-              </p>
-              {(addr.street || addr.city) && (
-                <p class="mt-2 text-sm text-slate-600">
-                  {addr.street && <span>{addr.street}<br /></span>}
-                  {addr.postalCode && <span>{addr.postalCode} </span>}
-                  {addr.city}
-                </p>
-              )}
-              {addr.phone && (
-                <p class="mt-2 text-sm">
-                  <a href={`tel:${addr.phone}`} class="text-indigo-600 hover:underline">{addr.phone}</a>
-                </p>
-              )}
-              {addr.email && (
-                <p class="mt-1 text-sm">
-                  <a href={`mailto:${addr.email}`} class="text-indigo-600 hover:underline">{addr.email}</a>
-                </p>
-              )}
-            </div>
-          ))}
+          {deputyAddresses.map((addr) => {
+            const img = addressImages[addr.type];
+            const addressParts = [addr.street, addr.postalCode, addr.city].filter(Boolean);
+            const mapsQuery = addressParts.length > 0 ? encodeURIComponent(addressParts.join(' ')) : null;
+            return (
+              <div class="group rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 overflow-hidden transition-shadow hover:shadow-md">
+                {img && (
+                  <div class="relative h-40 overflow-hidden">
+                    <img
+                      src={img.src}
+                      alt={img.alt}
+                      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <span class="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-sm">
+                      {addressTypeLabels[addr.type] ?? addr.type}
+                    </span>
+                    {mapsQuery && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${mapsQuery}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-indigo-600 hover:text-white"
+                        title="Voir sur Google Maps"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </svg>
+                      </a>
+                    )}
+                    <span class="absolute bottom-1 right-2 text-[9px] text-white/70">{img.credit}</span>
+                  </div>
+                )}
+                <div class="p-4">
+                  {!img && (
+                    <p class="text-sm font-semibold text-slate-700">
+                      {addressTypeLabels[addr.type] ?? addr.type}
+                    </p>
+                  )}
+                  {addressParts.length > 0 && (
+                    <p class={`text-sm text-slate-600 ${img ? '' : 'mt-2'}`}>
+                      {addr.street && <span>{addr.street}<br /></span>}
+                      {addr.postalCode && <span>{addr.postalCode} </span>}
+                      {addr.city}
+                    </p>
+                  )}
+                  {(addr.phone || addr.email) && (
+                    <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3">
+                      {addr.phone && (
+                        <a href={`tel:${addr.phone}`} class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-indigo-600 transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                          </svg>
+                          {addr.phone}
+                        </a>
+                      )}
+                      {addr.email && (
+                        <a href={`mailto:${addr.email}`} class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-indigo-600 transition-colors truncate">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                          </svg>
+                          {addr.email}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
@@ -681,78 +830,68 @@ const timelineCategoryColors: Record<string, string> = {
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Activité parlementaire
         {deputyActivities.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-slate-500">({deputyActivities.length})</span>
+          <span id="activity-total" class="ml-2 text-sm font-normal text-slate-500">({deputyActivities.length})</span>
         )}
       </h2>
 
       {deputyActivities.length === 0 ? (
         <p class="mt-4 text-slate-500">Aucune activité parlementaire enregistrée/trouvée.</p>
       ) : (
-        <div class="mt-4 space-y-6">
-          {(() => {
-            const byYear = new Map<number, Map<number, typeof deputyActivities>>();
-            for (const act of deputyActivities) {
-              const d = new Date(act.date);
-              const y = d.getFullYear();
-              const m = d.getMonth();
-              if (!byYear.has(y)) byYear.set(y, new Map());
-              const months = byYear.get(y)!;
-              if (!months.has(m)) months.set(m, []);
-              months.get(m)!.push(act);
-            }
-            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-            return [...byYear.entries()]
-              .sort(([a], [b]) => b - a)
-              .map(([year, months]) => (
-                <div>
-                  <h3 class="text-base font-semibold text-slate-800">{year}</h3>
-                  <div class="mt-3 space-y-4">
-                    {[...months.entries()]
-                      .sort(([a], [b]) => b - a)
-                      .map(([month, acts]) => (
-                        <div>
-                          <h4 class="text-sm font-medium text-slate-500 mb-2">{monthNames[month]}</h4>
-                          <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                              <thead>
-                                <tr class="border-b border-slate-200 text-left text-slate-500">
-                                  <th class="pb-2 pr-4 font-medium">Date</th>
-                                  <th class="pb-2 pr-4 font-medium">Type</th>
-                                  <th class="pb-2 pr-4 font-medium">Intitulé</th>
-                                  <th class="pb-2 font-medium">Statut</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {acts.map((act) => (
-                                  <tr class="border-b border-slate-100">
-                                    <td class="py-2 pr-4 whitespace-nowrap">
-                                      {new Date(act.date).toLocaleDateString('fr-FR')}
-                                    </td>
-                                    <td class="py-2 pr-4 whitespace-nowrap">
-                                      {activityTypeLabels[act.type] ?? act.type}
-                                    </td>
-                                    <td class="py-2 pr-4">{act.title}</td>
-                                    <td class="py-2">
-                                      {act.status ? (
-                                        <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusColors[act.status] ?? ''}`}>
-                                          {statusLabels[act.status] ?? act.status}
-                                        </span>
-                                      ) : (
-                                        <span class="text-slate-400">—</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                    ))}
-                  </div>
-                </div>
-            ));
-          })()}
-        </div>
+        <>
+          <div id="activity-type-filter" class="mt-4 flex flex-wrap gap-3">
+            {[...new Set(deputyActivities.map((a) => a.type))].map((type) => {
+              const count = deputyActivities.filter((a) => a.type === type).length;
+              return (
+                <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
+                  <input type="checkbox" value={type} checked class="accent-indigo-600 h-3.5 w-3.5" data-activity-type-filter />
+                  <span>{activityTypeLabels[type] ?? type} <span class="text-slate-400">({count})</span></span>
+                </label>
+              );
+            })}
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-4">
+            <label class="flex items-center gap-2 text-sm text-slate-600">
+              Du
+              <input type="date" id="activity-date-from" class="rounded border border-slate-300 px-2 py-1 text-sm" />
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600">
+              au
+              <input type="date" id="activity-date-to" class="rounded border border-slate-300 px-2 py-1 text-sm" />
+            </label>
+            <button id="activity-date-reset" type="button" class="text-sm text-indigo-600 hover:text-indigo-800 transition-colors">Réinitialiser</button>
+            <span id="activity-count" class="ml-auto text-sm text-slate-500">{deputyActivities.length} résultat{deputyActivities.length > 1 ? 's' : ''}</span>
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table id="activity-list" class="w-full text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <th class="py-2 pr-4">Date</th>
+                  <th class="py-2 pr-4">Type</th>
+                  <th class="py-2 pr-4">Intitulé</th>
+                  <th class="py-2">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deputyActivities.map((act) => (
+                  <tr data-activity-date={act.date} data-activity-type={act.type} class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="py-2 pr-4 whitespace-nowrap">{new Date(act.date).toLocaleDateString('fr-FR')}</td>
+                    <td class="py-2 pr-4 whitespace-nowrap">{activityTypeLabels[act.type] ?? act.type}</td>
+                    <td class="py-2 pr-4">{act.title}</td>
+                    <td class="py-2">
+                      {act.status ? (
+                        <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusColors[act.status] ?? ''}`}>
+                          {statusLabels[act.status] ?? act.status}
+                        </span>
+                      ) : (
+                        <span class="text-slate-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </section>
 
@@ -769,30 +908,64 @@ const timelineCategoryColors: Record<string, string> = {
       ) : (
         <>
           <div id="committees-filter" class="mt-4 flex flex-wrap gap-3">
-            {[...new Set(deputyCommittees.map((c) => c.type))].map((type) => (
-              <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
-                <input type="checkbox" value={type} checked class="accent-indigo-600 h-3.5 w-3.5" data-committee-filter />
-                <span>{committeeTypeLabels[type] ?? type}</span>
-              </label>
-            ))}
+            {[...new Set(deputyCommittees.map((c) => c.type))].map((type) => {
+              const count = deputyCommittees.filter((c) => c.type === type).length;
+              return (
+                <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
+                  <input type="checkbox" value={type} checked class="accent-indigo-600 h-3.5 w-3.5" data-committee-filter />
+                  <span>{committeeTypeLabels[type] ?? type} <span class="text-slate-400">({count})</span></span>
+                </label>
+              );
+            })}
           </div>
-          <ul id="committees-list" class="mt-4 space-y-3">
-            {deputyCommittees.map((c) => (
-              <li data-committee-type={c.type} class="flex items-baseline justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <span class="font-medium">{c.name}</span>
-                  <span class="ml-2 inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
-                    {committeeTypeLabels[c.type] ?? c.type}
-                  </span>
-                </div>
-                <span class="text-sm text-slate-500">
-                  {new Date(c.startDate).toLocaleDateString('fr-FR')}
-                  {' — '}
-                  {c.endDate ? new Date(c.endDate).toLocaleDateString('fr-FR') : 'en cours'}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div id="committees-status-filter" class="mt-3 flex flex-wrap gap-3">
+            {(() => {
+              const activeCount = deputyCommittees.filter((c) => !c.endDate).length;
+              const endedCount = deputyCommittees.filter((c) => c.endDate).length;
+              return (
+                <>
+                  <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-green-50 has-[:checked]:ring-green-400/40">
+                    <input type="checkbox" value="active" checked class="accent-green-600 h-3.5 w-3.5" data-committee-status-filter />
+                    <span>En cours <span class="text-slate-400">({activeCount})</span></span>
+                  </label>
+                  <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-slate-100 has-[:checked]:ring-slate-400/40">
+                    <input type="checkbox" value="ended" checked class="accent-slate-500 h-3.5 w-3.5" data-committee-status-filter />
+                    <span>Terminé <span class="text-slate-400">({endedCount})</span></span>
+                  </label>
+                </>
+              );
+            })()}
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table id="committees-list" class="w-full text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <th class="py-2 pr-4">Nom</th>
+                  <th class="py-2 pr-4">Type</th>
+                  <th class="py-2 pr-4">Début</th>
+                  <th class="py-2">Fin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deputyCommittees.map((c) => (
+                  <tr data-committee-type={c.type} data-committee-status={c.endDate ? 'ended' : 'active'} class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="py-2 pr-4 font-medium">{c.name}</td>
+                    <td class="py-2 pr-4">
+                      <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                        {committeeTypeLabels[c.type] ?? c.type}
+                      </span>
+                    </td>
+                    <td class="py-2 pr-4 whitespace-nowrap">{new Date(c.startDate).toLocaleDateString('fr-FR')}</td>
+                    <td class="py-2 whitespace-nowrap">
+                      {c.endDate ? new Date(c.endDate).toLocaleDateString('fr-FR') : (
+                        <span class="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">en cours</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </section>
@@ -852,26 +1025,45 @@ const timelineCategoryColors: Record<string, string> = {
       {deputyInterests.length === 0 ? (
         <p class="mt-4 text-slate-500">Aucun intérêt déclaré.</p>
       ) : (
-        <ul class="mt-4 space-y-3">
-          {deputyInterests.map((i) => (
-            <li class="border-b border-slate-100 pb-3">
-              <div class="flex items-baseline justify-between">
-                <span class="font-medium">{i.entityName}</span>
-                <span class="text-sm text-slate-500">
-                  {new Date(i.declaredDate).toLocaleDateString('fr-FR')}
-                </span>
-              </div>
-              <div class="mt-1 flex items-center gap-2">
-                <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
-                  {interestTypeLabels[i.type] ?? i.type}
-                </span>
-                {i.roleDescription && (
-                  <span class="text-sm text-slate-500">{i.roleDescription}</span>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div id="interests-type-filter" class="mt-4 flex flex-wrap gap-3">
+            {[...new Set(deputyInterests.map((i) => i.type))].map((type) => {
+              const count = deputyInterests.filter((i) => i.type === type).length;
+              return (
+                <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
+                  <input type="checkbox" value={type} checked class="accent-indigo-600 h-3.5 w-3.5" data-interest-filter />
+                  <span>{interestTypeLabels[type] ?? type} <span class="text-slate-400">({count})</span></span>
+                </label>
+              );
+            })}
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table id="interests-list" class="w-full text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <th class="py-2 pr-4">Entité</th>
+                  <th class="py-2 pr-4">Type</th>
+                  <th class="py-2 pr-4">Fonction</th>
+                  <th class="py-2">Date de déclaration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deputyInterests.map((i) => (
+                  <tr data-interest-type={i.type} class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="py-2 pr-4 font-medium">{i.entityName}</td>
+                    <td class="py-2 pr-4">
+                      <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                        {interestTypeLabels[i.type] ?? i.type}
+                      </span>
+                    </td>
+                    <td class="py-2 pr-4">{i.roleDescription ?? '—'}</td>
+                    <td class="py-2 whitespace-nowrap">{new Date(i.declaredDate).toLocaleDateString('fr-FR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </section>
 
@@ -1065,21 +1257,27 @@ const timelineCategoryColors: Record<string, string> = {
     }
 
     const filterContainer = document.getElementById('committees-filter');
+    const statusFilterContainer = document.getElementById('committees-status-filter');
     const committeesList = document.getElementById('committees-list');
     const committeesCount = document.getElementById('committees-count');
 
-    if (filterContainer && committeesList) {
-      const checkboxes = filterContainer.querySelectorAll<HTMLInputElement>('[data-committee-filter]');
+    if (filterContainer && statusFilterContainer && committeesList) {
+      const typeCheckboxes = filterContainer.querySelectorAll<HTMLInputElement>('[data-committee-filter]');
+      const statusCheckboxes = statusFilterContainer.querySelectorAll<HTMLInputElement>('[data-committee-status-filter]');
       const items = committeesList.querySelectorAll<HTMLElement>('[data-committee-type]');
 
       function applyFilter() {
-        const active = new Set<string>();
-        for (const cb of checkboxes) {
-          if (cb.checked) active.add(cb.value);
+        const activeTypes = new Set<string>();
+        for (const cb of typeCheckboxes) {
+          if (cb.checked) activeTypes.add(cb.value);
+        }
+        const activeStatuses = new Set<string>();
+        for (const cb of statusCheckboxes) {
+          if (cb.checked) activeStatuses.add(cb.value);
         }
         let visible = 0;
         for (const item of items) {
-          const show = active.has(item.dataset.committeeType!);
+          const show = activeTypes.has(item.dataset.committeeType!) && activeStatuses.has(item.dataset.committeeStatus!);
           item.style.display = show ? '' : 'none';
           if (show) visible++;
         }
@@ -1088,8 +1286,86 @@ const timelineCategoryColors: Record<string, string> = {
         }
       }
 
-      for (const cb of checkboxes) {
+      for (const cb of typeCheckboxes) {
         cb.addEventListener('change', applyFilter);
+      }
+      for (const cb of statusCheckboxes) {
+        cb.addEventListener('change', applyFilter);
+      }
+    }
+
+    const activityTypeFilter = document.getElementById('activity-type-filter');
+    const dateFrom = document.getElementById('activity-date-from') as HTMLInputElement | null;
+    const dateTo = document.getElementById('activity-date-to') as HTMLInputElement | null;
+    const dateReset = document.getElementById('activity-date-reset');
+    const activityList = document.getElementById('activity-list');
+    const activityCount = document.getElementById('activity-count');
+
+    if (activityTypeFilter && dateFrom && dateTo && activityList) {
+      const typeCheckboxes = activityTypeFilter.querySelectorAll<HTMLInputElement>('[data-activity-type-filter]');
+      const rows = activityList.querySelectorAll<HTMLElement>('[data-activity-date]');
+
+      function applyActivityFilter() {
+        const activeTypes = new Set<string>();
+        for (const cb of typeCheckboxes) {
+          if (cb.checked) activeTypes.add(cb.value);
+        }
+        const from = dateFrom!.value;
+        const to = dateTo!.value;
+        let visible = 0;
+        for (const row of rows) {
+          const date = row.dataset.activityDate!;
+          const type = row.dataset.activityType!;
+          const show = activeTypes.has(type) && (!from || date >= from) && (!to || date <= to);
+          row.style.display = show ? '' : 'none';
+          if (show) visible++;
+        }
+        if (activityCount) {
+          activityCount.textContent = `${visible} résultat${visible > 1 ? 's' : ''}`;
+        }
+      }
+
+      for (const cb of typeCheckboxes) {
+        cb.addEventListener('change', applyActivityFilter);
+      }
+      dateFrom.addEventListener('change', applyActivityFilter);
+      dateTo.addEventListener('change', applyActivityFilter);
+
+      if (dateReset) {
+        dateReset.addEventListener('click', () => {
+          dateFrom.value = '';
+          dateTo.value = '';
+          applyActivityFilter();
+        });
+      }
+    }
+
+    const interestsFilter = document.getElementById('interests-type-filter');
+    const interestsList = document.getElementById('interests-list');
+    const interestsTotal = document.querySelector('#interets h2 span');
+
+    if (interestsFilter && interestsList) {
+      const checkboxes = interestsFilter.querySelectorAll<HTMLInputElement>('[data-interest-filter]');
+      const rows = interestsList.querySelectorAll<HTMLElement>('[data-interest-type]');
+
+      function applyInterestsFilter() {
+        const active = new Set<string>();
+        for (const cb of checkboxes) {
+          if (cb.checked) active.add(cb.value);
+        }
+        let visible = 0;
+        for (const row of rows) {
+          const show = active.has(row.dataset.interestType!);
+          row.style.display = show ? '' : 'none';
+          if (show) visible++;
+        }
+        if (interestsTotal) {
+          interestsTotal.textContent = `(${visible})`;
+        }
+      }
+
+      for (const cb of checkboxes) {
+        cb.addEventListener('change', applyInterestsFilter);
       }
     }
   </script>

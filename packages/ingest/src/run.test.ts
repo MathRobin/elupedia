@@ -15,6 +15,10 @@ vi.mock('@elupedia/shared', () => ({
   electoralResults: {},
 }));
 
+vi.mock('./logger.js', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
 vi.mock('./utils/retry.js', () => ({
   withRetry: vi.fn((fn: () => Promise<unknown>) => fn()),
 }));
@@ -31,6 +35,9 @@ vi.mock('./sources/an-adresses.js', () => ({
 vi.mock('./sources/an-activite.js', () => ({
   fetchActivities: vi.fn(),
 }));
+vi.mock('./sources/hatvp.js', () => ({
+  fetchDeclarations: vi.fn(),
+}));
 vi.mock('./sources/an-commissions.js', () => ({
   fetchCommittees: vi.fn(),
 }));
@@ -39,6 +46,9 @@ vi.mock('./upsert/officials.js', () => ({
 }));
 vi.mock('./upsert/staffers-diff.js', () => ({
   diffStaffers: vi.fn(),
+}));
+vi.mock('./upsert/interests.js', () => ({
+  upsertInterests: vi.fn(),
 }));
 vi.mock('./upsert/addresses.js', () => ({
   upsertAddresses: vi.fn(),
@@ -59,6 +69,8 @@ import { upsertOfficials } from './upsert/officials.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
+import { fetchDeclarations } from './sources/hatvp.js';
+import { upsertInterests } from './upsert/interests.js';
 import { fetchCommittees } from './sources/an-commissions.js';
 import { upsertCommittees } from './upsert/committees.js';
 
@@ -88,6 +100,8 @@ function setupHappyPath() {
     ended: 0,
     unchanged: 0,
   });
+  vi.mocked(fetchDeclarations).mockResolvedValue([]);
+  vi.mocked(upsertInterests).mockResolvedValue({ created: 0, updated: 0 });
   vi.mocked(fetchAddresses).mockResolvedValue([]);
   vi.mocked(upsertAddresses).mockResolvedValue({ created: 0, updated: 0 });
   vi.mocked(fetchActivities).mockResolvedValue([]);
@@ -112,11 +126,25 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(5);
+    expect(results).toHaveLength(6);
     expect(results[0].source).toBe('officials');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
     expect(upsertOfficials).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs only specified steps when enabledSteps is provided', async () => {
+    setupHappyPath();
+
+    const results = await run(new Set(['officials', 'committees']));
+
+    expect(results).toHaveLength(2);
+    expect(results[0].source).toBe('officials');
+    expect(results[1].source).toBe('committees');
+    expect(fetchCollaborateurs).not.toHaveBeenCalled();
+    expect(fetchDeclarations).not.toHaveBeenCalled();
+    expect(fetchAddresses).not.toHaveBeenCalled();
+    expect(fetchActivities).not.toHaveBeenCalled();
   });
 
   it('catches step errors without stopping the run', async () => {
@@ -127,7 +155,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(5);
+    expect(results).toHaveLength(6);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

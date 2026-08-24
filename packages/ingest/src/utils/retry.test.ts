@@ -1,5 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../logger.js', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 import { withRetry } from './retry.js';
+import { logger } from '../logger.js';
 
 describe('withRetry', () => {
   it('returns result on first success', async () => {
@@ -40,12 +50,10 @@ describe('withRetry', () => {
 
   it('uses exponential backoff delays', async () => {
     const delays: number[] = [];
-    const originalWarn = console.warn;
-    console.warn = (...args: unknown[]) => {
-      const msg = String(args[0]);
-      const match = msg.match(/retrying in (\d+)ms/);
+    vi.mocked(logger.warn).mockImplementation((msg: unknown) => {
+      const match = String(msg).match(/retrying in (\d+)ms/);
       if (match) delays.push(Number(match[1]));
-    };
+    });
 
     let callCount = 0;
     const fn = vi.fn().mockImplementation(async () => {
@@ -60,15 +68,13 @@ describe('withRetry', () => {
       source: 'test',
     });
 
-    console.warn = originalWarn;
-
     expect(result).toBe('ok');
     expect(delays).toEqual([10, 20]);
   });
 
   it('logs warning on retry and error on final failure', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(logger.warn).mockClear();
+    vi.mocked(logger.error).mockClear();
 
     let callCount = 0;
     const fn = vi.fn().mockImplementation(async () => {
@@ -86,14 +92,15 @@ describe('withRetry', () => {
 
     expect(callCount).toBe(2);
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy.mock.calls[0][0]).toContain('assemblee-nationale');
-    expect(warnSpy.mock.calls[0][0]).toContain('attempt 1/2');
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(logger.warn).mock.calls[0][0]).toContain(
+      'assemblee-nationale',
+    );
+    expect(vi.mocked(logger.warn).mock.calls[0][0]).toContain('attempt 1/2');
 
-    expect(errorSpy).toHaveBeenCalledTimes(1);
-    expect(errorSpy.mock.calls[0][0]).toContain('failed after 2 attempts');
-
-    warnSpy.mockRestore();
-    errorSpy.mockRestore();
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(logger.error).mock.calls[0][0]).toContain(
+      'failed after 2 attempts',
+    );
   });
 });

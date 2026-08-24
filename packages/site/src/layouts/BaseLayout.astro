@@ -4,16 +4,28 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
+  jsonLd?: Record<string, unknown>;
 }
 
 const {
   title = 'Elupedia',
   description = 'Encyclopédie ouverte des élus français',
+  image,
+  jsonLd,
 } = Astro.props;
 
 const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
-const ogImage = new URL('/og-default.png', Astro.site);
+const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Elupedia',
+  url: Astro.site?.href,
+  description: 'Encyclopédie ouverte des élus français',
+};
 ---
 
 <html lang="fr">
@@ -26,14 +38,20 @@ const ogImage = new URL('/og-default.png', Astro.site);
     <link rel="canonical" href={canonicalUrl.href} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www2.assemblee-nationale.fr" crossorigin />
+    <link rel="dns-prefetch" href="https://www2.assemblee-nationale.fr" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl.href} />
-    <meta property="og:image" content={ogImage.href} />
+    <meta property="og:image" content={ogImage} />
     <meta property="og:locale" content="fr_FR" />
     <meta property="og:site_name" content="Elupedia" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     <script is:inline src="/tarteaucitron/tarteaucitron.min.js"></script>
     <script is:inline>
       tarteaucitron.init({
@@ -65,6 +83,8 @@ const ogImage = new URL('/og-default.png', Astro.site);
       });
     </script>
     <link rel="stylesheet" href="/tarteaucitron/css/tarteaucitron.css" />
+    <script type="application/ld+json" set:html={JSON.stringify(websiteJsonLd)} />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:text-sm">

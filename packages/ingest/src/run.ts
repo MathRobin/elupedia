@@ -3,17 +3,18 @@ import { config as loadDotenv } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { logger } from './logger.js';
 import { withRetry } from './utils/retry.js';
 import { fetchDeputes } from './sources/assemblee-nationale.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
-// import { fetchDeclarations } from './sources/hatvp.js';
+import { fetchDeclarations } from './sources/hatvp.js';
 import { fetchAddresses } from './sources/an-adresses.js';
 import { fetchActivities } from './sources/an-activite.js';
 import { fetchCommittees } from './sources/an-commissions.js';
 // import { fetchElectionResults } from './sources/datagouv-elections.js';
 import { upsertOfficials } from './upsert/officials.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
-// import { upsertInterests } from './upsert/interests.js';
+import { upsertInterests } from './upsert/interests.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
 import { upsertCommittees } from './upsert/committees.js';
@@ -60,105 +61,122 @@ async function runStep(
   }
 }
 
-export async function run() {
+export async function run(enabledSteps?: Set<string>) {
+  const enabled = (name: string) => !enabledSteps || enabledSteps.has(name);
   const db = createDb();
   const results: StepResult[] = [];
 
-  console.log('=== Ingestion started ===\n');
+  logger.info('=== Ingestion started ===\n');
 
-  console.log('[1/7] Officials & mandates...');
-  const step1 = await runStep('officials', async () => {
-    const deputes = await withRetry(() => fetchDeputes(), {
-      source: 'assemblee-nationale',
+  if (enabled('officials')) {
+    logger.info('[1/7] Officials & mandates...');
+    const step1 = await runStep('officials', async () => {
+      const deputes = await withRetry(() => fetchDeputes(), {
+        source: 'assemblee-nationale',
+      });
+      const officialResults = await upsertOfficials(db, deputes);
+      return {
+        source: 'officials',
+        created: officialResults.length,
+        updated: 0,
+        durationMs: 0,
+      };
     });
-    const officialResults = await upsertOfficials(db, deputes);
-    return {
-      source: 'officials',
-      created: officialResults.length,
-      updated: 0,
-      durationMs: 0,
-    };
-  });
-  results.push(step1);
+    results.push(step1);
+  }
 
-  console.log('[2/7] Collaborateurs...');
-  results.push(
-    await runStep('collaborateurs', async () => {
-      const collabs = await withRetry(() => fetchCollaborateurs(), {
-        source: 'an-collaborateurs',
-      });
-      const r = await diffStaffers(db, collabs);
-      return {
-        source: 'collaborateurs',
-        created: r.created,
-        updated: r.ended,
-        durationMs: 0,
-      };
-    }),
-  );
+  if (enabled('collaborateurs')) {
+    logger.info('[2/7] Collaborateurs...');
+    results.push(
+      await runStep('collaborateurs', async () => {
+        const collabs = await withRetry(() => fetchCollaborateurs(), {
+          source: 'an-collaborateurs',
+        });
+        const r = await diffStaffers(db, collabs);
+        return {
+          source: 'collaborateurs',
+          created: r.created,
+          updated: r.ended,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
 
-  // TODO: étape 3 (HATVP) désactivée — source API à câbler
-  // console.log('[3/7] Interests (HATVP)...');
-  // results.push(
-  //   await runStep('interests', async () => {
-  //     const declarations = await withRetry(() => fetchDeclarations(), {
-  //       source: 'hatvp',
-  //     });
-  //     const r = await upsertInterests(db, declarations);
-  //     return { source: 'interests', created: r.created, updated: r.updated };
-  //   }),
-  // );
+  if (enabled('interests')) {
+    logger.info('[3/7] Interests (HATVP)...');
+    results.push(
+      await runStep('interests', async () => {
+        const declarations = await withRetry(() => fetchDeclarations(), {
+          source: 'hatvp',
+        });
+        const r = await upsertInterests(db, declarations);
+        return {
+          source: 'interests',
+          created: r.created,
+          updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
 
-  console.log('[4/7] Addresses...');
-  results.push(
-    await runStep('addresses', async () => {
-      const addr = await withRetry(() => fetchAddresses(), {
-        source: 'an-adresses',
-      });
-      const r = await upsertAddresses(db, addr);
-      return {
-        source: 'addresses',
-        created: r.created,
-        updated: r.updated,
-        durationMs: 0,
-      };
-    }),
-  );
+  if (enabled('addresses')) {
+    logger.info('[4/7] Addresses...');
+    results.push(
+      await runStep('addresses', async () => {
+        const addr = await withRetry(() => fetchAddresses(), {
+          source: 'an-adresses',
+        });
+        const r = await upsertAddresses(db, addr);
+        return {
+          source: 'addresses',
+          created: r.created,
+          updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
 
-  console.log('[5/7] Parliamentary activity...');
-  results.push(
-    await runStep('parliamentary-activity', async () => {
-      const activities = await withRetry(() => fetchActivities(), {
-        source: 'an-activite',
-      });
-      const r = await upsertParliamentaryActivity(db, activities);
-      return {
-        source: 'parliamentary-activity',
-        created: r.created,
-        updated: r.updated,
-        durationMs: 0,
-      };
-    }),
-  );
+  if (enabled('activity')) {
+    logger.info('[5/7] Parliamentary activity...');
+    results.push(
+      await runStep('parliamentary-activity', async () => {
+        const activities = await withRetry(() => fetchActivities(), {
+          source: 'an-activite',
+        });
+        const r = await upsertParliamentaryActivity(db, activities);
+        return {
+          source: 'parliamentary-activity',
+          created: r.created,
+          updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
 
-  console.log('[6/7] Committees...');
-  results.push(
-    await runStep('committees', async () => {
-      const comm = await withRetry(() => fetchCommittees(), {
-        source: 'an-commissions',
-      });
-      const r = await upsertCommittees(db, comm);
-      return {
-        source: 'committees',
-        created: r.created,
-        updated: r.updated,
-        durationMs: 0,
-      };
-    }),
-  );
+  if (enabled('committees')) {
+    logger.info('[6/7] Committees...');
+    results.push(
+      await runStep('committees', async () => {
+        const comm = await withRetry(() => fetchCommittees(), {
+          source: 'an-commissions',
+        });
+        const r = await upsertCommittees(db, comm);
+        return {
+          source: 'committees',
+          created: r.created,
+          updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
 
   // TODO: étape 7 (résultats électoraux) désactivée — source API à câbler
-  // console.log('[7/7] Electoral results...');
+  // logger.info('[7/7] Electoral results...');
   // results.push(
   //   await runStep('electoral-results', async () => {
   //     const elec = await withRetry(() => fetchElectionResults(), {
@@ -173,16 +191,16 @@ export async function run() {
   //   }),
   // );
 
-  console.log('\n=== Ingestion summary ===');
+  logger.info('\n=== Ingestion summary ===');
   const errors = results.filter((r) => r.error);
   for (const r of results) {
     const status = r.error ? `ERROR: ${r.error}` : 'OK';
-    console.log(
+    logger.info(
       `  ${r.source}: ${r.created} created, ${r.updated} updated — ${status} (${humanDuration(r.durationMs)})`,
     );
   }
   const totalMs = results.reduce((sum, r) => sum + r.durationMs, 0);
-  console.log(
+  logger.info(
     `\nTotal: ${results.length} sources, ${errors.length} error(s), ${humanDuration(totalMs)}`,
   );
 

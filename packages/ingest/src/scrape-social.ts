@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { logger } from './logger.js';
 import { createDb } from '@elupedia/shared';
 import {
   selectOfficialsToscrape,
@@ -10,7 +11,7 @@ import { upsertScrapedLinks } from './upsert/scraped-links.js';
 async function main() {
   const db = createDb();
   const candidates = await selectOfficialsToscrape(db);
-  console.log(`[scrape] ${candidates.length} officials to scrape`);
+  logger.info(`[scrape] ${candidates.length} officials to scrape`);
 
   let totalCreated = 0;
   let totalSkipped = 0;
@@ -23,21 +24,17 @@ async function main() {
       totalCreated += result.created;
       totalSkipped += result.skipped;
       if (links.length > 0) {
-        console.log(
-          `  ${candidate.websiteUrl}: ${links.length} links found, ${result.created} inserted`,
-        );
+        logger.info(`${candidate.websiteUrl}: ${links.length} links found, ${result.created} inserted`);
       }
     } catch (err) {
-      console.error(`  Error scraping ${candidate.websiteUrl}:`, err);
+      logger.error(`Error scraping ${candidate.websiteUrl}: ${err}`);
     }
   }
 
-  console.log(
-    `[scrape] Done: ${totalCreated} created, ${totalSkipped} skipped`,
-  );
+  logger.info(`[scrape] Done: ${totalCreated} created, ${totalSkipped} skipped`);
 }
 
 main().catch((err) => {
-  console.error(err);
+  logger.error(`${err}`);
   process.exit(1);
 });
