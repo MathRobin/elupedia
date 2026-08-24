@@ -26,6 +26,8 @@ import { fetchSenatGroupes } from './sources/senat-groupes.js';
 import { upsertSenatAffiliations } from './upsert/senat-affiliations.js';
 import { fetchSenatCollaborateurs } from './sources/senat-collaborateurs.js';
 import { diffSenatStaffers } from './upsert/senat-staffers-diff.js';
+import { fetchSenatAdresses } from './sources/senat-adresses.js';
+import { upsertSenatAddresses } from './upsert/senat-addresses.js';
 // import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -250,6 +252,24 @@ export async function run(enabledSteps?: Set<string>) {
           source: 'senat-collaborateurs',
           created: r.created,
           updated: r.ended,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('senat-adresses')) {
+    logger.info('[11/11] Senate addresses...');
+    results.push(
+      await runStep('senat-adresses', async () => {
+        const addr = await withRetry(() => fetchSenatAdresses(), {
+          source: 'senat-adresses',
+        });
+        const r = await upsertSenatAddresses(db, addr);
+        return {
+          source: 'senat-adresses',
+          created: r.created,
+          updated: r.updated,
           durationMs: 0,
         };
       }),
