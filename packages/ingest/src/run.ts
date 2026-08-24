@@ -22,6 +22,8 @@ import { fetchSenateurs } from './sources/senat.js';
 import { upsertSenators } from './upsert/senators.js';
 import { fetchSenatScrutins } from './sources/senat-scrutins.js';
 import { upsertSenatVotes } from './upsert/senat-votes.js';
+import { fetchSenatGroupes } from './sources/senat-groupes.js';
+import { upsertSenatAffiliations } from './upsert/senat-affiliations.js';
 // import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -210,6 +212,24 @@ export async function run(enabledSteps?: Set<string>) {
           source: 'senat-votes',
           created: r.ballots,
           updated: r.votes,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('senat-affiliations')) {
+    logger.info('[9/9] Senate affiliations...');
+    results.push(
+      await runStep('senat-affiliations', async () => {
+        const groupes = await withRetry(() => fetchSenatGroupes(), {
+          source: 'senat-groupes',
+        });
+        const r = await upsertSenatAffiliations(db, groupes);
+        return {
+          source: 'senat-affiliations',
+          created: r.created,
+          updated: r.updated,
           durationMs: 0,
         };
       }),
