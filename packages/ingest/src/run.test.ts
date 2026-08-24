@@ -89,6 +89,12 @@ vi.mock('./sources/senat-adresses.js', () => ({
 vi.mock('./upsert/senat-addresses.js', () => ({
   upsertSenatAddresses: vi.fn(),
 }));
+vi.mock('./sources/senat-elections.js', () => ({
+  fetchSenatElections: vi.fn(),
+}));
+vi.mock('./upsert/senat-electoral-results.js', () => ({
+  upsertSenatElectoralResults: vi.fn(),
+}));
 
 import { run } from './run.js';
 import { fetchDeputes } from './sources/assemblee-nationale.js';
@@ -113,6 +119,8 @@ import { fetchSenatCollaborateurs } from './sources/senat-collaborateurs.js';
 import { diffSenatStaffers } from './upsert/senat-staffers-diff.js';
 import { fetchSenatAdresses } from './sources/senat-adresses.js';
 import { upsertSenatAddresses } from './upsert/senat-addresses.js';
+import { fetchSenatElections } from './sources/senat-elections.js';
+import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js';
 
 function setupHappyPath() {
   vi.mocked(fetchDeputes).mockResolvedValue([
@@ -161,6 +169,8 @@ function setupHappyPath() {
   vi.mocked(diffSenatStaffers).mockResolvedValue({ created: 0, ended: 0, unchanged: 0 });
   vi.mocked(fetchSenatAdresses).mockResolvedValue([]);
   vi.mocked(upsertSenatAddresses).mockResolvedValue({ created: 0, updated: 0 });
+  vi.mocked(fetchSenatElections).mockResolvedValue([]);
+  vi.mocked(upsertSenatElectoralResults).mockResolvedValue({ created: 0, updated: 0, skipped: 0 });
 }
 
 beforeEach(() => {
@@ -176,7 +186,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(11);
+    expect(results).toHaveLength(12);
     expect(results[0].source).toBe('officials');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -205,7 +215,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(11);
+    expect(results).toHaveLength(12);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

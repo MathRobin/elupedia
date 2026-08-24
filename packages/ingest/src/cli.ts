@@ -13,6 +13,7 @@ export const STEP_NAMES = [
   'senat-affiliations',
   'senat-collaborateurs',
   'senat-adresses',
+  'senat-elections',
 ] as const;
 
 export type StepName = (typeof STEP_NAMES)[number];

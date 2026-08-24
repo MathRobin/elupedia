@@ -28,6 +28,8 @@ import { fetchSenatCollaborateurs } from './sources/senat-collaborateurs.js';
 import { diffSenatStaffers } from './upsert/senat-staffers-diff.js';
 import { fetchSenatAdresses } from './sources/senat-adresses.js';
 import { upsertSenatAddresses } from './upsert/senat-addresses.js';
+import { fetchSenatElections } from './sources/senat-elections.js';
+import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js';
 // import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -268,6 +270,24 @@ export async function run(enabledSteps?: Set<string>) {
         const r = await upsertSenatAddresses(db, addr);
         return {
           source: 'senat-adresses',
+          created: r.created,
+          updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('senat-elections')) {
+    logger.info('[12/12] Senate electoral results...');
+    results.push(
+      await runStep('senat-elections', async () => {
+        const elec = await withRetry(() => fetchSenatElections('2023'), {
+          source: 'senat-elections',
+        });
+        const r = await upsertSenatElectoralResults(db, elec);
+        return {
+          source: 'senat-elections',
           created: r.created,
           updated: r.updated,
           durationMs: 0,
