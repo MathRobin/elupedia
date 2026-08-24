@@ -9,14 +9,14 @@ import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
 // import { fetchDeclarations } from './sources/hatvp.js';
 import { fetchAddresses } from './sources/an-adresses.js';
 import { fetchActivities } from './sources/an-activite.js';
-// import { fetchCommittees } from './sources/an-commissions.js';
+import { fetchCommittees } from './sources/an-commissions.js';
 // import { fetchElectionResults } from './sources/datagouv-elections.js';
 import { upsertOfficials } from './upsert/officials.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
 // import { upsertInterests } from './upsert/interests.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
-// import { upsertCommittees } from './upsert/committees.js';
+import { upsertCommittees } from './upsert/committees.js';
 // import { upsertElectoralResults } from './upsert/electoral-results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,18 +26,37 @@ interface StepResult {
   source: string;
   created: number;
   updated: number;
+  durationMs: number;
   error?: string;
+}
+
+function humanDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  const rem = Math.round(s % 60);
+  return rem > 0 ? `${m}min ${rem}s` : `${m}min`;
 }
 
 async function runStep(
   source: string,
   fn: () => Promise<StepResult>,
 ): Promise<StepResult> {
+  const start = performance.now();
   try {
-    return await withRetry(fn, { source });
+    const result = await withRetry(fn, { source });
+    result.durationMs = Math.round(performance.now() - start);
+    return result;
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    return { source, created: 0, updated: 0, error: msg };
+    return {
+      source,
+      created: 0,
+      updated: 0,
+      durationMs: Math.round(performance.now() - start),
+      error: msg,
+    };
   }
 }
 
@@ -53,7 +72,7 @@ export async function run() {
       source: 'assemblee-nationale',
     });
     const officialResults = await upsertOfficials(db, deputes);
-    return { source: 'officials', created: officialResults.length, updated: 0 };
+    return { source: 'officials', created: officialResults.length, updated: 0, durationMs: 0 };
   });
   results.push(step1);
 
@@ -68,6 +87,7 @@ export async function run() {
         source: 'collaborateurs',
         created: r.created,
         updated: r.ended,
+        durationMs: 0,
       };
     }),
   );
@@ -91,7 +111,7 @@ export async function run() {
         source: 'an-adresses',
       });
       const r = await upsertAddresses(db, addr);
-      return { source: 'addresses', created: r.created, updated: r.updated };
+      return { source: 'addresses', created: r.created, updated: r.updated, durationMs: 0 };
     }),
   );
 
@@ -106,21 +126,21 @@ export async function run() {
         source: 'parliamentary-activity',
         created: r.created,
         updated: r.updated,
+        durationMs: 0,
       };
     }),
   );
 
-  // TODO: étape 6 (commissions) désactivée — source API à câbler
-  // console.log('[6/7] Committees...');
-  // results.push(
-  //   await runStep('committees', async () => {
-  //     const comm = await withRetry(() => fetchCommittees(), {
-  //       source: 'an-commissions',
-  //     });
-  //     const r = await upsertCommittees(db, comm);
-  //     return { source: 'committees', created: r.created, updated: r.updated };
-  //   }),
-  // );
+  console.log('[6/7] Committees...');
+  results.push(
+    await runStep('committees', async () => {
+      const comm = await withRetry(() => fetchCommittees(), {
+        source: 'an-commissions',
+      });
+      const r = await upsertCommittees(db, comm);
+      return { source: 'committees', created: r.created, updated: r.updated, durationMs: 0 };
+    }),
+  );
 
   // TODO: étape 7 (résultats électoraux) désactivée — source API à câbler
   // console.log('[7/7] Electoral results...');
@@ -143,10 +163,13 @@ export async function run() {
   for (const r of results) {
     const status = r.error ? `ERROR: ${r.error}` : 'OK';
     console.log(
-      `  ${r.source}: ${r.created} created, ${r.updated} updated — ${status}`,
+      `  ${r.source}: ${r.created} created, ${r.updated} updated — ${status} (${humanDuration(r.durationMs)})`,
     );
   }
-  console.log(`\nTotal: ${results.length} sources, ${errors.length} error(s)`);
+  const totalMs = results.reduce((sum, r) => sum + r.durationMs, 0);
+  console.log(
+    `\nTotal: ${results.length} sources, ${errors.length} error(s), ${humanDuration(totalMs)}`,
+  );
 
   return results;
 }

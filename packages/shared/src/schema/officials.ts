@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, date, jsonb } from 'drizzle-orm/pg-core';
 
 export const officials = pgTable('officials', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -7,4 +7,5 @@ export const officials = pgTable('officials', {
   anId: varchar('an_id', { length: 50 }).unique(),
   birthDate: date('birth_date'),
   photoUrl: varchar('photo_url', { length: 1024 }),
+  full: jsonb('full'),
 });

@@ -1,0 +1,1 @@
+ALTER TABLE "officials" ADD COLUMN "full" jsonb;

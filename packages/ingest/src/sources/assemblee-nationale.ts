@@ -76,6 +76,7 @@ export interface Depute {
   groupe_sigle?: string;
   slug: string;
   photo_url?: string;
+  full: unknown;
 }
 
 export const DATASET_URL =
@@ -168,7 +169,8 @@ async function loadActeurs(
   for (const file of files) {
     if (!file.endsWith('.json')) continue;
     const raw = await readFile(join(acteurDir, file), 'utf-8');
-    const parsed = ActeurFileSchema.safeParse(JSON.parse(raw));
+    const rawJson = JSON.parse(raw);
+    const parsed = ActeurFileSchema.safeParse(rawJson);
     if (!parsed.success) continue;
 
     const acteur = parsed.data.acteur;
@@ -212,6 +214,7 @@ async function loadActeurs(
       groupe_sigle: groupeSigle,
       slug: slugify(ec.ident.prenom, ec.ident.nom),
       photo_url: photoUrl(anId),
+      full: rawJson,
     });
   }
 

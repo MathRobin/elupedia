@@ -419,7 +419,15 @@ const interestTypeLabels: Record<string, string> = {
   company_share: 'Participation en entreprise',
   nonprofit_role: 'Fonction associative/bénévole',
 };
+const mandateTypeLabels: Record<string, string> = {
+  depute: 'Député',
+  senateur: 'Sénateur',
+  maire: 'Maire',
+  president: 'Président',
+};
+
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
+const mandateLabel = mandateTypeLabels[deputy.mandateType] ?? deputy.mandateType;
 
 const positionLabels: Record<string, string> = {
   for: 'Pour',
@@ -471,7 +479,7 @@ const timelineCategoryColors: Record<string, string> = {
 };
 ---
 
-<BaseLayout title={fullName} description={`Fiche de ${fullName}, ${deputy.mandateType}`}>
+<BaseLayout title={fullName} description={`Fiche de ${fullName}, ${mandateLabel}`}>
   <div class="max-w-3xl" data-pagefind-body>
     <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
@@ -547,7 +555,7 @@ const timelineCategoryColors: Record<string, string> = {
       <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <dt class="text-sm text-slate-500">Type</dt>
-          <dd class="font-medium">{deputy.mandateType}</dd>
+          <dd class="font-medium">{mandateLabel}</dd>
         </div>
         {deputy.district && (
           <div>
@@ -752,30 +760,40 @@ const timelineCategoryColors: Record<string, string> = {
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
         Commissions & groupes
         {deputyCommittees.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-slate-500">({deputyCommittees.length})</span>
+          <span id="committees-count" class="ml-2 text-sm font-normal text-slate-500">({deputyCommittees.length})</span>
         )}
       </h2>
 
       {deputyCommittees.length === 0 ? (
         <p class="mt-4 text-slate-500">Aucune commission enregistrée/trouvée.</p>
       ) : (
-        <ul class="mt-4 space-y-3">
-          {deputyCommittees.map((c) => (
-            <li class="flex items-baseline justify-between border-b border-slate-100 pb-3">
-              <div>
-                <span class="font-medium">{c.name}</span>
-                <span class="ml-2 inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
-                  {committeeTypeLabels[c.type] ?? c.type}
+        <>
+          <div id="committees-filter" class="mt-4 flex flex-wrap gap-3">
+            {[...new Set(deputyCommittees.map((c) => c.type))].map((type) => (
+              <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
+                <input type="checkbox" value={type} checked class="accent-indigo-600 h-3.5 w-3.5" data-committee-filter />
+                <span>{committeeTypeLabels[type] ?? type}</span>
+              </label>
+            ))}
+          </div>
+          <ul id="committees-list" class="mt-4 space-y-3">
+            {deputyCommittees.map((c) => (
+              <li data-committee-type={c.type} class="flex items-baseline justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <span class="font-medium">{c.name}</span>
+                  <span class="ml-2 inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                    {committeeTypeLabels[c.type] ?? c.type}
+                  </span>
+                </div>
+                <span class="text-sm text-slate-500">
+                  {new Date(c.startDate).toLocaleDateString('fr-FR')}
+                  {' — '}
+                  {c.endDate ? new Date(c.endDate).toLocaleDateString('fr-FR') : 'en cours'}
                 </span>
-              </div>
-              <span class="text-sm text-slate-500">
-                {new Date(c.startDate).toLocaleDateString('fr-FR')}
-                {' — '}
-                {c.endDate ? new Date(c.endDate).toLocaleDateString('fr-FR') : 'en cours'}
-              </span>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
 
@@ -1043,6 +1061,35 @@ const timelineCategoryColors: Record<string, string> = {
       for (const id of sectionIds) {
         const el = document.getElementById(id);
         if (el) spyObserver.observe(el);
+      }
+    }
+
+    const filterContainer = document.getElementById('committees-filter');
+    const committeesList = document.getElementById('committees-list');
+    const committeesCount = document.getElementById('committees-count');
+
+    if (filterContainer && committeesList) {
+      const checkboxes = filterContainer.querySelectorAll<HTMLInputElement>('[data-committee-filter]');
+      const items = committeesList.querySelectorAll<HTMLElement>('[data-committee-type]');
+
+      function applyFilter() {
+        const active = new Set<string>();
+        for (const cb of checkboxes) {
+          if (cb.checked) active.add(cb.value);
+        }
+        let visible = 0;
+        for (const item of items) {
+          const show = active.has(item.dataset.committeeType!);
+          item.style.display = show ? '' : 'none';
+          if (show) visible++;
+        }
+        if (committeesCount) {
+          committeesCount.textContent = `(${visible})`;
+        }
+      }
+
+      for (const cb of checkboxes) {
+        cb.addEventListener('change', applyFilter);
       }
     }
   </script>
