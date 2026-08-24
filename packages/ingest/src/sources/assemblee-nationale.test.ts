@@ -104,13 +104,13 @@ function makeActeurJson(
   };
 }
 
-function makeOrganeJson(uid: string, libelleAbrege: string) {
+function makeOrganeJson(uid: string, libelleAbrege: string, libelle?: string) {
   return {
     organe: {
       '@xmlns': 'http://schemas.assemblee-nationale.fr/referentiel',
       uid,
       codeType: 'GP',
-      libelle: libelleAbrege,
+      libelle: libelle ?? libelleAbrege,
       libelleEdition: libelleAbrege,
       libelleAbrege,
       libelleAbrev: libelleAbrege,
@@ -160,7 +160,7 @@ function mockFetch(buffer: Buffer, status = 200): typeof fetch {
 describe('Assemblée nationale client', () => {
   it('fetches and parses deputies from ZIP archive', async () => {
     const acteur = makeActeurJson('PA100001', 'Marie', 'Dupont');
-    const organe = makeOrganeJson('PO800001', 'RE');
+    const organe = makeOrganeJson('PO800001', 'RE', 'Renaissance');
     const zipBuffer = buildZipBuffer(
       [{ uid: 'PA100001', data: acteur }],
       [{ uid: 'PO800001', data: organe }],
@@ -178,7 +178,7 @@ describe('Assemblée nationale client', () => {
     expect(deputes[0].nom_circo).toBe('Gironde');
     expect(deputes[0].num_deptmt).toBe('33');
     expect(deputes[0].num_circo).toBe(3);
-    expect(deputes[0].groupe_sigle).toBe('RE');
+    expect(deputes[0].groupe_sigle).toBe('Renaissance (RE)');
     expect(deputes[0].slug).toBe('marie-dupont');
     expect(deputes[0].photo_url).toContain('100001.jpg');
   });
@@ -212,7 +212,7 @@ describe('Assemblée nationale client', () => {
     expect(deputes[0].mandat_fin).toBe('2024-12-01');
   });
 
-  it('skips actors without ASSEMBLEE mandate', async () => {
+  it('includes senators', async () => {
     const acteur = {
       acteur: {
         '@xmlns': 'http://schemas.assemblee-nationale.fr/referentiel',
@@ -226,6 +226,34 @@ describe('Assemblée nationale client', () => {
             uid: 'PM999999',
             legislature: '17',
             typeOrgane: 'SENAT',
+            dateDebut: '2024-01-01',
+            dateFin: null,
+          },
+        },
+      },
+    };
+    const zipBuffer = buildZipBuffer([{ uid: 'PA999999', data: acteur }], []);
+
+    const deputes = await fetchDeputes(mockFetch(zipBuffer));
+    expect(deputes).toHaveLength(1);
+    expect(deputes[0].mandat_type).toBe('senateur');
+    expect(deputes[0].photo_url).toBeUndefined();
+  });
+
+  it('skips actors without parliamentary mandate', async () => {
+    const acteur = {
+      acteur: {
+        '@xmlns': 'http://schemas.assemblee-nationale.fr/referentiel',
+        uid: { '#text': 'PA999999' },
+        etatCivil: {
+          ident: { civ: 'M.', prenom: 'Fake', nom: 'Ministre' },
+          infoNaissance: { dateNais: '1960-01-01' },
+        },
+        mandats: {
+          mandat: {
+            uid: 'PM999999',
+            legislature: '17',
+            typeOrgane: 'GOUVERNEMENT',
             dateDebut: '2024-01-01',
             dateFin: null,
           },

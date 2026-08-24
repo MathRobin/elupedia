@@ -104,7 +104,7 @@ describe('AN commissions client', () => {
     expect(result[0].id_an).toBe('PA100001');
     expect(result[0].committees).toHaveLength(1);
     expect(result[0].committees[0]).toEqual({
-      name: 'Commission des finances, de l’économie générale et du contrôle budgétaire',
+      name: 'Commission des finances, de l’économie générale et du contrôle budgétaire (Finances)',
       type: 'standing_committee',
       start_date: '2022-07-01',
       end_date: undefined,
@@ -171,10 +171,7 @@ describe('AN commissions client', () => {
     const acteur = makeActeurJson('PA100001', [
       { typeOrgane: 'GP', dateDebut: '2022-07-01' },
     ]);
-    const zipBuffer = buildZipBuffer(
-      [{ uid: 'PA100001', data: acteur }],
-      [],
-    );
+    const zipBuffer = buildZipBuffer([{ uid: 'PA100001', data: acteur }], []);
 
     const result = await fetchCommittees(mockFetch(zipBuffer));
     expect(result).toHaveLength(0);
