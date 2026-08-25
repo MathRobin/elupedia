@@ -9,9 +9,18 @@ export const IdentSchema = z.object({
 });
 
 export const InfoNaissanceSchema = z.object({
-  dateNais: z.string().optional().nullable(),
-  villeNais: z.string().optional().nullable(),
-  depNais: z.string().optional().nullable(),
+  dateNais: z
+    .union([z.string(), z.record(z.string(), z.string())])
+    .optional()
+    .nullable(),
+  villeNais: z
+    .union([z.string(), z.record(z.string(), z.string())])
+    .optional()
+    .nullable(),
+  depNais: z
+    .union([z.string(), z.record(z.string(), z.string())])
+    .optional()
+    .nullable(),
 });
 
 export const EtatCivilSchema = z.object({
@@ -32,7 +41,10 @@ export const MandatSchema = z.object({
   typeOrgane: z.string(),
   dateDebut: z.string(),
   dateFin: z.string().optional().nullable(),
-  organes: z.object({ organeRef: z.string() }).optional().nullable(),
+  organes: z
+    .object({ organeRef: z.union([z.string(), z.array(z.string())]) })
+    .optional()
+    .nullable(),
   election: z.object({ lieu: ElectionLieuSchema }).optional().nullable(),
 });
 

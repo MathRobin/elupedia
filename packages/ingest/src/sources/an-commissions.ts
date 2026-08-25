@@ -129,8 +129,9 @@ async function loadMemberships(
     const committees: CommitteeItem[] = [];
 
     for (const m of allMandats) {
-      const organeRef = m.organes?.organeRef;
-      if (!organeRef) continue;
+      const rawRef = m.organes?.organeRef;
+      if (!rawRef) continue;
+      const organeRef = Array.isArray(rawRef) ? rawRef[0] : rawRef;
 
       const organe = organes.get(organeRef);
       if (!organe) continue;

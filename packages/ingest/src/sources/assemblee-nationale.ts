@@ -147,8 +147,9 @@ async function loadActeurs(
       .filter((m) => gpTypes.includes(m.typeOrgane) && !m.dateFin)
       .sort((a, b) => b.dateDebut.localeCompare(a.dateDebut))[0];
 
-    const groupeSigle = latestGp?.organes?.organeRef
-      ? organes.get(latestGp.organes.organeRef)
+    const gpRef = latestGp?.organes?.organeRef;
+    const groupeSigle = gpRef
+      ? organes.get(Array.isArray(gpRef) ? gpRef[0] : gpRef)
       : undefined;
 
     const lieu = latestMandat.election?.lieu;
@@ -158,7 +159,10 @@ async function loadActeurs(
       nom: ec.ident.nom,
       prenom: ec.ident.prenom,
       sexe: ec.ident.civ === 'Mme' ? 'F' : 'H',
-      date_naissance: ec.infoNaissance.dateNais ?? '',
+      date_naissance:
+        typeof ec.infoNaissance.dateNais === 'string'
+          ? ec.infoNaissance.dateNais
+          : '',
       nom_circo: lieu?.departement ?? '',
       num_deptmt: lieu?.numDepartement ?? '',
       num_circo: parseInt(lieu?.numCirco ?? '0', 10),
