@@ -81,11 +81,20 @@ export default function QuestionDetailDrawer() {
       fetch(`/api/question-text?${params}`)
         .then((r) => (r.ok ? r.json() : null))
         .then(
-          (data: { questionText: string | null; responseText: string | null } | null) => {
+          (
+            data: {
+              questionText: string | null;
+              responseText: string | null;
+            } | null,
+          ) => {
             if (data) {
               setQuestion((prev) =>
                 prev
-                  ? { ...prev, questionText: data.questionText, responseText: data.responseText }
+                  ? {
+                      ...prev,
+                      questionText: data.questionText,
+                      responseText: data.responseText,
+                    }
                   : prev,
               );
             }
@@ -109,8 +118,7 @@ export default function QuestionDetailDrawer() {
   if (!question && !open) return null;
 
   const isQuestion =
-    question?.type === 'written_question' ||
-    question?.type === 'oral_question';
+    question?.type === 'written_question' || question?.type === 'oral_question';
 
   return (
     <>
