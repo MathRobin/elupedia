@@ -5,9 +5,9 @@ import type { Declaration } from '../sources/hatvp.js';
 import { logger } from '../logger.js';
 import { writeProvenance } from './provenance.js';
 
-const SOURCE_NAME = 'HATVP - Déclarations d\'intérêts';
+const SOURCE_NAME = "HATVP - Déclarations d'intérêts";
 const LEGAL_BASIS =
-  'Déclaration d\'intérêts et d\'activités (loi n°2013-907 du 11 octobre 2013 relative à la transparence de la vie publique)';
+  "Déclaration d'intérêts et d'activités (loi n°2013-907 du 11 octobre 2013 relative à la transparence de la vie publique)";
 
 export async function upsertInterests(
   db: NeonHttpDatabase,

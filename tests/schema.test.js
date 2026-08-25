@@ -241,6 +241,10 @@ describe('#16 — parliamentary_activity', () => {
     expect(cols).toContain('title');
     expect(cols).toContain('date');
     expect(cols).toContain('status');
+    expect(cols).toContain('questionText');
+    expect(cols).toContain('responseText');
+    expect(cols).toContain('responseDate');
+    expect(cols).toContain('governmentComments');
   });
 
   it('activityTypeEnum has valid values', async () => {
@@ -315,6 +319,37 @@ describe('#130 — users', () => {
     const { userRoleEnum } =
       await import('../packages/shared/src/schema/users.js');
     expect(userRoleEnum).toEqual(['admin', 'moderator']);
+  });
+});
+
+describe('#172 — question details columns', () => {
+  it('new columns are nullable text/date', () => {
+    const content = readFileSync(
+      resolve(schemaDir, 'parliamentary-activity.ts'),
+      'utf-8',
+    );
+    expect(content).toContain("text('question_text')");
+    expect(content).toContain("text('response_text')");
+    expect(content).toContain("date('response_date')");
+    expect(content).toContain("text('government_comments')");
+  });
+
+  it('migration file exists', () => {
+    expect(
+      existsSync(resolve(root, 'drizzle/0009_question_details.sql')),
+    ).toBe(true);
+  });
+
+  it('migration adds columns', () => {
+    const sql = readFileSync(
+      resolve(root, 'drizzle/0009_question_details.sql'),
+      'utf-8',
+    );
+    expect(sql).toContain('ALTER TABLE');
+    expect(sql).toContain('question_text');
+    expect(sql).toContain('response_text');
+    expect(sql).toContain('response_date');
+    expect(sql).toContain('government_comments');
   });
 });
 

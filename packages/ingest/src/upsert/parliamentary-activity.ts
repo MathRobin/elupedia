@@ -39,12 +39,22 @@ export async function upsertParliamentaryActivity(
           title: item.title,
           date: item.date,
           status: item.status ?? null,
+          questionText: item.questionText ?? null,
+          responseText: item.responseText ?? null,
+          responseDate: item.responseDate ?? null,
+          governmentComments: item.ministry ?? null,
         });
         summary.created++;
       } else {
         await db
           .update(parliamentaryActivity)
-          .set({ status: item.status ?? null })
+          .set({
+            status: item.status ?? null,
+            questionText: item.questionText ?? null,
+            responseText: item.responseText ?? null,
+            responseDate: item.responseDate ?? null,
+            governmentComments: item.ministry ?? null,
+          })
           .where(eq(parliamentaryActivity.id, existing[0].id));
         summary.updated++;
       }

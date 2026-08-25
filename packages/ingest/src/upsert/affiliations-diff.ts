@@ -12,7 +12,7 @@ export interface AffiliationData {
 
 const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
-  'Données publiques d\'appartenance à un groupe parlementaire (art. L311-1 CRPA)';
+  "Données publiques d'appartenance à un groupe parlementaire (art. L311-1 CRPA)";
 
 export async function diffAffiliations(
   db: NeonHttpDatabase,

@@ -15,6 +15,9 @@ function makeQuestionJson(
     analyse?: string;
     dateJO?: string;
     useFallbackDate?: boolean;
+    responseText?: string;
+    responseDateJO?: string;
+    ministry?: string;
   } = {},
 ): unknown {
   const {
@@ -23,6 +26,9 @@ function makeQuestionJson(
     analyse = 'Réforme du logement social',
     dateJO = '2025-03-15',
     useFallbackDate = false,
+    responseText,
+    responseDateJO,
+    ministry,
   } = opts;
 
   return {
@@ -37,6 +43,9 @@ function makeQuestionJson(
         identite: { acteurRef, mandatRef: 'PM000001' },
         groupe: { organeRef: 'PO845407', abrege: 'EPR' },
       },
+      minInt: ministry
+        ? { organeRef: 'PO847661', abrege: 'Min', developpe: ministry }
+        : undefined,
       textesQuestion: useFallbackDate
         ? null
         : {
@@ -45,6 +54,14 @@ function makeQuestionJson(
               texte: 'Question text...',
             },
           },
+      textesReponse: responseText
+        ? {
+            texteReponse: {
+              infoJO: { typeJO: 'JO_QUESTION', dateJO: responseDateJO },
+              texte: responseText,
+            },
+          }
+        : undefined,
       minAttribs: {
         minAttrib: {
           infoJO: { typeJO: 'JO_DEBAT', dateJO },
@@ -230,6 +247,41 @@ describe('AN activité client', () => {
     const result = await fetchActivities(mockFetch(urlMap));
 
     expect(result).toHaveLength(0);
+  });
+
+  it('extracts question text, response text, response date and ministry', async () => {
+    const q = makeQuestionJson('QE050', 'PA100001', {
+      analyse: 'Test enrichi',
+      dateJO: '2025-06-01',
+      responseText: 'Réponse du gouvernement.',
+      responseDateJO: '2025-07-15',
+      ministry: "Ministère de l'intérieur",
+    });
+
+    const urlMap = defaultUrlMap([{ uid: 'QE050', data: q }], []);
+    const result = await fetchActivities(mockFetch(urlMap));
+
+    const activity = result[0].activities[0];
+    expect(activity.questionText).toBe('Question text...');
+    expect(activity.responseText).toBe('Réponse du gouvernement.');
+    expect(activity.responseDate).toBe('2025-07-15');
+    expect(activity.ministry).toBe("Ministère de l'intérieur");
+  });
+
+  it('handles questions without response', async () => {
+    const q = makeQuestionJson('QE060', 'PA100001', {
+      analyse: 'Sans réponse',
+      dateJO: '2025-06-01',
+    });
+
+    const urlMap = defaultUrlMap([{ uid: 'QE060', data: q }], []);
+    const result = await fetchActivities(mockFetch(urlMap));
+
+    const activity = result[0].activities[0];
+    expect(activity.questionText).toBe('Question text...');
+    expect(activity.responseText).toBeUndefined();
+    expect(activity.responseDate).toBeUndefined();
+    expect(activity.ministry).toBeUndefined();
   });
 
   it('returns empty for empty ZIPs', async () => {
