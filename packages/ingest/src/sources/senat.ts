@@ -65,8 +65,18 @@ function parseSenatDate(raw: string | null): string | null {
   return null;
 }
 
-function photoUrl(matricule: string): string {
-  return `https://www.senat.fr/senimg/photo_${matricule}.jpg`;
+function senatSlug(nom: string, prenom: string, matricule: string): string {
+  return `${nom}_${prenom}${matricule}`
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+function photoUrl(nom: string, prenom: string, matricule: string): string {
+  return `https://www.senat.fr/senimg/${senatSlug(nom, prenom, matricule)}_carre.jpg`;
 }
 
 export async function fetchSenateurs(
@@ -112,9 +122,19 @@ export async function fetchSenateurs(
   const senateurs: Senateur[] = [];
 
   for (const g of generals) {
-    const mandats = mandatsByMatricule.get(g.Matricule) ?? [];
+    let mandats = mandatsByMatricule.get(g.Matricule) ?? [];
     for (const m of mandats) {
       m.department = g.Circonscription ?? null;
+    }
+
+    if (mandats.length === 0 && g.Etat === 'ACTIF') {
+      mandats = [
+        {
+          start_date: '2023-10-01',
+          end_date: null,
+          department: g.Circonscription ?? null,
+        },
+      ];
     }
 
     senateurs.push({
@@ -125,7 +145,7 @@ export async function fetchSenateurs(
       date_naissance: parseSenatDate(g.Date_naissance),
       circonscription: g.Circonscription,
       slug: slugify(g.Prenom_usuel, g.Nom_usuel),
-      photo_url: photoUrl(g.Matricule),
+      photo_url: photoUrl(g.Nom_usuel, g.Prenom_usuel, g.Matricule),
       full: g,
       mandats,
     });
