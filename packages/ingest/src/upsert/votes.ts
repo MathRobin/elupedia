@@ -1,7 +1,10 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { ballots } from '@elupedia/shared';
-import { votes } from '@elupedia/shared';
+import { ballots, votes, dataProvenance } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
+
+const SOURCE_NAME = 'Assemblée nationale - Open Data';
+const LEGAL_BASIS =
+  'Données publiques de scrutin parlementaire (art. L311-1 CRPA)';
 export interface VoteDetail {
   scrutin_id: number;
   scrutin_titre: string;
@@ -75,6 +78,38 @@ export async function upsertVotes(
         .update(votes)
         .set({ position: mapPosition(vote.position) })
         .where(eq(votes.id, existingVote[0].id));
+    }
+
+    const provRecordId = `${scrutinAnId}:${officialId}`;
+    const existingProv = await db
+      .select({ id: dataProvenance.id })
+      .from(dataProvenance)
+      .where(
+        and(
+          eq(dataProvenance.sourceTable, 'votes'),
+          eq(dataProvenance.sourceRecordId, provRecordId),
+        ),
+      )
+      .limit(1);
+
+    if (existingProv.length === 0) {
+      await db.insert(dataProvenance).values({
+        sourceTable: 'votes',
+        sourceRecordId: provRecordId,
+        sourceName: SOURCE_NAME,
+        sourceUrl: `https://www.assemblee-nationale.fr/dyn/17/scrutins/${vote.scrutin_id}`,
+        legalBasis: LEGAL_BASIS,
+        rawData: vote as unknown as Record<string, unknown>,
+        fetchedAt: new Date(),
+      });
+    } else {
+      await db
+        .update(dataProvenance)
+        .set({
+          rawData: vote as unknown as Record<string, unknown>,
+          fetchedAt: new Date(),
+        })
+        .where(eq(dataProvenance.id, existingProv[0].id));
     }
 
     results.push({ ballotId, officialId });
