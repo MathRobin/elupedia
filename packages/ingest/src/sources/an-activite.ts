@@ -174,8 +174,7 @@ function extractResponse(question: Record<string, unknown>): {
   responseText?: string;
   responseDate?: string;
 } {
-  const textes = question?.textesReponse as
-    Record<string, unknown> | undefined;
+  const textes = question?.textesReponse as Record<string, unknown> | undefined;
   if (!textes) return {};
   const texteR = textes.texteReponse as Record<string, unknown> | undefined;
   if (!texteR) return {};

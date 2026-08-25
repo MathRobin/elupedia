@@ -84,8 +84,7 @@ export default function QuestionDetailDrawer() {
   if (!question && !open) return null;
 
   const isQuestion =
-    question?.type === 'written_question' ||
-    question?.type === 'oral_question';
+    question?.type === 'written_question' || question?.type === 'oral_question';
 
   return (
     <>
