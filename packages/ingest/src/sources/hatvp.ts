@@ -44,6 +44,7 @@ interface RawDeclaration {
   activitesPro: RawItem[];
   activitesConsultant: RawItem[];
   participationsDirigeant: RawItem[];
+  mandatsElectifs: RawItem[];
 }
 
 export async function fetchDeclarations(
@@ -81,6 +82,8 @@ async function parseDeclarationsStream(
   let currentActiviteConsultant: RawItem = {};
   let inParticipationDirigeant = false;
   let currentParticipationDirigeant: RawItem = {};
+  let inMandatElectif = false;
+  let currentMandatElectif: RawItem = {};
 
   parser.on('opentag', (node) => {
     const tag = node.name;
@@ -98,6 +101,7 @@ async function parseDeclarationsStream(
         activitesPro: [],
         activitesConsultant: [],
         participationsDirigeant: [],
+        mandatsElectifs: [],
       };
     }
 
@@ -131,6 +135,13 @@ async function parseDeclarationsStream(
       inParticipationDirigeant = true;
       currentParticipationDirigeant = {};
     }
+    if (
+      joined.includes('mandatElectifDto/items/items') &&
+      tag === 'items'
+    ) {
+      inMandatElectif = true;
+      currentMandatElectif = {};
+    }
   });
 
   parser.on('text', (t) => {
@@ -151,8 +162,26 @@ async function parseDeclarationsStream(
       if (joined.endsWith('declarant/prenom')) current.prenom = text;
       if (joined.endsWith('declaration/dateDepot') && !current.dateDepot)
         current.dateDepot = text;
-      if (joined.endsWith('mandatElectifDto/items/items/descriptionMandat'))
-        current.mandatDescriptions.push(text);
+      if (inMandatElectif) {
+        if (
+          tag === 'items' &&
+          joined.includes('mandatElectifDto/items/items')
+        ) {
+          if (currentMandatElectif.descriptionMandat) {
+            current.mandatDescriptions.push(
+              currentMandatElectif.descriptionMandat,
+            );
+            if (
+              !isParliamentary(currentMandatElectif.descriptionMandat)
+            ) {
+              current.mandatsElectifs.push({ ...currentMandatElectif });
+            }
+          }
+          inMandatElectif = false;
+        } else if (text) {
+          currentMandatElectif[tag] = text;
+        }
+      }
 
       if (inParticipation) {
         if (
@@ -298,6 +327,19 @@ async function parseDeclarationsStream(
               start_date: parseMonthDate(d.dateDebut),
               end_date: parseMonthDate(d.dateFin),
               full: d,
+            });
+          }
+
+          for (const m of current.mandatsElectifs) {
+            interests.push({
+              category: 'elected_function',
+              type: 'elected_function',
+              entity_name: m.descriptionMandat,
+              role_description: undefined,
+              declared_date: declaredDate,
+              start_date: parseMonthDate(m.dateDebut),
+              end_date: parseMonthDate(m.dateFin),
+              full: m,
             });
           }
 

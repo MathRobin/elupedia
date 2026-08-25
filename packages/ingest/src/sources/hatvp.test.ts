@@ -35,6 +35,11 @@ function deputeDeclaration(
       dateDebut?: string;
       dateFin?: string;
     }[];
+    mandatsElectifs?: {
+      descriptionMandat: string;
+      dateDebut?: string;
+      dateFin?: string;
+    }[];
   } = {},
 ): string {
   const {
@@ -44,6 +49,7 @@ function deputeDeclaration(
     activitesPro = [],
     activitesConsultant = [],
     participationsDirigeant = [],
+    mandatsElectifs = [],
   } = opts;
 
   const partItems = participations
@@ -81,6 +87,14 @@ function deputeDeclaration(
     )
     .join('');
 
+  const mandatItems = [
+    '<items><descriptionMandat>DEPUTE</descriptionMandat></items>',
+    ...mandatsElectifs.map(
+      (m) =>
+        `<items><descriptionMandat>${m.descriptionMandat}</descriptionMandat>${m.dateDebut ? `<dateDebut>${m.dateDebut}</dateDebut>` : ''}${m.dateFin ? `<dateFin>${m.dateFin}</dateFin>` : ''}</items>`,
+    ),
+  ].join('');
+
   return `<declaration>
     <dateDepot>${dateDepot}</dateDepot>
     <participationFinanciereDto><items>${partItems}</items><neant>${participations.length === 0}</neant></participationFinanciereDto>
@@ -88,7 +102,7 @@ function deputeDeclaration(
     <activProfCinqDerniereDto><items>${actProItems}</items><neant>${activitesPro.length === 0}</neant></activProfCinqDerniereDto>
     <activConsultantDto><items>${actConsultItems}</items><neant>${activitesConsultant.length === 0}</neant></activConsultantDto>
     <participationDirigeantDto><items>${partDirItems}</items><neant>${participationsDirigeant.length === 0}</neant></participationDirigeantDto>
-    <mandatElectifDto><items><items><descriptionMandat>DEPUTE</descriptionMandat></items></items></mandatElectifDto>
+    <mandatElectifDto><items>${mandatItems}</items></mandatElectifDto>
     <general><declarant><nom>${nom}</nom><prenom>${prenom}</prenom></declarant></general>
   </declaration>`;
 }
@@ -352,6 +366,55 @@ describe('HATVP client', () => {
       role_description: undefined,
     });
     expect(declarations[0].interests[0].end_date).toBeUndefined();
+  });
+
+  it('parses non-parliamentary elected functions', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        mandatsElectifs: [
+          {
+            descriptionMandat: 'PRESIDENT DU DEPARTEMENT 01',
+            dateDebut: '04/2015',
+            dateFin: '07/2017',
+          },
+        ],
+      }),
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+
+    expect(declarations).toHaveLength(1);
+    expect(declarations[0].interests).toHaveLength(1);
+    expect(declarations[0].interests[0]).toMatchObject({
+      category: 'elected_function',
+      type: 'elected_function',
+      entity_name: 'PRESIDENT DU DEPARTEMENT 01',
+      declared_date: '2023-06-01',
+      start_date: '2015-04-01',
+      end_date: '2017-07-01',
+    });
+  });
+
+  it('excludes parliamentary mandats from elected functions', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        participations: [{ nomSociete: 'Acme' }],
+        mandatsElectifs: [
+          { descriptionMandat: 'Conseiller municipal de Lyon' },
+        ],
+      }),
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+
+    expect(declarations).toHaveLength(1);
+    const categories = declarations[0].interests.map((i) => i.category);
+    expect(categories).toContain('elected_function');
+    expect(categories).toContain('financial_participation');
+    const elected = declarations[0].interests.find(
+      (i) => i.category === 'elected_function',
+    );
+    expect(elected!.entity_name).toBe('Conseiller municipal de Lyon');
   });
 
   it('rejects invalid category', () => {
