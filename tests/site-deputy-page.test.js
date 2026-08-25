@@ -302,7 +302,6 @@ describe('Fiche élu — section liens extérieurs (#60)', () => {
   });
 });
 
-
 describe('Fiche élu — activité parlementaire (#62)', () => {
   const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
 

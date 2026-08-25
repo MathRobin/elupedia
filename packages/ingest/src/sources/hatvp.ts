@@ -97,10 +97,7 @@ async function parseDeclarationsStream(
       inParticipation = true;
       currentParticipation = {};
     }
-    if (
-      joined.includes('fonctionBenevoleDto/items/items') &&
-      tag === 'items'
-    ) {
+    if (joined.includes('fonctionBenevoleDto/items/items') && tag === 'items') {
       inFonctionBenevole = true;
       currentFonction = {};
     }
@@ -156,9 +153,8 @@ async function parseDeclarationsStream(
       }
 
       if (tag === 'declaration') {
-        const isParlementaire = current.mandatDescriptions.some(
-          isParliamentary,
-        );
+        const isParlementaire =
+          current.mandatDescriptions.some(isParliamentary);
         if (isParlementaire && current.nom && current.prenom) {
           const interests: InterestItem[] = [];
           const declaredDate = parseDate(current.dateDepot);
@@ -222,7 +218,5 @@ function parseDate(raw: string): string {
 }
 
 function capitalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/(^|\s|-)\S/g, (c) => c.toUpperCase());
+  return s.toLowerCase().replace(/(^|\s|-)\S/g, (c) => c.toUpperCase());
 }

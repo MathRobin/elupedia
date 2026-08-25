@@ -164,13 +164,24 @@ function setupHappyPath() {
   vi.mocked(fetchSenatScrutins).mockResolvedValue([]);
   vi.mocked(upsertSenatVotes).mockResolvedValue({ ballots: 0, votes: 0 });
   vi.mocked(fetchSenatGroupes).mockResolvedValue([]);
-  vi.mocked(upsertSenatAffiliations).mockResolvedValue({ created: 0, updated: 0 });
+  vi.mocked(upsertSenatAffiliations).mockResolvedValue({
+    created: 0,
+    updated: 0,
+  });
   vi.mocked(fetchSenatCollaborateurs).mockResolvedValue([]);
-  vi.mocked(diffSenatStaffers).mockResolvedValue({ created: 0, ended: 0, unchanged: 0 });
+  vi.mocked(diffSenatStaffers).mockResolvedValue({
+    created: 0,
+    ended: 0,
+    unchanged: 0,
+  });
   vi.mocked(fetchSenatAdresses).mockResolvedValue([]);
   vi.mocked(upsertSenatAddresses).mockResolvedValue({ created: 0, updated: 0 });
   vi.mocked(fetchSenatElections).mockResolvedValue([]);
-  vi.mocked(upsertSenatElectoralResults).mockResolvedValue({ created: 0, updated: 0, skipped: 0 });
+  vi.mocked(upsertSenatElectoralResults).mockResolvedValue({
+    created: 0,
+    updated: 0,
+    skipped: 0,
+  });
 }
 
 beforeEach(() => {
@@ -187,7 +198,7 @@ describe('run', () => {
     const results = await run();
 
     expect(results).toHaveLength(12);
-    expect(results[0].source).toBe('officials');
+    expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
     expect(upsertOfficials).toHaveBeenCalledTimes(1);
@@ -196,10 +207,10 @@ describe('run', () => {
   it('runs only specified steps when enabledSteps is provided', async () => {
     setupHappyPath();
 
-    const results = await run(new Set(['officials', 'committees']));
+    const results = await run(new Set(['deputes', 'committees']));
 
     expect(results).toHaveLength(2);
-    expect(results[0].source).toBe('officials');
+    expect(results[0].source).toBe('deputes');
     expect(results[1].source).toBe('committees');
     expect(fetchCollaborateurs).not.toHaveBeenCalled();
     expect(fetchDeclarations).not.toHaveBeenCalled();

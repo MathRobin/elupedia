@@ -29,9 +29,27 @@ describe('Sénat collaborateurs client', () => {
   it('parses CSV and groups by matricule extracted from URL', async () => {
     const csv = [
       HEADER,
-      csvLine('ALLIZARD', 'Pascal', 'OLIVIER', 'Béatrice', 'allizard_pascal14133k'),
-      csvLine('ALLIZARD', 'Pascal', 'TOLINI', 'Nicolas', 'allizard_pascal14133k'),
-      csvLine('ANGLARS', 'Jean-Claude', 'EHRHARD', 'Thomas', 'anglars_jean_claude20032t'),
+      csvLine(
+        'ALLIZARD',
+        'Pascal',
+        'OLIVIER',
+        'Béatrice',
+        'allizard_pascal14133k',
+      ),
+      csvLine(
+        'ALLIZARD',
+        'Pascal',
+        'TOLINI',
+        'Nicolas',
+        'allizard_pascal14133k',
+      ),
+      csvLine(
+        'ANGLARS',
+        'Jean-Claude',
+        'EHRHARD',
+        'Thomas',
+        'anglars_jean_claude20032t',
+      ),
     ].join('\n');
 
     const result = await fetchSenatCollaborateurs(mockFetch(csv));

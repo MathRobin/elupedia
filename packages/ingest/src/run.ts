@@ -80,15 +80,15 @@ export async function run(enabledSteps?: Set<string>) {
 
   logger.info('=== Ingestion started ===\n');
 
-  if (enabled('officials')) {
-    logger.info('[1/12] Officials & mandates...');
-    const step1 = await runStep('officials', async () => {
+  if (enabled('deputes')) {
+    logger.info('[1/12] Députés & mandats...');
+    const step1 = await runStep('deputes', async () => {
       const deputes = await withRetry(() => fetchDeputes(), {
         source: 'assemblee-nationale',
       });
       const officialResults = await upsertOfficials(db, deputes);
       return {
-        source: 'officials',
+        source: 'deputes',
         created: officialResults.length,
         updated: 0,
         durationMs: 0,
@@ -97,16 +97,16 @@ export async function run(enabledSteps?: Set<string>) {
     results.push(step1);
   }
 
-  if (enabled('senators')) {
-    logger.info('[2/12] Senators & mandates...');
+  if (enabled('senateurs')) {
+    logger.info('[2/12] Sénateurs & mandats...');
     results.push(
-      await runStep('senators', async () => {
+      await runStep('senateurs', async () => {
         const senateurs = await withRetry(() => fetchSenateurs(), {
           source: 'senat',
         });
         const r = await upsertSenators(db, senateurs);
         return {
-          source: 'senators',
+          source: 'senateurs',
           created: r.officials,
           updated: r.mandates,
           durationMs: 0,
@@ -209,10 +209,9 @@ export async function run(enabledSteps?: Set<string>) {
     logger.info('[8/12] Senate votes...');
     results.push(
       await runStep('senat-votes', async () => {
-        const scrutins = await withRetry(
-          () => fetchSenatScrutins('2025'),
-          { source: 'senat-scrutins' },
-        );
+        const scrutins = await withRetry(() => fetchSenatScrutins('2025'), {
+          source: 'senat-scrutins',
+        });
         const r = await upsertSenatVotes(db, scrutins);
         return {
           source: 'senat-votes',

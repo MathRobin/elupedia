@@ -17,8 +17,8 @@ describe('parseCliArgs', () => {
   });
 
   it('filters with --only', () => {
-    const result = parseCliArgs(['--only', 'officials,interests']);
-    expect(result).toEqual(new Set(['officials', 'interests']));
+    const result = parseCliArgs(['--only', 'deputes,interests']);
+    expect(result).toEqual(new Set(['deputes', 'interests']));
   });
 
   it('excludes with --skip', () => {
@@ -29,13 +29,11 @@ describe('parseCliArgs', () => {
 
   it('throws on --only + --skip', () => {
     expect(() =>
-      parseCliArgs(['--only', 'officials', '--skip', 'interests']),
+      parseCliArgs(['--only', 'deputes', '--skip', 'interests']),
     ).toThrow('mutuellement exclusifs');
   });
 
   it('throws on unknown step', () => {
-    expect(() => parseCliArgs(['--only', 'unknown'])).toThrow(
-      'Étape inconnue',
-    );
+    expect(() => parseCliArgs(['--only', 'unknown'])).toThrow('Étape inconnue');
   });
 });

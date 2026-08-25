@@ -1,8 +1,7 @@
 import { z } from 'zod/v4';
 import { logger } from '../logger.js';
 
-const GENERAL_URL =
-  'https://data.senat.fr/data/senateurs/ODSEN_GENERAL.json';
+const GENERAL_URL = 'https://data.senat.fr/data/senateurs/ODSEN_GENERAL.json';
 
 export { GENERAL_URL };
 
@@ -38,7 +37,11 @@ export async function fetchSenatAdresses(
   }
 
   const raw = await res.json();
-  const records = z.array(ContactSchema).parse(raw);
+  const data =
+    typeof raw === 'object' && raw !== null && 'results' in raw
+      ? (raw as Record<string, unknown>).results
+      : raw;
+  const records = z.array(ContactSchema).parse(data);
   const results: SenatAddressData[] = [];
 
   for (const r of records) {

@@ -24,14 +24,18 @@ async function main() {
       totalCreated += result.created;
       totalSkipped += result.skipped;
       if (links.length > 0) {
-        logger.info(`${candidate.websiteUrl}: ${links.length} links found, ${result.created} inserted`);
+        logger.info(
+          `${candidate.websiteUrl}: ${links.length} links found, ${result.created} inserted`,
+        );
       }
     } catch (err) {
       logger.error(`Error scraping ${candidate.websiteUrl}: ${err}`);
     }
   }
 
-  logger.info(`[scrape] Done: ${totalCreated} created, ${totalSkipped} skipped`);
+  logger.info(
+    `[scrape] Done: ${totalCreated} created, ${totalSkipped} skipped`,
+  );
 }
 
 main().catch((err) => {

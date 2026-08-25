@@ -36,7 +36,11 @@ export async function fetchSenatGroupes(
   }
 
   const raw = await res.json();
-  const records = z.array(HistoGroupeSchema).parse(raw);
+  const data =
+    typeof raw === 'object' && raw !== null && 'results' in raw
+      ? (raw as Record<string, unknown>).results
+      : raw;
+  const records = z.array(HistoGroupeSchema).parse(data);
 
   const affiliations: SenatAffiliation[] = records.map((r) => ({
     matricule: r.Matricule,

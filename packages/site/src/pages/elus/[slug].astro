@@ -1224,6 +1224,9 @@ const timelineCategoryColors: Record<string, string> = {
         if (id === currentId) return;
         currentId = id;
         for (const nav of [tocInline, tocSticky]) {
+          if (!nav) {
+            continue;
+          }
           for (const link of nav.querySelectorAll('a')) {
             const href = link.getAttribute('href');
             if (href === `#${id}`) {

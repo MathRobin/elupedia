@@ -104,7 +104,11 @@ describe('fetchSenatScrutins', () => {
           text: () => Promise.resolve(sampleHtml),
         });
       }
-      return Promise.resolve({ ok: false, status: 404, statusText: 'Not Found' });
+      return Promise.resolve({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      });
     }) as unknown as typeof fetch;
 
     const result = await fetchSenatScrutins('2025', mockFetch);

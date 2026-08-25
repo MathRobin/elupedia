@@ -103,7 +103,9 @@ describe('HATVP client', () => {
       declared_date: '2023-06-01',
     });
     expect(declarations[0].interests[1].full).toBeDefined();
-    expect(declarations[0].interests[1].full!.nomSociete).toBe('Association Citoyenne');
+    expect(declarations[0].interests[1].full!.nomSociete).toBe(
+      'Association Citoyenne',
+    );
   });
 
   it('skips non-parliamentary declarations', async () => {

@@ -1,10 +1,8 @@
 import { z } from 'zod/v4';
 import { logger } from '../logger.js';
 
-const GENERAL_URL =
-  'https://data.senat.fr/data/senateurs/ODSEN_GENERAL.json';
-const MANDATS_URL =
-  'https://data.senat.fr/data/senateurs/ODSEN_ELUSEN.json';
+const GENERAL_URL = 'https://data.senat.fr/data/senateurs/ODSEN_GENERAL.json';
+const MANDATS_URL = 'https://data.senat.fr/data/senateurs/ODSEN_ELUSEN.json';
 
 export { GENERAL_URL, MANDATS_URL };
 
@@ -89,8 +87,13 @@ export async function fetchSenateurs(
   const generalRaw = await generalRes.json();
   const mandatsRaw = await mandatsRes.json();
 
-  const generals = z.array(SenateurGeneralSchema).parse(generalRaw);
-  const mandatsAll = z.array(SenatMandatSchema).parse(mandatsRaw);
+  const unwrap = (data: unknown) =>
+    typeof data === 'object' && data !== null && 'results' in data
+      ? (data as Record<string, unknown>).results
+      : data;
+
+  const generals = z.array(SenateurGeneralSchema).parse(unwrap(generalRaw));
+  const mandatsAll = z.array(SenatMandatSchema).parse(unwrap(mandatsRaw));
 
   const mandatsByMatricule = new Map<string, SenatMandat[]>();
   for (const m of mandatsAll) {
@@ -128,6 +131,8 @@ export async function fetchSenateurs(
     });
   }
 
-  logger.info(`Sénat: ${senateurs.length} sénateurs, ${mandatsAll.length} mandats`);
+  logger.info(
+    `Sénat: ${senateurs.length} sénateurs, ${mandatsAll.length} mandats`,
+  );
   return senateurs;
 }

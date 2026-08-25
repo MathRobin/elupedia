@@ -1,6 +1,7 @@
 import { logger } from '../logger.js';
 
-const SCRUTINS_INDEX_URL = 'https://www.senat.fr/scrutin-public/scr{session}.html';
+const SCRUTINS_INDEX_URL =
+  'https://www.senat.fr/scrutin-public/scr{session}.html';
 const SCRUTIN_JSON_URL =
   'https://www.senat.fr/scrutin-public/{session}/scr{session}-{number}.json';
 
@@ -36,7 +37,10 @@ export function mapSenatVotePosition(
   return VOTE_MAP[code] ?? 'absent';
 }
 
-export function parseScrutinsIndex(html: string, session: string): SenatScrutin[] {
+export function parseScrutinsIndex(
+  html: string,
+  session: string,
+): SenatScrutin[] {
   const results: SenatScrutin[] = [];
   let currentDate = '';
 
@@ -52,9 +56,18 @@ export function parseScrutinsIndex(html: string, session: string): SenatScrutin[
       const monthName = dateMatch[2].toLowerCase();
       const year = dateMatch[3];
       const monthMap: Record<string, string> = {
-        janvier: '01', février: '02', mars: '03', avril: '04',
-        mai: '05', juin: '06', juillet: '07', août: '08',
-        septembre: '09', octobre: '10', novembre: '11', décembre: '12',
+        janvier: '01',
+        février: '02',
+        mars: '03',
+        avril: '04',
+        mai: '05',
+        juin: '06',
+        juillet: '07',
+        août: '08',
+        septembre: '09',
+        octobre: '10',
+        novembre: '11',
+        décembre: '12',
       };
       const month = monthMap[monthName];
       if (month) currentDate = `${year}-${month}-${day}`;
@@ -105,13 +118,16 @@ export async function fetchSenatScrutins(
   const results: SenatScrutinWithVotes[] = [];
 
   for (const scrutin of scrutins) {
-    const jsonUrl = SCRUTIN_JSON_URL
-      .replace(/{session}/g, session)
-      .replace(/{number}/g, String(scrutin.number));
+    const jsonUrl = SCRUTIN_JSON_URL.replace(/{session}/g, session).replace(
+      /{number}/g,
+      String(scrutin.number),
+    );
     try {
       const voteRes = await fetchFn(jsonUrl);
       if (!voteRes.ok) {
-        logger.warn(`Scrutin ${scrutin.number}: HTTP ${voteRes.status}, skipped`);
+        logger.warn(
+          `Scrutin ${scrutin.number}: HTTP ${voteRes.status}, skipped`,
+        );
         continue;
       }
       const data = (await voteRes.json()) as {

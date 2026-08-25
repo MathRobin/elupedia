@@ -5,7 +5,10 @@ vi.mock('../logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-function mockFetch(generalData: unknown[], mandatsData: unknown[]): typeof fetch {
+function mockFetch(
+  generalData: unknown[],
+  mandatsData: unknown[],
+): typeof fetch {
   return vi.fn((url: string | URL | Request) => {
     const urlStr = typeof url === 'string' ? url : url.toString();
     if (urlStr === GENERAL_URL) {
@@ -74,7 +77,11 @@ describe('Sénat client', () => {
   });
 
   it('handles female senators', async () => {
-    const femaleGeneral = { ...sampleGeneral, Qualite: 'Mme', Matricule: '14002B' };
+    const femaleGeneral = {
+      ...sampleGeneral,
+      Qualite: 'Mme',
+      Matricule: '14002B',
+    };
     const result = await fetchSenateurs(mockFetch([femaleGeneral], []));
     expect(result[0].sexe).toBe('F');
     expect(result[0].mandats).toHaveLength(0);
@@ -90,7 +97,9 @@ describe('Sénat client', () => {
       ok: false,
       status: 500,
     }) as unknown as typeof fetch;
-    await expect(fetchSenateurs(fakeFetch)).rejects.toThrow('Sénat GENERAL error: 500');
+    await expect(fetchSenateurs(fakeFetch)).rejects.toThrow(
+      'Sénat GENERAL error: 500',
+    );
   });
 
   it('skips mandates without start date', async () => {
@@ -101,7 +110,9 @@ describe('Sénat client', () => {
       Motif_debut_de_mandat: null,
       Motif_fin_de_mandat: null,
     };
-    const result = await fetchSenateurs(mockFetch([sampleGeneral], [badMandat]));
+    const result = await fetchSenateurs(
+      mockFetch([sampleGeneral], [badMandat]),
+    );
     expect(result[0].mandats).toHaveLength(0);
   });
 });

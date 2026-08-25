@@ -56,7 +56,9 @@ export async function upsertSenatVotes(
       const existingVote = await db
         .select()
         .from(votes)
-        .where(and(eq(votes.ballotId, ballotId), eq(votes.officialId, officialId)))
+        .where(
+          and(eq(votes.ballotId, ballotId), eq(votes.officialId, officialId)),
+        )
         .limit(1);
 
       if (existingVote.length === 0) {

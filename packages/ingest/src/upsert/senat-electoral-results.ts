@@ -17,10 +17,7 @@ export async function upsertSenatElectoralResults(
       .where(
         and(
           eq(sql`UPPER(${officials.lastName})`, item.nom.toUpperCase()),
-          eq(
-            sql`UPPER(${officials.firstName})`,
-            item.prenom.toUpperCase(),
-          ),
+          eq(sql`UPPER(${officials.firstName})`, item.prenom.toUpperCase()),
         ),
       )
       .limit(1);

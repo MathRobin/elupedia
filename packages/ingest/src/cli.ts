@@ -2,8 +2,8 @@ import { parseArgs } from 'node:util';
 import { logger } from './logger.js';
 
 export const STEP_NAMES = [
-  'officials',
-  'senators',
+  'deputes',
+  'senateurs',
   'collaborateurs',
   'interests',
   'addresses',

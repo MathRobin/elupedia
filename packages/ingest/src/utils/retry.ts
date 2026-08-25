@@ -19,12 +19,16 @@ export async function withRetry<T>(
       const reason = error instanceof Error ? error.message : String(error);
 
       if (attempt === maxAttempts) {
-        logger.error(`${source}: failed after ${maxAttempts} attempts — ${reason}`);
+        logger.error(
+          `${source}: failed after ${maxAttempts} attempts — ${reason}`,
+        );
         throw error;
       }
 
       const delay = baseDelayMs * 2 ** (attempt - 1);
-      logger.warn(`${source}: attempt ${attempt}/${maxAttempts} failed — retrying in ${delay}ms`);
+      logger.warn(
+        `${source}: attempt ${attempt}/${maxAttempts} failed — retrying in ${delay}ms`,
+      );
       await sleep(delay);
     }
   }
