@@ -4,10 +4,10 @@ import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 
-describe('Ingest workflow (#40)', () => {
-  const wfPath = resolve(root, '.github/workflows/ingest.yml');
+describe('Ingest AN workflow', () => {
+  const wfPath = resolve(root, '.github/workflows/ingest-an.yml');
 
-  it('ingest.yml exists', () => {
+  it('ingest-an.yml exists', () => {
     expect(existsSync(wfPath)).toBe(true);
   });
 
@@ -33,14 +33,42 @@ describe('Ingest workflow (#40)', () => {
     expect(content).toContain('secrets.DATABASE_URL');
   });
 
-  it('runs yarn workspace ingest command', () => {
+  it('runs ingest:an script', () => {
     const content = readFileSync(wfPath, 'utf-8');
-    expect(content).toContain('yarn workspace @elupedia/ingest ingest');
+    expect(content).toContain('ingest:an');
   });
 
   it('uses Node.js 26', () => {
     const content = readFileSync(wfPath, 'utf-8');
     expect(content).toContain('node-version: 26');
+  });
+});
+
+describe('Ingest Sénat workflow', () => {
+  const wfPath = resolve(root, '.github/workflows/ingest-senat.yml');
+
+  it('ingest-senat.yml exists', () => {
+    expect(existsSync(wfPath)).toBe(true);
+  });
+
+  it('has a cron schedule at 02:30 UTC', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain("'30 2 * * *'");
+  });
+
+  it('supports manual dispatch', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain('workflow_dispatch');
+  });
+
+  it('uses DATABASE_URL secret', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain('secrets.DATABASE_URL');
+  });
+
+  it('runs ingest:senat script', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain('ingest:senat');
   });
 });
 
@@ -67,15 +95,29 @@ describe('Scrape social links workflow (#135)', () => {
   });
 });
 
-describe('Ingest package script', () => {
-  it('has ingest script in package.json', () => {
+describe('Ingest package scripts', () => {
+  it('has ingest scripts in package.json', () => {
     const pkg = JSON.parse(
       readFileSync(resolve(root, 'packages/ingest/package.json'), 'utf-8'),
     );
     expect(pkg.scripts.ingest).toBeDefined();
+    expect(pkg.scripts['ingest:an']).toBeDefined();
+    expect(pkg.scripts['ingest:senat']).toBeDefined();
   });
 
   it('main.ts entry point exists', () => {
     expect(existsSync(resolve(root, 'packages/ingest/src/main.ts'))).toBe(true);
+  });
+
+  it('main-an.ts entry point exists', () => {
+    expect(existsSync(resolve(root, 'packages/ingest/src/main-an.ts'))).toBe(
+      true,
+    );
+  });
+
+  it('main-senat.ts entry point exists', () => {
+    expect(existsSync(resolve(root, 'packages/ingest/src/main-senat.ts'))).toBe(
+      true,
+    );
   });
 });

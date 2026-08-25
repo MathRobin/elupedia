@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseCliArgs, STEP_NAMES } from './cli.js';
+import {
+  parseCliArgs,
+  STEP_NAMES,
+  AN_STEP_NAMES,
+  SENAT_STEP_NAMES,
+} from './cli.js';
 
 vi.mock('./logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -35,5 +40,21 @@ describe('parseCliArgs', () => {
 
   it('throws on unknown step', () => {
     expect(() => parseCliArgs(['--only', 'unknown'])).toThrow('Étape inconnue');
+  });
+
+  it('scopes to AN steps when given AN_STEP_NAMES', () => {
+    const result = parseCliArgs([], AN_STEP_NAMES);
+    expect(result).toEqual(new Set(AN_STEP_NAMES));
+  });
+
+  it('scopes to Sénat steps when given SENAT_STEP_NAMES', () => {
+    const result = parseCliArgs([], SENAT_STEP_NAMES);
+    expect(result).toEqual(new Set(SENAT_STEP_NAMES));
+  });
+
+  it('rejects AN step in Sénat scope', () => {
+    expect(() => parseCliArgs(['--only', 'deputes'], SENAT_STEP_NAMES)).toThrow(
+      'Étape inconnue',
+    );
   });
 });

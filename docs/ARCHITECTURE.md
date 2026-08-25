@@ -18,13 +18,15 @@ flowchart LR
 
 Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script télécharge des archives ZIP ou des fichiers CSV depuis les portails open data et effectue un upsert en base.
 
-- Exécution : cron GitHub Actions quotidien (`.github/workflows/ingest.yml`, 02:00 UTC)
-- Déclenchement manuel : `workflow_dispatch`
+- Exécution : deux cron GitHub Actions quotidiens séparés :
+  - AN (`.github/workflows/ingest-an.yml`, 02:00 UTC) — députés, collaborateurs, intérêts HATVP, adresses, activité parlementaire, commissions
+  - Sénat (`.github/workflows/ingest-senat.yml`, 02:30 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
+- Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run.ts` exécute 12 étapes séquentiellement (députés, sénateurs, collaborateurs AN, intérêts HATVP, adresses AN, activité parlementaire, commissions, votes Sénat, affiliations Sénat, collaborateurs Sénat, adresses Sénat, historique électoral Sénat), isole les erreurs par étape et affiche un résumé
-- Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions et écrit `ingest-report.json`
-- Point d'entrée : `src/main.ts` → script `yarn workspace @elupedia/ingest ingest`
+- Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (6 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run.ts` combine les deux pour un run complet
+- Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
+- Points d'entrée : `main-an.ts` (`ingest:an`), `main-senat.ts` (`ingest:senat`), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -124,7 +126,7 @@ Le site statique généré est déployé sur Vercel. Chaque push sur `main` déc
 - Domaine : `elupedia.fr` (DNS configuré vers Vercel)
 - Variables d'environnement : `DATABASE_URL` configurée sur Vercel pour le build
 - Analytics : Vercel Web Analytics (`@vercel/analytics`, cookieless, injecté dans le layout)
-- Chaîne ingestion → rebuild : le workflow `ingest.yml` expose `has_changes`, qui conditionne un rebuild Vercel via deploy hook
+- Chaîne ingestion → rebuild : chaque workflow d'ingestion (AN, Sénat) expose `has_changes`, qui conditionne un rebuild Vercel via deploy hook
 
 ## Packages partagés (`packages/shared`)
 
@@ -141,7 +143,8 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 ## CI / CD
 
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) : lint, format, typecheck et tests sur chaque PR et push sur `main`
-- **GitHub Actions Ingestion** (`.github/workflows/ingest.yml`) : cron quotidien 02:00 UTC, lance le pipeline d'ingestion complet, expose `has_changes` pour conditionner un rebuild du site
+- **GitHub Actions Ingestion AN** (`.github/workflows/ingest-an.yml`) : cron quotidien 02:00 UTC, pipeline AN (députés, collaborateurs, HATVP, adresses, activité, commissions)
+- **GitHub Actions Ingestion Sénat** (`.github/workflows/ingest-senat.yml`) : cron quotidien 02:30 UTC, pipeline Sénat (sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral)
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 
 ## Tests

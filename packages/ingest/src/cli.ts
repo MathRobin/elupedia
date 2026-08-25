@@ -1,14 +1,19 @@
 import { parseArgs } from 'node:util';
 import { logger } from './logger.js';
 
-export const STEP_NAMES = [
+export const AN_STEP_NAMES = [
   'deputes',
-  'senateurs',
   'collaborateurs',
   'interests',
   'addresses',
   'activity',
   'committees',
+] as const;
+
+export type AnStepName = (typeof AN_STEP_NAMES)[number];
+
+export const SENAT_STEP_NAMES = [
+  'senateurs',
   'senat-votes',
   'senat-affiliations',
   'senat-collaborateurs',
@@ -16,10 +21,17 @@ export const STEP_NAMES = [
   'senat-elections',
 ] as const;
 
-export type StepName = (typeof STEP_NAMES)[number];
+export type SenatStepName = (typeof SENAT_STEP_NAMES)[number];
 
-function printHelp(): void {
-  const steps = STEP_NAMES.join(', ');
+export type StepName = AnStepName | SenatStepName;
+
+export const STEP_NAMES: readonly StepName[] = [
+  ...AN_STEP_NAMES,
+  ...SENAT_STEP_NAMES,
+];
+
+function printHelp(stepNames: readonly string[]): void {
+  const steps = stepNames.join(', ');
   const lines = [
     'Usage: yarn ingest [options]',
     '',
@@ -32,19 +44,19 @@ function printHelp(): void {
     '',
     'Exemples:',
     '  yarn ingest                          # toutes les étapes',
-    '  yarn ingest --only officials         # uniquement officials',
-    '  yarn ingest --only officials,activity',
+    '  yarn ingest --only deputes           # uniquement deputes',
+    '  yarn ingest --only deputes,activity',
     '  yarn ingest --skip interests,addresses',
   ];
   logger.info(lines.join('\n'));
 }
 
-function parseStepList(raw: string): StepName[] {
+function parseStepList(raw: string, validNames: readonly string[]): StepName[] {
   const names = raw.split(',').map((s) => s.trim());
   for (const name of names) {
-    if (!STEP_NAMES.includes(name as StepName)) {
+    if (!validNames.includes(name)) {
       throw new Error(
-        `Étape inconnue : "${name}". Disponibles : ${STEP_NAMES.join(', ')}`,
+        `Étape inconnue : "${name}". Disponibles : ${validNames.join(', ')}`,
       );
     }
   }
@@ -53,6 +65,7 @@ function parseStepList(raw: string): StepName[] {
 
 export function parseCliArgs(
   argv: string[] = process.argv.slice(2),
+  stepNames: readonly string[] = STEP_NAMES,
 ): Set<StepName> | null {
   const { values } = parseArgs({
     args: argv,
@@ -65,7 +78,7 @@ export function parseCliArgs(
   });
 
   if (values.help) {
-    printHelp();
+    printHelp(stepNames);
     return null;
   }
 
@@ -74,13 +87,15 @@ export function parseCliArgs(
   }
 
   if (values.only) {
-    return new Set(parseStepList(values.only));
+    return new Set(parseStepList(values.only, stepNames));
   }
 
   if (values.skip) {
-    const toSkip = new Set<StepName>(parseStepList(values.skip));
-    return new Set(STEP_NAMES.filter((s) => !toSkip.has(s)));
+    const toSkip = new Set<string>(parseStepList(values.skip, stepNames));
+    return new Set(
+      (stepNames as readonly StepName[]).filter((s) => !toSkip.has(s)),
+    );
   }
 
-  return new Set(STEP_NAMES);
+  return new Set(stepNames as readonly StepName[]);
 }

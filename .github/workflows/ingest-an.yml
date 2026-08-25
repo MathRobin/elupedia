@@ -1,9 +1,9 @@
-name: Ingestion
+name: Ingestion AN
 
 on:
   schedule:
     # 02:00 UTC = 04:00 Paris (CEST) / 03:00 Paris (CET)
-  #    - cron: '0 2 * * *'
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
@@ -28,9 +28,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Run ingestion
+      - name: Run ingestion AN
         id: run
-        run: yarn workspace @elupedia/ingest ingest
+        run: yarn workspace @elupedia/ingest ingest:an
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
@@ -38,8 +38,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ingest-report
-          path: packages/ingest/ingest-report.json
+          name: ingest-report-an
+          path: packages/ingest/ingest-report-an.json
           if-no-files-found: ignore
 
   deploy:

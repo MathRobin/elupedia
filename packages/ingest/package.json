@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "ingest": "tsx src/main.ts",
+    "ingest:an": "tsx src/main-an.ts",
+    "ingest:senat": "tsx src/main-senat.ts",
     "scrape-social": "tsx src/scrape-social.ts",
     "test": "vitest run"
   },
