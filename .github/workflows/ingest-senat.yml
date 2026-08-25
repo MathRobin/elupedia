@@ -2,8 +2,8 @@ name: Ingestion Sénat
 
 on:
   schedule:
-    # 02:30 UTC = 04:30 Paris (CEST) / 03:30 Paris (CET)
-    - cron: '30 2 * * *'
+    # 03:00 UTC = 05:00 Paris (CEST) / 06:00 Paris (CET)
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 jobs:
