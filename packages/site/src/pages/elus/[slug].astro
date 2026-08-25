@@ -460,9 +460,31 @@ const statusColors: Record<string, string> = {
   withdrawn: 'text-yellow-700 bg-yellow-50',
 };
 
-const interestTypeLabels: Record<string, string> = {
-  company_share: 'Participation en entreprise',
-  nonprofit_role: 'Fonction associative/bénévole',
+const interestCategoryLabels: Record<string, string> = {
+  professional_activity: 'Activités professionnelles',
+  consulting_activity: 'Activités de conseil',
+  governing_body_membership: 'Organes dirigeants',
+  voluntary_activity: 'Activités bénévoles',
+  elected_function: 'Fonctions électives annexes',
+  financial_participation: 'Participations financières',
+};
+
+const interestCategoryOrder = [
+  'professional_activity',
+  'consulting_activity',
+  'governing_body_membership',
+  'voluntary_activity',
+  'elected_function',
+  'financial_participation',
+];
+
+const interestCategoryColors: Record<string, string> = {
+  professional_activity: 'text-blue-700 bg-blue-50',
+  consulting_activity: 'text-cyan-700 bg-cyan-50',
+  governing_body_membership: 'text-purple-700 bg-purple-50',
+  voluntary_activity: 'text-teal-700 bg-teal-50',
+  elected_function: 'text-amber-700 bg-amber-50',
+  financial_participation: 'text-rose-700 bg-rose-50',
 };
 const mandateTypeLabels: Record<string, string> = {
   depute: 'Député',
@@ -470,6 +492,26 @@ const mandateTypeLabels: Record<string, string> = {
   maire: 'Maire',
   president: 'Président',
 };
+
+type InterestGroup = { category: string; label: string; items: Interest[] };
+const interestGroups: InterestGroup[] = interestCategoryOrder
+  .map((cat) => ({
+    category: cat,
+    label: interestCategoryLabels[cat] ?? cat,
+    items: deputyInterests.filter((i) => i.type === cat),
+  }))
+  .filter((g) => g.items.length > 0);
+
+const ungroupedInterests = deputyInterests.filter(
+  (i) => !interestCategoryOrder.includes(i.type),
+);
+if (ungroupedInterests.length > 0) {
+  interestGroups.push({
+    category: 'other',
+    label: 'Autres',
+    items: ungroupedInterests,
+  });
+}
 
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
 const mandateLabel = mandateTypeLabels[deputy.mandateType] ?? deputy.mandateType;
@@ -1025,45 +1067,33 @@ const timelineCategoryColors: Record<string, string> = {
       {deputyInterests.length === 0 ? (
         <p class="mt-4 text-slate-500">Aucun intérêt déclaré.</p>
       ) : (
-        <>
-          <div id="interests-type-filter" class="mt-4 flex flex-wrap gap-3">
-            {[...new Set(deputyInterests.map((i) => i.type))].map((type) => {
-              const count = deputyInterests.filter((i) => i.type === type).length;
-              return (
-                <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
-                  <input type="checkbox" value={type} checked class="accent-indigo-600 h-3.5 w-3.5" data-interest-filter />
-                  <span>{interestTypeLabels[type] ?? type} <span class="text-slate-400">({count})</span></span>
-                </label>
-              );
-            })}
-          </div>
-          <div class="mt-4 overflow-x-auto">
-            <table id="interests-list" class="w-full text-sm border-collapse">
-              <thead>
-                <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  <th class="py-2 pr-4">Entité</th>
-                  <th class="py-2 pr-4">Type</th>
-                  <th class="py-2 pr-4">Fonction</th>
-                  <th class="py-2">Date de déclaration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deputyInterests.map((i) => (
-                  <tr data-interest-type={i.type} class="border-b border-slate-100 hover:bg-slate-50">
-                    <td class="py-2 pr-4 font-medium">{i.entityName}</td>
-                    <td class="py-2 pr-4">
-                      <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
-                        {interestTypeLabels[i.type] ?? i.type}
-                      </span>
-                    </td>
-                    <td class="py-2 pr-4">{i.roleDescription ?? '—'}</td>
-                    <td class="py-2 whitespace-nowrap">{new Date(i.declaredDate).toLocaleDateString('fr-FR')}</td>
-                  </tr>
+        <div class="mt-4 space-y-6">
+          {interestGroups.map((group) => (
+            <div>
+              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${interestCategoryColors[group.category] ?? ''}`}>
+                  {group.label}
+                </span>
+                <span class="text-slate-400 font-normal">({group.items.length})</span>
+              </h3>
+              <ul class="mt-2 space-y-2">
+                {group.items.map((i) => (
+                  <li class="flex items-baseline justify-between border-b border-slate-100 pb-2">
+                    <div>
+                      <span class="font-medium text-sm">{i.entityName}</span>
+                      {i.roleDescription && (
+                        <span class="ml-2 text-sm text-slate-500">{i.roleDescription}</span>
+                      )}
+                    </div>
+                    <span class="shrink-0 ml-4 text-xs text-slate-400 whitespace-nowrap">
+                      {new Date(i.declaredDate).toLocaleDateString('fr-FR')}
+                    </span>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
     </section>
 
@@ -1343,33 +1373,5 @@ const timelineCategoryColors: Record<string, string> = {
       }
     }
 
-    const interestsFilter = document.getElementById('interests-type-filter');
-    const interestsList = document.getElementById('interests-list');
-    const interestsTotal = document.querySelector('#interets h2 span');
-
-    if (interestsFilter && interestsList) {
-      const checkboxes = interestsFilter.querySelectorAll<HTMLInputElement>('[data-interest-filter]');
-      const rows = interestsList.querySelectorAll<HTMLElement>('[data-interest-type]');
-
-      function applyInterestsFilter() {
-        const active = new Set<string>();
-        for (const cb of checkboxes) {
-          if (cb.checked) active.add(cb.value);
-        }
-        let visible = 0;
-        for (const row of rows) {
-          const show = active.has(row.dataset.interestType!);
-          row.style.display = show ? '' : 'none';
-          if (show) visible++;
-        }
-        if (interestsTotal) {
-          interestsTotal.textContent = `(${visible})`;
-        }
-      }
-
-      for (const cb of checkboxes) {
-        cb.addEventListener('change', applyInterestsFilter);
-      }
-    }
   </script>
 </BaseLayout>
