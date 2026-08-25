@@ -42,4 +42,14 @@ describe('QuestionDetailDrawer', () => {
   it('displays ministry label', () => {
     expect(source).toContain('Ministère interrogé');
   });
+
+  it('fetches texts from API on open', () => {
+    expect(source).toContain('/api/question-text');
+    expect(source).toContain('setLoading');
+  });
+
+  it('shows loading state while fetching', () => {
+    expect(source).toContain('Chargement');
+    expect(source).toContain('animate-pulse');
+  });
 });

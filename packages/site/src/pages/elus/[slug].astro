@@ -180,8 +180,6 @@ export async function getStaticPaths() {
       title: parliamentaryActivity.title,
       date: parliamentaryActivity.date,
       status: parliamentaryActivity.status,
-      questionText: parliamentaryActivity.questionText,
-      responseText: parliamentaryActivity.responseText,
       responseDate: parliamentaryActivity.responseDate,
       governmentComments: parliamentaryActivity.governmentComments,
     })
@@ -356,8 +354,6 @@ type Activity = {
   title: string;
   date: string;
   status: string | null;
-  questionText: string | null;
-  responseText: string | null;
   responseDate: string | null;
   governmentComments: string | null;
 };
@@ -932,12 +928,11 @@ const timelineCategoryColors: Record<string, string> = {
                       data-activity-date={act.date}
                       data-activity-type={act.type}
                       {...(isQuestion ? { 'data-activity-detail': JSON.stringify({
+                        officialId: act.officialId,
                         type: act.type,
                         title: act.title,
                         date: act.date,
                         status: act.status,
-                        questionText: act.questionText,
-                        responseText: act.responseText,
                         responseDate: act.responseDate,
                         governmentComments: act.governmentComments,
                       }) } : {})}

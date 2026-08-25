@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 export interface QuestionDetail {
+  officialId: string;
   type: string;
   title: string;
   date: string;
@@ -57,6 +58,7 @@ function stripHtml(html: string): string {
 export default function QuestionDetailDrawer() {
   const [question, setQuestion] = useState<QuestionDetail | null>(null);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -68,6 +70,29 @@ export default function QuestionDetailDrawer() {
       const detail = (e as CustomEvent<QuestionDetail>).detail;
       setQuestion(detail);
       setOpen(true);
+
+      const params = new URLSearchParams({
+        officialId: detail.officialId,
+        type: detail.type,
+        title: detail.title,
+        date: detail.date,
+      });
+      setLoading(true);
+      fetch(`/api/question-text?${params}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then(
+          (data: { questionText: string | null; responseText: string | null } | null) => {
+            if (data) {
+              setQuestion((prev) =>
+                prev
+                  ? { ...prev, questionText: data.questionText, responseText: data.responseText }
+                  : prev,
+              );
+            }
+          },
+        )
+        .catch(() => {})
+        .finally(() => setLoading(false));
     }
     window.addEventListener('open-question-detail', handler);
     return () => window.removeEventListener('open-question-detail', handler);
@@ -84,7 +109,8 @@ export default function QuestionDetailDrawer() {
   if (!question && !open) return null;
 
   const isQuestion =
-    question?.type === 'written_question' || question?.type === 'oral_question';
+    question?.type === 'written_question' ||
+    question?.type === 'oral_question';
 
   return (
     <>
@@ -166,7 +192,11 @@ export default function QuestionDetailDrawer() {
                     <p className="text-sm font-medium text-slate-500">
                       Texte de la question
                     </p>
-                    {question.questionText ? (
+                    {loading ? (
+                      <p className="mt-2 text-sm text-slate-400 animate-pulse">
+                        Chargement…
+                      </p>
+                    ) : question.questionText ? (
                       <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">
                         {stripHtml(question.questionText)}
                       </p>
@@ -181,7 +211,11 @@ export default function QuestionDetailDrawer() {
                     <p className="text-sm font-medium text-slate-500">
                       Réponse du gouvernement
                     </p>
-                    {question.responseText ? (
+                    {loading ? (
+                      <p className="mt-2 text-sm text-slate-400 animate-pulse">
+                        Chargement…
+                      </p>
+                    ) : question.responseText ? (
                       <>
                         {question.responseDate && (
                           <p className="mt-1 text-xs text-slate-400">
