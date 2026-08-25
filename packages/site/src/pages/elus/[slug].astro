@@ -15,6 +15,7 @@ export async function getStaticPaths() {
       lastName: officials.lastName,
       birthDate: officials.birthDate,
       photoUrl: officials.photoUrl,
+      anId: officials.anId,
       district: mandates.district,
       department: mandates.department,
       startDate: mandates.startDate,
@@ -376,6 +377,7 @@ type Props = {
     lastName: string;
     birthDate: string | null;
     photoUrl: string | null;
+    anId: string | null;
     district: string | null;
     department: string | null;
     startDate: string;
@@ -1203,24 +1205,109 @@ const timelineCategoryColors: Record<string, string> = {
     <section id="liens" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Liens extérieurs</h2>
 
-      {deputyLinks.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucun lien externe enregistré.</p>
-      ) : (
-        <ul class="mt-4 flex flex-wrap gap-3">
-          {deputyLinks.map((l) => (
-            <li>
-              <a
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-indigo-600 shadow-sm ring-1 ring-slate-900/5 hover:ring-indigo-400/40 hover:shadow-md transition-all no-underline"
-              >
-                {platformLabels[l.platform] ?? l.platform}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
+      {(() => {
+        const cardPlatforms = new Set(['facebook', 'twitter', 'personal_website']);
+        const cardLinks = deputyLinks.filter((l) => cardPlatforms.has(l.platform));
+        const pillLinks = deputyLinks.filter((l) => !cardPlatforms.has(l.platform));
+        const hasAnCard = !!deputy.anId;
+        const hasCards = hasAnCard || cardLinks.length > 0;
+        const hasPills = pillLinks.length > 0;
+        const hasNothing = !hasCards && !hasPills;
+
+        const linkCardConfigs: Record<string, { icon: string; color: string; hoverColor: string; label: string }> = {
+          facebook: {
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>',
+            color: 'text-[#1877F2]',
+            hoverColor: 'group-hover:text-[#1565C0]',
+            label: 'Facebook',
+          },
+          twitter: {
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+            color: 'text-slate-900',
+            hoverColor: 'group-hover:text-slate-700',
+            label: 'X (Twitter)',
+          },
+          personal_website: {
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+            color: 'text-emerald-600',
+            hoverColor: 'group-hover:text-emerald-700',
+            label: 'Site personnel',
+          },
+        };
+
+        const externalLinkIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="ml-1 inline-block h-3 w-3 align-baseline" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1h5v5l-2-2-3 3-2-2 3-3z"/><path d="M9.5 7.5v3h-8v-8h3l1-1h-4a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-4z"/></svg>';
+
+        return (
+          <>
+            {hasCards && (
+              <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {deputy.anId && (
+                  <a
+                    href={`https://www.assemblee-nationale.fr/dyn/deputes/${deputy.anId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 transition-shadow hover:shadow-md no-underline"
+                  >
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                        Assemblée nationale
+                      </p>
+                      <p class="text-xs text-slate-500 truncate" set:html={`Fiche officielle${externalLinkIcon}`} />
+                    </div>
+                  </a>
+                )}
+                {cardLinks.map((l) => {
+                  const cfg = linkCardConfigs[l.platform];
+                  if (!cfg) return null;
+                  const displayUrl = l.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
+                  return (
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 transition-shadow hover:shadow-md no-underline"
+                    >
+                      <div class={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 ${cfg.color}`}>
+                        <Fragment set:html={cfg.icon} />
+                      </div>
+                      <div class="min-w-0">
+                        <p class={`text-sm font-semibold text-slate-800 ${cfg.hoverColor} transition-colors`}>
+                          {cfg.label}
+                        </p>
+                        <p class="text-xs text-slate-500 truncate" set:html={`${displayUrl}${externalLinkIcon}`} />
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+
+            {hasPills && (
+              <ul class="mt-4 flex flex-wrap gap-3">
+                {pillLinks.map((l) => (
+                  <li>
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-indigo-600 shadow-sm ring-1 ring-slate-900/5 hover:ring-indigo-400/40 hover:shadow-md transition-all no-underline"
+                    >
+                      {platformLabels[l.platform] ?? l.platform}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {hasNothing && (
+              <p class="mt-4 text-slate-500">Aucun lien externe enregistré.</p>
+            )}
+          </>
+        );
+      })()}
     </section>
   </div>
 
