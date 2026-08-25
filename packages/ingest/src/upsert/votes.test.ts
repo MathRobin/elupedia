@@ -17,11 +17,11 @@ function createMockDb() {
   let currentTable = '';
 
   const db = {
-    select: (cols?: Record<string, unknown>) => ({
+    select: () => ({
       from: (table: unknown) => {
         currentTable = getTableName(table);
         return {
-          where: (..._args: unknown[]) => ({
+          where: () => ({
             limit: () =>
               Promise.resolve(store[currentTable]?.filter(() => true) ?? []),
           }),

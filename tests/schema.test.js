@@ -348,9 +348,9 @@ describe('#164 — data_provenance', () => {
   });
 
   it('migration file exists', () => {
-    expect(
-      existsSync(resolve(root, 'drizzle/0008_data_provenance.sql')),
-    ).toBe(true);
+    expect(existsSync(resolve(root, 'drizzle/0008_data_provenance.sql'))).toBe(
+      true,
+    );
   });
 
   it('migration creates the table', () => {
