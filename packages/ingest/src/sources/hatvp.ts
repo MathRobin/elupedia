@@ -41,6 +41,7 @@ interface RawDeclaration {
   mandatDescriptions: string[];
   participations: RawItem[];
   fonctionsBenefoles: RawItem[];
+  activitesPro: RawItem[];
 }
 
 export async function fetchDeclarations(
@@ -72,6 +73,8 @@ async function parseDeclarationsStream(
   let currentParticipation: RawItem = {};
   let inFonctionBenevole = false;
   let currentFonction: RawItem = {};
+  let inActivitePro = false;
+  let currentActivitePro: RawItem = {};
 
   parser.on('opentag', (node) => {
     const tag = node.name;
@@ -86,6 +89,7 @@ async function parseDeclarationsStream(
         mandatDescriptions: [],
         participations: [],
         fonctionsBenefoles: [],
+        activitesPro: [],
       };
     }
 
@@ -100,6 +104,13 @@ async function parseDeclarationsStream(
     if (joined.includes('fonctionBenevoleDto/items/items') && tag === 'items') {
       inFonctionBenevole = true;
       currentFonction = {};
+    }
+    if (
+      joined.includes('activProfCinqDerniereDto/items/items') &&
+      tag === 'items'
+    ) {
+      inActivitePro = true;
+      currentActivitePro = {};
     }
   });
 
@@ -152,6 +163,20 @@ async function parseDeclarationsStream(
         }
       }
 
+      if (inActivitePro) {
+        if (
+          tag === 'items' &&
+          joined.includes('activProfCinqDerniereDto/items/items')
+        ) {
+          if (currentActivitePro.description || currentActivitePro.employeur) {
+            current.activitesPro.push({ ...currentActivitePro });
+          }
+          inActivitePro = false;
+        } else if (text) {
+          currentActivitePro[tag] = text;
+        }
+      }
+
       if (tag === 'declaration') {
         const isParlementaire =
           current.mandatDescriptions.some(isParliamentary);
@@ -180,6 +205,19 @@ async function parseDeclarationsStream(
               role_description: f.activite || undefined,
               declared_date: declaredDate,
               full: f,
+            });
+          }
+
+          for (const a of current.activitesPro) {
+            interests.push({
+              category: 'professional_activity',
+              type: 'professional_activity',
+              entity_name: a.employeur || a.description,
+              role_description: a.employeur ? a.description : undefined,
+              declared_date: declaredDate,
+              start_date: parseMonthDate(a.dateDebut),
+              end_date: parseMonthDate(a.dateFin),
+              full: a,
             });
           }
 
@@ -217,6 +255,13 @@ function parseDate(raw: string): string {
   const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
   if (match) return `${match[3]}-${match[2]}-${match[1]}`;
   return raw || new Date().toISOString().slice(0, 10);
+}
+
+function parseMonthDate(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const match = raw.match(/^(\d{2})\/(\d{4})/);
+  if (match) return `${match[2]}-${match[1]}-01`;
+  return undefined;
 }
 
 function capitalize(s: string): string {

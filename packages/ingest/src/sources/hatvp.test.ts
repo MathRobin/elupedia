@@ -17,12 +17,19 @@ function deputeDeclaration(
     dateDepot?: string;
     participations?: { nomSociete: string; nombreParts?: string }[];
     fonctions?: { nomSociete: string; activite?: string }[];
+    activitesPro?: {
+      description: string;
+      employeur?: string;
+      dateDebut?: string;
+      dateFin?: string;
+    }[];
   } = {},
 ): string {
   const {
     dateDepot = '01/06/2023 10:00:00',
     participations = [],
     fonctions = [],
+    activitesPro = [],
   } = opts;
 
   const partItems = participations
@@ -39,10 +46,18 @@ function deputeDeclaration(
     )
     .join('');
 
+  const actProItems = activitesPro
+    .map(
+      (a) =>
+        `<items><motif><id>CREATION</id></motif><description>${a.description}</description>${a.employeur ? `<employeur>${a.employeur}</employeur>` : ''}${a.dateDebut ? `<dateDebut>${a.dateDebut}</dateDebut>` : ''}${a.dateFin ? `<dateFin>${a.dateFin}</dateFin>` : ''}</items>`,
+    )
+    .join('');
+
   return `<declaration>
     <dateDepot>${dateDepot}</dateDepot>
     <participationFinanciereDto><items>${partItems}</items><neant>${participations.length === 0}</neant></participationFinanciereDto>
     <fonctionBenevoleDto><items>${fonctItems}</items><neant>${fonctions.length === 0}</neant></fonctionBenevoleDto>
+    <activProfCinqDerniereDto><items>${actProItems}</items><neant>${activitesPro.length === 0}</neant></activProfCinqDerniereDto>
     <mandatElectifDto><items><items><descriptionMandat>DEPUTE</descriptionMandat></items></items></mandatElectifDto>
     <general><declarant><nom>${nom}</nom><prenom>${prenom}</prenom></declarant></general>
   </declaration>`;
@@ -154,6 +169,57 @@ describe('HATVP client', () => {
         declared_date: '2023-01-01',
       }).success,
     ).toBe(true);
+  });
+
+  it('parses professional activities', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        activitesPro: [
+          {
+            description: 'Avocat',
+            employeur: 'Cabinet Dupont',
+            dateDebut: '01/2018',
+            dateFin: '06/2022',
+          },
+        ],
+      }),
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+
+    expect(declarations).toHaveLength(1);
+    expect(declarations[0].interests).toHaveLength(1);
+    expect(declarations[0].interests[0]).toMatchObject({
+      category: 'professional_activity',
+      type: 'professional_activity',
+      entity_name: 'Cabinet Dupont',
+      role_description: 'Avocat',
+      declared_date: '2023-06-01',
+      start_date: '2018-01-01',
+      end_date: '2022-06-01',
+    });
+  });
+
+  it('uses description as entity_name when no employeur', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        activitesPro: [
+          {
+            description: 'Professeur des écoles',
+            dateDebut: '09/2015',
+          },
+        ],
+      }),
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+
+    expect(declarations[0].interests[0]).toMatchObject({
+      category: 'professional_activity',
+      entity_name: 'Professeur des écoles',
+      role_description: undefined,
+    });
+    expect(declarations[0].interests[0].end_date).toBeUndefined();
   });
 
   it('rejects invalid category', () => {
