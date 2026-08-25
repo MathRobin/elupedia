@@ -1,8 +1,13 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { officials } from '@elupedia/shared';
-import { mandates } from '@elupedia/shared';
-import { eq } from 'drizzle-orm';
+import { officials, mandates, dataProvenance } from '@elupedia/shared';
+import { eq, and } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
+
+const SOURCE_NAME = 'Assemblée nationale - Open Data';
+const SOURCE_URL =
+  'https://data.assemblee-nationale.fr/acteurs/deputes-en-exercice';
+const LEGAL_BASIS =
+  'Données publiques de mandat parlementaire (art. L311-1 CRPA)';
 
 export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
   const results = [];
@@ -71,6 +76,36 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           politicalGroup: depute.groupe_sigle ?? null,
         })
         .where(eq(mandates.id, existingMandate[0].id));
+    }
+
+    const now = new Date();
+
+    const existingProv = await db
+      .select({ id: dataProvenance.id })
+      .from(dataProvenance)
+      .where(
+        and(
+          eq(dataProvenance.sourceTable, 'officials'),
+          eq(dataProvenance.sourceRecordId, anId),
+        ),
+      )
+      .limit(1);
+
+    if (existingProv.length === 0) {
+      await db.insert(dataProvenance).values({
+        sourceTable: 'officials',
+        sourceRecordId: anId,
+        sourceName: SOURCE_NAME,
+        sourceUrl: `https://www.assemblee-nationale.fr/dyn/deputes/${anId}`,
+        legalBasis: LEGAL_BASIS,
+        rawData: depute.full ?? null,
+        fetchedAt: now,
+      });
+    } else {
+      await db
+        .update(dataProvenance)
+        .set({ rawData: depute.full ?? null, fetchedAt: now })
+        .where(eq(dataProvenance.id, existingProv[0].id));
     }
 
     results.push({ officialId, anId });

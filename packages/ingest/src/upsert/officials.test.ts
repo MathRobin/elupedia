@@ -15,6 +15,8 @@ const mockDepute: Depute = {
   slug: 'marie-dupont',
   photo_url:
     'https://www2.assemblee-nationale.fr/static/tribun/17/photos/100001.jpg',
+  mandat_type: 'depute',
+  full: { uid: 'PA100001', raw: true },
 };
 
 const DRIZZLE_NAME = Symbol.for('drizzle:Name');
@@ -27,16 +29,17 @@ function createMockDb() {
   const store: Record<string, Record<string, unknown>[]> = {
     officials: [],
     mandates: [],
+    data_provenance: [],
   };
 
   let currentTable = '';
 
   const db = {
-    select: () => ({
+    select: (cols?: Record<string, unknown>) => ({
       from: (table: unknown) => {
         currentTable = getTableName(table);
         return {
-          where: () => ({
+          where: (..._args: unknown[]) => ({
             limit: () =>
               Promise.resolve(store[currentTable]?.filter(() => true) ?? []),
           }),
@@ -56,11 +59,14 @@ function createMockDb() {
         },
       };
     },
-    update: () => ({
-      set: () => ({
-        where: () => Promise.resolve(),
-      }),
-    }),
+    update: (table: unknown) => {
+      currentTable = getTableName(table);
+      return {
+        set: () => ({
+          where: () => Promise.resolve(),
+        }),
+      };
+    },
   };
 
   return { db, store };
@@ -89,5 +95,33 @@ describe('upsertOfficials', () => {
 
     expect(store.officials).toHaveLength(1);
     expect(store.mandates).toHaveLength(1);
+  });
+
+  it('writes data_provenance for each official', async () => {
+    const { db, store } = createMockDb();
+    const { upsertOfficials } = await import('./officials.js');
+
+    await upsertOfficials(db as never, [mockDepute]);
+
+    expect(store.data_provenance).toHaveLength(1);
+    const prov = store.data_provenance[0];
+    expect(prov.sourceTable).toBe('officials');
+    expect(prov.sourceRecordId).toBe('PA100001');
+    expect(prov.sourceName).toBe('Assemblée nationale - Open Data');
+    expect(prov.sourceUrl).toContain('PA100001');
+    expect(prov.legalBasis).toBeTruthy();
+    expect(prov.rawData).toEqual({ uid: 'PA100001', raw: true });
+    expect(prov.fetchedAt).toBeInstanceOf(Date);
+  });
+
+  it('handles null raw_data gracefully', async () => {
+    const { db, store } = createMockDb();
+    const { upsertOfficials } = await import('./officials.js');
+
+    const deputeNoFull = { ...mockDepute, full: undefined };
+    await upsertOfficials(db as never, [deputeNoFull]);
+
+    expect(store.data_provenance).toHaveLength(1);
+    expect(store.data_provenance[0].rawData).toBeNull();
   });
 });
