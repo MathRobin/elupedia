@@ -51,9 +51,9 @@ describe('Ingest Sénat workflow', () => {
     expect(existsSync(wfPath)).toBe(true);
   });
 
-  it('has a cron schedule at 02:30 UTC', () => {
+  it('has a cron schedule at 03:00 UTC', () => {
     const content = readFileSync(wfPath, 'utf-8');
-    expect(content).toContain("'30 2 * * *'");
+    expect(content).toContain("'0 3 * * *'");
   });
 
   it('supports manual dispatch', () => {
