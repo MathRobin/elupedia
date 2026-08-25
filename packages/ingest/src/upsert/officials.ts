@@ -4,8 +4,6 @@ import { eq, and } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
 
 const SOURCE_NAME = 'Assemblée nationale - Open Data';
-const SOURCE_URL =
-  'https://data.assemblee-nationale.fr/acteurs/deputes-en-exercice';
 const LEGAL_BASIS =
   'Données publiques de mandat parlementaire (art. L311-1 CRPA)';
 
