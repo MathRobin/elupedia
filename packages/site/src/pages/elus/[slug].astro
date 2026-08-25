@@ -925,46 +925,44 @@ const timelineCategoryColors: Record<string, string> = {
                 </tr>
               </thead>
               <tbody>
-                {deputyActivities.map((act) => (
-                  {(() => {
-                    const isQuestion = act.type === 'written_question' || act.type === 'oral_question';
-                    return (
-                      <tr
-                        data-activity-date={act.date}
-                        data-activity-type={act.type}
-                        {...(isQuestion ? { 'data-activity-detail': JSON.stringify({
-                          type: act.type,
-                          title: act.title,
-                          date: act.date,
-                          status: act.status,
-                          questionText: act.questionText,
-                          responseText: act.responseText,
-                          responseDate: act.responseDate,
-                          governmentComments: act.governmentComments,
-                        }) } : {})}
-                        class={`border-b border-slate-100 hover:bg-slate-50 ${isQuestion ? 'cursor-pointer group' : ''}`}
-                      >
-                        <td class="py-2 pr-4 whitespace-nowrap">{new Date(act.date).toLocaleDateString('fr-FR')}</td>
-                        <td class="py-2 pr-4 whitespace-nowrap">{activityTypeLabels[act.type] ?? act.type}</td>
-                        <td class="py-2 pr-4">
-                          <span class={isQuestion ? 'group-hover:text-indigo-600 transition-colors' : ''}>{act.title}</span>
-                          {isQuestion && (
-                            <svg class="ml-1.5 inline-block h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                          )}
-                        </td>
-                        <td class="py-2">
-                          {act.status ? (
-                            <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusColors[act.status] ?? ''}`}>
-                              {statusLabels[act.status] ?? act.status}
-                            </span>
-                          ) : (
-                            <span class="text-slate-400">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })()}
-                ))}
+                {deputyActivities.map((act) => {
+                  const isQuestion = act.type === 'written_question' || act.type === 'oral_question';
+                  return (
+                    <tr
+                      data-activity-date={act.date}
+                      data-activity-type={act.type}
+                      {...(isQuestion ? { 'data-activity-detail': JSON.stringify({
+                        type: act.type,
+                        title: act.title,
+                        date: act.date,
+                        status: act.status,
+                        questionText: act.questionText,
+                        responseText: act.responseText,
+                        responseDate: act.responseDate,
+                        governmentComments: act.governmentComments,
+                      }) } : {})}
+                      class={`border-b border-slate-100 hover:bg-slate-50 ${isQuestion ? 'cursor-pointer group' : ''}`}
+                    >
+                      <td class="py-2 pr-4 whitespace-nowrap">{new Date(act.date).toLocaleDateString('fr-FR')}</td>
+                      <td class="py-2 pr-4 whitespace-nowrap">{activityTypeLabels[act.type] ?? act.type}</td>
+                      <td class="py-2 pr-4">
+                        <span class={isQuestion ? 'group-hover:text-indigo-600 transition-colors' : ''}>{act.title}</span>
+                        {isQuestion && (
+                          <svg class="ml-1.5 inline-block h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                        )}
+                      </td>
+                      <td class="py-2">
+                        {act.status ? (
+                          <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusColors[act.status] ?? ''}`}>
+                            {statusLabels[act.status] ?? act.status}
+                          </span>
+                        ) : (
+                          <span class="text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
