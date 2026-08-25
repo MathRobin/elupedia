@@ -2,6 +2,11 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, staffers } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { CollaborateursDepute } from '../sources/an-collaborateurs.js';
+import { writeProvenance } from './provenance.js';
+
+const SOURCE_NAME = 'Assemblée nationale - Open Data';
+const LEGAL_BASIS =
+  'Données publiques de collaborateurs parlementaires (art. L311-1 CRPA)';
 
 export async function diffStaffers(
   db: NeonHttpDatabase,
@@ -59,6 +64,15 @@ export async function diffStaffers(
         summary.ended++;
       }
     }
+
+    await writeProvenance(db, {
+      sourceTable: 'staffers',
+      sourceRecordId: depute.id_an,
+      sourceName: SOURCE_NAME,
+      sourceUrl: `https://www.assemblee-nationale.fr/dyn/deputes/${depute.id_an}`,
+      legalBasis: LEGAL_BASIS,
+      rawData: depute,
+    });
   }
 
   return summary;

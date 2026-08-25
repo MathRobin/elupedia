@@ -2,6 +2,11 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, electoralResults } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import type { ElectionResult } from '../sources/datagouv-elections.js';
+import { writeProvenance } from './provenance.js';
+
+const SOURCE_NAME = 'data.gouv.fr - Résultats électoraux';
+const LEGAL_BASIS =
+  'Résultats électoraux publiés (art. L311-1 CRPA, données publiques)';
 
 export async function upsertElectoralResults(
   db: NeonHttpDatabase,
@@ -51,6 +56,15 @@ export async function upsertElectoralResults(
         .where(eq(electoralResults.id, existing[0].id));
       summary.updated++;
     }
+
+    await writeProvenance(db, {
+      sourceTable: 'electoral_results',
+      sourceRecordId: `${result.id_an}:${result.election_type}:${result.election_date}:${result.round}`,
+      sourceName: SOURCE_NAME,
+      sourceUrl: 'https://www.data.gouv.fr/fr/pages/donnees-des-elections/',
+      legalBasis: LEGAL_BASIS,
+      rawData: result,
+    });
   }
 
   return summary;

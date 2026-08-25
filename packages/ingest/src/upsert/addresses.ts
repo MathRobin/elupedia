@@ -2,6 +2,11 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, addresses } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import type { AddressData } from '../sources/an-adresses.js';
+import { writeProvenance } from './provenance.js';
+
+const SOURCE_NAME = 'Assemblée nationale - Open Data';
+const LEGAL_BASIS =
+  'Coordonnées publiques de bureau parlementaire (art. L311-1 CRPA)';
 
 export async function upsertAddresses(
   db: NeonHttpDatabase,
@@ -53,6 +58,15 @@ export async function upsertAddresses(
         .where(eq(addresses.id, existing[0].id));
       summary.updated++;
     }
+
+    await writeProvenance(db, {
+      sourceTable: 'addresses',
+      sourceRecordId: `${addr.id_an}:${addr.type}`,
+      sourceName: SOURCE_NAME,
+      sourceUrl: `https://www.assemblee-nationale.fr/dyn/deputes/${addr.id_an}`,
+      legalBasis: LEGAL_BASIS,
+      rawData: addr,
+    });
   }
 
   return summary;

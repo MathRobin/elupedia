@@ -1,12 +1,18 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, affiliations } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
+import { writeProvenance } from './provenance.js';
+
 export interface AffiliationData {
   slug: string;
   id_an?: string;
   groupe_sigle?: string;
   parti_ratt_financier?: string;
 }
+
+const SOURCE_NAME = 'Assemblée nationale - Open Data';
+const LEGAL_BASIS =
+  'Données publiques d\'appartenance à un groupe parlementaire (art. L311-1 CRPA)';
 
 export async function diffAffiliations(
   db: NeonHttpDatabase,
@@ -62,6 +68,15 @@ export async function diffAffiliations(
       });
       summary.created++;
     }
+
+    await writeProvenance(db, {
+      sourceTable: 'affiliations',
+      sourceRecordId: `${anId}:${group}`,
+      sourceName: SOURCE_NAME,
+      sourceUrl: `https://www.assemblee-nationale.fr/dyn/deputes/${anId}`,
+      legalBasis: LEGAL_BASIS,
+      rawData: depute,
+    });
   }
 
   return summary;

@@ -1,7 +1,8 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { officials, mandates, dataProvenance } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { officials, mandates } from '@elupedia/shared';
+import { eq } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
+import { writeProvenance } from './provenance.js';
 
 const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
@@ -76,35 +77,14 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
         .where(eq(mandates.id, existingMandate[0].id));
     }
 
-    const now = new Date();
-
-    const existingProv = await db
-      .select({ id: dataProvenance.id })
-      .from(dataProvenance)
-      .where(
-        and(
-          eq(dataProvenance.sourceTable, 'officials'),
-          eq(dataProvenance.sourceRecordId, anId),
-        ),
-      )
-      .limit(1);
-
-    if (existingProv.length === 0) {
-      await db.insert(dataProvenance).values({
-        sourceTable: 'officials',
-        sourceRecordId: anId,
-        sourceName: SOURCE_NAME,
-        sourceUrl: `https://www.assemblee-nationale.fr/dyn/deputes/${anId}`,
-        legalBasis: LEGAL_BASIS,
-        rawData: depute.full ?? null,
-        fetchedAt: now,
-      });
-    } else {
-      await db
-        .update(dataProvenance)
-        .set({ rawData: depute.full ?? null, fetchedAt: now })
-        .where(eq(dataProvenance.id, existingProv[0].id));
-    }
+    await writeProvenance(db, {
+      sourceTable: 'officials',
+      sourceRecordId: anId,
+      sourceName: SOURCE_NAME,
+      sourceUrl: `https://www.assemblee-nationale.fr/dyn/deputes/${anId}`,
+      legalBasis: LEGAL_BASIS,
+      rawData: depute.full,
+    });
 
     results.push({ officialId, anId });
   }

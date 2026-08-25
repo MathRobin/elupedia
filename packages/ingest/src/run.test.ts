@@ -62,6 +62,9 @@ vi.mock('./upsert/parliamentary-activity.js', () => ({
 vi.mock('./upsert/committees.js', () => ({
   upsertCommittees: vi.fn(),
 }));
+vi.mock('./upsert/provenance.js', () => ({
+  writeProvenance: vi.fn(),
+}));
 vi.mock('./upsert/social-links.js', () => ({
   upsertSocialLinks: vi.fn(),
 }));
