@@ -2,8 +2,7 @@ name: Ingestion AN
 
 on:
   schedule:
-    # 02:00 UTC = 04:00 Paris (CEST) / 03:00 Paris (CET)
-    - cron: '0 2 * * *'
+    - cron: '0 2 * * 2,6'
   workflow_dispatch:
 
 jobs:
