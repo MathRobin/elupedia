@@ -29,6 +29,12 @@ function deputeDeclaration(
       dateDebut?: string;
       dateFin?: string;
     }[];
+    participationsDirigeant?: {
+      nomSociete: string;
+      activite?: string;
+      dateDebut?: string;
+      dateFin?: string;
+    }[];
   } = {},
 ): string {
   const {
@@ -37,6 +43,7 @@ function deputeDeclaration(
     fonctions = [],
     activitesPro = [],
     activitesConsultant = [],
+    participationsDirigeant = [],
   } = opts;
 
   const partItems = participations
@@ -67,12 +74,20 @@ function deputeDeclaration(
     )
     .join('');
 
+  const partDirItems = participationsDirigeant
+    .map(
+      (d) =>
+        `<items><motif><id>CREATION</id></motif><nomSociete>${d.nomSociete}</nomSociete>${d.activite ? `<activite>${d.activite}</activite>` : ''}${d.dateDebut ? `<dateDebut>${d.dateDebut}</dateDebut>` : ''}${d.dateFin ? `<dateFin>${d.dateFin}</dateFin>` : ''}</items>`,
+    )
+    .join('');
+
   return `<declaration>
     <dateDepot>${dateDepot}</dateDepot>
     <participationFinanciereDto><items>${partItems}</items><neant>${participations.length === 0}</neant></participationFinanciereDto>
     <fonctionBenevoleDto><items>${fonctItems}</items><neant>${fonctions.length === 0}</neant></fonctionBenevoleDto>
     <activProfCinqDerniereDto><items>${actProItems}</items><neant>${activitesPro.length === 0}</neant></activProfCinqDerniereDto>
     <activConsultantDto><items>${actConsultItems}</items><neant>${activitesConsultant.length === 0}</neant></activConsultantDto>
+    <participationDirigeantDto><items>${partDirItems}</items><neant>${participationsDirigeant.length === 0}</neant></participationDirigeantDto>
     <mandatElectifDto><items><items><descriptionMandat>DEPUTE</descriptionMandat></items></items></mandatElectifDto>
     <general><declarant><nom>${nom}</nom><prenom>${prenom}</prenom></declarant></general>
   </declaration>`;
@@ -283,6 +298,57 @@ describe('HATVP client', () => {
     expect(declarations[0].interests[0]).toMatchObject({
       category: 'consulting_activity',
       entity_name: 'Conseil en stratégie',
+      role_description: undefined,
+    });
+    expect(declarations[0].interests[0].end_date).toBeUndefined();
+  });
+
+  it('parses governing body memberships', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        participationsDirigeant: [
+          {
+            nomSociete: 'SDIS 01',
+            activite: 'Président',
+            dateDebut: '04/2015',
+            dateFin: '07/2017',
+          },
+        ],
+      }),
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+
+    expect(declarations).toHaveLength(1);
+    expect(declarations[0].interests).toHaveLength(1);
+    expect(declarations[0].interests[0]).toMatchObject({
+      category: 'governing_body_membership',
+      type: 'governing_body_membership',
+      entity_name: 'SDIS 01',
+      role_description: 'Président',
+      declared_date: '2023-06-01',
+      start_date: '2015-04-01',
+      end_date: '2017-07-01',
+    });
+  });
+
+  it('parses governing body without activite', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        participationsDirigeant: [
+          {
+            nomSociete: 'Association XYZ',
+            dateDebut: '01/2020',
+          },
+        ],
+      }),
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+
+    expect(declarations[0].interests[0]).toMatchObject({
+      category: 'governing_body_membership',
+      entity_name: 'Association XYZ',
       role_description: undefined,
     });
     expect(declarations[0].interests[0].end_date).toBeUndefined();

@@ -43,6 +43,7 @@ interface RawDeclaration {
   fonctionsBenefoles: RawItem[];
   activitesPro: RawItem[];
   activitesConsultant: RawItem[];
+  participationsDirigeant: RawItem[];
 }
 
 export async function fetchDeclarations(
@@ -78,6 +79,8 @@ async function parseDeclarationsStream(
   let currentActivitePro: RawItem = {};
   let inActiviteConsultant = false;
   let currentActiviteConsultant: RawItem = {};
+  let inParticipationDirigeant = false;
+  let currentParticipationDirigeant: RawItem = {};
 
   parser.on('opentag', (node) => {
     const tag = node.name;
@@ -94,6 +97,7 @@ async function parseDeclarationsStream(
         fonctionsBenefoles: [],
         activitesPro: [],
         activitesConsultant: [],
+        participationsDirigeant: [],
       };
     }
 
@@ -119,6 +123,13 @@ async function parseDeclarationsStream(
     if (joined.includes('activConsultantDto/items/items') && tag === 'items') {
       inActiviteConsultant = true;
       currentActiviteConsultant = {};
+    }
+    if (
+      joined.includes('participationDirigeantDto/items/items') &&
+      tag === 'items'
+    ) {
+      inParticipationDirigeant = true;
+      currentParticipationDirigeant = {};
     }
   });
 
@@ -204,6 +215,22 @@ async function parseDeclarationsStream(
         }
       }
 
+      if (inParticipationDirigeant) {
+        if (
+          tag === 'items' &&
+          joined.includes('participationDirigeantDto/items/items')
+        ) {
+          if (currentParticipationDirigeant.nomSociete) {
+            current.participationsDirigeant.push({
+              ...currentParticipationDirigeant,
+            });
+          }
+          inParticipationDirigeant = false;
+        } else if (text) {
+          currentParticipationDirigeant[tag] = text;
+        }
+      }
+
       if (tag === 'declaration') {
         const isParlementaire =
           current.mandatDescriptions.some(isParliamentary);
@@ -258,6 +285,19 @@ async function parseDeclarationsStream(
               start_date: parseMonthDate(c.dateDebut),
               end_date: parseMonthDate(c.dateFin),
               full: c,
+            });
+          }
+
+          for (const d of current.participationsDirigeant) {
+            interests.push({
+              category: 'governing_body_membership',
+              type: 'governing_body_membership',
+              entity_name: d.nomSociete,
+              role_description: d.activite || undefined,
+              declared_date: declaredDate,
+              start_date: parseMonthDate(d.dateDebut),
+              end_date: parseMonthDate(d.dateFin),
+              full: d,
             });
           }
 
