@@ -14,11 +14,6 @@ export default defineConfig({
   integrations: [react(), sitemap()],
   vite: {
     envDir: '../../',
-    build: {
-      rollupOptions: {
-        external: ['/pagefind/pagefind.js'],
-      },
-    },
     define: {
       'import.meta.env.DATABASE_URL': 'undefined',
     },
