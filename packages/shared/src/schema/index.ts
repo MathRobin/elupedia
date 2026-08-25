@@ -25,3 +25,4 @@ export {
 export { committees, committeeTypeEnum } from './committees.js';
 export { electoralResults } from './electoral-results.js';
 export { users, userRoleEnum } from './users.js';
+export { dataProvenance } from './data-provenance.js';

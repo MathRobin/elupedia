@@ -22,6 +22,7 @@ describe('schema files exist', () => {
     'committees.ts',
     'electoral-results.ts',
     'users.ts',
+    'data-provenance.ts',
     'index.ts',
   ];
 
@@ -317,6 +318,54 @@ describe('#130 — users', () => {
   });
 });
 
+describe('#164 — data_provenance', () => {
+  it('data_provenance table has correct columns', async () => {
+    const { dataProvenance } =
+      await import('../packages/shared/src/schema/data-provenance.js');
+    expect(getTableName(dataProvenance)).toBe('data_provenance');
+    const cols = Object.keys(dataProvenance);
+    expect(cols).toContain('id');
+    expect(cols).toContain('sourceTable');
+    expect(cols).toContain('sourceRecordId');
+    expect(cols).toContain('sourceName');
+    expect(cols).toContain('sourceUrl');
+    expect(cols).toContain('legalBasis');
+    expect(cols).toContain('rawData');
+    expect(cols).toContain('fetchedAt');
+  });
+
+  it('rawData column is nullable jsonb', () => {
+    const content = readFileSync(
+      resolve(schemaDir, 'data-provenance.ts'),
+      'utf-8',
+    );
+    expect(content).toContain("jsonb('raw_data')");
+    const rawDataLine = content
+      .split('\n')
+      .find((l) => l.includes("'raw_data'"));
+    expect(rawDataLine).toBeDefined();
+    expect(rawDataLine).not.toContain('.notNull()');
+  });
+
+  it('migration file exists', () => {
+    expect(
+      existsSync(resolve(root, 'drizzle/0008_data_provenance.sql')),
+    ).toBe(true);
+  });
+
+  it('migration creates the table', () => {
+    const sql = readFileSync(
+      resolve(root, 'drizzle/0008_data_provenance.sql'),
+      'utf-8',
+    );
+    expect(sql).toContain('CREATE TABLE');
+    expect(sql).toContain('data_provenance');
+    expect(sql).toContain('source_table');
+    expect(sql).toContain('source_record_id');
+    expect(sql).toContain('fetched_at');
+  });
+});
+
 describe('schema index re-exports', () => {
   it('index.ts re-exports all tables', async () => {
     const schema = await import('../packages/shared/src/schema/index.js');
@@ -338,6 +387,7 @@ describe('schema index re-exports', () => {
       'electoralResults',
       'users',
       'userRoleEnum',
+      'dataProvenance',
     ];
     for (const name of expectedExports) {
       expect(schema[name]).toBeDefined();

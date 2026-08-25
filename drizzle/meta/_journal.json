@@ -57,6 +57,13 @@
       "when": 1787646327400,
       "tag": "0007_short_riptide",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787904000000,
+      "tag": "0008_data_provenance",
+      "breakpoints": true
     }
   ]
 }
