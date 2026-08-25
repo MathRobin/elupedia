@@ -23,6 +23,12 @@ function deputeDeclaration(
       dateDebut?: string;
       dateFin?: string;
     }[];
+    activitesConsultant?: {
+      description: string;
+      nomEmployeur?: string;
+      dateDebut?: string;
+      dateFin?: string;
+    }[];
   } = {},
 ): string {
   const {
@@ -30,6 +36,7 @@ function deputeDeclaration(
     participations = [],
     fonctions = [],
     activitesPro = [],
+    activitesConsultant = [],
   } = opts;
 
   const partItems = participations
@@ -53,11 +60,19 @@ function deputeDeclaration(
     )
     .join('');
 
+  const actConsultItems = activitesConsultant
+    .map(
+      (c) =>
+        `<items><motif><id>CREATION</id></motif><description>${c.description}</description>${c.nomEmployeur ? `<nomEmployeur>${c.nomEmployeur}</nomEmployeur>` : ''}${c.dateDebut ? `<dateDebut>${c.dateDebut}</dateDebut>` : ''}${c.dateFin ? `<dateFin>${c.dateFin}</dateFin>` : ''}</items>`,
+    )
+    .join('');
+
   return `<declaration>
     <dateDepot>${dateDepot}</dateDepot>
     <participationFinanciereDto><items>${partItems}</items><neant>${participations.length === 0}</neant></participationFinanciereDto>
     <fonctionBenevoleDto><items>${fonctItems}</items><neant>${fonctions.length === 0}</neant></fonctionBenevoleDto>
     <activProfCinqDerniereDto><items>${actProItems}</items><neant>${activitesPro.length === 0}</neant></activProfCinqDerniereDto>
+    <activConsultantDto><items>${actConsultItems}</items><neant>${activitesConsultant.length === 0}</neant></activConsultantDto>
     <mandatElectifDto><items><items><descriptionMandat>DEPUTE</descriptionMandat></items></items></mandatElectifDto>
     <general><declarant><nom>${nom}</nom><prenom>${prenom}</prenom></declarant></general>
   </declaration>`;
@@ -217,6 +232,57 @@ describe('HATVP client', () => {
     expect(declarations[0].interests[0]).toMatchObject({
       category: 'professional_activity',
       entity_name: 'Professeur des écoles',
+      role_description: undefined,
+    });
+    expect(declarations[0].interests[0].end_date).toBeUndefined();
+  });
+
+  it('parses consulting activities', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        activitesConsultant: [
+          {
+            description: 'consultant réseaux sociaux',
+            nomEmployeur: 'autoentreprise',
+            dateDebut: '09/2017',
+            dateFin: '12/2017',
+          },
+        ],
+      }),
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+
+    expect(declarations).toHaveLength(1);
+    expect(declarations[0].interests).toHaveLength(1);
+    expect(declarations[0].interests[0]).toMatchObject({
+      category: 'consulting_activity',
+      type: 'consulting_activity',
+      entity_name: 'autoentreprise',
+      role_description: 'consultant réseaux sociaux',
+      declared_date: '2023-06-01',
+      start_date: '2017-09-01',
+      end_date: '2017-12-01',
+    });
+  });
+
+  it('uses description as entity_name when no nomEmployeur for consulting', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        activitesConsultant: [
+          {
+            description: 'Conseil en stratégie',
+            dateDebut: '01/2020',
+          },
+        ],
+      }),
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+
+    expect(declarations[0].interests[0]).toMatchObject({
+      category: 'consulting_activity',
+      entity_name: 'Conseil en stratégie',
       role_description: undefined,
     });
     expect(declarations[0].interests[0].end_date).toBeUndefined();

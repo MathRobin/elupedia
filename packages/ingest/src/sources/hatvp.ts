@@ -42,6 +42,7 @@ interface RawDeclaration {
   participations: RawItem[];
   fonctionsBenefoles: RawItem[];
   activitesPro: RawItem[];
+  activitesConsultant: RawItem[];
 }
 
 export async function fetchDeclarations(
@@ -75,6 +76,8 @@ async function parseDeclarationsStream(
   let currentFonction: RawItem = {};
   let inActivitePro = false;
   let currentActivitePro: RawItem = {};
+  let inActiviteConsultant = false;
+  let currentActiviteConsultant: RawItem = {};
 
   parser.on('opentag', (node) => {
     const tag = node.name;
@@ -90,6 +93,7 @@ async function parseDeclarationsStream(
         participations: [],
         fonctionsBenefoles: [],
         activitesPro: [],
+        activitesConsultant: [],
       };
     }
 
@@ -111,6 +115,10 @@ async function parseDeclarationsStream(
     ) {
       inActivitePro = true;
       currentActivitePro = {};
+    }
+    if (joined.includes('activConsultantDto/items/items') && tag === 'items') {
+      inActiviteConsultant = true;
+      currentActiviteConsultant = {};
     }
   });
 
@@ -177,6 +185,25 @@ async function parseDeclarationsStream(
         }
       }
 
+      if (inActiviteConsultant) {
+        if (
+          tag === 'items' &&
+          joined.includes('activConsultantDto/items/items')
+        ) {
+          if (
+            currentActiviteConsultant.description ||
+            currentActiviteConsultant.nomEmployeur
+          ) {
+            current.activitesConsultant.push({
+              ...currentActiviteConsultant,
+            });
+          }
+          inActiviteConsultant = false;
+        } else if (text) {
+          currentActiviteConsultant[tag] = text;
+        }
+      }
+
       if (tag === 'declaration') {
         const isParlementaire =
           current.mandatDescriptions.some(isParliamentary);
@@ -218,6 +245,19 @@ async function parseDeclarationsStream(
               start_date: parseMonthDate(a.dateDebut),
               end_date: parseMonthDate(a.dateFin),
               full: a,
+            });
+          }
+
+          for (const c of current.activitesConsultant) {
+            interests.push({
+              category: 'consulting_activity',
+              type: 'consulting_activity',
+              entity_name: c.nomEmployeur || c.description,
+              role_description: c.nomEmployeur ? c.description : undefined,
+              declared_date: declaredDate,
+              start_date: parseMonthDate(c.dateDebut),
+              end_date: parseMonthDate(c.dateFin),
+              full: c,
             });
           }
 
