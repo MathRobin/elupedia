@@ -44,7 +44,6 @@ export function parseScrutinsIndex(
   const results: SenatScrutin[] = [];
   let currentDate = '';
 
-  const dateRegex = /<h\d[^>]*>.*?(\d{1,2}\s+\w+\s+\d{4}).*?<\/h\d>/gi;
   const lines = html.split('\n');
 
   for (const line of lines) {
