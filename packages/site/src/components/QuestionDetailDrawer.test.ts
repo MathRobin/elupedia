@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const componentPath = resolve(
-  import.meta.dirname,
-  'QuestionDetailDrawer.tsx',
-);
+const componentPath = resolve(import.meta.dirname, 'QuestionDetailDrawer.tsx');
 const source = readFileSync(componentPath, 'utf-8');
 
 describe('QuestionDetailDrawer', () => {

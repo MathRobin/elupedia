@@ -335,9 +335,9 @@ describe('#172 — question details columns', () => {
   });
 
   it('migration file exists', () => {
-    expect(
-      existsSync(resolve(root, 'drizzle/0009_question_details.sql')),
-    ).toBe(true);
+    expect(existsSync(resolve(root, 'drizzle/0009_question_details.sql'))).toBe(
+      true,
+    );
   });
 
   it('migration adds columns', () => {
