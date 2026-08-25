@@ -84,12 +84,18 @@ describe('Sénat client', () => {
     };
     const result = await fetchSenateurs(mockFetch([femaleGeneral], []));
     expect(result[0].sexe).toBe('F');
-    expect(result[0].mandats).toHaveLength(0);
   });
 
   it('stores full raw data', async () => {
     const result = await fetchSenateurs(mockFetch([sampleGeneral], []));
     expect(result[0].full).toEqual(sampleGeneral);
+  });
+
+  it('builds correct photo URL from name and matricule', async () => {
+    const result = await fetchSenateurs(mockFetch([sampleGeneral], []));
+    expect(result[0].photo_url).toBe(
+      'https://www.senat.fr/senimg/dupont_jean14001a_carre.jpg',
+    );
   });
 
   it('throws on HTTP error for general', async () => {
@@ -102,7 +108,7 @@ describe('Sénat client', () => {
     );
   });
 
-  it('skips mandates without start date', async () => {
+  it('skips mandates without start date but creates synthetic for active', async () => {
     const badMandat = {
       Matricule: '14001A',
       Date_de_debut_de_mandat: null,
@@ -113,6 +119,14 @@ describe('Sénat client', () => {
     const result = await fetchSenateurs(
       mockFetch([sampleGeneral], [badMandat]),
     );
+    expect(result[0].mandats).toHaveLength(1);
+    expect(result[0].mandats[0].start_date).toBe('2023-10-01');
+    expect(result[0].mandats[0].end_date).toBeNull();
+  });
+
+  it('does not create synthetic mandate for ancien senators', async () => {
+    const ancien = { ...sampleGeneral, Etat: 'ANCIEN' };
+    const result = await fetchSenateurs(mockFetch([ancien], []));
     expect(result[0].mandats).toHaveLength(0);
   });
 });
