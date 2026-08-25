@@ -22,35 +22,47 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Déclenchement manuel : `workflow_dispatch`
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run.ts` exécute 4 étapes actives séquentiellement (3 désactivées en attente de sources), isole les erreurs par étape et affiche un résumé
+- Orchestration : `run.ts` exécute 12 étapes séquentiellement (députés, sénateurs, collaborateurs AN, intérêts HATVP, adresses AN, activité parlementaire, commissions, votes Sénat, affiliations Sénat, collaborateurs Sénat, adresses Sénat, historique électoral Sénat), isole les erreurs par étape et affiche un résumé
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions et écrit `ingest-report.json`
 - Point d'entrée : `src/main.ts` → script `yarn workspace @elupedia/ingest ingest`
 
-#### Clients de données (M1)
+#### Clients de données
 
-| Client                  | Fichier                          | Source                      | Format   | Statut      |
-| ----------------------- | -------------------------------- | --------------------------- | -------- | ----------- |
-| Députés (tous)          | `sources/assemblee-nationale.ts` | data.assemblee-nationale.fr | ZIP/JSON | ✅ actif    |
-| Collaborateurs          | `sources/an-collaborateurs.ts`   | data.assemblee-nationale.fr | CSV      | ✅ actif    |
-| Adresses/contacts       | `sources/an-adresses.ts`         | data.assemblee-nationale.fr | ZIP/JSON | ✅ actif    |
-| Activité parlementaire  | `sources/an-activite.ts`         | data.assemblee-nationale.fr | ZIP/JSON | ✅ actif    |
-| Commissions/délégations | `sources/an-commissions.ts`      | data.assemblee-nationale.fr | —        | ⏸ désactivé |
-| Intérêts (HATVP)        | `sources/hatvp.ts`               | hatvp.fr                    | —        | ⏸ désactivé |
-| Résultats électoraux    | `sources/datagouv-elections.ts`  | data.gouv.fr                | —        | ⏸ désactivé |
+| Client                       | Fichier                          | Source                      | Format        | Statut   |
+| ---------------------------- | -------------------------------- | --------------------------- | ------------- | -------- |
+| Députés (tous)               | `sources/assemblee-nationale.ts` | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Collaborateurs AN            | `sources/an-collaborateurs.ts`   | data.assemblee-nationale.fr | CSV           | ✅ actif |
+| Adresses/contacts AN         | `sources/an-adresses.ts`        | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Activité parlementaire       | `sources/an-activite.ts`        | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Commissions/délégations      | `sources/an-commissions.ts`     | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Intérêts (HATVP)             | `sources/hatvp.ts`              | hatvp.fr                    | XML streaming | ✅ actif |
+| Sénateurs                    | `sources/senat.ts`              | data.senat.fr               | JSON API      | ✅ actif |
+| Scrutins Sénat               | `sources/senat-scrutins.ts`     | data.senat.fr               | JSON API      | ✅ actif |
+| Groupes Sénat                | `sources/senat-groupes.ts`      | data.senat.fr               | JSON API      | ✅ actif |
+| Collaborateurs Sénat         | `sources/senat-collaborateurs.ts` | data.senat.fr             | JSON API      | ✅ actif |
+| Adresses Sénat               | `sources/senat-adresses.ts`     | data.senat.fr               | JSON API      | ✅ actif |
+| Historique électoral Sénat   | `sources/senat-elections.ts`    | data.senat.fr               | JSON API      | ✅ actif |
+| Résultats électoraux AN      | `sources/datagouv-elections.ts` | data.gouv.fr                | —             | ⏸ prévu  |
 
-#### Upsert / Diff (M1)
+#### Upsert / Diff
 
-| Upsert                 | Fichier                            | Stratégie                                              |
-| ---------------------- | ---------------------------------- | ------------------------------------------------------ |
-| Officials + mandates   | `upsert/officials.ts`              | Upsert sur an_id                                       |
-| Votes + ballots        | `upsert/votes.ts`                  | Upsert sur ballot_id + official (pas de source active) |
-| Collaborateurs         | `upsert/staffers-diff.ts`          | Diff (set end_date si parti)                           |
-| Affiliations           | `upsert/affiliations-diff.ts`      | Diff (set end_date si changé) (pas de source active)   |
-| Intérêts               | `upsert/interests.ts`              | Upsert sur official + entity                           |
-| Adresses               | `upsert/addresses.ts`              | Upsert sur official + type                             |
-| Activité parlementaire | `upsert/parliamentary-activity.ts` | Upsert sur official + title + date                     |
-| Commissions            | `upsert/committees.ts`             | Upsert sur official + name + type                      |
-| Résultats électoraux   | `upsert/electoral-results.ts`      | Upsert sur official + election + round                 |
+| Upsert                        | Fichier                            | Stratégie                                    |
+| ----------------------------- | ---------------------------------- | -------------------------------------------- |
+| Officials + mandates (AN)     | `upsert/officials.ts`              | Upsert sur an_id                             |
+| Sénateurs + mandats           | `upsert/senators.ts`               | Upsert sur an_id (source Sénat)              |
+| Votes + ballots (AN)          | `upsert/votes.ts`                  | Upsert sur ballot_id + official              |
+| Votes Sénat                   | `upsert/senat-votes.ts`            | Upsert sur ballot_id + official              |
+| Collaborateurs AN             | `upsert/staffers-diff.ts`          | Diff (set end_date si parti)                 |
+| Collaborateurs Sénat          | `upsert/senat-staffers-diff.ts`    | Diff (set end_date si parti)                 |
+| Affiliations AN               | `upsert/affiliations-diff.ts`      | Diff (set end_date si changé)                |
+| Affiliations Sénat            | `upsert/senat-affiliations.ts`     | Upsert sur official + groupe                 |
+| Intérêts                      | `upsert/interests.ts`              | Upsert sur official + entity                 |
+| Adresses AN                   | `upsert/addresses.ts`              | Upsert sur official + type                   |
+| Adresses Sénat                | `upsert/senat-addresses.ts`        | Upsert sur official + type                   |
+| Activité parlementaire        | `upsert/parliamentary-activity.ts` | Upsert sur official + title + date           |
+| Commissions                   | `upsert/committees.ts`             | Upsert sur official + name + type            |
+| Résultats électoraux AN       | `upsert/electoral-results.ts`      | Upsert sur official + election + round       |
+| Résultats électoraux Sénat    | `upsert/senat-electoral-results.ts`| Upsert sur official + election + round       |
 
 ### 2. Base de données (PostgreSQL / Neon)
 
@@ -71,7 +83,7 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 | `votes`                  | position (for/against/abstain/absent)                                 | ballots, officials |
 | `staffers`               | first_name, last_name, start_date, end_date (index sur official_id)   | officials          |
 | `affiliations`           | party_or_group, start_date, end_date                                  | officials          |
-| `interests`              | type (company_share/nonprofit_role), entity_name, declared_date       | officials          |
+| `interests`              | type (professional_activity/consulting_activity/governing_body_membership/voluntary_activity/elected_function/financial_participation), entity_name, declared_date | officials          |
 | `addresses`              | type (constituency/assembly), street, postal_code, city, phone, email | officials          |
 | `external_links`         | platform, url                                                         | officials          |
 | `press_mentions`         | title, source_name, source_url, published_date, summary               | officials          |
@@ -95,8 +107,8 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
 - Composants React : `src/components/SearchBar.tsx` (barre de recherche Pagefind, ARIA combobox)
 - Accessibilité : skip-to-content, focus-visible global, aria-label sur la navigation, contraste WCAG AA (minimum text-gray-500 pour le texte informatif)
 - Pages :
-  - `src/pages/index.astro` — page d'accueil (grille de cartes des élus avec photo, nom, circonscription, groupe politique)
-  - `src/pages/elus/[slug].astro` — fiche détaillée d'un élu (identité avec âge calculé, mandat avec prédécesseur/successeur, coordonnées, affiliations, collaborateurs, activité parlementaire, commissions & groupes, historique électoral, intérêts déclarés, votes, presse, liens extérieurs, timeline unifiée, indicateur de dernière mise à jour)
+  - `src/pages/index.astro` — page d'accueil (grille de cartes des élus avec photo, badge député/sénateur genré, nom, circonscription, groupe politique ; filtres par type de mandat et département)
+  - `src/pages/elus/[slug].astro` — fiche détaillée d'un élu (identité avec âge calculé, mandat en cours, tous les mandats, coordonnées, affiliations, collaborateurs, activité parlementaire, commissions & groupes, historique électoral, intérêts déclarés groupés par catégorie, votes, presse, liens extérieurs, timeline unifiée, indicateur de dernière mise à jour)
   - `src/pages/scrutins/[id].astro` — détail d'un scrutin (titre, date, type, votes des élus triés par nom avec position)
   - `src/pages/a-propos.astro` — page À propos (présentation, feuille de route, piliers, indépendance, contribution)
   - `src/pages/donnees-personnelles.astro` — page droits RGPD (données publiées, base légale, droits, contact, CNIL, cookies)
@@ -116,7 +128,7 @@ Le site statique généré est déployé sur Vercel. Chaque push sur `main` déc
 
 ## Packages partagés (`packages/shared`)
 
-Contient le client DB (Drizzle + Neon), le schéma complet (13 tables), les types TypeScript et les helpers utilisés à la fois par `ingest` et `site`.
+Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript et les helpers utilisés à la fois par `ingest` et `site`.
 
 ## Documentation et conformité
 

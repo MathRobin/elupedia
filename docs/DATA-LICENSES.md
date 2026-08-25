@@ -19,8 +19,6 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - **Questions au gouvernement** : ZIP/JSON (~1 800 fichiers)
   - **Collaborateurs parlementaires** : CSV
 
-## Sources prévues (non encore actives)
-
 ### HATVP
 
 - **Éditeur** : Haute Autorité pour la Transparence de la Vie Publique
@@ -29,9 +27,28 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - Attribution obligatoire : mentionner la HATVP comme source
   - Pas de restriction sur l'usage commercial
 - **URL** : https://www.hatvp.fr/open-data/
-- **Statut** : source API à câbler
+- **Jeux de données utilisés** :
+  - **declarations.xml** — Déclarations d'intérêts des élus soumis à obligation : XML streaming
 
-### data.gouv.fr (résultats électoraux)
+### data.senat.fr
+
+- **Éditeur** : Sénat
+- **Licence** : Licence Ouverte / Open Licence 2.0 (Etalab)
+- **Obligations** :
+  - Attribution obligatoire : mentionner le Sénat comme source
+  - Pas de restriction sur l'usage commercial
+- **URL** : https://data.senat.fr
+- **Jeux de données utilisés** :
+  - **Sénateurs en exercice** : API JSON (identité, mandats)
+  - **Scrutins publics** : API JSON (votes, résultats)
+  - **Groupes politiques** : API JSON (composition, appartenances)
+  - **Collaborateurs** : API JSON (collaborateurs déclarés)
+  - **Adresses/contacts** : API JSON (coordonnées)
+  - **Historique électoral** : API JSON (résultats par sénateur)
+
+## Sources prévues (non encore actives)
+
+### data.gouv.fr (résultats électoraux AN)
 
 - **Éditeur** : Ministère de l'Intérieur (via data.gouv.fr)
 - **Licence** : Licence Ouverte / Open Licence 2.0 (Etalab)
@@ -46,7 +63,8 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | Source              | Licence             | Attribution | Usage commercial | Statut    |
 | ------------------- | ------------------- | ----------- | ---------------- | --------- |
 | Assemblée nationale | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
-| HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
+| HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
+| Sénat               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | data.gouv.fr        | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
 
 ## Licence du code source

@@ -5,10 +5,11 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Élus et mandats
 
 - **Tables** : `officials`, `mandates`
-- **Source** : data.assemblee-nationale.fr (open data AN)
-- **Client M1** : `assemblee-nationale.ts` (ZIP AMO30, tous les acteurs historiques) → `upsert/officials.ts`
-- **Description** : Identité des élus (nom, prénom, date de naissance, photo) et historique de leurs mandats (législature, circonscription, dates de début/fin).
-- **Pages M4** : page d'accueil (grille des élus actifs), fiche élu (identité, mandat, prédécesseur/successeur)
+- **Sources** :
+  - data.assemblee-nationale.fr (open data AN) — `assemblee-nationale.ts` → `upsert/officials.ts`
+  - data.senat.fr (API JSON Sénat) — `senat.ts` → `upsert/senators.ts`
+- **Description** : Identité des élus (nom, prénom, date de naissance, photo) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés et sénateurs.
+- **Pages** : page d'accueil (grille des élus actifs avec badge député/sénateur genré, filtre département), fiche élu (identité, mandat, historique des mandats)
 
 ## Activité parlementaire
 
@@ -21,42 +22,45 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Votes et scrutins
 
 - **Tables** : `votes`, `ballots`
-- **Source** : pas de source active (module upsert prêt, en attente d'un client API)
-- **Client M1** : `upsert/votes.ts`
+- **Sources** :
+  - Assemblée nationale : `upsert/votes.ts` (pas de source active pour l'AN)
+  - Sénat : `senat-scrutins.ts` → `upsert/senat-votes.ts` (API JSON, scrutins publics)
 - **Description** : Scrutins publics et position de chaque élu (pour, contre, abstention, absent). Mapping FR→EN des positions.
-- **Pages M4** : fiche élu (section historique des votes), page détail scrutin (liste des votes par élu)
+- **Pages** : fiche élu (section historique des votes), page détail scrutin (liste des votes par élu)
 
 ## Affiliations politiques
 
 - **Tables** : `affiliations`
-- **Source** : pas de source active (le groupe politique courant est stocké dans `mandates.political_group` via `assemblee-nationale.ts`)
-- **Client M1** : `upsert/affiliations-diff.ts`
+- **Sources** :
+  - AN : `upsert/affiliations-diff.ts` (diff, le groupe politique courant est dans `mandates.political_group`)
+  - Sénat : `senat-groupes.ts` → `upsert/senat-affiliations.ts` (API JSON)
 - **Description** : Appartenance aux groupes parlementaires et partis politiques, avec historique des changements. Stratégie diff : ferme l'affiliation précédente (end_date) si le groupe change.
-- **Pages M4** : fiche élu (section affiliations politiques), timeline unifiée
+- **Pages** : fiche élu (section affiliations politiques), timeline unifiée
 
 ## Collaborateurs
 
 - **Tables** : `staffers`
-- **Source** : data.assemblee-nationale.fr — CSV des collaborateurs parlementaires
-- **Client M1** : `an-collaborateurs.ts` → `upsert/staffers-diff.ts`
+- **Sources** :
+  - AN : `an-collaborateurs.ts` (CSV) → `upsert/staffers-diff.ts`
+  - Sénat : `senat-collaborateurs.ts` (API JSON) → `upsert/senat-staffers-diff.ts`
 - **Description** : Collaborateurs parlementaires déclarés, avec suivi des arrivées et départs. Stratégie diff : set end_date sur les collaborateurs partis.
-- **Pages M4** : fiche élu (section collaborateurs avec badges actif/inactif), timeline unifiée
+- **Pages** : fiche élu (section collaborateurs avec badges actif/inactif), timeline unifiée
 
 ## Intérêts et patrimoine (HATVP)
 
 - **Tables** : `interests`
-- **Source** : HATVP (Haute Autorité pour la Transparence de la Vie Publique) — ⏸ désactivé, source API à câbler
-- **Client M1** : `hatvp.ts` → `upsert/interests.ts`
-- **Description** : Déclarations d'intérêts et d'activités des élus soumis à obligation déclarative. Types : company_share, nonprofit_role.
-- **Pages M4** : fiche élu (section intérêts déclarés)
+- **Source** : HATVP (Haute Autorité pour la Transparence de la Vie Publique) — XML streaming (`declarations.xml`)
+- **Client** : `hatvp.ts` (SAX streaming parser) → `upsert/interests.ts`
+- **Description** : Déclarations d'intérêts et d'activités des parlementaires. Catégories : activités professionnelles (`professional_activity`), activités de conseil (`consulting_activity`), organes dirigeants (`governing_body_membership`), activités bénévoles (`voluntary_activity`), fonctions électives annexes (`elected_function`), participations financières (`financial_participation`). Les mandats parlementaires (DEPUTE, SENATEUR, etc.) sont filtrés pour ne retenir que les fonctions annexes.
+- **Pages** : fiche élu (section intérêts déclarés, groupés par catégorie avec labels colorés)
 
 ## Commissions
 
 - **Tables** : `committees`
-- **Source** : data.assemblee-nationale.fr — ⏸ désactivé, source API à câbler
-- **Client M1** : `an-commissions.ts` → `upsert/committees.ts`
+- **Source** : data.assemblee-nationale.fr (ZIP/JSON)
+- **Client** : `an-commissions.ts` → `upsert/committees.ts`
 - **Description** : Composition des commissions permanentes/spéciales, délégations, groupes d'études et d'amitié.
-- **Pages M4** : fiche élu (section commissions & groupes)
+- **Pages** : fiche élu (section commissions & groupes)
 
 ## Mentions presse
 
@@ -68,15 +72,17 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Adresses et contacts
 
 - **Tables** : `addresses`, `external_links`
-- **Source** : data.assemblee-nationale.fr — ZIP acteurs actifs (AMO10), extraction des adresses postales, téléphones et emails
-- **Client M1** : `an-adresses.ts` → `upsert/addresses.ts`
-- **Description** : Adresses de permanence (constituency_office) et de l'Assemblée (assembly_office), coordonnées (téléphone rattaché, email).
-- **Pages M4** : fiche élu (section coordonnées, section liens extérieurs)
+- **Sources** :
+  - AN : `an-adresses.ts` (ZIP AMO10) → `upsert/addresses.ts`
+  - Sénat : `senat-adresses.ts` (API JSON) → `upsert/senat-addresses.ts`
+- **Description** : Adresses de permanence (constituency_office) et de l'assemblée (assembly_office), coordonnées (téléphone, email).
+- **Pages** : fiche élu (section coordonnées, section liens extérieurs)
 
 ## Historique électoral
 
 - **Tables** : `electoral_results`
-- **Source** : data.gouv.fr — ⏸ désactivé, source API à câbler
-- **Client M1** : `datagouv-elections.ts` → `upsert/electoral-results.ts`
+- **Sources** :
+  - AN : `datagouv-elections.ts` → `upsert/electoral-results.ts` (⏸ prévu, source à câbler)
+  - Sénat : `senat-elections.ts` (API JSON) → `upsert/senat-electoral-results.ts`
 - **Description** : Résultats des élections par circonscription : pourcentage, tour, nombre d'opposants.
-- **Pages M4** : fiche élu (section historique électoral)
+- **Pages** : fiche élu (section historique électoral)
