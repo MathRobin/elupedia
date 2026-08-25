@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import OfficialsList from '../components/OfficialsList';
 import { getDb } from '../lib/db.js';
 import { officials, mandates } from '@elupedia/shared';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, isNull, sql } from 'drizzle-orm';
 
 type Official = {
   id: string;
@@ -11,8 +11,10 @@ type Official = {
   lastName: string;
   photoUrl: string | null;
   district: string | null;
+  department: string | null;
   politicalGroup: string | null;
   mandateType: string;
+  isFemale: boolean;
 };
 
 let officialsList: Official[] = [];
@@ -27,15 +29,27 @@ try {
       lastName: officials.lastName,
       photoUrl: officials.photoUrl,
       district: mandates.district,
+      department: mandates.department,
       politicalGroup: mandates.politicalGroup,
       mandateType: mandates.type,
+      civ: sql<string>`COALESCE("officials"."full"->'acteur'->'etatCivil'->'ident'->>'civ', "officials"."full"->>'Qualite')`,
     })
     .from(officials)
     .innerJoin(mandates, eq(mandates.officialId, officials.id))
     .where(isNull(mandates.endDate))
     .orderBy(officials.lastName);
 
-  officialsList = rows;
+  officialsList = rows.map((r) => ({
+    id: r.id,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    photoUrl: r.photoUrl,
+    district: r.district,
+    department: r.department,
+    politicalGroup: r.politicalGroup,
+    mandateType: r.mandateType,
+    isFemale: r.civ === 'Mme',
+  }));
 } catch (e) {
   error = e instanceof Error ? e.message : String(e);
 }

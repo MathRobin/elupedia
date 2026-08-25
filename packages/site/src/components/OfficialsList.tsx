@@ -6,14 +6,128 @@ type Official = {
   lastName: string;
   photoUrl: string | null;
   district: string | null;
+  department: string | null;
   politicalGroup: string | null;
   mandateType: string;
+  isFemale: boolean;
 };
 
 type Filters = {
   depute: boolean;
   senateur: boolean;
+  department: string;
 };
+
+const DEPARTMENTS = [
+  'Ain',
+  'Aisne',
+  'Allier',
+  'Alpes-de-Haute-Provence',
+  'Alpes-Maritimes',
+  'Ardèche',
+  'Ardennes',
+  'Ariège',
+  'Aube',
+  'Aude',
+  'Aveyron',
+  'Bas-Rhin',
+  'Bouches-du-Rhône',
+  'Calvados',
+  'Cantal',
+  'Charente',
+  'Charente-Maritime',
+  'Cher',
+  'Corrèze',
+  'Corse-du-Sud',
+  'Creuse',
+  "Côte-d'Or",
+  "Côtes-d'Armor",
+  'Deux-Sèvres',
+  'Dordogne',
+  'Doubs',
+  'Drôme',
+  'Essonne',
+  'Eure',
+  'Eure-et-Loir',
+  'Finistère',
+  'Français établis hors de France',
+  'Gard',
+  'Gers',
+  'Gironde',
+  'Guadeloupe',
+  'Guyane',
+  'Haut-Rhin',
+  'Haute-Corse',
+  'Haute-Garonne',
+  'Haute-Loire',
+  'Haute-Marne',
+  'Haute-Savoie',
+  'Haute-Saône',
+  'Haute-Vienne',
+  'Hautes-Alpes',
+  'Hautes-Pyrénées',
+  'Hauts-de-Seine',
+  'Hérault',
+  'Ille-et-Vilaine',
+  'Indre',
+  'Indre-et-Loire',
+  'Isère',
+  'Jura',
+  'La Réunion',
+  'Landes',
+  'Loir-et-Cher',
+  'Loire',
+  'Loire-Atlantique',
+  'Loiret',
+  'Lot',
+  'Lot-et-Garonne',
+  'Lozère',
+  'Maine-et-Loire',
+  'Manche',
+  'Marne',
+  'Martinique',
+  'Mayenne',
+  'Mayotte',
+  'Meurthe-et-Moselle',
+  'Meuse',
+  'Morbihan',
+  'Moselle',
+  'Nièvre',
+  'Nord',
+  'Nouvelle-Calédonie',
+  'Oise',
+  'Orne',
+  'Paris',
+  'Pas-de-Calais',
+  'Polynésie française',
+  'Puy-de-Dôme',
+  'Pyrénées-Atlantiques',
+  'Pyrénées-Orientales',
+  'Rhône',
+  'Saint-Barthélemy',
+  'Saint-Martin',
+  'Saint-Pierre-et-Miquelon',
+  'Sarthe',
+  'Savoie',
+  'Saône-et-Loire',
+  'Seine-Maritime',
+  'Seine-Saint-Denis',
+  'Seine-et-Marne',
+  'Somme',
+  'Tarn',
+  'Tarn-et-Garonne',
+  'Territoire de Belfort',
+  "Val-d'Oise",
+  'Val-de-Marne',
+  'Var',
+  'Vaucluse',
+  'Vendée',
+  'Vienne',
+  'Vosges',
+  'Wallis-et-Futuna',
+  'Yonne',
+  'Yvelines',
+];
 
 function FilterDrawer({
   filters,
@@ -79,7 +193,7 @@ function FilterDrawer({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               <fieldset>
                 <legend className="text-sm font-semibold text-slate-700">
                   Type de mandat
@@ -95,7 +209,7 @@ function FilterDrawer({
                       className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     <span className="text-sm text-slate-700">
-                      Député(e)s
+                      Députés·es
                       <span className="ml-1 text-slate-400">
                         ({counts.depute})
                       </span>
@@ -119,6 +233,26 @@ function FilterDrawer({
                   </label>
                 </div>
               </fieldset>
+
+              <fieldset>
+                <legend className="text-sm font-semibold text-slate-700">
+                  Département
+                </legend>
+                <select
+                  value={filters.department}
+                  onChange={(e) =>
+                    onChange({ ...filters, department: e.target.value })
+                  }
+                  className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="">Tous les départements</option>
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </fieldset>
             </div>
           </div>
         </div>
@@ -135,6 +269,7 @@ export default function OfficialsList({
   const [filters, setFilters] = useState<Filters>({
     depute: true,
     senateur: true,
+    department: '',
   });
 
   const counts = {
@@ -145,6 +280,7 @@ export default function OfficialsList({
   const filtered = officials.filter((o) => {
     if (o.mandateType === 'depute' && !filters.depute) return false;
     if (o.mandateType === 'senateur' && !filters.senateur) return false;
+    if (filters.department && o.department !== filters.department) return false;
     return true;
   });
 
@@ -162,19 +298,32 @@ export default function OfficialsList({
             href={`/elus/${d.id}`}
             className="group flex items-start gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 hover:shadow-md hover:ring-indigo-400/40 transition-all no-underline"
           >
-            {d.photoUrl ? (
-              <img
-                src={d.photoUrl}
-                alt={`${d.firstName} ${d.lastName}`}
-                className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-slate-100"
-                loading="lazy"
-              />
-            ) : (
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-lg font-semibold text-indigo-600">
-                {d.firstName[0]}
-                {d.lastName[0]}
-              </div>
-            )}
+            <div className="shrink-0 flex flex-col items-center gap-1">
+              {d.photoUrl ? (
+                <img
+                  src={d.photoUrl}
+                  alt={`${d.firstName} ${d.lastName}`}
+                  className="h-14 w-14 rounded-full object-cover ring-2 ring-slate-100"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-50 text-lg font-semibold text-indigo-600">
+                  {d.firstName[0]}
+                  {d.lastName[0]}
+                </div>
+              )}
+              <span
+                className={`text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full ${d.mandateType === 'depute' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}
+              >
+                {d.mandateType === 'depute'
+                  ? d.isFemale
+                    ? 'Députée'
+                    : 'Député'
+                  : d.isFemale
+                    ? 'Sénatrice'
+                    : 'Sénateur'}
+              </span>
+            </div>
             <div className="min-w-0">
               <p className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
                 {d.firstName} {d.lastName}
