@@ -41,10 +41,13 @@ export async function upsertInterests(
       if (existing.length === 0) {
         await db.insert(interests).values({
           officialId,
+          category: item.category,
           type: item.type,
           entityName: item.entity_name,
           roleDescription: item.role_description ?? null,
           declaredDate: item.declared_date,
+          startDate: item.start_date ?? null,
+          endDate: item.end_date ?? null,
           full: item.full ?? null,
         });
         summary.created++;
@@ -52,8 +55,11 @@ export async function upsertInterests(
         await db
           .update(interests)
           .set({
+            category: item.category,
             roleDescription: item.role_description ?? null,
             declaredDate: item.declared_date,
+            startDate: item.start_date ?? null,
+            endDate: item.end_date ?? null,
             full: item.full ?? null,
           })
           .where(eq(interests.id, existing[0].id));

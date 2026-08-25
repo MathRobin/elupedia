@@ -79,10 +79,20 @@ export type CommitteeItem = z.infer<typeof CommitteeItemSchema>;
 // ── HATVP ──
 
 export const InterestItemSchema = z.object({
-  type: z.enum(['company_share', 'nonprofit_role']),
+  category: z.enum([
+    'professional_activity',
+    'consulting_activity',
+    'governing_body_membership',
+    'voluntary_activity',
+    'elected_function',
+    'financial_participation',
+  ]),
+  type: z.string(),
   entity_name: z.string(),
   role_description: z.string().optional(),
   declared_date: z.string(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
   full: z.record(z.string(), z.unknown()).optional(),
 });
 

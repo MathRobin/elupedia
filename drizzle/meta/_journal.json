@@ -50,6 +50,13 @@
       "when": 1787594500307,
       "tag": "0006_tough_fabian_cortez",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787646327400,
+      "tag": "0007_short_riptide",
+      "breakpoints": true
     }
   ]
 }

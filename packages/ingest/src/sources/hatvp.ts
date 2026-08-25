@@ -161,6 +161,7 @@ async function parseDeclarationsStream(
 
           for (const p of current.participations) {
             interests.push({
+              category: 'financial_participation',
               type: 'company_share',
               entity_name: p.nomSociete,
               role_description: p.nombreParts
@@ -173,6 +174,7 @@ async function parseDeclarationsStream(
 
           for (const f of current.fonctionsBenefoles) {
             interests.push({
+              category: 'voluntary_activity',
               type: 'nonprofit_role',
               entity_name: f.nomSociete,
               role_description: f.activite || undefined,

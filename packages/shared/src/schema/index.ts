@@ -4,7 +4,11 @@ export { ballots } from './ballots.js';
 export { votes, votePositionEnum } from './votes.js';
 export { staffers } from './staffers.js';
 export { affiliations } from './affiliations.js';
-export { interests, interestTypeEnum } from './interests.js';
+export {
+  interests,
+  interestCategoryEnum,
+  type InterestCategory,
+} from './interests.js';
 export { addresses, addressTypeEnum } from './addresses.js';
 export {
   externalLinks,

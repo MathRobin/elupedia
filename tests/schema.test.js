@@ -128,16 +128,26 @@ describe('#13 — interests (HATVP)', () => {
     expect(getTableName(interests)).toBe('interests');
     const cols = Object.keys(interests);
     expect(cols).toContain('officialId');
+    expect(cols).toContain('category');
     expect(cols).toContain('type');
     expect(cols).toContain('entityName');
     expect(cols).toContain('roleDescription');
     expect(cols).toContain('declaredDate');
+    expect(cols).toContain('startDate');
+    expect(cols).toContain('endDate');
   });
 
-  it('interestTypeEnum has valid values', async () => {
-    const { interestTypeEnum } =
+  it('interestCategoryEnum has valid values', async () => {
+    const { interestCategoryEnum } =
       await import('../packages/shared/src/schema/interests.js');
-    expect(interestTypeEnum).toEqual(['company_share', 'nonprofit_role']);
+    expect(interestCategoryEnum).toEqual([
+      'professional_activity',
+      'consulting_activity',
+      'governing_body_membership',
+      'voluntary_activity',
+      'elected_function',
+      'financial_participation',
+    ]);
   });
 });
 

@@ -88,6 +88,7 @@ describe('HATVP client', () => {
     expect(declarations[0].prenom).toBe('Marie');
     expect(declarations[0].interests).toHaveLength(2);
     expect(declarations[0].interests[0]).toMatchObject({
+      category: 'financial_participation',
       type: 'company_share',
       entity_name: 'Acme Corp',
       role_description: '10 parts',
@@ -97,6 +98,7 @@ describe('HATVP client', () => {
     expect(declarations[0].interests[0].full!.nomSociete).toBe('Acme Corp');
     expect(declarations[0].interests[0].full!.nombreParts).toBe('10');
     expect(declarations[0].interests[1]).toMatchObject({
+      category: 'voluntary_activity',
       type: 'nonprofit_role',
       entity_name: 'Association Citoyenne',
       role_description: 'Présidente',
@@ -146,6 +148,7 @@ describe('HATVP client', () => {
   it('validates InterestItemSchema', () => {
     expect(
       InterestItemSchema.safeParse({
+        category: 'financial_participation',
         type: 'company_share',
         entity_name: 'Acme Corp',
         declared_date: '2023-01-01',
@@ -153,10 +156,11 @@ describe('HATVP client', () => {
     ).toBe(true);
   });
 
-  it('rejects invalid type', () => {
+  it('rejects invalid category', () => {
     expect(
       InterestItemSchema.safeParse({
-        type: 'invalid',
+        category: 'invalid',
+        type: 'company_share',
         entity_name: 'X',
         declared_date: '2023-01-01',
       }).success,
