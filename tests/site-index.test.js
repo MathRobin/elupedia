@@ -6,6 +6,10 @@ const root = resolve(import.meta.dirname, '..');
 
 describe("Page d'accueil — structure (#51)", () => {
   const indexPath = resolve(root, 'packages/site/src/pages/index.astro');
+  const listPath = resolve(
+    root,
+    'packages/site/src/components/OfficialsList.tsx',
+  );
 
   it('index.astro exists', () => {
     expect(existsSync(indexPath)).toBe(true);
@@ -22,20 +26,20 @@ describe("Page d'accueil — structure (#51)", () => {
     expect(content).toContain('mandates');
   });
 
-  it('displays deputies in a grid', () => {
-    const content = readFileSync(indexPath, 'utf-8');
+  it('displays officials in a grid', () => {
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('grid');
-    expect(content).toContain('deputesList.map');
+    expect(content).toContain('filtered.map');
   });
 
   it('shows first name and last name', () => {
-    const content = readFileSync(indexPath, 'utf-8');
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('d.firstName');
     expect(content).toContain('d.lastName');
   });
 
   it('shows district', () => {
-    const content = readFileSync(indexPath, 'utf-8');
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('d.district');
   });
 
@@ -55,33 +59,36 @@ describe("Page d'accueil — structure (#51)", () => {
 });
 
 describe('Styling grille de cartes (#52)', () => {
-  const indexPath = resolve(root, 'packages/site/src/pages/index.astro');
+  const listPath = resolve(
+    root,
+    'packages/site/src/components/OfficialsList.tsx',
+  );
 
   it('displays photo or initials fallback', () => {
-    const content = readFileSync(indexPath, 'utf-8');
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('d.photoUrl');
     expect(content).toContain('<img');
     expect(content).toContain('rounded-full');
   });
 
   it('shows political group', () => {
-    const content = readFileSync(indexPath, 'utf-8');
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('d.politicalGroup');
   });
 
   it('has hover effects on cards', () => {
-    const content = readFileSync(indexPath, 'utf-8');
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('hover:');
     expect(content).toContain('transition');
   });
 
   it('uses lazy loading for images', () => {
-    const content = readFileSync(indexPath, 'utf-8');
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('loading="lazy"');
   });
 
-  it('links cards to deputy detail page', () => {
-    const content = readFileSync(indexPath, 'utf-8');
+  it('links cards to official detail page', () => {
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('/elus/');
     expect(content).toContain('d.id');
   });

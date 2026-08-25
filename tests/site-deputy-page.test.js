@@ -52,8 +52,11 @@ describe('Fiche élu (#53)', () => {
   });
 
   it('homepage links to /elus/ path', () => {
-    const indexPath = resolve(root, 'packages/site/src/pages/index.astro');
-    const content = readFileSync(indexPath, 'utf-8');
+    const listPath = resolve(
+      root,
+      'packages/site/src/components/OfficialsList.tsx',
+    );
+    const content = readFileSync(listPath, 'utf-8');
     expect(content).toContain('/elus/');
   });
 });
