@@ -179,10 +179,10 @@ describe('Fiche élu — section participations (#57)', () => {
     expect(content).toContain('i.declaredDate');
   });
 
-  it('translates interest types to French', () => {
+  it('translates interest categories to French', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('Participation en entreprise');
-    expect(content).toContain('Fonction associative');
+    expect(content).toContain('Participations financières');
+    expect(content).toContain('Activités bénévoles');
   });
 
   it('shows role description when available', () => {

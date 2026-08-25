@@ -135,10 +135,7 @@ async function parseDeclarationsStream(
       inParticipationDirigeant = true;
       currentParticipationDirigeant = {};
     }
-    if (
-      joined.includes('mandatElectifDto/items/items') &&
-      tag === 'items'
-    ) {
+    if (joined.includes('mandatElectifDto/items/items') && tag === 'items') {
       inMandatElectif = true;
       currentMandatElectif = {};
     }
@@ -171,9 +168,7 @@ async function parseDeclarationsStream(
             current.mandatDescriptions.push(
               currentMandatElectif.descriptionMandat,
             );
-            if (
-              !isParliamentary(currentMandatElectif.descriptionMandat)
-            ) {
+            if (!isParliamentary(currentMandatElectif.descriptionMandat)) {
               current.mandatsElectifs.push({ ...currentMandatElectif });
             }
           }

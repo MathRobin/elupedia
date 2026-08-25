@@ -28,41 +28,41 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 
 #### Clients de données
 
-| Client                       | Fichier                          | Source                      | Format        | Statut   |
-| ---------------------------- | -------------------------------- | --------------------------- | ------------- | -------- |
-| Députés (tous)               | `sources/assemblee-nationale.ts` | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Collaborateurs AN            | `sources/an-collaborateurs.ts`   | data.assemblee-nationale.fr | CSV           | ✅ actif |
-| Adresses/contacts AN         | `sources/an-adresses.ts`        | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Activité parlementaire       | `sources/an-activite.ts`        | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Commissions/délégations      | `sources/an-commissions.ts`     | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Intérêts (HATVP)             | `sources/hatvp.ts`              | hatvp.fr                    | XML streaming | ✅ actif |
-| Sénateurs                    | `sources/senat.ts`              | data.senat.fr               | JSON API      | ✅ actif |
-| Scrutins Sénat               | `sources/senat-scrutins.ts`     | data.senat.fr               | JSON API      | ✅ actif |
-| Groupes Sénat                | `sources/senat-groupes.ts`      | data.senat.fr               | JSON API      | ✅ actif |
-| Collaborateurs Sénat         | `sources/senat-collaborateurs.ts` | data.senat.fr             | JSON API      | ✅ actif |
-| Adresses Sénat               | `sources/senat-adresses.ts`     | data.senat.fr               | JSON API      | ✅ actif |
-| Historique électoral Sénat   | `sources/senat-elections.ts`    | data.senat.fr               | JSON API      | ✅ actif |
-| Résultats électoraux AN      | `sources/datagouv-elections.ts` | data.gouv.fr                | —             | ⏸ prévu  |
+| Client                     | Fichier                           | Source                      | Format        | Statut   |
+| -------------------------- | --------------------------------- | --------------------------- | ------------- | -------- |
+| Députés (tous)             | `sources/assemblee-nationale.ts`  | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Collaborateurs AN          | `sources/an-collaborateurs.ts`    | data.assemblee-nationale.fr | CSV           | ✅ actif |
+| Adresses/contacts AN       | `sources/an-adresses.ts`          | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Activité parlementaire     | `sources/an-activite.ts`          | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Commissions/délégations    | `sources/an-commissions.ts`       | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Intérêts (HATVP)           | `sources/hatvp.ts`                | hatvp.fr                    | XML streaming | ✅ actif |
+| Sénateurs                  | `sources/senat.ts`                | data.senat.fr               | JSON API      | ✅ actif |
+| Scrutins Sénat             | `sources/senat-scrutins.ts`       | data.senat.fr               | JSON API      | ✅ actif |
+| Groupes Sénat              | `sources/senat-groupes.ts`        | data.senat.fr               | JSON API      | ✅ actif |
+| Collaborateurs Sénat       | `sources/senat-collaborateurs.ts` | data.senat.fr               | JSON API      | ✅ actif |
+| Adresses Sénat             | `sources/senat-adresses.ts`       | data.senat.fr               | JSON API      | ✅ actif |
+| Historique électoral Sénat | `sources/senat-elections.ts`      | data.senat.fr               | JSON API      | ✅ actif |
+| Résultats électoraux AN    | `sources/datagouv-elections.ts`   | data.gouv.fr                | —             | ⏸ prévu  |
 
 #### Upsert / Diff
 
-| Upsert                        | Fichier                            | Stratégie                                    |
-| ----------------------------- | ---------------------------------- | -------------------------------------------- |
-| Officials + mandates (AN)     | `upsert/officials.ts`              | Upsert sur an_id                             |
-| Sénateurs + mandats           | `upsert/senators.ts`               | Upsert sur an_id (source Sénat)              |
-| Votes + ballots (AN)          | `upsert/votes.ts`                  | Upsert sur ballot_id + official              |
-| Votes Sénat                   | `upsert/senat-votes.ts`            | Upsert sur ballot_id + official              |
-| Collaborateurs AN             | `upsert/staffers-diff.ts`          | Diff (set end_date si parti)                 |
-| Collaborateurs Sénat          | `upsert/senat-staffers-diff.ts`    | Diff (set end_date si parti)                 |
-| Affiliations AN               | `upsert/affiliations-diff.ts`      | Diff (set end_date si changé)                |
-| Affiliations Sénat            | `upsert/senat-affiliations.ts`     | Upsert sur official + groupe                 |
-| Intérêts                      | `upsert/interests.ts`              | Upsert sur official + entity                 |
-| Adresses AN                   | `upsert/addresses.ts`              | Upsert sur official + type                   |
-| Adresses Sénat                | `upsert/senat-addresses.ts`        | Upsert sur official + type                   |
-| Activité parlementaire        | `upsert/parliamentary-activity.ts` | Upsert sur official + title + date           |
-| Commissions                   | `upsert/committees.ts`             | Upsert sur official + name + type            |
-| Résultats électoraux AN       | `upsert/electoral-results.ts`      | Upsert sur official + election + round       |
-| Résultats électoraux Sénat    | `upsert/senat-electoral-results.ts`| Upsert sur official + election + round       |
+| Upsert                     | Fichier                             | Stratégie                              |
+| -------------------------- | ----------------------------------- | -------------------------------------- |
+| Officials + mandates (AN)  | `upsert/officials.ts`               | Upsert sur an_id                       |
+| Sénateurs + mandats        | `upsert/senators.ts`                | Upsert sur an_id (source Sénat)        |
+| Votes + ballots (AN)       | `upsert/votes.ts`                   | Upsert sur ballot_id + official        |
+| Votes Sénat                | `upsert/senat-votes.ts`             | Upsert sur ballot_id + official        |
+| Collaborateurs AN          | `upsert/staffers-diff.ts`           | Diff (set end_date si parti)           |
+| Collaborateurs Sénat       | `upsert/senat-staffers-diff.ts`     | Diff (set end_date si parti)           |
+| Affiliations AN            | `upsert/affiliations-diff.ts`       | Diff (set end_date si changé)          |
+| Affiliations Sénat         | `upsert/senat-affiliations.ts`      | Upsert sur official + groupe           |
+| Intérêts                   | `upsert/interests.ts`               | Upsert sur official + entity           |
+| Adresses AN                | `upsert/addresses.ts`               | Upsert sur official + type             |
+| Adresses Sénat             | `upsert/senat-addresses.ts`         | Upsert sur official + type             |
+| Activité parlementaire     | `upsert/parliamentary-activity.ts`  | Upsert sur official + title + date     |
+| Commissions                | `upsert/committees.ts`              | Upsert sur official + name + type      |
+| Résultats électoraux AN    | `upsert/electoral-results.ts`       | Upsert sur official + election + round |
+| Résultats électoraux Sénat | `upsert/senat-electoral-results.ts` | Upsert sur official + election + round |
 
 ### 2. Base de données (PostgreSQL / Neon)
 
@@ -75,21 +75,21 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 
 #### Tables (M0 — schéma)
 
-| Table                    | Colonnes clés                                                         | FK vers            |
-| ------------------------ | --------------------------------------------------------------------- | ------------------ |
-| `officials`              | id, first_name, last_name, an_id, birth_date, photo_url               | —                  |
-| `mandates`               | type, district, department, start_date, end_date, political_group     | officials          |
-| `ballots`                | an_id, title, date, type                                              | —                  |
-| `votes`                  | position (for/against/abstain/absent)                                 | ballots, officials |
-| `staffers`               | first_name, last_name, start_date, end_date (index sur official_id)   | officials          |
-| `affiliations`           | party_or_group, start_date, end_date                                  | officials          |
+| Table                    | Colonnes clés                                                                                                                                                      | FK vers            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
+| `officials`              | id, first_name, last_name, an_id, birth_date, photo_url                                                                                                            | —                  |
+| `mandates`               | type, district, department, start_date, end_date, political_group                                                                                                  | officials          |
+| `ballots`                | an_id, title, date, type                                                                                                                                           | —                  |
+| `votes`                  | position (for/against/abstain/absent)                                                                                                                              | ballots, officials |
+| `staffers`               | first_name, last_name, start_date, end_date (index sur official_id)                                                                                                | officials          |
+| `affiliations`           | party_or_group, start_date, end_date                                                                                                                               | officials          |
 | `interests`              | type (professional_activity/consulting_activity/governing_body_membership/voluntary_activity/elected_function/financial_participation), entity_name, declared_date | officials          |
-| `addresses`              | type (constituency/assembly), street, postal_code, city, phone, email | officials          |
-| `external_links`         | platform, url                                                         | officials          |
-| `press_mentions`         | title, source_name, source_url, published_date, summary               | officials          |
-| `parliamentary_activity` | type, title, date, status                                             | officials          |
-| `committees`             | name, type, start_date, end_date                                      | officials          |
-| `electoral_results`      | election_type, election_date, round, score_percent, opponent_count    | officials          |
+| `addresses`              | type (constituency/assembly), street, postal_code, city, phone, email                                                                                              | officials          |
+| `external_links`         | platform, url                                                                                                                                                      | officials          |
+| `press_mentions`         | title, source_name, source_url, published_date, summary                                                                                                            | officials          |
+| `parliamentary_activity` | type, title, date, status                                                                                                                                          | officials          |
+| `committees`             | name, type, start_date, end_date                                                                                                                                   | officials          |
+| `electoral_results`      | election_type, election_date, round, score_percent, opponent_count                                                                                                 | officials          |
 
 ### 3. Build du site (`packages/site`)
 
