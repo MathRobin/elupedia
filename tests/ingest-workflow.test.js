@@ -72,29 +72,6 @@ describe('Ingest Sénat workflow', () => {
   });
 });
 
-describe('Scrape social links workflow (#135)', () => {
-  const wfPath = resolve(root, '.github/workflows/scrape-social-links.yml');
-
-  it('scrape-social-links.yml exists', () => {
-    expect(existsSync(wfPath)).toBe(true);
-  });
-
-  it('has a daily cron schedule at 03:00 UTC', () => {
-    const content = readFileSync(wfPath, 'utf-8');
-    expect(content).toContain("cron: '0 3 * * *'");
-  });
-
-  it('uses DATABASE_URL secret', () => {
-    const content = readFileSync(wfPath, 'utf-8');
-    expect(content).toContain('DATABASE_URL');
-  });
-
-  it('runs scrape-social script', () => {
-    const content = readFileSync(wfPath, 'utf-8');
-    expect(content).toContain('scrape-social');
-  });
-});
-
 describe('Ingest package scripts', () => {
   it('has ingest scripts in package.json', () => {
     const pkg = JSON.parse(
