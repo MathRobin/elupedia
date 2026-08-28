@@ -59,6 +59,11 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Run database migrations
+        run: yarn db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Install Vercel CLI
         run: npm install -g vercel
 
