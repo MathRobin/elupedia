@@ -71,6 +71,13 @@
       "when": 1787990400000,
       "tag": "0009_question_details",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787930173342,
+      "tag": "0010_interests_enrichment",
+      "breakpoints": true
     }
   ]
 }

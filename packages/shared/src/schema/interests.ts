@@ -1,4 +1,14 @@
-import { pgTable, uuid, varchar, date, text, jsonb } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  date,
+  text,
+  jsonb,
+  numeric,
+  integer,
+  boolean,
+} from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const interestCategoryEnum = [
@@ -25,4 +35,10 @@ export const interests = pgTable('interests', {
   startDate: date('start_date'),
   endDate: date('end_date'),
   full: jsonb('full'),
+  declarantComment: text('declarant_comment'),
+  sourceDocumentUrl: text('source_document_url'),
+  ownershipDetail: text('ownership_detail'),
+  annualAmount: numeric('annual_amount'),
+  amountYear: integer('amount_year'),
+  amountIsNet: boolean('amount_is_net'),
 });

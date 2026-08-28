@@ -401,6 +401,56 @@ describe('#164 — data_provenance', () => {
   });
 });
 
+describe('#176 — interests enrichment (M12T5)', () => {
+  it('interests table has new enrichment columns', async () => {
+    const { interests } =
+      await import('../packages/shared/src/schema/interests.js');
+    const cols = Object.keys(interests);
+    expect(cols).toContain('declarantComment');
+    expect(cols).toContain('sourceDocumentUrl');
+    expect(cols).toContain('ownershipDetail');
+    expect(cols).toContain('annualAmount');
+    expect(cols).toContain('amountYear');
+    expect(cols).toContain('amountIsNet');
+  });
+
+  it('new columns are nullable', () => {
+    const content = readFileSync(resolve(schemaDir, 'interests.ts'), 'utf-8');
+    for (const col of [
+      'declarant_comment',
+      'source_document_url',
+      'ownership_detail',
+      'annual_amount',
+      'amount_year',
+      'amount_is_net',
+    ]) {
+      const line = content.split('\n').find((l) => l.includes(`'${col}'`));
+      expect(line).toBeDefined();
+      expect(line).not.toContain('.notNull()');
+    }
+  });
+
+  it('migration file exists', () => {
+    expect(
+      existsSync(resolve(root, 'drizzle/0010_interests_enrichment.sql')),
+    ).toBe(true);
+  });
+
+  it('migration adds the new columns', () => {
+    const sql = readFileSync(
+      resolve(root, 'drizzle/0010_interests_enrichment.sql'),
+      'utf-8',
+    );
+    expect(sql).toContain('ALTER TABLE');
+    expect(sql).toContain('declarant_comment');
+    expect(sql).toContain('source_document_url');
+    expect(sql).toContain('ownership_detail');
+    expect(sql).toContain('annual_amount');
+    expect(sql).toContain('amount_year');
+    expect(sql).toContain('amount_is_net');
+  });
+});
+
 describe('schema index re-exports', () => {
   it('index.ts re-exports all tables', async () => {
     const schema = await import('../packages/shared/src/schema/index.js');
