@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx drizzle-kit migrate && yarn workspace @elupedia/site build",
+  "buildCommand": "cd ../.. && npx drizzle-kit migrate && cd packages/site && yarn build",
   "outputDirectory": "dist",
   "installCommand": "yarn install",
   "framework": null
