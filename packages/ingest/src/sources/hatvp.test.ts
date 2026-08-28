@@ -509,6 +509,51 @@ describe('HATVP client', () => {
     expect(item.amount_is_net).toBeUndefined();
   });
 
+  it('parses initial declaration type', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        participations: [{ nomSociete: 'Acme' }],
+      }),
+    ]);
+    const xmlWithType = xml.replace(
+      '<dateDepot>',
+      '<typeDeclaration>DIA</typeDeclaration><dateDepot>',
+    );
+    const declarations = await fetchDeclarations(mockFetch(xmlWithType));
+    expect(declarations[0].declaration_type).toBe('initial');
+  });
+
+  it('parses modification declaration type', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        participations: [{ nomSociete: 'Acme' }],
+      }),
+    ]);
+    const xmlWithType = xml.replace(
+      '<dateDepot>',
+      '<typeDeclaration>DMIA</typeDeclaration><dateDepot>',
+    );
+    const declarations = await fetchDeclarations(mockFetch(xmlWithType));
+    expect(declarations[0].declaration_type).toBe('modification');
+  });
+
+  it('detects multiple declarations for same official', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        dateDepot: '01/06/2022 10:00:00',
+        participations: [{ nomSociete: 'Corp A' }],
+      }),
+      deputeDeclaration('DUPONT', 'MARIE', {
+        dateDepot: '15/01/2024 10:00:00',
+        participations: [{ nomSociete: 'Corp B' }],
+      }),
+    ]);
+    const declarations = await fetchDeclarations(mockFetch(xml));
+    const dupont = declarations.filter((d) => d.nom === 'DUPONT');
+    expect(dupont.length).toBe(2);
+    expect(dupont[0].date_depot).not.toBe(dupont[1].date_depot);
+  });
+
   it('rejects invalid category', () => {
     expect(
       InterestItemSchema.safeParse({

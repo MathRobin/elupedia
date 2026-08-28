@@ -119,6 +119,8 @@ export const DeclarationSchema = z.object({
   prenom: z.string(),
   date_depot: z.string(),
   interests: z.array(InterestItemSchema),
+  declaration_type: z.enum(['initial', 'modification']).optional(),
+  source_document_url: z.string().optional(),
 });
 
 export type InterestItem = z.infer<typeof InterestItemSchema>;

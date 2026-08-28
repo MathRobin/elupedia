@@ -38,6 +38,7 @@ interface RawDeclaration {
   nom: string;
   prenom: string;
   dateDepot: string;
+  typeDeclaration: string;
   mandatDescriptions: string[];
   participations: RawItem[];
   fonctionsBenefoles: RawItem[];
@@ -95,6 +96,7 @@ async function parseDeclarationsStream(
         nom: '',
         prenom: '',
         dateDepot: '',
+        typeDeclaration: '',
         mandatDescriptions: [],
         participations: [],
         fonctionsBenefoles: [],
@@ -159,6 +161,8 @@ async function parseDeclarationsStream(
       if (joined.endsWith('declarant/prenom')) current.prenom = text;
       if (joined.endsWith('declaration/dateDepot') && !current.dateDepot)
         current.dateDepot = text;
+      if (joined.endsWith('declaration/typeDeclaration'))
+        current.typeDeclaration = text;
       if (inMandatElectif) {
         if (
           tag === 'items' &&
@@ -356,11 +360,13 @@ async function parseDeclarationsStream(
           }
 
           if (interests.length > 0) {
+            const declType = parseDeclarationType(current.typeDeclaration);
             results.push({
               nom: current.nom.toUpperCase(),
               prenom: capitalize(current.prenom),
               date_depot: declaredDate,
               interests,
+              declaration_type: declType,
             });
           }
         }
@@ -383,6 +389,15 @@ async function parseDeclarationsStream(
     }
     Readable.fromWeb(body as never).pipe(parser);
   });
+}
+
+function parseDeclarationType(
+  raw: string,
+): 'initial' | 'modification' | undefined {
+  const upper = raw.toUpperCase().trim();
+  if (upper.startsWith('DM') || upper.includes('MODIF')) return 'modification';
+  if (upper.startsWith('DI') || upper.startsWith('D')) return 'initial';
+  return undefined;
 }
 
 function parseAmount(

@@ -13,6 +13,7 @@ import { fetchSocialLinks } from './sources/an-reseaux-sociaux.js';
 import { upsertOfficials } from './upsert/officials.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
 import { upsertInterests } from './upsert/interests.js';
+import { upsertDeclarationSnapshots } from './upsert/declaration-snapshots.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
 import { upsertCommittees } from './upsert/committees.js';
@@ -69,10 +70,11 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
           source: 'hatvp',
         });
         const r = await upsertInterests(db, declarations);
+        const snap = await upsertDeclarationSnapshots(db, declarations);
         return {
           source: 'interests',
-          created: r.created,
-          updated: r.updated,
+          created: r.created + snap.created,
+          updated: r.updated + snap.updated,
           durationMs: 0,
         };
       }),
