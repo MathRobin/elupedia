@@ -23,6 +23,7 @@ describe('schema files exist', () => {
     'electoral-results.ts',
     'users.ts',
     'data-provenance.ts',
+    'declaration-snapshots.ts',
     'index.ts',
   ];
 
@@ -451,6 +452,45 @@ describe('#176 — interests enrichment (M12T5)', () => {
   });
 });
 
+describe('#177 — declaration_snapshots (M12T6)', () => {
+  it('declaration_snapshots table has correct columns', async () => {
+    const { declarationSnapshots } =
+      await import('../packages/shared/src/schema/declaration-snapshots.js');
+    expect(getTableName(declarationSnapshots)).toBe('declaration_snapshots');
+    const cols = Object.keys(declarationSnapshots);
+    expect(cols).toContain('id');
+    expect(cols).toContain('officialId');
+    expect(cols).toContain('declarationDate');
+    expect(cols).toContain('declarationType');
+    expect(cols).toContain('sourceDocumentUrl');
+  });
+
+  it('declarationTypeEnum has valid values', async () => {
+    const { declarationTypeEnum } =
+      await import('../packages/shared/src/schema/declaration-snapshots.js');
+    expect(declarationTypeEnum).toEqual(['initial', 'modification']);
+  });
+
+  it('migration file exists', () => {
+    expect(
+      existsSync(resolve(root, 'drizzle/0011_declaration_snapshots.sql')),
+    ).toBe(true);
+  });
+
+  it('migration creates the table', () => {
+    const sql = readFileSync(
+      resolve(root, 'drizzle/0011_declaration_snapshots.sql'),
+      'utf-8',
+    );
+    expect(sql).toContain('CREATE TABLE');
+    expect(sql).toContain('declaration_snapshots');
+    expect(sql).toContain('official_id');
+    expect(sql).toContain('declaration_date');
+    expect(sql).toContain('declaration_type');
+    expect(sql).toContain('source_document_url');
+  });
+});
+
 describe('schema index re-exports', () => {
   it('index.ts re-exports all tables', async () => {
     const schema = await import('../packages/shared/src/schema/index.js');
@@ -473,6 +513,8 @@ describe('schema index re-exports', () => {
       'users',
       'userRoleEnum',
       'dataProvenance',
+      'declarationSnapshots',
+      'declarationTypeEnum',
     ];
     for (const name of expectedExports) {
       expect(schema[name]).toBeDefined();
