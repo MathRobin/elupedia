@@ -1,10 +1,11 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
+import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
 
 export async function getStaticPaths() {
   const db = getDb();
@@ -104,9 +105,16 @@ export async function getStaticPaths() {
     .select({
       officialId: interests.officialId,
       type: interests.type,
+      category: interests.category,
       entityName: interests.entityName,
       roleDescription: interests.roleDescription,
       declaredDate: interests.declaredDate,
+      declarantComment: interests.declarantComment,
+      sourceDocumentUrl: interests.sourceDocumentUrl,
+      ownershipDetail: interests.ownershipDetail,
+      annualAmount: interests.annualAmount,
+      amountYear: interests.amountYear,
+      amountIsNet: interests.amountIsNet,
     })
     .from(interests)
     .orderBy(desc(interests.declaredDate));
@@ -116,6 +124,22 @@ export async function getStaticPaths() {
     const list = interestsByOfficial.get(i.officialId) ?? [];
     list.push(i);
     interestsByOfficial.set(i.officialId, list);
+  }
+
+  const allSnapshots = await db
+    .select({
+      officialId: declarationSnapshots.officialId,
+      declarationDate: declarationSnapshots.declarationDate,
+      declarationType: declarationSnapshots.declarationType,
+    })
+    .from(declarationSnapshots)
+    .orderBy(desc(declarationSnapshots.declarationDate));
+
+  const snapshotsByOfficial = new Map<string, typeof allSnapshots>();
+  for (const s of allSnapshots) {
+    const list = snapshotsByOfficial.get(s.officialId) ?? [];
+    list.push(s);
+    snapshotsByOfficial.set(s.officialId, list);
   }
 
   const allPress = await db
@@ -271,6 +295,7 @@ export async function getStaticPaths() {
         deputyAffiliations: affiliationsByOfficial.get(row.id) ?? [],
         deputyStaffers: staffersByOfficial.get(row.id) ?? [],
         deputyInterests: interestsByOfficial.get(row.id) ?? [],
+        deputySnapshots: snapshotsByOfficial.get(row.id) ?? [],
         deputyPress: pressByOfficial.get(row.id) ?? [],
         deputyAddresses: addressesByOfficial.get(row.id) ?? [],
         deputyLinks: linksByOfficial.get(row.id) ?? [],
@@ -318,9 +343,22 @@ type Staffer = {
 type Interest = {
   officialId: string;
   type: string;
+  category: string;
   entityName: string;
   roleDescription: string | null;
   declaredDate: string;
+  declarantComment: string | null;
+  sourceDocumentUrl: string | null;
+  ownershipDetail: string | null;
+  annualAmount: string | null;
+  amountYear: number | null;
+  amountIsNet: boolean | null;
+};
+
+type DeclarationSnapshot = {
+  officialId: string;
+  declarationDate: string;
+  declarationType: string;
 };
 
 type PressMention = {
@@ -394,6 +432,7 @@ type Props = {
   deputyAffiliations: Affiliation[];
   deputyStaffers: Staffer[];
   deputyInterests: Interest[];
+  deputySnapshots: DeclarationSnapshot[];
   deputyPress: PressMention[];
   deputyAddresses: Address[];
   deputyLinks: ExternalLink[];
@@ -403,7 +442,7 @@ type Props = {
   lastUpdated: string;
 };
 
-const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, lastUpdated } = Astro.props as Props;
+const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputySnapshots, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, lastUpdated } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -1106,16 +1145,38 @@ const timelineCategoryColors: Record<string, string> = {
               </h3>
               <ul class="mt-2 space-y-2">
                 {group.items.map((i) => (
-                  <li class="flex items-baseline justify-between border-b border-slate-100 pb-2">
+                  <li
+                    class="flex items-baseline justify-between border-b border-slate-100 pb-2 cursor-pointer group/interest hover:bg-slate-50 rounded px-1 -mx-1 transition-colors"
+                    data-interest-detail={JSON.stringify({
+                      entityName: i.entityName,
+                      type: i.type,
+                      category: i.category ?? group.category,
+                      roleDescription: i.roleDescription,
+                      declaredDate: i.declaredDate,
+                      declarantComment: i.declarantComment,
+                      sourceDocumentUrl: i.sourceDocumentUrl,
+                      ownershipDetail: i.ownershipDetail,
+                      annualAmount: i.annualAmount,
+                      amountYear: i.amountYear,
+                      amountIsNet: i.amountIsNet,
+                      declarationSnapshots: deputySnapshots.map((s) => ({
+                        declarationDate: s.declarationDate,
+                        declarationType: s.declarationType,
+                      })),
+                    })}
+                  >
                     <div>
-                      <span class="font-medium text-sm">{i.entityName}</span>
+                      <span class="font-medium text-sm group-hover/interest:text-indigo-600 transition-colors">{i.entityName}</span>
                       {i.roleDescription && (
                         <span class="ml-2 text-sm text-slate-500">{i.roleDescription}</span>
                       )}
                     </div>
-                    <span class="shrink-0 ml-4 text-xs text-slate-400 whitespace-nowrap">
-                      {new Date(i.declaredDate).toLocaleDateString('fr-FR')}
-                    </span>
+                    <div class="flex items-center gap-2 shrink-0 ml-4">
+                      <span class="text-xs text-slate-400 whitespace-nowrap">
+                        {new Date(i.declaredDate).toLocaleDateString('fr-FR')}
+                      </span>
+                      <svg class="h-3.5 w-3.5 text-slate-300 group-hover/interest:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1338,6 +1399,7 @@ const timelineCategoryColors: Record<string, string> = {
   </div>
 
   <QuestionDetailDrawer client:idle />
+  <InterestDetailDrawer client:idle />
 
   <script>
     const tocInline = document.getElementById('toc-inline');
@@ -1487,6 +1549,13 @@ const timelineCategoryColors: Record<string, string> = {
         });
       }
     }
+
+    document.querySelectorAll<HTMLElement>('[data-interest-detail]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const detail = JSON.parse(el.dataset.interestDetail!);
+        window.dispatchEvent(new CustomEvent('open-interest-detail', { detail }));
+      });
+    });
 
     document.querySelectorAll<HTMLTableRowElement>('[data-activity-detail]').forEach((row) => {
       row.addEventListener('click', () => {

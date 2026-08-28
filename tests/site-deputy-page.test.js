@@ -458,6 +458,51 @@ describe('Fiche élu — timeline unifiée (#65)', () => {
   });
 });
 
+describe('Fiche élu — InterestDetailDrawer integration (#181)', () => {
+  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+
+  it('imports InterestDetailDrawer component', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain("import InterestDetailDrawer from");
+  });
+
+  it('renders InterestDetailDrawer with client:idle', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('<InterestDetailDrawer client:idle');
+  });
+
+  it('makes interest items clickable with data attribute', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('data-interest-detail');
+    expect(content).toContain('cursor-pointer');
+  });
+
+  it('dispatches open-interest-detail custom event on click', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('open-interest-detail');
+    expect(content).toContain('interestDetail');
+  });
+
+  it('queries enriched interest fields', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('interests.declarantComment');
+    expect(content).toContain('interests.ownershipDetail');
+    expect(content).toContain('interests.annualAmount');
+    expect(content).toContain('interests.sourceDocumentUrl');
+  });
+
+  it('queries declaration_snapshots table', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('declarationSnapshots');
+    expect(content).toContain('snapshotsByOfficial');
+  });
+
+  it('passes deputySnapshots in props', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('deputySnapshots');
+  });
+});
+
 describe('Fiche élu — indicateur dernière mise à jour (#67)', () => {
   const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
 
