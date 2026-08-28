@@ -54,6 +54,12 @@ export async function upsertInterests(
           startDate: item.start_date ?? null,
           endDate: item.end_date ?? null,
           full: item.full ?? null,
+          declarantComment: item.declarant_comment ?? null,
+          sourceDocumentUrl: item.source_document_url ?? null,
+          ownershipDetail: item.ownership_detail ?? null,
+          annualAmount: item.annual_amount ?? null,
+          amountYear: item.amount_year ?? null,
+          amountIsNet: item.amount_is_net ?? null,
         });
         summary.created++;
       } else {
@@ -66,6 +72,12 @@ export async function upsertInterests(
             startDate: item.start_date ?? null,
             endDate: item.end_date ?? null,
             full: item.full ?? null,
+            declarantComment: item.declarant_comment ?? null,
+            sourceDocumentUrl: item.source_document_url ?? null,
+            ownershipDetail: item.ownership_detail ?? null,
+            annualAmount: item.annual_amount ?? null,
+            amountYear: item.amount_year ?? null,
+            amountIsNet: item.amount_is_net ?? null,
           })
           .where(eq(interests.id, existing[0].id));
         summary.updated++;

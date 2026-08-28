@@ -106,6 +106,12 @@ export const InterestItemSchema = z.object({
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   full: z.record(z.string(), z.unknown()).optional(),
+  declarant_comment: z.string().optional(),
+  source_document_url: z.string().optional(),
+  ownership_detail: z.string().optional(),
+  annual_amount: z.string().optional(),
+  amount_year: z.number().int().optional(),
+  amount_is_net: z.boolean().optional(),
 });
 
 export const DeclarationSchema = z.object({

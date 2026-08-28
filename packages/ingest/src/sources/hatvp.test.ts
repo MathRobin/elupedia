@@ -417,6 +417,98 @@ describe('HATVP client', () => {
     expect(elected!.entity_name).toBe('Conseiller municipal de Lyon');
   });
 
+  it('parses declarant comment from participation', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        participations: [{ nomSociete: 'Acme Corp', nombreParts: '10' }],
+      }),
+    ]);
+    const xmlWithComment = xml.replace(
+      '<nombreParts>10</nombreParts>',
+      '<nombreParts>10</nombreParts><commentaire>Héritage familial</commentaire>',
+    );
+    const declarations = await fetchDeclarations(mockFetch(xmlWithComment));
+    expect(declarations[0].interests[0].declarant_comment).toBe(
+      'Héritage familial',
+    );
+  });
+
+  it('parses ownership detail with percentage', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        participations: [{ nomSociete: 'Acme Corp' }],
+      }),
+    ]);
+    const xmlWithPct = xml.replace(
+      '</nomSociete>',
+      '</nomSociete><pourcentageCapital>25</pourcentageCapital>',
+    );
+    const declarations = await fetchDeclarations(mockFetch(xmlWithPct));
+    expect(declarations[0].interests[0].ownership_detail).toBe(
+      '25% du capital',
+    );
+  });
+
+  it('parses amount fields from professional activity', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        activitesPro: [
+          {
+            description: 'Avocat',
+            employeur: 'Cabinet X',
+            dateDebut: '01/2020',
+          },
+        ],
+      }),
+    ]);
+    const xmlWithAmount = xml.replace(
+      '</employeur>',
+      '</employeur><remuneration>50000</remuneration><anneeRemuneration>2022</anneeRemuneration><netBrut>net</netBrut>',
+    );
+    const declarations = await fetchDeclarations(mockFetch(xmlWithAmount));
+    const item = declarations[0].interests[0];
+    expect(item.annual_amount).toBe('50000');
+    expect(item.amount_year).toBe(2022);
+    expect(item.amount_is_net).toBe(true);
+  });
+
+  it('handles brut amount indicator', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        activitesConsultant: [
+          {
+            description: 'Conseil',
+            nomEmployeur: 'Corp',
+            dateDebut: '01/2020',
+          },
+        ],
+      }),
+    ]);
+    const xmlWithBrut = xml.replace(
+      '</nomEmployeur>',
+      '</nomEmployeur><remuneration>30000</remuneration><netBrut>brut</netBrut>',
+    );
+    const declarations = await fetchDeclarations(mockFetch(xmlWithBrut));
+    const item = declarations[0].interests[0];
+    expect(item.annual_amount).toBe('30000');
+    expect(item.amount_is_net).toBe(false);
+  });
+
+  it('omits new fields when absent in XML', async () => {
+    const xml = buildXml([
+      deputeDeclaration('DUPONT', 'MARIE', {
+        participations: [{ nomSociete: 'Acme Corp' }],
+      }),
+    ]);
+    const declarations = await fetchDeclarations(mockFetch(xml));
+    const item = declarations[0].interests[0];
+    expect(item.declarant_comment).toBeUndefined();
+    expect(item.ownership_detail).toBeUndefined();
+    expect(item.annual_amount).toBeUndefined();
+    expect(item.amount_year).toBeUndefined();
+    expect(item.amount_is_net).toBeUndefined();
+  });
+
   it('rejects invalid category', () => {
     expect(
       InterestItemSchema.safeParse({

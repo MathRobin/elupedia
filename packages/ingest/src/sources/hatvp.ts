@@ -263,6 +263,11 @@ async function parseDeclarationsStream(
           const declaredDate = parseDate(current.dateDepot);
 
           for (const p of current.participations) {
+            const ownershipParts: string[] = [];
+            if (p.nombreParts) ownershipParts.push(`${p.nombreParts} parts`);
+            if (p.pourcentageCapital)
+              ownershipParts.push(`${p.pourcentageCapital}% du capital`);
+
             interests.push({
               category: 'financial_participation',
               type: 'company_share',
@@ -272,6 +277,11 @@ async function parseDeclarationsStream(
                 : undefined,
               declared_date: declaredDate,
               full: p,
+              declarant_comment: p.commentaire || undefined,
+              ownership_detail:
+                ownershipParts.length > 0
+                  ? ownershipParts.join(', ')
+                  : undefined,
             });
           }
 
@@ -283,6 +293,7 @@ async function parseDeclarationsStream(
               role_description: f.activite || undefined,
               declared_date: declaredDate,
               full: f,
+              declarant_comment: f.commentaire || undefined,
             });
           }
 
@@ -296,6 +307,8 @@ async function parseDeclarationsStream(
               start_date: parseMonthDate(a.dateDebut),
               end_date: parseMonthDate(a.dateFin),
               full: a,
+              declarant_comment: a.commentaire || undefined,
+              ...parseAmount(a),
             });
           }
 
@@ -309,6 +322,8 @@ async function parseDeclarationsStream(
               start_date: parseMonthDate(c.dateDebut),
               end_date: parseMonthDate(c.dateFin),
               full: c,
+              declarant_comment: c.commentaire || undefined,
+              ...parseAmount(c),
             });
           }
 
@@ -322,6 +337,7 @@ async function parseDeclarationsStream(
               start_date: parseMonthDate(d.dateDebut),
               end_date: parseMonthDate(d.dateFin),
               full: d,
+              declarant_comment: d.commentaire || undefined,
             });
           }
 
@@ -335,6 +351,7 @@ async function parseDeclarationsStream(
               start_date: parseMonthDate(m.dateDebut),
               end_date: parseMonthDate(m.dateFin),
               full: m,
+              declarant_comment: m.commentaire || undefined,
             });
           }
 
@@ -366,6 +383,32 @@ async function parseDeclarationsStream(
     }
     Readable.fromWeb(body as never).pipe(parser);
   });
+}
+
+function parseAmount(
+  item: RawItem,
+): Pick<InterestItem, 'annual_amount' | 'amount_year' | 'amount_is_net'> {
+  const result: Pick<
+    InterestItem,
+    'annual_amount' | 'amount_year' | 'amount_is_net'
+  > = {};
+  const raw = item.remuneration || item.montant;
+  if (raw) {
+    const cleaned = raw.replace(/\s/g, '').replace(',', '.');
+    if (/^\d+(\.\d+)?$/.test(cleaned)) {
+      result.annual_amount = cleaned;
+    }
+  }
+  if (item.anneeRemuneration) {
+    const year = parseInt(item.anneeRemuneration, 10);
+    if (!isNaN(year)) result.amount_year = year;
+  }
+  if (item.netBrut) {
+    const lower = item.netBrut.toLowerCase();
+    if (lower === 'net') result.amount_is_net = true;
+    else if (lower === 'brut') result.amount_is_net = false;
+  }
+  return result;
 }
 
 function parseDate(raw: string): string {
