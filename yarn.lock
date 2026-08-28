@@ -594,6 +594,7 @@ __metadata:
     dotenv: "npm:^17.4.2"
     drizzle-orm: "npm:^0.45.2"
     sax: "npm:^1.6.1"
+    tsx: "npm:^4.23.12"
     unzipper: "npm:^0.12.5"
     winston: "npm:^3.19.0"
     xlsx: "npm:^0.18.5"

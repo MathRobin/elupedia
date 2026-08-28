@@ -24,6 +24,7 @@
     "@types/adm-zip": "^0.5.8",
     "@types/sax": "^1.2.7",
     "@types/unzipper": "^0",
-    "adm-zip": "^0.6.0"
+    "adm-zip": "^0.6.0",
+    "tsx": "^4.23.12"
   }
 }
