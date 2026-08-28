@@ -463,7 +463,7 @@ describe('Fiche élu — InterestDetailDrawer integration (#181)', () => {
 
   it('imports InterestDetailDrawer component', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain("import InterestDetailDrawer from");
+    expect(content).toContain('import InterestDetailDrawer from');
   });
 
   it('renders InterestDetailDrawer with client:idle', () => {
