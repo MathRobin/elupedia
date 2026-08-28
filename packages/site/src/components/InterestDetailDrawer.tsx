@@ -219,10 +219,7 @@ export default function InterestDetailDrawer() {
                   </p>
                   <ul className="mt-3 space-y-2">
                     {interest.declarationSnapshots.map((snap, i) => (
-                      <li
-                        key={i}
-                        className="flex items-center gap-3 text-sm"
-                      >
+                      <li key={i} className="flex items-center gap-3 text-sm">
                         <span className="h-2 w-2 shrink-0 rounded-full bg-indigo-400" />
                         <span className="text-slate-700">
                           {formatDate(snap.declarationDate)}

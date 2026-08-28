@@ -64,12 +64,8 @@
           "name": "addresses_official_id_officials_id_fk",
           "tableFrom": "addresses",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -122,12 +118,8 @@
           "name": "affiliations_official_id_officials_id_fk",
           "tableFrom": "affiliations",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -181,9 +173,7 @@
         "ballots_an_id_unique": {
           "name": "ballots_an_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "an_id"
-          ]
+          "columns": ["an_id"]
         }
       },
       "policies": {},
@@ -238,12 +228,8 @@
           "name": "committees_official_id_officials_id_fk",
           "tableFrom": "committees",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -358,12 +344,8 @@
           "name": "declaration_snapshots_official_id_officials_id_fk",
           "tableFrom": "declaration_snapshots",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -428,12 +410,8 @@
           "name": "electoral_results_official_id_officials_id_fk",
           "tableFrom": "electoral_results",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -500,12 +478,8 @@
           "name": "external_links_official_id_officials_id_fk",
           "tableFrom": "external_links",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -624,12 +598,8 @@
           "name": "interests_official_id_officials_id_fk",
           "tableFrom": "interests",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -700,12 +670,8 @@
           "name": "mandates_official_id_officials_id_fk",
           "tableFrom": "mandates",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -777,16 +743,12 @@
         "officials_an_id_unique": {
           "name": "officials_an_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "an_id"
-          ]
+          "columns": ["an_id"]
         },
         "officials_senat_id_unique": {
           "name": "officials_senat_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "senat_id"
-          ]
+          "columns": ["senat_id"]
         }
       },
       "policies": {},
@@ -865,12 +827,8 @@
           "name": "parliamentary_activity_official_id_officials_id_fk",
           "tableFrom": "parliamentary_activity",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -935,12 +893,8 @@
           "name": "press_mentions_official_id_officials_id_fk",
           "tableFrom": "press_mentions",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1015,12 +969,8 @@
           "name": "staffers_official_id_officials_id_fk",
           "tableFrom": "staffers",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1069,9 +1019,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1114,12 +1062,8 @@
           "name": "votes_ballot_id_ballots_id_fk",
           "tableFrom": "votes",
           "tableTo": "ballots",
-          "columnsFrom": [
-            "ballot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ballot_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1127,12 +1071,8 @@
           "name": "votes_official_id_officials_id_fk",
           "tableFrom": "votes",
           "tableTo": "officials",
-          "columnsFrom": [
-            "official_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["official_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
