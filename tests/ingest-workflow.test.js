@@ -66,9 +66,9 @@ describe('Ingest AN partial workflow', () => {
     expect(content).toContain('secrets.DATABASE_URL');
   });
 
-  it('runs ingest:an script', () => {
+  it('runs ingest:an:partial script', () => {
     const content = readFileSync(wfPath, 'utf-8');
-    expect(content).toContain('ingest:an');
+    expect(content).toContain('ingest:an:partial');
   });
 });
 
@@ -107,6 +107,7 @@ describe('Ingest package scripts', () => {
     );
     expect(pkg.scripts.ingest).toBeDefined();
     expect(pkg.scripts['ingest:an']).toBeDefined();
+    expect(pkg.scripts['ingest:an:partial']).toBeDefined();
     expect(pkg.scripts['ingest:senat']).toBeDefined();
   });
 
@@ -118,6 +119,12 @@ describe('Ingest package scripts', () => {
     expect(existsSync(resolve(root, 'packages/ingest/src/main-an.ts'))).toBe(
       true,
     );
+  });
+
+  it('main-an-partial.ts entry point exists', () => {
+    expect(
+      existsSync(resolve(root, 'packages/ingest/src/main-an-partial.ts')),
+    ).toBe(true);
   });
 
   it('main-senat.ts entry point exists', () => {

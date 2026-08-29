@@ -26,6 +26,10 @@ export const InfoNaissanceSchema = z.object({
 export const EtatCivilSchema = z.object({
   ident: IdentSchema,
   infoNaissance: InfoNaissanceSchema,
+  dateDeces: z
+    .union([z.string(), z.record(z.string(), z.string())])
+    .optional()
+    .nullable(),
 });
 
 export const ElectionLieuSchema = z.object({

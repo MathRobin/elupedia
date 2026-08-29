@@ -31,6 +31,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           lastName: depute.nom,
           birthDate: depute.date_naissance,
           photoUrl: depute.photo_url ?? null,
+          deathDate: depute.death_date ?? null,
           full: depute.full,
         })
         .where(eq(officials.id, officialId));
@@ -43,6 +44,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           anId,
           birthDate: depute.date_naissance,
           photoUrl: depute.photo_url ?? null,
+          deathDate: depute.death_date ?? null,
           full: depute.full,
         })
         .returning();

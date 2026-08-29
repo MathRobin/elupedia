@@ -1,0 +1,1 @@
+ALTER TABLE "officials" ADD COLUMN "death_date" date;

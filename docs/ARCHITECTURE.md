@@ -20,14 +20,14 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 
 - Exécution : trois cron GitHub Actions séparés :
   - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, intérêts HATVP, adresses, activité parlementaire, commissions, réseaux sociaux
-  - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — même pipeline, critérisée à terme (M14T2)
+  - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire uniquement, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois
   - Sénat (`.github/workflows/ingest-senat.yml`, mardi/samedi 03:00 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
 - Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (6 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run.ts` combine les deux pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`), `main-senat.ts` (`ingest:senat`), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -80,7 +80,7 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 
 | Table                    | Colonnes clés                                                                                                                                                      | FK vers            |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
-| `officials`              | id, first_name, last_name, an_id, birth_date, photo_url                                                                                                            | —                  |
+| `officials`              | id, first_name, last_name, an_id, birth_date, death_date, photo_url                                                                                                | —                  |
 | `mandates`               | type, district, department, start_date, end_date, political_group                                                                                                  | officials          |
 | `ballots`                | an_id, title, date, type                                                                                                                                           | —                  |
 | `votes`                  | position (for/against/abstain/absent)                                                                                                                              | ballots, officials |
@@ -145,7 +145,7 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) : lint, format, typecheck et tests sur chaque PR et push sur `main`
 - **GitHub Actions Ingestion AN — complète** (`.github/workflows/ingest-an.yml`) : 1er dimanche du mois 21:00 UTC, pipeline AN intégral
-- **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, même pipeline (critérisé à terme via M14T2)
+- **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, activité parlementaire uniquement avec critérisation (exclut décédés, mandats terminés, Q/R anciennes)
 - **GitHub Actions Ingestion Sénat** (`.github/workflows/ingest-senat.yml`) : mardi/samedi 03:00 UTC, pipeline Sénat
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 

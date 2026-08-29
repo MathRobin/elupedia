@@ -6,6 +6,7 @@
   "scripts": {
     "ingest": "tsx src/main.ts",
     "ingest:an": "tsx src/main-an.ts",
+    "ingest:an:partial": "tsx src/main-an-partial.ts",
     "ingest:senat": "tsx src/main-senat.ts",
     "test": "vitest run"
   },

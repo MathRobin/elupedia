@@ -8,5 +8,6 @@ export const officials = pgTable('officials', {
   senatId: varchar('senat_id', { length: 50 }).unique(),
   birthDate: date('birth_date'),
   photoUrl: varchar('photo_url', { length: 1024 }),
+  deathDate: date('death_date'),
   full: jsonb('full'),
 });

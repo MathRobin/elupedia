@@ -30,7 +30,7 @@ jobs:
 
       - name: Run ingestion AN (partial)
         id: run
-        run: yarn workspace @elupedia/ingest ingest:an
+        run: yarn workspace @elupedia/ingest ingest:an:partial
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 

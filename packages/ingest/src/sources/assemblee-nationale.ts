@@ -21,6 +21,7 @@ export interface Depute {
   slug: string;
   photo_url?: string;
   mandat_type: 'depute' | 'senateur';
+  death_date?: string;
   full: unknown;
 }
 
@@ -154,6 +155,9 @@ async function loadActeurs(
 
     const lieu = latestMandat.election?.lieu;
 
+    const deathDate =
+      typeof ec.dateDeces === 'string' ? ec.dateDeces : undefined;
+
     deputes.push({
       id_an: anId,
       nom: ec.ident.nom,
@@ -172,6 +176,7 @@ async function loadActeurs(
       slug: slugify(ec.ident.prenom, ec.ident.nom),
       photo_url: isSenat ? undefined : photoUrl(anId),
       mandat_type: isSenat ? 'senateur' : 'depute',
+      death_date: deathDate,
       full: rawJson,
     });
   }
