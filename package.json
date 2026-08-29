@@ -16,15 +16,27 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx packages/shared/src/seed.ts",
-    "smoke-test": "bash scripts/smoke-test.sh"
+    "smoke-test": "bash scripts/smoke-test.sh",
+    "commit": "cz",
+    "prepare": "husky"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@eslint/js": "^10.0.1",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^26.2.0",
     "@types/unzipper": "^0.10.11",
+    "commitizen": "^4.3.2",
+    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^10.9.0",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "js-yaml": "^5.3.0",
     "prettier": "^3.9.6",
     "tsx": "^4.23.12",
