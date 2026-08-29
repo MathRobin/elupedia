@@ -46,6 +46,19 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - **Adresses/contacts** : API JSON (coordonnées)
   - **Historique électoral** : API JSON (résultats par sénateur)
 
+### Google Actualités (presse)
+
+- **Éditeur** : Google
+- **Nature** : Flux RSS public (pas une API officielle, pas de clé)
+- **Licence** : Aucune licence open data — les flux RSS sont publiquement accessibles mais les articles liés restent la propriété de leurs éditeurs respectifs
+- **Obligations** :
+  - Élupedia ne republie pas le contenu des articles, uniquement le titre et le lien vers la source originale
+  - Chaque mention renvoie vers le site de l'éditeur de presse
+- **URL** : https://news.google.com/rss/
+- **Données collectées** :
+  - Titre de l'article, nom de la source, URL de l'article, date de publication
+- **Remarque** : Cette source n'est pas institutionnelle. Les résultats de recherche peuvent contenir des faux positifs (homonymes) et ne sont pas exhaustifs.
+
 ## Sources prévues (non encore actives)
 
 ### data.gouv.fr (résultats électoraux AN)
@@ -65,6 +78,7 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | Assemblée nationale | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | Sénat               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
+| Google Actualités   | RSS public          | N/A         | Titres + liens   | ✅ active |
 | data.gouv.fr        | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
 
 ## Licence du code source

@@ -70,9 +70,11 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 ## Mentions presse
 
 - **Tables** : `press_mentions`
-- **Source** : Agrégation de sources presse (articles sourcés)
-- **Description** : Mentions d'élus dans la presse, avec lien vers l'article source, date et contexte.
-- **Pages M4** : fiche élu (section presse), timeline unifiée
+- **Source** : Google Actualités (flux RSS) — `google-news.ts` → `upsert/press-mentions.ts`
+- **Workflow** : `.github/workflows/ingest-press.yml` (lundi 05:00 UTC), délai 3s entre chaque élu, élus vivants uniquement
+- **Description** : Articles de presse mentionnant un élu, collectés automatiquement via les flux RSS Google Actualités à partir du nom complet de l'élu. **Ce n'est pas une source officielle** : les résultats peuvent contenir du bruit (homonymes, mentions indirectes) et ne sont pas exhaustifs. Section proposée à titre informatif.
+- **Déduplication** : sur `(official_id, source_url)`, insert uniquement (pas de mise à jour des articles existants)
+- **Pages** : fiche élu (section presse en grille de cards), timeline unifiée
 
 ## Adresses et contacts
 
