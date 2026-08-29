@@ -37,13 +37,12 @@ export async function runPress(): Promise<StepResult[]> {
       for (let i = 0; i < livingOfficials.length; i++) {
         const official = livingOfficials[i];
         logger.info(
-          `  [${i + 1}/${livingOfficials.length}] ${official.firstName} ${official.lastName}`,
+          `  [${i + 1}/${livingOfficials.length}] ${official.lastName}`,
         );
 
         try {
           const mentions = await fetchPressMentions(
             official.id,
-            official.firstName,
             official.lastName,
           );
           const r = await upsertPressMentions(db, mentions);

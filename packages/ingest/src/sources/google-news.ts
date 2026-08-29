@@ -84,11 +84,10 @@ function toIsoDate(dateStr: string): string {
 
 export async function fetchPressMentions(
   officialId: string,
-  firstName: string,
   lastName: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<PressMentionData[]> {
-  const query = encodeURIComponent(`"${firstName} ${lastName}"`);
+  const query = encodeURIComponent(`"${lastName}"`);
   const url = `https://news.google.com/rss/search?q=${query}&hl=fr&gl=FR&ceid=FR:fr`;
 
   const response = await fetchFn(url);
