@@ -8,7 +8,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Sources** :
   - data.assemblee-nationale.fr (open data AN) — `assemblee-nationale.ts` → `upsert/officials.ts`
   - data.senat.fr (API JSON Sénat) — `senat.ts` → `upsert/senators.ts`
-- **Description** : Identité des élus (nom, prénom, date de naissance, photo) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés et sénateurs.
+- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés et sénateurs. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
 - **Pages** : page d'accueil (grille des élus actifs avec badge député/sénateur genré, filtre département), fiche élu (identité, mandat, historique des mandats)
 
 ## Activité parlementaire

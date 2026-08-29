@@ -83,7 +83,7 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 
 | Table                    | Colonnes clés                                                                                                                                                      | FK vers            |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
-| `officials`              | id, first_name, last_name, an_id, birth_date, death_date, photo_url                                                                                                | —                  |
+| `officials`              | id, first_name, last_name, an_id, slug (permalink unique), birth_date, death_date, photo_url                                                                       | —                  |
 | `mandates`               | type, district, department, start_date, end_date, political_group                                                                                                  | officials          |
 | `ballots`                | an_id, title, date, type                                                                                                                                           | —                  |
 | `votes`                  | position (for/against/abstain/absent)                                                                                                                              | ballots, officials |
@@ -113,7 +113,7 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
 - Accessibilité : skip-to-content, focus-visible global, aria-label sur la navigation, contraste WCAG AA (minimum text-gray-500 pour le texte informatif)
 - Pages :
   - `src/pages/index.astro` — page d'accueil (grille de cartes des élus avec photo, badge député/sénateur genré, nom, circonscription, groupe politique ; filtres par type de mandat et département)
-  - `src/pages/elus/[slug].astro` — fiche détaillée d'un élu (identité avec âge calculé, mandat en cours, tous les mandats, coordonnées, affiliations, collaborateurs, activité parlementaire, commissions & groupes, historique électoral, intérêts déclarés groupés par catégorie, votes, presse, liens extérieurs, timeline unifiée, indicateur de dernière mise à jour, modales de provenance AN pour les sections mandat/coordonnées/liens des députés)
+  - `src/pages/elus/[slug].astro` — fiche détaillée d'un élu, routée par slug permalink (`/elus/manuel-bompard`), avec fallback sur UUID si slug absent. Sections : identité avec âge calculé, mandat en cours, tous les mandats, coordonnées, affiliations, collaborateurs, activité parlementaire, commissions & groupes, historique électoral, intérêts déclarés groupés par catégorie, votes, presse (grille de cards Google News), liens extérieurs, timeline unifiée, indicateur de dernière mise à jour, modales de provenance AN pour les sections mandat/coordonnées/liens des députés
   - `src/pages/scrutins/[id].astro` — détail d'un scrutin (titre, date, type, votes des élus triés par nom avec position)
   - `src/pages/a-propos.astro` — page À propos (présentation, feuille de route, piliers, indépendance, contribution)
   - `src/pages/donnees-personnelles.astro` — page droits RGPD (données publiées, base légale, droits, contact, CNIL, cookies)
@@ -125,7 +125,7 @@ Le site statique généré est déployé sur Vercel. Chaque push sur `main` déc
 
 - Hébergement : Vercel (CDN mondial)
 - Mode : statique uniquement (pas de fonctions serverless)
-- Configuration : `vercel.json` (buildCommand, outputDirectory, installCommand)
+- Configuration : `vercel.json` — `installCommand` active corepack pour Yarn 4, `buildCommand` lance `drizzle-kit migrate` puis `astro build` depuis `packages/site`, output dans `packages/site/dist`
 - Domaine : `elupedia.fr` (DNS configuré vers Vercel)
 - Variables d'environnement : `DATABASE_URL` configurée sur Vercel pour le build
 - Analytics : Vercel Web Analytics (`@vercel/analytics`, cookieless, injecté dans le layout)
