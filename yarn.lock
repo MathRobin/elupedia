@@ -786,7 +786,7 @@ __metadata:
     drizzle-orm: "npm:^0.45.2"
     next: "npm:^15.3.4"
     next-auth: "npm:^5.0.0-beta.32"
-    nodemailer: "npm:^8.0.5"
+    nodemailer: "npm:^9.0.5"
     react: "npm:^19.1.0"
     react-dom: "npm:^19.1.0"
   languageName: unknown
@@ -6724,10 +6724,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nodemailer@npm:^8.0.5":
-  version: 8.0.11
-  resolution: "nodemailer@npm:8.0.11"
-  checksum: 10c0/19229216c63a32eae59d7b39f3dffeba20be317f2335d08d86fb70bd01845a1bf108fecd019c0e90ef186e3d9177cf478192b333cf38620ad0f8c7a6e1e5ae05
+"nodemailer@npm:^9.0.5":
+  version: 9.0.5
+  resolution: "nodemailer@npm:9.0.5"
+  checksum: 10c0/60f7a21497c98c0d275cd12c488af581ef6aee65db575026319ac249dcac210bdab20edf77fe3158176ed3910f70d8c46d89abcd74f57a7170302727e6d05ee3
   languageName: node
   linkType: hard
 
