@@ -109,6 +109,7 @@ describe('Ingest package scripts', () => {
     expect(pkg.scripts['ingest:an']).toBeDefined();
     expect(pkg.scripts['ingest:an:partial']).toBeDefined();
     expect(pkg.scripts['ingest:senat']).toBeDefined();
+    expect(pkg.scripts['ingest:social-links']).toBeDefined();
   });
 
   it('main.ts entry point exists', () => {
@@ -131,5 +132,34 @@ describe('Ingest package scripts', () => {
     expect(existsSync(resolve(root, 'packages/ingest/src/main-senat.ts'))).toBe(
       true,
     );
+  });
+
+  it('main-social-links.ts entry point exists', () => {
+    expect(
+      existsSync(resolve(root, 'packages/ingest/src/main-social-links.ts')),
+    ).toBe(true);
+  });
+});
+
+describe('Ingest social links workflow', () => {
+  const wfPath = resolve(root, '.github/workflows/ingest-social-links.yml');
+
+  it('ingest-social-links.yml exists', () => {
+    expect(existsSync(wfPath)).toBe(true);
+  });
+
+  it('runs daily at 03:30 UTC', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain("'30 3 * * *'");
+  });
+
+  it('supports manual dispatch', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain('workflow_dispatch');
+  });
+
+  it('runs ingest:social-links script', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain('ingest:social-links');
   });
 });

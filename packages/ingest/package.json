@@ -8,6 +8,7 @@
     "ingest:an": "tsx src/main-an.ts",
     "ingest:an:partial": "tsx src/main-an-partial.ts",
     "ingest:senat": "tsx src/main-senat.ts",
+    "ingest:social-links": "tsx src/main-social-links.ts",
     "test": "vitest run"
   },
   "dependencies": {

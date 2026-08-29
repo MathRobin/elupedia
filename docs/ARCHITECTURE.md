@@ -19,15 +19,15 @@ flowchart LR
 Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script télécharge des archives ZIP ou des fichiers CSV depuis les portails open data et effectue un upsert en base.
 
 - Exécution : trois cron GitHub Actions séparés :
-  - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, intérêts HATVP, adresses, activité parlementaire, commissions, réseaux sociaux
+  - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, intérêts HATVP, adresses, activité parlementaire, commissions
   - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire + intérêts HATVP, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois, déclarations d'élus inactifs
   - Sénat (`.github/workflows/ingest-senat.yml`, mardi/samedi 03:00 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (6 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run.ts` combine les deux pour un run complet
+- Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (6 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-social-links.ts` (`ingest:social-links`), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -147,6 +147,7 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 - **GitHub Actions Ingestion AN — complète** (`.github/workflows/ingest-an.yml`) : 1er dimanche du mois 21:00 UTC, pipeline AN intégral
 - **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, activité parlementaire + HATVP avec critérisation (exclut décédés, mandats terminés, Q/R anciennes, déclarations inactifs)
 - **GitHub Actions Ingestion Sénat** (`.github/workflows/ingest-senat.yml`) : mardi/samedi 03:00 UTC, pipeline Sénat
+- **GitHub Actions Ingestion liens sociaux** (`.github/workflows/ingest-social-links.yml`) : quotidien 03:30 UTC, crawl des 2 pages AN (réseaux sociaux + sites personnels) + scraping de 50 sites perso/jour pour détection Instagram/TikTok/YouTube
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 
 ## Tests
