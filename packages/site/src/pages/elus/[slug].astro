@@ -206,6 +206,7 @@ export async function getStaticPaths() {
       status: parliamentaryActivity.status,
       responseDate: parliamentaryActivity.responseDate,
       governmentComments: parliamentaryActivity.governmentComments,
+      rubrique: parliamentaryActivity.rubrique,
     })
     .from(parliamentaryActivity)
     .orderBy(desc(parliamentaryActivity.date));
@@ -994,6 +995,23 @@ const timelineCategoryColors: Record<string, string> = {
               );
             })}
           </div>
+          {(() => {
+            const rubriques = [...new Set(deputyActivities.map((a) => a.rubrique).filter(Boolean))].sort() as string[];
+            if (rubriques.length === 0) return null;
+            return (
+              <div id="activity-rubrique-filter" class="mt-3 flex flex-wrap gap-2">
+                {rubriques.map((rub) => {
+                  const count = deputyActivities.filter((a) => a.rubrique === rub).length;
+                  return (
+                    <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
+                      <input type="checkbox" value={rub} checked class="accent-indigo-600 h-3 w-3" data-activity-rubrique-filter />
+                      <span>{rub} <span class="text-slate-400">({count})</span></span>
+                    </label>
+                  );
+                })}
+              </div>
+            );
+          })()}
           <div class="mt-3 flex flex-wrap items-center gap-4">
             <label class="flex items-center gap-2 text-sm text-slate-600">
               Du
@@ -1023,6 +1041,7 @@ const timelineCategoryColors: Record<string, string> = {
                     <tr
                       data-activity-date={act.date}
                       data-activity-type={act.type}
+                      data-activity-rubrique={act.rubrique ?? ''}
                       {...(isQuestion ? { 'data-activity-detail': JSON.stringify({
                         officialId: act.officialId,
                         type: act.type,
@@ -1629,8 +1648,11 @@ const timelineCategoryColors: Record<string, string> = {
     const activityList = document.getElementById('activity-list');
     const activityCount = document.getElementById('activity-count');
 
+    const rubriqueFilter = document.getElementById('activity-rubrique-filter');
+
     if (activityTypeFilter && dateFrom && dateTo && activityList) {
       const typeCheckboxes = activityTypeFilter.querySelectorAll<HTMLInputElement>('[data-activity-type-filter]');
+      const rubriqueCheckboxes = rubriqueFilter?.querySelectorAll<HTMLInputElement>('[data-activity-rubrique-filter]') ?? [];
       const rows = activityList.querySelectorAll<HTMLElement>('[data-activity-date]');
 
       function applyActivityFilter() {
@@ -1638,13 +1660,20 @@ const timelineCategoryColors: Record<string, string> = {
         for (const cb of typeCheckboxes) {
           if (cb.checked) activeTypes.add(cb.value);
         }
+        const activeRubriques = new Set<string>();
+        for (const cb of rubriqueCheckboxes) {
+          if (cb.checked) activeRubriques.add(cb.value);
+        }
+        const hasRubriqueFilter = rubriqueCheckboxes.length > 0;
         const from = dateFrom!.value;
         const to = dateTo!.value;
         let visible = 0;
         for (const row of rows) {
           const date = row.dataset.activityDate!;
           const type = row.dataset.activityType!;
-          const show = activeTypes.has(type) && (!from || date >= from) && (!to || date <= to);
+          const rubrique = row.dataset.activityRubrique ?? '';
+          const matchesRubrique = !hasRubriqueFilter || !rubrique || activeRubriques.has(rubrique);
+          const show = activeTypes.has(type) && matchesRubrique && (!from || date >= from) && (!to || date <= to);
           row.style.display = show ? '' : 'none';
           if (show) visible++;
         }
@@ -1654,6 +1683,9 @@ const timelineCategoryColors: Record<string, string> = {
       }
 
       for (const cb of typeCheckboxes) {
+        cb.addEventListener('change', applyActivityFilter);
+      }
+      for (const cb of rubriqueCheckboxes) {
         cb.addEventListener('change', applyActivityFilter);
       }
       dateFrom.addEventListener('change', applyActivityFilter);
