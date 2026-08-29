@@ -1,8 +1,8 @@
-name: Ingestion AN — complète
+name: Ingestion AN — partielle
 
 on:
   schedule:
-    - cron: '0 21 1-7 * 0'
+    - cron: '0 2 * * 2,6'
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Run ingestion AN
+      - name: Run ingestion AN (partial)
         id: run
         run: yarn workspace @elupedia/ingest ingest:an
         env:
@@ -38,7 +38,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ingest-report-an
+          name: ingest-report-an-partial
           path: packages/ingest/ingest-report-an.json
           if-no-files-found: ignore
 

@@ -17,9 +17,9 @@ describe('Ingest AN workflow', () => {
     expect(content).toContain('cron:');
   });
 
-  it('runs at 02:00 UTC on Tue and Sat', () => {
+  it('runs on 1st Sunday of month at 21:00 UTC', () => {
     const content = readFileSync(wfPath, 'utf-8');
-    expect(content).toContain("'0 2 * * 2,6'");
+    expect(content).toContain("'0 21 1-7 * 0'");
   });
 
   it('supports manual dispatch', () => {
@@ -41,6 +41,34 @@ describe('Ingest AN workflow', () => {
   it('uses Node.js 26', () => {
     const content = readFileSync(wfPath, 'utf-8');
     expect(content).toContain('node-version: 26');
+  });
+});
+
+describe('Ingest AN partial workflow', () => {
+  const wfPath = resolve(root, '.github/workflows/ingest-an-partial.yml');
+
+  it('ingest-an-partial.yml exists', () => {
+    expect(existsSync(wfPath)).toBe(true);
+  });
+
+  it('runs at 02:00 UTC on Tue and Sat', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain("'0 2 * * 2,6'");
+  });
+
+  it('supports manual dispatch', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain('workflow_dispatch');
+  });
+
+  it('uses DATABASE_URL secret', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain('secrets.DATABASE_URL');
+  });
+
+  it('runs ingest:an script', () => {
+    const content = readFileSync(wfPath, 'utf-8');
+    expect(content).toContain('ingest:an');
   });
 });
 
