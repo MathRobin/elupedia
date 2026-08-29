@@ -20,7 +20,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 
 - Exécution : deux cron GitHub Actions quotidiens séparés :
   - AN (`.github/workflows/ingest-an.yml`, 02:00 UTC) — députés, collaborateurs, intérêts HATVP, adresses, activité parlementaire, commissions
-  - Sénat (`.github/workflows/ingest-senat.yml`, 02:30 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
+  - Sénat (`.github/workflows/ingest-senat.yml`, 03:00 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
