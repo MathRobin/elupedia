@@ -39,8 +39,8 @@ describe('QuestionDetailDrawer', () => {
     expect(source).toContain('replace(/<[^>]+>/g');
   });
 
-  it('displays ministry label', () => {
-    expect(source).toContain('Ministère interrogé');
+  it('displays ministry info', () => {
+    expect(source).toContain('governmentComments');
   });
 
   it('fetches texts from API on open', () => {
