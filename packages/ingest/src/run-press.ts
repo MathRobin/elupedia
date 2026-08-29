@@ -43,6 +43,7 @@ export async function runPress(): Promise<StepResult[]> {
         try {
           const mentions = await fetchPressMentions(
             official.id,
+            official.firstName,
             official.lastName,
           );
           const r = await upsertPressMentions(db, mentions);

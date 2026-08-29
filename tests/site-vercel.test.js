@@ -24,7 +24,7 @@ describe('Config déploiement Vercel (#77)', () => {
       readFileSync(resolve(root, 'vercel.json'), 'utf-8'),
     );
     expect(config.buildCommand).toContain('build');
-    expect(config.buildCommand).toContain('packages/site');
+    expect(config.buildCommand).toContain('@elupedia/site');
   });
 
   it('vercel.json runs migrations before build', () => {
@@ -34,7 +34,7 @@ describe('Config déploiement Vercel (#77)', () => {
     const cmd = config.buildCommand;
     expect(cmd).toContain('drizzle-kit migrate');
     const migrateIdx = cmd.indexOf('drizzle-kit migrate');
-    const buildIdx = cmd.indexOf('yarn build');
+    const buildIdx = cmd.indexOf('build');
     expect(migrateIdx).toBeLessThan(buildIdx);
   });
 
@@ -42,7 +42,7 @@ describe('Config déploiement Vercel (#77)', () => {
     const config = JSON.parse(
       readFileSync(resolve(root, 'vercel.json'), 'utf-8'),
     );
-    expect(config.outputDirectory).toBe('dist');
+    expect(config.outputDirectory).toBe('packages/site/dist');
   });
 
   it('vercel.json uses yarn install', () => {
