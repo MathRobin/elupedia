@@ -42,7 +42,7 @@ describe('Config déploiement Vercel (#77)', () => {
     const config = JSON.parse(
       readFileSync(resolve(root, 'vercel.json'), 'utf-8'),
     );
-    expect(config.outputDirectory).toBe('packages/site/dist');
+    expect(config.outputDirectory).toBe('dist');
   });
 
   it('vercel.json uses yarn install', () => {

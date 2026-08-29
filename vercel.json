@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npx drizzle-kit migrate --config ./drizzle.config.ts && cd packages/site && npx astro build",
-  "outputDirectory": "packages/site/dist",
-  "installCommand": "npm install -g corepack && corepack enable && yarn install",
+  "buildCommand": "cd ../.. && npx drizzle-kit migrate --config drizzle.config.ts && cd packages/site && npx astro build",
+  "outputDirectory": "dist",
+  "installCommand": "cd ../.. && npm install -g corepack && corepack enable && yarn install",
   "framework": null
 }
