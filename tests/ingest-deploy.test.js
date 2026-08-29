@@ -37,7 +37,7 @@ for (const { name, file } of [
 
     it('deploy job passes DATABASE_URL for build', () => {
       const buildStep = parsed.jobs.deploy.steps.find(
-        (s) => s.name === 'Build',
+        (s) => s.name === 'Build site',
       );
       expect(buildStep).toBeDefined();
       expect(buildStep.env.DATABASE_URL).toContain('DATABASE_URL');

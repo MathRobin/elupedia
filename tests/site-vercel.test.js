@@ -24,7 +24,7 @@ describe('Config déploiement Vercel (#77)', () => {
       readFileSync(resolve(root, 'vercel.json'), 'utf-8'),
     );
     expect(config.buildCommand).toContain('build');
-    expect(config.buildCommand).toContain('packages/site');
+    expect(config.buildCommand).toContain('astro build');
   });
 
   it('vercel.json runs migrations before build', () => {
@@ -32,8 +32,8 @@ describe('Config déploiement Vercel (#77)', () => {
       readFileSync(resolve(root, 'vercel.json'), 'utf-8'),
     );
     const cmd = config.buildCommand;
-    expect(cmd).toContain('drizzle-kit migrate');
-    const migrateIdx = cmd.indexOf('drizzle-kit migrate');
+    expect(cmd).toContain('db:migrate');
+    const migrateIdx = cmd.indexOf('db:migrate');
     const buildIdx = cmd.indexOf('astro build');
     expect(migrateIdx).toBeLessThan(buildIdx);
   });
