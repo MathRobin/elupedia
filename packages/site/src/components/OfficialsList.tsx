@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 type Official = {
   id: string;
+  slug: string | null;
   firstName: string;
   lastName: string;
   photoUrl: string | null;
@@ -295,7 +296,7 @@ export default function OfficialsList({
         {filtered.map((d) => (
           <a
             key={d.id}
-            href={`/elus/${d.id}`}
+            href={`/elus/${d.slug ?? d.id}`}
             className="group flex items-start gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 hover:shadow-md hover:ring-indigo-400/40 transition-all no-underline"
           >
             <div className="shrink-0 flex flex-col items-center gap-1">

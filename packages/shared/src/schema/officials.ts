@@ -9,5 +9,6 @@ export const officials = pgTable('officials', {
   birthDate: date('birth_date'),
   photoUrl: varchar('photo_url', { length: 1024 }),
   deathDate: date('death_date'),
+  slug: varchar('slug', { length: 512 }).unique(),
   full: jsonb('full'),
 });

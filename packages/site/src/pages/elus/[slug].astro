@@ -13,6 +13,7 @@ export async function getStaticPaths() {
   const rows = await db
     .select({
       id: officials.id,
+      slug: officials.slug,
       firstName: officials.firstName,
       lastName: officials.lastName,
       birthDate: officials.birthDate,
@@ -288,7 +289,7 @@ export async function getStaticPaths() {
     const lastUpdated = dates[0] ?? row.startDate;
 
     return {
-      params: { slug: row.id },
+      params: { slug: row.slug ?? row.id },
       props: {
         deputy: row,
         deputyMandates: mandatesByOfficial.get(row.id) ?? [],

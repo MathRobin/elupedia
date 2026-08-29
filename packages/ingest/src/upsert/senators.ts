@@ -4,6 +4,16 @@ import { eq, and } from 'drizzle-orm';
 import type { Senateur } from '../sources/senat.js';
 import { logger } from '../logger.js';
 
+function slugify(firstName: string, lastName: string): string {
+  return `${firstName}-${lastName}`
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export async function upsertSenators(
   db: NeonHttpDatabase,
   senateurs: Senateur[],
@@ -19,6 +29,8 @@ export async function upsertSenators(
 
     let officialId: string;
 
+    const slug = slugify(sen.prenom, sen.nom);
+
     if (existing.length > 0) {
       officialId = existing[0].id;
       await db
@@ -28,6 +40,7 @@ export async function upsertSenators(
           lastName: sen.nom,
           birthDate: sen.date_naissance,
           photoUrl: sen.photo_url,
+          slug: existing[0].slug ?? slug,
           full: sen.full,
         })
         .where(eq(officials.id, officialId));
@@ -40,6 +53,7 @@ export async function upsertSenators(
           senatId: sen.matricule,
           birthDate: sen.date_naissance,
           photoUrl: sen.photo_url,
+          slug,
           full: sen.full,
         })
         .returning();

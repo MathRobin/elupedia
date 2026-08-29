@@ -25,6 +25,7 @@ try {
   const rows = await db
     .select({
       id: officials.id,
+      slug: officials.slug,
       firstName: officials.firstName,
       lastName: officials.lastName,
       photoUrl: officials.photoUrl,
@@ -41,6 +42,7 @@ try {
 
   officialsList = rows.map((r) => ({
     id: r.id,
+    slug: r.slug,
     firstName: r.firstName,
     lastName: r.lastName,
     photoUrl: r.photoUrl,

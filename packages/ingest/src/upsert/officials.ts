@@ -4,6 +4,16 @@ import { eq } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
 import { writeProvenance } from './provenance.js';
 
+function slugify(firstName: string, lastName: string): string {
+  return `${firstName}-${lastName}`
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
   'Données publiques de mandat parlementaire (art. L311-1 CRPA)';
@@ -22,6 +32,8 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
 
     let officialId: string;
 
+    const slug = slugify(depute.prenom, depute.nom);
+
     if (existing.length > 0) {
       officialId = existing[0].id;
       await db
@@ -32,6 +44,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           birthDate: depute.date_naissance,
           photoUrl: depute.photo_url ?? null,
           deathDate: depute.death_date ?? null,
+          slug: existing[0].slug ?? slug,
           full: depute.full,
         })
         .where(eq(officials.id, officialId));
@@ -45,6 +58,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           birthDate: depute.date_naissance,
           photoUrl: depute.photo_url ?? null,
           deathDate: depute.death_date ?? null,
+          slug,
           full: depute.full,
         })
         .returning();

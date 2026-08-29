@@ -53,7 +53,7 @@ describe('Page détail scrutin (#66)', () => {
 
   it('links deputy names to their detail page', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('/elus/${v.officialId}');
+    expect(content).toContain('/elus/${v.slug ?? v.officialId}');
   });
 
   it('handles empty votes list', () => {
