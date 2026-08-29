@@ -13,6 +13,7 @@ export interface ActivityItem {
   responseText?: string;
   responseDate?: string;
   ministry?: string;
+  sourceUrl?: string;
 }
 
 export interface DeputeActivity {
@@ -114,6 +115,7 @@ async function loadQuestions(
       const questionText = extractQuestionText(question);
       const { responseText, responseDate } = extractResponse(question);
       const ministry = extractMinistry(question);
+      const sourceUrl = buildSourceUrl(question);
 
       let list = byDepute.get(acteurRef);
       if (!list) {
@@ -128,6 +130,7 @@ async function loadQuestions(
         responseText,
         responseDate,
         ministry,
+        sourceUrl,
       });
     }
   } finally {
@@ -189,4 +192,13 @@ function extractMinistry(
 ): string | undefined {
   const minInt = question?.minInt as Record<string, string> | undefined;
   return minInt?.developpe ?? undefined;
+}
+
+function buildSourceUrl(question: Record<string, unknown>): string | undefined {
+  const uid = question?.uid as string | undefined;
+  const identifiant = question?.identifiant as
+    Record<string, string> | undefined;
+  const legislature = identifiant?.legislature;
+  if (!uid || !legislature) return undefined;
+  return `https://www.assemblee-nationale.fr/dyn/${legislature}/questions/${uid}`;
 }

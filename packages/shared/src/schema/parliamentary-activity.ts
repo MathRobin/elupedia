@@ -27,4 +27,5 @@ export const parliamentaryActivity = pgTable('parliamentary_activity', {
   responseText: text('response_text'),
   responseDate: date('response_date'),
   governmentComments: text('government_comments'),
+  sourceUrl: text('source_url'),
 });

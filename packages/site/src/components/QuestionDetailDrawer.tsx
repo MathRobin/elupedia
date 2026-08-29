@@ -10,6 +10,7 @@ export interface QuestionDetail {
   responseText: string | null;
   responseDate: string | null;
   governmentComments: string | null;
+  sourceUrl: string | null;
 }
 
 const activityTypeLabels: Record<string, string> = {
@@ -79,6 +80,7 @@ export default function QuestionDetailDrawer() {
             data: {
               questionText: string | null;
               responseText: string | null;
+              sourceUrl: string | null;
             } | null,
           ) => {
             if (data) {
@@ -88,6 +90,7 @@ export default function QuestionDetailDrawer() {
                       ...prev,
                       questionText: data.questionText,
                       responseText: data.responseText,
+                      sourceUrl: data.sourceUrl,
                     }
                   : prev,
               );
@@ -179,6 +182,54 @@ export default function QuestionDetailDrawer() {
                   {formatDate(question.date)}
                 </p>
               </div>
+
+              {isQuestion && (
+                <div>
+                  {question.sourceUrl ? (
+                    <a
+                      href={question.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                        />
+                      </svg>
+                      Consulter sur assemblee-nationale.fr
+                    </a>
+                  ) : (
+                    <span
+                      className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-400"
+                      title="Le lien officiel n'a pas été trouvé pour cette question"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                        />
+                      </svg>
+                      Consulter sur assemblee-nationale.fr
+                    </span>
+                  )}
+                </div>
+              )}
 
               {question.governmentComments && (
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-4 py-3">

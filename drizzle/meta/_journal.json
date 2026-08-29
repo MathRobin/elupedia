@@ -85,6 +85,13 @@
       "when": 1787930280180,
       "tag": "0011_declaration_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788001471705,
+      "tag": "0012_white_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }

@@ -43,6 +43,7 @@ export async function upsertParliamentaryActivity(
           responseText: item.responseText ?? null,
           responseDate: item.responseDate ?? null,
           governmentComments: item.ministry ?? null,
+          sourceUrl: item.sourceUrl ?? null,
         });
         summary.created++;
       } else {
@@ -54,6 +55,7 @@ export async function upsertParliamentaryActivity(
             responseText: item.responseText ?? null,
             responseDate: item.responseDate ?? null,
             governmentComments: item.ministry ?? null,
+            sourceUrl: item.sourceUrl ?? null,
           })
           .where(eq(parliamentaryActivity.id, existing[0].id));
         summary.updated++;

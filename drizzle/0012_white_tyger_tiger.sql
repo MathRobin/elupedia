@@ -1,0 +1,1 @@
+ALTER TABLE "parliamentary_activity" ADD COLUMN "source_url" text;

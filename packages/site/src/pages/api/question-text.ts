@@ -24,6 +24,7 @@ export const GET: APIRoute = async ({ url }) => {
     .select({
       questionText: parliamentaryActivity.questionText,
       responseText: parliamentaryActivity.responseText,
+      sourceUrl: parliamentaryActivity.sourceUrl,
     })
     .from(parliamentaryActivity)
     .where(
@@ -47,6 +48,7 @@ export const GET: APIRoute = async ({ url }) => {
     JSON.stringify({
       questionText: row.questionText,
       responseText: row.responseText,
+      sourceUrl: row.sourceUrl,
     }),
     {
       headers: {
