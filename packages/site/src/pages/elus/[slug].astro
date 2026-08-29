@@ -395,6 +395,7 @@ type Activity = {
   status: string | null;
   responseDate: string | null;
   governmentComments: string | null;
+  rubrique: string | null;
 };
 
 type Committee = {
@@ -999,17 +1000,44 @@ const timelineCategoryColors: Record<string, string> = {
             const rubriques = [...new Set(deputyActivities.map((a) => a.rubrique).filter(Boolean))].sort() as string[];
             if (rubriques.length === 0) return null;
             return (
-              <div id="activity-rubrique-filter" class="mt-3 flex flex-wrap gap-2">
-                {rubriques.map((rub) => {
-                  const count = deputyActivities.filter((a) => a.rubrique === rub).length;
-                  return (
-                    <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
-                      <input type="checkbox" value={rub} checked class="accent-indigo-600 h-3 w-3" data-activity-rubrique-filter />
-                      <span>{rub} <span class="text-slate-400">({count})</span></span>
-                    </label>
-                  );
-                })}
-              </div>
+              <details id="activity-rubrique-filter" class="mt-3">
+                <summary class="cursor-pointer text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors select-none">
+                  Rubriques <span class="text-slate-400">({rubriques.length})</span>
+                </summary>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  {rubriques.map((rub) => {
+                    const count = deputyActivities.filter((a) => a.rubrique === rub).length;
+                    return (
+                      <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40">
+                        <input type="checkbox" value={rub} checked class="accent-indigo-600 h-3 w-3" data-activity-rubrique-filter />
+                        <span>{rub} <span class="text-slate-400">({count})</span></span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </details>
+            );
+          })()}
+          {(() => {
+            const ministries = [...new Set(deputyActivities.map((a) => a.governmentComments).filter(Boolean))].sort() as string[];
+            if (ministries.length === 0) return null;
+            return (
+              <details id="activity-ministry-filter" class="mt-3">
+                <summary class="cursor-pointer text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors select-none">
+                  Ministère attributaire <span class="text-slate-400">({ministries.length})</span>
+                </summary>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  {ministries.map((ministry) => {
+                    const count = deputyActivities.filter((a) => a.governmentComments === ministry).length;
+                    return (
+                      <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-amber-50 has-[:checked]:ring-amber-400/40">
+                        <input type="checkbox" value={ministry} checked class="accent-amber-600 h-3 w-3" data-activity-ministry-filter />
+                        <span>{ministry} <span class="text-slate-400">({count})</span></span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </details>
             );
           })()}
           <div class="mt-3 flex flex-wrap items-center gap-4">
@@ -1042,6 +1070,7 @@ const timelineCategoryColors: Record<string, string> = {
                       data-activity-date={act.date}
                       data-activity-type={act.type}
                       data-activity-rubrique={act.rubrique ?? ''}
+                      data-activity-ministry={act.governmentComments ?? ''}
                       {...(isQuestion ? { 'data-activity-detail': JSON.stringify({
                         officialId: act.officialId,
                         type: act.type,
@@ -1059,6 +1088,9 @@ const timelineCategoryColors: Record<string, string> = {
                         <span class={isQuestion ? 'group-hover:text-indigo-600 transition-colors' : ''}>{act.title}</span>
                         {isQuestion && (
                           <svg class="ml-1.5 inline-block h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                        )}
+                        {act.governmentComments && (
+                          <span class="mt-0.5 block text-xs text-amber-600">{act.governmentComments}</span>
                         )}
                       </td>
                       <td class="py-2">
@@ -1649,10 +1681,12 @@ const timelineCategoryColors: Record<string, string> = {
     const activityCount = document.getElementById('activity-count');
 
     const rubriqueFilter = document.getElementById('activity-rubrique-filter');
+    const ministryFilter = document.getElementById('activity-ministry-filter');
 
     if (activityTypeFilter && dateFrom && dateTo && activityList) {
       const typeCheckboxes = activityTypeFilter.querySelectorAll<HTMLInputElement>('[data-activity-type-filter]');
       const rubriqueCheckboxes = rubriqueFilter?.querySelectorAll<HTMLInputElement>('[data-activity-rubrique-filter]') ?? [];
+      const ministryCheckboxes = ministryFilter?.querySelectorAll<HTMLInputElement>('[data-activity-ministry-filter]') ?? [];
       const rows = activityList.querySelectorAll<HTMLElement>('[data-activity-date]');
 
       function applyActivityFilter() {
@@ -1664,7 +1698,12 @@ const timelineCategoryColors: Record<string, string> = {
         for (const cb of rubriqueCheckboxes) {
           if (cb.checked) activeRubriques.add(cb.value);
         }
+        const activeMinistries = new Set<string>();
+        for (const cb of ministryCheckboxes) {
+          if (cb.checked) activeMinistries.add(cb.value);
+        }
         const hasRubriqueFilter = rubriqueCheckboxes.length > 0;
+        const hasMinistryFilter = ministryCheckboxes.length > 0;
         const from = dateFrom!.value;
         const to = dateTo!.value;
         let visible = 0;
@@ -1672,8 +1711,10 @@ const timelineCategoryColors: Record<string, string> = {
           const date = row.dataset.activityDate!;
           const type = row.dataset.activityType!;
           const rubrique = row.dataset.activityRubrique ?? '';
+          const ministry = row.dataset.activityMinistry ?? '';
           const matchesRubrique = !hasRubriqueFilter || !rubrique || activeRubriques.has(rubrique);
-          const show = activeTypes.has(type) && matchesRubrique && (!from || date >= from) && (!to || date <= to);
+          const matchesMinistry = !hasMinistryFilter || !ministry || activeMinistries.has(ministry);
+          const show = activeTypes.has(type) && matchesRubrique && matchesMinistry && (!from || date >= from) && (!to || date <= to);
           row.style.display = show ? '' : 'none';
           if (show) visible++;
         }
@@ -1686,6 +1727,9 @@ const timelineCategoryColors: Record<string, string> = {
         cb.addEventListener('change', applyActivityFilter);
       }
       for (const cb of rubriqueCheckboxes) {
+        cb.addEventListener('change', applyActivityFilter);
+      }
+      for (const cb of ministryCheckboxes) {
         cb.addEventListener('change', applyActivityFilter);
       }
       dateFrom.addEventListener('change', applyActivityFilter);
