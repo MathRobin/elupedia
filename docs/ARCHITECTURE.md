@@ -89,7 +89,7 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 | `addresses`              | type (constituency/assembly), street, postal_code, city, phone, email                                                                                              | officials          |
 | `external_links`         | platform, url                                                                                                                                                      | officials          |
 | `press_mentions`         | title, source_name, source_url, published_date, summary                                                                                                            | officials          |
-| `parliamentary_activity` | type, title, date, status                                                                                                                                          | officials          |
+| `parliamentary_activity` | type, title, date, status, question_text, response_text, response_date, government_comments, source_url, rubrique, tete_analyse, question_number                   | officials          |
 | `committees`             | name, type, start_date, end_date                                                                                                                                   | officials          |
 | `electoral_results`      | election_type, election_date, round, score_percent, opponent_count                                                                                                 | officials          |
 

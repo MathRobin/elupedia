@@ -25,6 +25,9 @@ export const GET: APIRoute = async ({ url }) => {
       questionText: parliamentaryActivity.questionText,
       responseText: parliamentaryActivity.responseText,
       sourceUrl: parliamentaryActivity.sourceUrl,
+      rubrique: parliamentaryActivity.rubrique,
+      teteAnalyse: parliamentaryActivity.teteAnalyse,
+      questionNumber: parliamentaryActivity.questionNumber,
     })
     .from(parliamentaryActivity)
     .where(
@@ -49,6 +52,9 @@ export const GET: APIRoute = async ({ url }) => {
       questionText: row.questionText,
       responseText: row.responseText,
       sourceUrl: row.sourceUrl,
+      rubrique: row.rubrique,
+      teteAnalyse: row.teteAnalyse,
+      questionNumber: row.questionNumber,
     }),
     {
       headers: {

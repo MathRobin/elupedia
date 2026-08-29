@@ -44,6 +44,9 @@ export async function upsertParliamentaryActivity(
           responseDate: item.responseDate ?? null,
           governmentComments: item.ministry ?? null,
           sourceUrl: item.sourceUrl ?? null,
+          rubrique: item.rubrique ?? null,
+          teteAnalyse: item.teteAnalyse ?? null,
+          questionNumber: item.questionNumber ?? null,
         });
         summary.created++;
       } else {
@@ -56,6 +59,9 @@ export async function upsertParliamentaryActivity(
             responseDate: item.responseDate ?? null,
             governmentComments: item.ministry ?? null,
             sourceUrl: item.sourceUrl ?? null,
+            rubrique: item.rubrique ?? null,
+            teteAnalyse: item.teteAnalyse ?? null,
+            questionNumber: item.questionNumber ?? null,
           })
           .where(eq(parliamentaryActivity.id, existing[0].id));
         summary.updated++;

@@ -14,6 +14,9 @@ export interface ActivityItem {
   responseDate?: string;
   ministry?: string;
   sourceUrl?: string;
+  rubrique?: string;
+  teteAnalyse?: string;
+  questionNumber?: number;
 }
 
 export interface DeputeActivity {
@@ -104,10 +107,17 @@ async function loadQuestions(
       const indexation = question?.indexationAN as
         Record<string, unknown> | undefined;
       const rubrique = (indexation?.rubrique as string) ?? '';
+      const teteAnalyse = (indexation?.teteAnalyse as string) || undefined;
       const analyses = indexation?.analyses as
         Record<string, string> | undefined;
       const analyse = analyses?.analyse ?? '';
       const title = analyse || rubrique || 'Question sans titre';
+
+      const identifiant = question?.identifiant as
+        Record<string, string> | undefined;
+      const questionNumber = identifiant?.numero
+        ? parseInt(identifiant.numero, 10)
+        : undefined;
 
       const date = extractDate(question);
       if (!date) continue;
@@ -131,6 +141,9 @@ async function loadQuestions(
         responseDate,
         ministry,
         sourceUrl,
+        rubrique: rubrique || undefined,
+        teteAnalyse,
+        questionNumber,
       });
     }
   } finally {

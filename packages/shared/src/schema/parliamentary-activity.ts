@@ -1,4 +1,11 @@
-import { pgTable, uuid, varchar, date, text } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  date,
+  text,
+  integer,
+} from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const activityTypeEnum = [
@@ -28,4 +35,7 @@ export const parliamentaryActivity = pgTable('parliamentary_activity', {
   responseDate: date('response_date'),
   governmentComments: text('government_comments'),
   sourceUrl: text('source_url'),
+  rubrique: varchar('rubrique', { length: 255 }),
+  teteAnalyse: varchar('tete_analyse', { length: 512 }),
+  questionNumber: integer('question_number'),
 });
