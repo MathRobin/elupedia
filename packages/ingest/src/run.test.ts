@@ -68,6 +68,9 @@ vi.mock('./upsert/provenance.js', () => ({
 vi.mock('./upsert/social-links.js', () => ({
   upsertSocialLinks: vi.fn(),
 }));
+vi.mock('./upsert/declaration-snapshots.js', () => ({
+  upsertDeclarationSnapshots: vi.fn(),
+}));
 vi.mock('./sources/senat.js', () => ({
   fetchSenateurs: vi.fn(),
 }));
@@ -132,6 +135,7 @@ import { fetchSenatAdresses } from './sources/senat-adresses.js';
 import { upsertSenatAddresses } from './upsert/senat-addresses.js';
 import { fetchSenatElections } from './sources/senat-elections.js';
 import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js';
+import { upsertDeclarationSnapshots } from './upsert/declaration-snapshots.js';
 
 function setupHappyPath() {
   vi.mocked(fetchDeputes).mockResolvedValue([
@@ -161,6 +165,10 @@ function setupHappyPath() {
   });
   vi.mocked(fetchDeclarations).mockResolvedValue([]);
   vi.mocked(upsertInterests).mockResolvedValue({ created: 0, updated: 0 });
+  vi.mocked(upsertDeclarationSnapshots).mockResolvedValue({
+    created: 0,
+    updated: 0,
+  });
   vi.mocked(fetchAddresses).mockResolvedValue([]);
   vi.mocked(upsertAddresses).mockResolvedValue({ created: 0, updated: 0 });
   vi.mocked(fetchActivities).mockResolvedValue([]);

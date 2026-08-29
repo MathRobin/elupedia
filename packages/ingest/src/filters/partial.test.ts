@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { filterActivitiesForPartial } from './partial.js';
+import {
+  filterActivitiesForPartial,
+  filterDeclarationsForPartial,
+} from './partial.js';
 import type { DeputeActivity } from '../sources/an-activite.js';
+import type { Declaration } from '../schemas.js';
 
 function makeActivity(
   overrides: Partial<DeputeActivity['activities'][0]> = {},
@@ -156,6 +160,62 @@ describe('filterActivitiesForPartial', () => {
     expect(stats.excludedDeceased).toBe(1);
     expect(stats.excludedEndedMandate).toBe(1);
     expect(stats.excludedOldResponse).toBe(1);
+    expect(stats.totalAfter).toBe(2);
+  });
+});
+
+describe('filterDeclarationsForPartial', () => {
+  function makeDeclaration(overrides: Partial<Declaration> = {}): Declaration {
+    return {
+      nom: 'DUPONT',
+      prenom: 'Jean',
+      date_depot: '2026-06-01',
+      interests: [],
+      ...overrides,
+    };
+  }
+
+  it('keeps declarations for active officials', () => {
+    const declarations = [makeDeclaration()];
+    const { filtered, stats } = filterDeclarationsForPartial(
+      declarations,
+      new Set(['DUPONT|JEAN']),
+    );
+    expect(filtered).toHaveLength(1);
+    expect(stats.totalAfter).toBe(1);
+  });
+
+  it('excludes declarations for inactive officials', () => {
+    const declarations = [makeDeclaration()];
+    const { filtered, stats } = filterDeclarationsForPartial(
+      declarations,
+      new Set(['MARTIN|PIERRE']),
+    );
+    expect(filtered).toHaveLength(0);
+    expect(stats.excludedInactive).toBe(1);
+  });
+
+  it('is case-insensitive for name matching', () => {
+    const declarations = [makeDeclaration({ nom: 'dupont', prenom: 'jean' })];
+    const { filtered } = filterDeclarationsForPartial(
+      declarations,
+      new Set(['DUPONT|JEAN']),
+    );
+    expect(filtered).toHaveLength(1);
+  });
+
+  it('filters multiple declarations', () => {
+    const declarations = [
+      makeDeclaration({ nom: 'DUPONT', prenom: 'Jean' }),
+      makeDeclaration({ nom: 'MARTIN', prenom: 'Pierre' }),
+      makeDeclaration({ nom: 'DUPONT', prenom: 'Marie' }),
+    ];
+    const { filtered, stats } = filterDeclarationsForPartial(
+      declarations,
+      new Set(['DUPONT|JEAN', 'DUPONT|MARIE']),
+    );
+    expect(filtered).toHaveLength(2);
+    expect(stats.excludedInactive).toBe(1);
     expect(stats.totalAfter).toBe(2);
   });
 });

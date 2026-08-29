@@ -2,6 +2,7 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
 import { eq, isNull, and, isNotNull } from 'drizzle-orm';
 import type { DeputeActivity } from '../sources/an-activite.js';
+import type { Declaration } from '../sources/hatvp.js';
 import { logger } from '../logger.js';
 
 export interface PartialFilterStats {
@@ -101,6 +102,64 @@ export function filterActivitiesForPartial(
   };
 
   return { filtered, stats };
+}
+
+export interface HatvpFilterStats {
+  totalBefore: number;
+  excludedInactive: number;
+  totalAfter: number;
+}
+
+export async function getActiveOfficialNames(
+  db: NeonHttpDatabase,
+): Promise<Set<string>> {
+  const rows = await db
+    .select({
+      firstName: officials.firstName,
+      lastName: officials.lastName,
+    })
+    .from(officials)
+    .innerJoin(mandates, eq(mandates.officialId, officials.id))
+    .where(and(isNull(officials.deathDate), isNull(mandates.endDate)));
+
+  const names = new Set<string>();
+  for (const row of rows) {
+    names.add(`${row.lastName.toUpperCase()}|${row.firstName.toUpperCase()}`);
+  }
+  return names;
+}
+
+export function filterDeclarationsForPartial(
+  declarations: Declaration[],
+  activeNames: Set<string>,
+): { filtered: Declaration[]; stats: HatvpFilterStats } {
+  const totalBefore = declarations.length;
+  let excludedInactive = 0;
+
+  const filtered = declarations.filter((decl) => {
+    const key = `${decl.nom.toUpperCase()}|${decl.prenom.toUpperCase()}`;
+    if (!activeNames.has(key)) {
+      excludedInactive++;
+      return false;
+    }
+    return true;
+  });
+
+  return {
+    filtered,
+    stats: {
+      totalBefore,
+      excludedInactive,
+      totalAfter: totalBefore - excludedInactive,
+    },
+  };
+}
+
+export function logHatvpFilterStats(stats: HatvpFilterStats): void {
+  logger.info('HATVP partial filter stats:');
+  logger.info(`  Total declarations before: ${stats.totalBefore}`);
+  logger.info(`  Excluded (inactive/deceased): ${stats.excludedInactive}`);
+  logger.info(`  Total declarations after: ${stats.totalAfter}`);
 }
 
 export function logFilterStats(stats: PartialFilterStats): void {

@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, interests } from '@elupedia/shared';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { Declaration } from '../sources/hatvp.js';
 import { logger } from '../logger.js';
 import { writeProvenance } from './provenance.js';
@@ -9,41 +9,75 @@ const SOURCE_NAME = "HATVP - Déclarations d'intérêts";
 const LEGAL_BASIS =
   "Déclaration d'intérêts et d'activités (loi n°2013-907 du 11 octobre 2013 relative à la transparence de la vie publique)";
 
+async function buildOfficialCache(
+  db: NeonHttpDatabase,
+): Promise<Map<string, string>> {
+  const rows = await db
+    .select({
+      id: officials.id,
+      firstName: officials.firstName,
+      lastName: officials.lastName,
+    })
+    .from(officials);
+
+  const cache = new Map<string, string>();
+  for (const row of rows) {
+    const key = `${row.lastName.toUpperCase()}|${row.firstName.toUpperCase()}`;
+    cache.set(key, row.id);
+  }
+  return cache;
+}
+
+async function buildExistingInterestsCache(
+  db: NeonHttpDatabase,
+): Promise<Map<string, string>> {
+  const rows = await db
+    .select({
+      id: interests.id,
+      officialId: interests.officialId,
+      entityName: interests.entityName,
+      type: interests.type,
+    })
+    .from(interests);
+
+  const cache = new Map<string, string>();
+  for (const row of rows) {
+    const key = `${row.officialId}|${row.entityName}|${row.type}`;
+    cache.set(key, row.id);
+  }
+  return cache;
+}
+
 export async function upsertInterests(
   db: NeonHttpDatabase,
   declarations: Declaration[],
 ) {
   const summary = { created: 0, updated: 0 };
 
-  for (const decl of declarations) {
-    const matches = await db
-      .select({ id: officials.id })
-      .from(officials)
-      .where(
-        and(
-          eq(sql`upper(${officials.lastName})`, decl.nom.toUpperCase()),
-          eq(sql`upper(${officials.firstName})`, decl.prenom.toUpperCase()),
-        ),
-      )
-      .limit(1);
+  const t0 = Date.now();
+  const officialCache = await buildOfficialCache(db);
+  logger.info(
+    `  Officials cache: ${officialCache.size} entries (${Date.now() - t0}ms)`,
+  );
 
-    if (matches.length === 0) continue;
-    const officialId = matches[0].id;
+  const t1 = Date.now();
+  const existingCache = await buildExistingInterestsCache(db);
+  logger.info(
+    `  Interests cache: ${existingCache.size} entries (${Date.now() - t1}ms)`,
+  );
+
+  const t2 = Date.now();
+
+  for (const decl of declarations) {
+    const cacheKey = `${decl.nom.toUpperCase()}|${decl.prenom.toUpperCase()}`;
+    const officialId = officialCache.get(cacheKey);
+    if (!officialId) continue;
 
     for (const item of decl.interests) {
-      const existing = await db
-        .select()
-        .from(interests)
-        .where(
-          and(
-            eq(interests.officialId, officialId),
-            eq(interests.entityName, item.entity_name),
-            eq(interests.type, item.type),
-          ),
-        )
-        .limit(1);
+      const interestKey = `${officialId}|${item.entity_name}|${item.type}`;
+      const existingId = existingCache.get(interestKey);
 
-      if (existing.length === 0) {
+      if (!existingId) {
         await db.insert(interests).values({
           officialId,
           category: item.category,
@@ -79,7 +113,7 @@ export async function upsertInterests(
             amountYear: item.amount_year ?? null,
             amountIsNet: item.amount_is_net ?? null,
           })
-          .where(eq(interests.id, existing[0].id));
+          .where(eq(interests.id, existingId));
         summary.updated++;
       }
 
@@ -94,8 +128,9 @@ export async function upsertInterests(
     }
   }
 
+  const durationMs = Date.now() - t2;
   logger.info(
-    `Interests: ${summary.created} created, ${summary.updated} updated`,
+    `Interests: ${summary.created} created, ${summary.updated} updated (${durationMs}ms)`,
   );
   return summary;
 }

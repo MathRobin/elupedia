@@ -20,7 +20,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 
 - Exécution : trois cron GitHub Actions séparés :
   - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, intérêts HATVP, adresses, activité parlementaire, commissions, réseaux sociaux
-  - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire uniquement, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois
+  - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire + intérêts HATVP, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois, déclarations d'élus inactifs
   - Sénat (`.github/workflows/ingest-senat.yml`, mardi/samedi 03:00 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
@@ -145,7 +145,7 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) : lint, format, typecheck et tests sur chaque PR et push sur `main`
 - **GitHub Actions Ingestion AN — complète** (`.github/workflows/ingest-an.yml`) : 1er dimanche du mois 21:00 UTC, pipeline AN intégral
-- **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, activité parlementaire uniquement avec critérisation (exclut décédés, mandats terminés, Q/R anciennes)
+- **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, activité parlementaire + HATVP avec critérisation (exclut décédés, mandats terminés, Q/R anciennes, déclarations inactifs)
 - **GitHub Actions Ingestion Sénat** (`.github/workflows/ingest-senat.yml`) : mardi/samedi 03:00 UTC, pipeline Sénat
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 
