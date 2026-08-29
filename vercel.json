@@ -1,6 +1,6 @@
 {
-  "buildCommand": "drizzle-kit migrate && yarn workspace @elupedia/site build",
+  "buildCommand": "drizzle-kit migrate --config drizzle.config.ts && yarn workspace @elupedia/site build",
   "outputDirectory": "packages/site/dist",
-  "installCommand": "yarn install",
+  "installCommand": "corepack enable && yarn install",
   "framework": null
 }
