@@ -11,6 +11,9 @@ export interface QuestionDetail {
   responseDate: string | null;
   governmentComments: string | null;
   sourceUrl: string | null;
+  rubrique: string | null;
+  teteAnalyse: string | null;
+  questionNumber: number | null;
 }
 
 const activityTypeLabels: Record<string, string> = {
@@ -81,6 +84,9 @@ export default function QuestionDetailDrawer() {
               questionText: string | null;
               responseText: string | null;
               sourceUrl: string | null;
+              rubrique: string | null;
+              teteAnalyse: string | null;
+              questionNumber: number | null;
             } | null,
           ) => {
             if (data) {
@@ -91,6 +97,9 @@ export default function QuestionDetailDrawer() {
                       questionText: data.questionText,
                       responseText: data.responseText,
                       sourceUrl: data.sourceUrl,
+                      rubrique: data.rubrique,
+                      teteAnalyse: data.teteAnalyse,
+                      questionNumber: data.questionNumber,
                     }
                   : prev,
               );
@@ -305,6 +314,33 @@ export default function QuestionDetailDrawer() {
                     </div>
                   </div>
                 </>
+              )}
+
+              {(question.rubrique ||
+                question.teteAnalyse ||
+                question.questionNumber) && (
+                <div className="border-t border-slate-200 pt-5">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Métadonnées
+                  </h4>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {question.rubrique && (
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                        {question.rubrique}
+                      </span>
+                    )}
+                    {question.teteAnalyse && (
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                        {question.teteAnalyse}
+                      </span>
+                    )}
+                  </div>
+                  {question.questionNumber && (
+                    <p className="mt-3 text-xs text-slate-400">
+                      Question n°{question.questionNumber}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}
