@@ -18,16 +18,17 @@ flowchart LR
 
 Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script télécharge des archives ZIP ou des fichiers CSV depuis les portails open data et effectue un upsert en base.
 
-- Exécution : trois cron GitHub Actions séparés :
+- Exécution : quatre cron GitHub Actions séparés :
   - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, intérêts HATVP, adresses, activité parlementaire, commissions
   - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire + intérêts HATVP, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois, déclarations d'élus inactifs
   - Sénat (`.github/workflows/ingest-senat.yml`, mardi/samedi 03:00 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
+  - Presse (`.github/workflows/ingest-press.yml`, lundi 05:00 UTC) — articles de presse via Google News RSS, élus vivants uniquement, délai 3s entre chaque élu
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
 - Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (6 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-social-links.ts` (`ingest:social-links`), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -45,6 +46,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Collaborateurs Sénat       | `sources/senat-collaborateurs.ts` | data.senat.fr               | JSON API      | ✅ actif |
 | Adresses Sénat             | `sources/senat-adresses.ts`       | data.senat.fr               | JSON API      | ✅ actif |
 | Historique électoral Sénat | `sources/senat-elections.ts`      | data.senat.fr               | JSON API      | ✅ actif |
+| Presse (Google News)       | `sources/google-news.ts`          | news.google.com             | RSS/XML       | ✅ actif |
 | Résultats électoraux AN    | `sources/datagouv-elections.ts`   | data.gouv.fr                | —             | ⏸ prévu  |
 
 #### Upsert / Diff
@@ -66,6 +68,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Commissions                | `upsert/committees.ts`              | Upsert sur official + name + type      |
 | Résultats électoraux AN    | `upsert/electoral-results.ts`       | Upsert sur official + election + round |
 | Résultats électoraux Sénat | `upsert/senat-electoral-results.ts` | Upsert sur official + election + round |
+| Mentions presse            | `upsert/press-mentions.ts`          | Insert dédupliqué sur official + URL   |
 
 ### 2. Base de données (PostgreSQL / Neon)
 
