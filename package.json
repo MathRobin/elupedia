@@ -34,6 +34,7 @@
     "@types/unzipper": "^0.10.11",
     "commitizen": "^4.3.2",
     "cz-conventional-changelog": "^3.3.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^10.9.0",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",

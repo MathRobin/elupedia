@@ -4561,6 +4561,7 @@ __metadata:
     "@types/unzipper": "npm:^0.10.11"
     commitizen: "npm:^4.3.2"
     cz-conventional-changelog: "npm:^3.3.0"
+    drizzle-kit: "npm:^0.31.10"
     eslint: "npm:^10.9.0"
     eslint-config-prettier: "npm:^10.1.8"
     husky: "npm:^9.1.7"
