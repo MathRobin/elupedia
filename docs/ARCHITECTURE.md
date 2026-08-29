@@ -106,8 +106,7 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
 - SEO : sitemap XML généré au build (`@astrojs/sitemap`), meta tags Open Graph (title, description, image, url, type, locale, site_name), URL canonique
 - Site URL : `https://elupedia.fr`
 - Consentement cookies : tarteaucitron.js vendorisé dans `public/tarteaucitron/`, conforme CNIL (highPrivacy, DenyAllCta, AcceptAllCta)
-- Recherche : Pagefind (indexation au postbuild, recherche côté client sans backend)
-- Composants React : `src/components/SearchBar.tsx` (barre de recherche Pagefind, ARIA combobox)
+- Composants React : `src/components/OfficialsList.tsx` (grille d'accueil avec filtres), `src/components/QuestionDetailDrawer.tsx` (tiroir de détail d'une question)
 - Accessibilité : skip-to-content, focus-visible global, aria-label sur la navigation, contraste WCAG AA (minimum text-gray-500 pour le texte informatif)
 - Pages :
   - `src/pages/index.astro` — page d'accueil (grille de cartes des élus avec photo, badge député/sénateur genré, nom, circonscription, groupe politique ; filtres par type de mandat et département)
@@ -154,4 +153,4 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 
 - **Framework** : Vitest (configuré à la racine et dans chaque package)
 - **Commande** : `yarn test` lance les tests racine puis ceux de chaque workspace
-- **Couverture M7** : structure monorepo, configs, schéma DB, migration, CI, clients API (ZIP/JSON et CSV), upsert/diff, retry, orchestration, cron workflow, change detection, layout, tarteaucitron, SEO, Vercel Web Analytics, page d'accueil, fiche élu avec 14 sections et âge calculé, page scrutin, page à propos, page RGPD, page mentions légales, Pagefind, barre de recherche, accessibilité, README, DATA-LICENSES
+- **Couverture M7** : structure monorepo, configs, schéma DB, migration, CI, clients API (ZIP/JSON et CSV), upsert/diff, retry, orchestration, cron workflow, change detection, layout, tarteaucitron, SEO, Vercel Web Analytics, page d'accueil, fiche élu avec 14 sections et âge calculé, page scrutin, page à propos, page RGPD, page mentions légales, accessibilité, README, DATA-LICENSES
