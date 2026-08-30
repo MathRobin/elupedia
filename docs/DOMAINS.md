@@ -40,7 +40,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - AN : `upsert/affiliations-diff.ts` (diff, le groupe politique courant est dans `mandates.political_group`)
   - Sénat : `senat-groupes.ts` → `upsert/senat-affiliations.ts` (API JSON)
 - **Description** : Appartenance aux groupes parlementaires et partis politiques, avec historique des changements. Stratégie diff : ferme l'affiliation précédente (end_date) si le groupe change.
-- **Pages** : fiche élu (section affiliations politiques), timeline unifiée
+- **Pages** : fiche élu (section affiliations politiques)
 
 ## Collaborateurs
 
@@ -49,7 +49,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - AN : `an-collaborateurs.ts` (CSV) → `upsert/staffers-diff.ts`
   - Sénat : `senat-collaborateurs.ts` (API JSON) → `upsert/senat-staffers-diff.ts`
 - **Description** : Collaborateurs parlementaires déclarés, avec suivi des arrivées et départs. Stratégie diff : set end_date sur les collaborateurs partis.
-- **Pages** : fiche élu (section collaborateurs avec badges actif/inactif), timeline unifiée
+- **Pages** : fiche élu (section collaborateurs avec badges actif/inactif)
 
 ## Intérêts et patrimoine (HATVP)
 
@@ -74,7 +74,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Workflow** : `.github/workflows/ingest-press.yml` (lundi 05:00 UTC), délai 3s entre chaque élu, élus vivants uniquement
 - **Description** : Articles de presse mentionnant un élu, collectés automatiquement via les flux RSS Google Actualités à partir du nom complet de l'élu. **Ce n'est pas une source officielle** : les résultats peuvent contenir du bruit (homonymes, mentions indirectes) et ne sont pas exhaustifs. Section proposée à titre informatif.
 - **Déduplication** : sur `(official_id, source_url)`, insert uniquement (pas de mise à jour des articles existants)
-- **Pages** : fiche élu (section presse en grille de cards), timeline unifiée
+- **Pages** : fiche élu (section presse en grille de cards)
 
 ## Adresses et contacts
 
