@@ -649,6 +649,7 @@ const positionColors: Record<string, string> = {
 
 <BaseLayout title={fullName} description={metaDescription} image={deputy.photoUrl ?? undefined} jsonLd={personJsonLd} ogType="profile">
   <Fragment slot="head">
+    {deputy.photoUrl && <link rel="preload" as="image" href={deputy.photoUrl} fetchpriority="high" />}
     <meta property="profile:first_name" content={deputy.firstName} />
     <meta property="profile:last_name" content={deputy.lastName} />
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
@@ -665,6 +666,10 @@ const positionColors: Record<string, string> = {
           src={deputy.photoUrl}
           alt={fullName}
           class="h-28 w-28 shrink-0 rounded-2xl object-cover ring-4 ring-white shadow-lg"
+          fetchpriority="high"
+          decoding="async"
+          width="112"
+          height="112"
         />
       ) : (
         <div class="flex h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-3xl font-semibold text-indigo-600 ring-4 ring-white shadow-lg">
