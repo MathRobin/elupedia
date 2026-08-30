@@ -24,6 +24,7 @@ export async function getStaticPaths() {
       slug: officials.slug,
       firstName: officials.firstName,
       lastName: officials.lastName,
+      photoUrl: officials.photoUrl,
       politicalGroup: mandates.politicalGroup,
     })
     .from(votes)
@@ -54,6 +55,7 @@ type BallotVote = {
   slug: string | null;
   firstName: string;
   lastName: string;
+  photoUrl: string | null;
   politicalGroup: string | null;
 };
 
@@ -77,71 +79,190 @@ const positionLabels: Record<string, string> = {
 };
 
 const positionColors: Record<string, string> = {
-  for: 'text-green-700 bg-green-50',
-  against: 'text-red-700 bg-red-50',
-  abstain: 'text-yellow-700 bg-yellow-50',
-  absent: 'text-slate-500 bg-gray-50',
+  for: 'bg-emerald-500',
+  against: 'bg-red-500',
+  abstain: 'bg-amber-400',
+  absent: 'bg-slate-300',
 };
 
-const sortedByName = [...ballotVotes].sort((a, b) =>
+const positionBadge: Record<string, string> = {
+  for: 'text-emerald-700 bg-emerald-50 ring-emerald-600/10 dark:text-emerald-400 dark:bg-emerald-900/20 dark:ring-emerald-400/20',
+  against: 'text-red-700 bg-red-50 ring-red-600/10 dark:text-red-400 dark:bg-red-900/20 dark:ring-red-400/20',
+  abstain: 'text-amber-700 bg-amber-50 ring-amber-600/10 dark:text-amber-400 dark:bg-amber-900/20 dark:ring-amber-400/20',
+  absent: 'text-slate-600 bg-slate-50 ring-slate-500/10 dark:text-slate-400 dark:bg-slate-800 dark:ring-slate-400/20',
+};
+
+const counts: Record<string, number> = { for: 0, against: 0, abstain: 0, absent: 0 };
+for (const v of ballotVotes) {
+  counts[v.position] = (counts[v.position] ?? 0) + 1;
+}
+
+const groups = [...new Set(ballotVotes.map((v) => v.politicalGroup).filter(Boolean))].sort((a, b) => a!.localeCompare(b!, 'fr'));
+
+const sortedVotes = [...ballotVotes].sort((a, b) =>
   `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'fr'),
 );
 ---
 
-<BaseLayout title={ballot.title} description={`Scrutin du ${new Date(ballot.date).toLocaleDateString('fr-FR')}`}>
-  <div class="max-w-3xl">
+<BaseLayout title={ballot.title} description={`Scrutin du ${new Date(ballot.date).toLocaleDateString('fr-FR')} — ${ballotVotes.length} votes`}>
+  <div class="max-w-5xl">
     <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-      Retour à la liste
+      Retour
     </a>
 
-    <h1 class="mt-6 text-3xl font-extrabold tracking-tight">{ballot.title}</h1>
-    <p class="mt-2 text-slate-500">
-      {ballot.type} — {new Date(ballot.date).toLocaleDateString('fr-FR')}
-    </p>
+    <h1 class="mt-6 text-2xl font-extrabold tracking-tight sm:text-3xl dark:text-white">{ballot.title}</h1>
+    <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+      <span class="inline-flex items-center gap-1.5">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+        {new Date(ballot.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+      </span>
+      <span class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/10 dark:bg-indigo-900/20 dark:text-indigo-300 dark:ring-indigo-400/20">{ballot.type}</span>
+    </div>
+
+    {ballotVotes.length > 0 && (
+      <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {(['for', 'against', 'abstain', 'absent'] as const).map((pos) => (
+          <div class="rounded-xl border border-slate-200/80 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+            <div class="flex items-center gap-2">
+              <span class={`h-3 w-3 rounded-full ${positionColors[pos]}`}></span>
+              <span class="text-sm font-medium text-slate-600 dark:text-slate-300">{positionLabels[pos]}</span>
+            </div>
+            <p class="mt-1 text-2xl font-bold tabular-nums text-slate-800 dark:text-white">{counts[pos] ?? 0}</p>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {ballotVotes.length > 0 && (
+      <div class="mt-3 h-3 flex rounded-full overflow-hidden">
+        {counts.for > 0 && <div class="bg-emerald-500" style={`width:${(counts.for / ballotVotes.length) * 100}%`}></div>}
+        {counts.against > 0 && <div class="bg-red-500" style={`width:${(counts.against / ballotVotes.length) * 100}%`}></div>}
+        {counts.abstain > 0 && <div class="bg-amber-400" style={`width:${(counts.abstain / ballotVotes.length) * 100}%`}></div>}
+        {counts.absent > 0 && <div class="bg-slate-300 dark:bg-slate-600" style={`width:${(counts.absent / ballotVotes.length) * 100}%`}></div>}
+      </div>
+    )}
 
     <section class="mt-8">
-      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">
-        Votes des élus
-        {ballotVotes.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-slate-500">({ballotVotes.length})</span>
-        )}
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+        Votes des députés
+        <span class="ml-2 text-sm font-normal text-slate-500" id="visible-count">({ballotVotes.length})</span>
       </h2>
 
       {ballotVotes.length === 0 ? (
         <p class="mt-4 text-slate-500">Aucun vote enregistré pour ce scrutin.</p>
       ) : (
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-slate-200 text-left text-slate-500">
-                <th class="pb-2 pr-4 font-medium">Élu</th>
-                <th class="pb-2 pr-4 font-medium">Groupe politique</th>
-                <th class="pb-2 font-medium">Position</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedByName.map((v) => (
-                <tr class="border-b border-slate-100">
-                  <td class="py-2 pr-4">
-                    <a href={`/elus/${v.slug ?? v.officialId}`} class="text-indigo-600 hover:underline">
-                      {v.firstName} {v.lastName}
-                    </a>
-                  </td>
-                  <td class="py-2 pr-4 text-slate-500">
-                    {v.politicalGroup ?? '—'}
-                  </td>
-                  <td class="py-2">
-                    <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${positionColors[v.position] ?? ''}`}>
-                      {positionLabels[v.position] ?? v.position}
-                    </span>
-                  </td>
-                </tr>
+        <>
+          <div class="mt-4 space-y-3">
+            <div class="flex flex-wrap gap-2" id="position-filters">
+              {(['for', 'against', 'abstain', 'absent'] as const).map((pos) => (
+                <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40 dark:bg-slate-800 dark:ring-slate-700 dark:has-[:checked]:bg-indigo-900/30 dark:has-[:checked]:ring-indigo-500/40">
+                  <input type="checkbox" value={pos} checked class="accent-indigo-600 h-3.5 w-3.5" data-position-filter />
+                  <span class={`h-2 w-2 rounded-full ${positionColors[pos]}`}></span>
+                  <span class="dark:text-slate-300">{positionLabels[pos]} <span class="text-slate-400">({counts[pos] ?? 0})</span></span>
+                </label>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {groups.length > 1 && (
+              <div class="flex flex-wrap gap-2" id="group-filters">
+                <button type="button" id="group-toggle-all" class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200 transition-colors dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                  Tout cocher/décocher
+                </button>
+                {groups.map((g) => {
+                  const gCount = ballotVotes.filter((v) => v.politicalGroup === g).length;
+                  return (
+                    <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-400/40 dark:bg-slate-800 dark:ring-slate-700 dark:has-[:checked]:bg-indigo-900/30 dark:has-[:checked]:ring-indigo-500/40">
+                      <input type="checkbox" value={g} checked class="accent-indigo-600 h-3.5 w-3.5" data-group-filter />
+                      <span class="dark:text-slate-300">{g} <span class="text-slate-400">({gCount})</span></span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" id="votes-grid">
+            {sortedVotes.map((v) => (
+              <a
+                href={`/elus/${v.slug ?? v.officialId}`}
+                class="vote-card group flex items-center gap-3 rounded-lg border border-slate-200/80 bg-white p-3 transition-all hover:border-indigo-300/60 hover:shadow-sm no-underline dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500/40"
+                data-position={v.position}
+                data-group={v.politicalGroup ?? ''}
+              >
+                {v.photoUrl ? (
+                  <img
+                    src={v.photoUrl}
+                    alt=""
+                    class="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-slate-700"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-500 ring-2 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-slate-600">
+                    {v.firstName[0]}{v.lastName[0]}
+                  </span>
+                )}
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-slate-800 group-hover:text-indigo-600 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
+                    {v.firstName} {v.lastName}
+                  </p>
+                  <p class="truncate text-xs text-slate-400 dark:text-slate-500">{v.politicalGroup ?? 'Sans groupe'}</p>
+                </div>
+                <span class={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${positionBadge[v.position] ?? ''}`}>
+                  {positionLabels[v.position] ?? v.position}
+                </span>
+              </a>
+            ))}
+          </div>
+
+          <p id="no-results" class="mt-4 hidden text-slate-500 dark:text-slate-400">Aucun député ne correspond aux filtres sélectionnés.</p>
+        </>
       )}
     </section>
   </div>
+
+  <script>
+    const grid = document.getElementById('votes-grid');
+    const visibleCount = document.getElementById('visible-count');
+    const noResults = document.getElementById('no-results');
+    if (grid) {
+      const cards = grid.querySelectorAll<HTMLElement>('.vote-card');
+
+      function applyFilters() {
+        const posChecked = new Set(
+          [...document.querySelectorAll<HTMLInputElement>('[data-position-filter]:checked')].map((i) => i.value),
+        );
+        const groupInputs = document.querySelectorAll<HTMLInputElement>('[data-group-filter]');
+        const groupChecked = groupInputs.length > 0
+          ? new Set([...groupInputs].filter((i) => i.checked).map((i) => i.value))
+          : null;
+
+        let count = 0;
+        cards.forEach((card) => {
+          const pos = card.dataset.position ?? '';
+          const grp = card.dataset.group ?? '';
+          const show = posChecked.has(pos) && (!groupChecked || groupChecked.has(grp) || (!grp && groupChecked.size === 0));
+          card.classList.toggle('hidden', !show);
+          if (show) count++;
+        });
+
+        if (visibleCount) visibleCount.textContent = `(${count})`;
+        if (noResults) noResults.classList.toggle('hidden', count > 0);
+      }
+
+      document.querySelectorAll('[data-position-filter], [data-group-filter]').forEach((input) => {
+        input.addEventListener('change', applyFilters);
+      });
+
+      const toggleAll = document.getElementById('group-toggle-all');
+      if (toggleAll) {
+        toggleAll.addEventListener('click', () => {
+          const inputs = document.querySelectorAll<HTMLInputElement>('[data-group-filter]');
+          const allChecked = [...inputs].every((i) => i.checked);
+          inputs.forEach((i) => (i.checked = !allChecked));
+          applyFilters();
+        });
+      }
+    }
+  </script>
 </BaseLayout>

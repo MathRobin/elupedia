@@ -40,7 +40,7 @@ describe('Page détail scrutin (#66)', () => {
 
   it('sorts votes by deputy name', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('sortedByName');
+    expect(content).toContain('sortedVotes');
     expect(content).toContain('localeCompare');
   });
 
@@ -49,6 +49,13 @@ describe('Page détail scrutin (#66)', () => {
     expect(content).toContain("for: 'Pour'");
     expect(content).toContain("against: 'Contre'");
     expect(content).toContain('positionColors');
+  });
+
+  it('has position and group filters', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('data-position-filter');
+    expect(content).toContain('data-group-filter');
+    expect(content).toContain('applyFilters');
   });
 
   it('links deputy names to their detail page', () => {
