@@ -11,4 +11,4 @@ dist/
 .env
 .env.*
 !.env.example
-ingest-report.json
+ingest-report*.json
