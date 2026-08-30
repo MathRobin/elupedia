@@ -423,6 +423,7 @@ type ElectoralResult = {
 type Props = {
   deputy: {
     id: string;
+    slug: string | null;
     firstName: string;
     lastName: string;
     birthDate: string | null;
@@ -569,6 +570,24 @@ if (ungroupedInterests.length > 0) {
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
 const mandateLabel = mandateTypeLabels[deputy.mandateType] ?? deputy.mandateType;
 
+const sameAs = deputyLinks
+  .map((l) => l.url)
+  .filter((u) => u.startsWith('http'));
+
+const worksForName = deputy.mandateType === 'depute'
+  ? 'Assemblée nationale'
+  : deputy.mandateType === 'senateur'
+    ? 'Sénat'
+    : undefined;
+
+const constituencyAddress = deputyAddresses.find((a) => a.type === 'constituency_office');
+
+const metaDescription = [
+  `${fullName}, ${mandateLabel}`,
+  deputy.district && deputy.department ? `${deputy.district} (${deputy.department})` : null,
+  deputy.politicalGroup ? `groupe ${deputy.politicalGroup}` : null,
+].filter(Boolean).join(' — ');
+
 const personJsonLd: Record<string, unknown> = {
   '@context': 'https://schema.org',
   '@type': 'Person',
@@ -576,14 +595,40 @@ const personJsonLd: Record<string, unknown> = {
   givenName: deputy.firstName,
   familyName: deputy.lastName,
   jobTitle: mandateLabel,
+  url: `https://elupedia.fr/elus/${deputy.slug ?? deputy.id}`,
+  nationality: { '@type': 'Country', name: 'France' },
   ...(deputy.photoUrl && { image: deputy.photoUrl }),
   ...(deputy.birthDate && { birthDate: deputy.birthDate }),
+  ...(sameAs.length > 0 && { sameAs }),
+  ...(worksForName && {
+    worksFor: {
+      '@type': 'GovernmentOrganization',
+      name: worksForName,
+    },
+  }),
   ...(deputy.politicalGroup && {
     memberOf: {
       '@type': 'Organization',
       name: deputy.politicalGroup,
     },
   }),
+  ...(constituencyAddress?.city && {
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: constituencyAddress.city,
+      ...(constituencyAddress.postalCode && { postalCode: constituencyAddress.postalCode }),
+      addressCountry: 'FR',
+    },
+  }),
+};
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://elupedia.fr/' },
+    { '@type': 'ListItem', position: 2, name: fullName, item: `https://elupedia.fr/elus/${deputy.slug ?? deputy.id}` },
+  ],
 };
 
 const positionLabels: Record<string, string> = {
@@ -602,7 +647,12 @@ const positionColors: Record<string, string> = {
 
 ---
 
-<BaseLayout title={fullName} description={`Fiche de ${fullName}, ${mandateLabel}`} image={deputy.photoUrl ?? undefined} jsonLd={personJsonLd}>
+<BaseLayout title={fullName} description={metaDescription} image={deputy.photoUrl ?? undefined} jsonLd={personJsonLd} ogType="profile">
+  <Fragment slot="head">
+    <meta property="profile:first_name" content={deputy.firstName} />
+    <meta property="profile:last_name" content={deputy.lastName} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
+  </Fragment>
   <div class="max-w-3xl">
     <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>

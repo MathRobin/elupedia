@@ -6,6 +6,7 @@ interface Props {
   description?: string;
   image?: string;
   jsonLd?: Record<string, unknown>;
+  ogType?: string;
 }
 
 const {
@@ -13,6 +14,7 @@ const {
   description = 'Encyclopédie ouverte des élus français',
   image,
   jsonLd,
+  ogType = 'website',
 } = Astro.props;
 
 const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
@@ -41,7 +43,7 @@ const websiteJsonLd = {
     <link rel="preconnect" href="https://www2.assemblee-nationale.fr" crossorigin />
     <link rel="dns-prefetch" href="https://www2.assemblee-nationale.fr" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl.href} />
@@ -85,6 +87,7 @@ const websiteJsonLd = {
     <link rel="stylesheet" href="/tarteaucitron/css/tarteaucitron.css" />
     <script type="application/ld+json" set:html={JSON.stringify(websiteJsonLd)} />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    <slot name="head" />
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:text-sm">
