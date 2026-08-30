@@ -115,7 +115,7 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
 - Pages :
   - `src/pages/index.astro` — page d'accueil (grille de cartes des élus avec photo, badge député/sénateur genré, nom, circonscription, groupe politique ; filtres par type de mandat et département)
   - `src/pages/elus/[slug].astro` — fiche détaillée d'un élu, routée par slug permalink (`/elus/manuel-bompard`), avec fallback sur UUID si slug absent. Sections : identité avec âge calculé, mandat en cours, tous les mandats, coordonnées, affiliations, collaborateurs, activité parlementaire, commissions & groupes, historique électoral, intérêts déclarés groupés par catégorie, votes, presse (grille de cards Google News), liens extérieurs, timeline unifiée, indicateur de dernière mise à jour, modales de provenance AN pour les sections mandat/coordonnées/liens des députés
-  - `src/pages/scrutins/[id].astro` — détail d'un scrutin (titre, date, type, votes des élus triés par nom avec position)
+  - `src/pages/scrutins/[id].astro` — détail d'un scrutin (titre, date, type, barre de synthèse, filtres par position et groupe politique, grille de cartes députés avec photo et badge de position)
   - `src/pages/a-propos.astro` — page À propos (présentation, feuille de route, piliers, indépendance, contribution)
   - `src/pages/donnees-personnelles.astro` — page droits RGPD (données publiées, base légale, droits, contact, CNIL, cookies)
   - `src/pages/mentions-legales.astro` — mentions légales (sources de données, licences, hébergeur, licence code AGPL-3.0)

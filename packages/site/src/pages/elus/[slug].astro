@@ -52,6 +52,7 @@ export async function getStaticPaths() {
   const allVotes = await db
     .select({
       officialId: votes.officialId,
+      ballotId: votes.ballotId,
       position: votes.position,
       ballotTitle: ballots.title,
       ballotDate: ballots.date,
@@ -325,6 +326,7 @@ type Mandate = {
 
 type Vote = {
   officialId: string;
+  ballotId: string;
   position: string;
   ballotTitle: string;
   ballotDate: string;
@@ -1323,7 +1325,9 @@ const timelineCategoryColors: Record<string, string> = {
                   <td class="py-2 pr-4 whitespace-nowrap">
                     {new Date(v.ballotDate).toLocaleDateString('fr-FR')}
                   </td>
-                  <td class="py-2 pr-4">{v.ballotTitle}</td>
+                  <td class="py-2 pr-4">
+                    <a href={`/scrutins/${v.ballotId}`} class="text-indigo-600 hover:underline dark:text-indigo-400">{v.ballotTitle}</a>
+                  </td>
                   <td class="py-2">
                     <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${positionColors[v.position] ?? ''}`}>
                       {positionLabels[v.position] ?? v.position}

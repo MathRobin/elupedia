@@ -102,6 +102,12 @@ describe('Fiche élu — section votes (#54)', () => {
     expect(content).toContain('text-green-700');
     expect(content).toContain('text-red-700');
   });
+
+  it('links ballot title to scrutin detail page', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('/scrutins/${v.ballotId}');
+    expect(content).toContain('v.ballotId');
+  });
 });
 
 describe('Fiche élu — section affiliations (#55)', () => {
