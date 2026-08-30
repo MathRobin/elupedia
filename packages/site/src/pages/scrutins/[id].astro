@@ -102,9 +102,43 @@ const groups = [...new Set(ballotVotes.map((v) => v.politicalGroup).filter(Boole
 const sortedVotes = [...ballotVotes].sort((a, b) =>
   `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'fr'),
 );
+
+const dateFormatted = new Date(ballot.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+const metaDescription = [
+  `Scrutin du ${dateFormatted}`,
+  `${counts.for} pour, ${counts.against} contre, ${counts.abstain} abstentions, ${counts.absent} absents`,
+  ballot.type,
+].join(' — ');
+
+const ballotJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'VoteAction',
+  name: ballot.title,
+  startTime: ballot.date,
+  location: {
+    '@type': 'GovernmentOrganization',
+    name: 'Assemblée nationale',
+  },
+};
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://elupedia.fr/' },
+    { '@type': 'ListItem', position: 2, name: 'Scrutin', item: `https://elupedia.fr/scrutins/${ballot.id}` },
+  ],
+};
 ---
 
-<BaseLayout title={ballot.title} description={`Scrutin du ${new Date(ballot.date).toLocaleDateString('fr-FR')} — ${ballotVotes.length} votes`}>
+<BaseLayout title={ballot.title} description={metaDescription} jsonLd={ballotJsonLd}>
+  <Fragment slot="head">
+    <meta property="og:type" content="article" />
+    <meta property="article:published_time" content={ballot.date} />
+    <meta property="article:section" content="Scrutin" />
+    <meta property="article:tag" content={ballot.type} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
+  </Fragment>
   <div class="max-w-5xl">
     <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
