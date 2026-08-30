@@ -41,6 +41,9 @@ vi.mock('./sources/hatvp.js', () => ({
 vi.mock('./sources/an-commissions.js', () => ({
   fetchCommittees: vi.fn(),
 }));
+vi.mock('./sources/an-scrutins.js', () => ({
+  fetchScrutins: vi.fn(),
+}));
 
 vi.mock('./upsert/officials.js', () => ({
   upsertOfficials: vi.fn(),
@@ -59,6 +62,9 @@ vi.mock('./upsert/parliamentary-activity.js', () => ({
 }));
 vi.mock('./upsert/committees.js', () => ({
   upsertCommittees: vi.fn(),
+}));
+vi.mock('./upsert/an-votes.js', () => ({
+  upsertAnVotes: vi.fn(),
 }));
 vi.mock('./upsert/provenance.js', () => ({
   writeProvenance: vi.fn(),
@@ -117,6 +123,8 @@ import { fetchDeclarations } from './sources/hatvp.js';
 import { upsertInterests } from './upsert/interests.js';
 import { fetchCommittees } from './sources/an-commissions.js';
 import { upsertCommittees } from './upsert/committees.js';
+import { fetchScrutins } from './sources/an-scrutins.js';
+import { upsertAnVotes } from './upsert/an-votes.js';
 import { fetchSenateurs } from './sources/senat.js';
 import { upsertSenators } from './upsert/senators.js';
 import { fetchSenatScrutins } from './sources/senat-scrutins.js';
@@ -172,6 +180,8 @@ function setupHappyPath() {
   });
   vi.mocked(fetchCommittees).mockResolvedValue([]);
   vi.mocked(upsertCommittees).mockResolvedValue({ created: 0, updated: 0 });
+  vi.mocked(fetchScrutins).mockResolvedValue([]);
+  vi.mocked(upsertAnVotes).mockResolvedValue({ created: 0, updated: 0 });
   vi.mocked(fetchSenateurs).mockResolvedValue([]);
   vi.mocked(upsertSenators).mockResolvedValue({ officials: 0, mandates: 0 });
   vi.mocked(fetchSenatScrutins).mockResolvedValue([]);
@@ -210,7 +220,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(12);
+    expect(results).toHaveLength(13);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -239,7 +249,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(12);
+    expect(results).toHaveLength(13);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

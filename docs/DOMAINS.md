@@ -28,7 +28,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 
 - **Tables** : `votes`, `ballots`
 - **Sources** :
-  - Assemblée nationale : `upsert/votes.ts` (pas de source active pour l'AN)
+  - Assemblée nationale : `an-scrutins.ts` (ZIP/JSON, ~8 400 scrutins) → `upsert/an-votes.ts`
   - Sénat : `senat-scrutins.ts` → `upsert/senat-votes.ts` (API JSON, scrutins publics)
 - **Description** : Scrutins publics et position de chaque élu (pour, contre, abstention, absent). Mapping FR→EN des positions.
 - **Pages** : fiche élu (section historique des votes), page détail scrutin (liste des votes par élu)
