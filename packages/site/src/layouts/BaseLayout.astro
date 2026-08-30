@@ -42,7 +42,9 @@ const websiteJsonLd = {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://www2.assemblee-nationale.fr" crossorigin />
     <link rel="dns-prefetch" href="https://www2.assemblee-nationale.fr" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
@@ -54,37 +56,9 @@ const websiteJsonLd = {
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
-    <script is:inline src="/tarteaucitron/tarteaucitron.min.js"></script>
-    <script is:inline>
-      tarteaucitron.init({
-        privacyUrl: '/donnees-personnelles',
-        bodyPosition: 'bottom',
-        hashtag: '#tarteaucitron',
-        cookieName: 'tarteaucitron',
-        orientation: 'middle',
-        groupServices: false,
-        showDetailsOnClick: true,
-        serviceDefaultState: 'wait',
-        showAlertSmall: false,
-        cookieslist: false,
-        closePopup: false,
-        showIcon: true,
-        iconPosition: 'BottomLeft',
-        adblocker: false,
-        DenyAllCta: true,
-        AcceptAllCta: true,
-        highPrivacy: true,
-        handleBrowserDNTRequest: false,
-        removeCredit: false,
-        moreInfoLink: true,
-        useExternalCss: true,
-        useExternalJs: false,
-        readmoreLink: '',
-        mandatory: true,
-        mandatoryCta: true,
-      });
-    </script>
-    <link rel="stylesheet" href="/tarteaucitron/css/tarteaucitron.css" />
+    <link rel="preload" as="style" href="/tarteaucitron/css/tarteaucitron.css" />
+    <link rel="stylesheet" href="/tarteaucitron/css/tarteaucitron.css" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="/tarteaucitron/css/tarteaucitron.css" /></noscript>
     <script type="application/ld+json" set:html={JSON.stringify(websiteJsonLd)} />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <slot name="head" />
@@ -136,6 +110,38 @@ const websiteJsonLd = {
         </p>
       </div>
     </footer>
+    <script is:inline defer src="/tarteaucitron/tarteaucitron.min.js"></script>
+    <script is:inline>
+      window.addEventListener('DOMContentLoaded', function() {
+        tarteaucitron.init({
+          privacyUrl: '/donnees-personnelles',
+          bodyPosition: 'bottom',
+          hashtag: '#tarteaucitron',
+          cookieName: 'tarteaucitron',
+          orientation: 'middle',
+          groupServices: false,
+          showDetailsOnClick: true,
+          serviceDefaultState: 'wait',
+          showAlertSmall: false,
+          cookieslist: false,
+          closePopup: false,
+          showIcon: true,
+          iconPosition: 'BottomLeft',
+          adblocker: false,
+          DenyAllCta: true,
+          AcceptAllCta: true,
+          highPrivacy: true,
+          handleBrowserDNTRequest: false,
+          removeCredit: false,
+          moreInfoLink: true,
+          useExternalCss: true,
+          useExternalJs: false,
+          readmoreLink: '',
+          mandatory: true,
+          mandatoryCta: true,
+        });
+      });
+    </script>
     <script>
       import { inject } from '@vercel/analytics';
       inject();
