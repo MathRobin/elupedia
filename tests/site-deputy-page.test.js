@@ -219,11 +219,6 @@ describe('Fiche élu — section presse (#58)', () => {
     expect(content).toContain('p.publishedDate');
   });
 
-  it('shows summary when available', () => {
-    const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('p.summary');
-  });
-
   it('handles empty press list', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('Aucune mention presse enregistrée');

@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots } from '@elupedia/shared';
-import { eq, isNull, desc, and, lt, gt, isNotNull } from 'drizzle-orm';
+import { eq, isNull, desc, and, lt, gt, isNotNull, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
@@ -143,17 +143,20 @@ export async function getStaticPaths() {
     snapshotsByOfficial.set(s.officialId, list);
   }
 
-  const allPress = await db
-    .select({
-      officialId: pressMentions.officialId,
-      title: pressMentions.title,
-      sourceName: pressMentions.sourceName,
-      sourceUrl: pressMentions.sourceUrl,
-      publishedDate: pressMentions.publishedDate,
-      summary: pressMentions.summary,
-    })
-    .from(pressMentions)
-    .orderBy(desc(pressMentions.publishedDate));
+  const activeOfficialIds = rows.map((r) => r.id);
+  const allPress = activeOfficialIds.length > 0
+    ? await db
+        .select({
+          officialId: pressMentions.officialId,
+          title: pressMentions.title,
+          sourceName: pressMentions.sourceName,
+          sourceUrl: pressMentions.sourceUrl,
+          publishedDate: pressMentions.publishedDate,
+        })
+        .from(pressMentions)
+        .where(inArray(pressMentions.officialId, activeOfficialIds))
+        .orderBy(desc(pressMentions.publishedDate))
+    : [];
 
   const pressByOfficial = new Map<string, typeof allPress>();
   for (const p of allPress) {
@@ -369,7 +372,6 @@ type PressMention = {
   sourceName: string;
   sourceUrl: string;
   publishedDate: string;
-  summary: string | null;
 };
 
 type Address = {
@@ -1375,9 +1377,6 @@ const timelineCategoryColors: Record<string, string> = {
                       {p.title}
                     </span>
                   </div>
-                  {p.summary && (
-                    <p class="mt-2.5 pl-11 text-sm leading-relaxed text-slate-500 line-clamp-2 dark:text-slate-400">{p.summary}</p>
-                  )}
                   <div class="mt-auto flex items-center gap-2 pt-4 pl-11">
                     <span class="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-inset ring-orange-600/10 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-400/20">{p.sourceName}</span>
                     <span class="text-xs text-slate-400 dark:text-slate-500">{dateLabel}</span>
