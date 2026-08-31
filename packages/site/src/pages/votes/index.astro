@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BallotsList from '../../components/BallotsList';
+import { getDb } from '../../lib/db.js';
+import { ballots, votes } from '@elupedia/shared';
+import { eq, sql } from 'drizzle-orm';
+
+const db = getDb();
+
+const rows = await db
+  .select({
+    id: ballots.id,
+    title: ballots.title,
+    date: ballots.date,
+    type: ballots.type,
+    forCount: sql<number>`count(*) filter (where ${votes.position} = 'for')`,
+    againstCount: sql<number>`count(*) filter (where ${votes.position} = 'against')`,
+    abstainCount: sql<number>`count(*) filter (where ${votes.position} = 'abstain')`,
+    absentCount: sql<number>`count(*) filter (where ${votes.position} = 'absent')`,
+  })
+  .from(ballots)
+  .leftJoin(votes, eq(votes.ballotId, ballots.id))
+  .groupBy(ballots.id, ballots.title, ballots.date, ballots.type)
+  .orderBy(sql`${ballots.date} desc`);
+
+const ballotsList = rows.map((r) => ({
+  id: r.id,
+  title: r.title,
+  date: r.date,
+  type: r.type,
+  forCount: Number(r.forCount),
+  againstCount: Number(r.againstCount),
+  abstainCount: Number(r.abstainCount),
+  absentCount: Number(r.absentCount),
+}));
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://elupedia.fr/' },
+    { '@type': 'ListItem', position: 2, name: 'Votes', item: 'https://elupedia.fr/votes' },
+  ],
+};
+---
+
+<BaseLayout
+  title="Votes et scrutins"
+  description="Explorez et filtrez les scrutins de l'Assemblée nationale — résultats, décomptes, positions par groupe politique."
+  jsonLd={breadcrumbJsonLd}
+>
+  <div class="text-center mb-8">
+    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+      Votes et scrutins
+    </h1>
+    <p class="mt-2 text-slate-500 dark:text-slate-400">
+      {ballotsList.length} scrutins référencés
+    </p>
+  </div>
+
+  <BallotsList client:load ballots={ballotsList} />
+</BaseLayout>

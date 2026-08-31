@@ -41,7 +41,7 @@ describe('Fiche élu (#53)', () => {
 
   it('has a back link to the homepage', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('href="/"');
+    expect(content).toContain('href="/elus"');
     expect(content).toContain('Retour');
   });
 
