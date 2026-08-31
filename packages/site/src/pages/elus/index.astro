@@ -65,6 +65,20 @@ const breadcrumbJsonLd = {
     { '@type': 'ListItem', position: 2, name: 'Élus', item: 'https://elupedia.fr/elus' },
   ],
 };
+
+const itemListJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Annuaire des élus français',
+  description: 'Députés, sénateurs et maires en exercice',
+  numberOfItems: officialsList.length,
+  itemListElement: officialsList.slice(0, 50).map((o, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    url: `https://elupedia.fr/elus/${o.slug ?? o.id}`,
+    name: `${o.firstName} ${o.lastName}`,
+  })),
+};
 ---
 
 <BaseLayout
@@ -72,6 +86,9 @@ const breadcrumbJsonLd = {
   description="Annuaire complet des députés et sénateurs français en exercice — recherche par nom, département, groupe politique."
   jsonLd={breadcrumbJsonLd}
 >
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(itemListJsonLd)} />
+  </Fragment>
   <div class="text-center mb-8">
     <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
       Annuaire des élus

@@ -31,6 +31,16 @@ const websiteJsonLd = {
   name: 'Elupedia',
   url: Astro.site?.href,
   description: 'Encyclopédie ouverte des élus français',
+  inLanguage: 'fr',
+  publisher: {
+    '@type': 'Organization',
+    name: 'Elupedia',
+    url: Astro.site?.href,
+    logo: {
+      '@type': 'ImageObject',
+      url: new URL('/img/logo-32x32.png', Astro.site).href,
+    },
+  },
 };
 ---
 

@@ -117,7 +117,7 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
 - Styling : Tailwind CSS 4 (via `@tailwindcss/vite`)
 - Utilitaires date : date-fns (calcul d'âge sur la fiche élu)
 - Layout de base : `src/layouts/BaseLayout.astro` (header, footer, meta description, titre dynamique)
-- SEO : sitemap XML généré au build (`@astrojs/sitemap`), meta tags Open Graph (title, description, image, url, type, locale, site_name), URL canonique
+- SEO : sitemap XML généré au build (`@astrojs/sitemap`), meta tags Open Graph (title, description, image, url, type, locale, site_name), URL canonique. JSON-LD schema.org sur toutes les pages : WebSite+Organization (BaseLayout), BreadcrumbList (annuaire, votes, fiche élu, fiche scrutin), ItemList (annuaire élus, listing votes), Person avec sameAs/worksFor/memberOf/address (fiche élu), VoteAction (fiche scrutin)
 - Site URL : `https://elupedia.fr`
 - Consentement cookies : tarteaucitron.js vendorisé dans `public/tarteaucitron/`, conforme CNIL (highPrivacy, DenyAllCta, AcceptAllCta)
 - Composants React : `src/components/OfficialsList.tsx` (grille d'accueil avec filtres), `src/components/QuestionDetailDrawer.tsx` (tiroir de détail d'une question)
