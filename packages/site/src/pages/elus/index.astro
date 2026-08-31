@@ -1,0 +1,89 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import OfficialsList from '../../components/OfficialsList';
+import { getDb } from '../../lib/db.js';
+import { officials, mandates } from '@elupedia/shared';
+import { eq, isNull, sql } from 'drizzle-orm';
+
+type Official = {
+  id: string;
+  slug: string | null;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  district: string | null;
+  department: string | null;
+  politicalGroup: string | null;
+  mandateType: string;
+  isFemale: boolean;
+};
+
+let officialsList: Official[] = [];
+let error: string | null = null;
+
+try {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: officials.id,
+      slug: officials.slug,
+      firstName: officials.firstName,
+      lastName: officials.lastName,
+      photoUrl: officials.photoUrl,
+      district: mandates.district,
+      department: mandates.department,
+      politicalGroup: mandates.politicalGroup,
+      mandateType: mandates.type,
+      civ: sql<string>`COALESCE("officials"."full"->'acteur'->'etatCivil'->'ident'->>'civ', "officials"."full"->>'Qualite')`,
+    })
+    .from(officials)
+    .innerJoin(mandates, eq(mandates.officialId, officials.id))
+    .where(isNull(mandates.endDate))
+    .orderBy(officials.lastName);
+
+  officialsList = rows.map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    photoUrl: r.photoUrl,
+    district: r.district,
+    department: r.department,
+    politicalGroup: r.politicalGroup,
+    mandateType: r.mandateType,
+    isFemale: r.civ === 'Mme',
+  }));
+} catch (e) {
+  error = e instanceof Error ? e.message : String(e);
+}
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://elupedia.fr/' },
+    { '@type': 'ListItem', position: 2, name: 'Élus', item: 'https://elupedia.fr/elus' },
+  ],
+};
+---
+
+<BaseLayout
+  title="Annuaire des élus"
+  description="Annuaire complet des députés et sénateurs français en exercice — recherche par nom, département, groupe politique."
+  jsonLd={breadcrumbJsonLd}
+>
+  <div class="text-center mb-8">
+    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+      Annuaire des élus
+    </h1>
+    <p class="mt-2 text-slate-500 dark:text-slate-400">Députés et sénateurs en exercice</p>
+  </div>
+
+  {error && (
+    <p class="mt-4 text-sm text-red-600 dark:text-red-400">
+      Impossible de charger les données : {error}
+    </p>
+  )}
+
+  <OfficialsList client:load officials={officialsList} />
+</BaseLayout>
