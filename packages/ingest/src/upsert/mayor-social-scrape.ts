@@ -9,6 +9,8 @@ interface MayorScrapeCandidate {
   websiteUrl: string;
 }
 
+const BATCH_SIZE = 100;
+
 export async function selectMayorWebsites(
   db: NeonHttpDatabase,
 ): Promise<MayorScrapeCandidate[]> {
@@ -20,7 +22,13 @@ export async function selectMayorWebsites(
     JOIN mandates m ON m.official_id = el.official_id AND m.type = 'maire'
     WHERE el.platform = 'official_page'
       AND el.status = 'published'
+      AND NOT EXISTS (
+        SELECT 1 FROM external_links el2
+        WHERE el2.official_id = el.official_id
+          AND el2.platform IN ('instagram', 'tiktok', 'youtube')
+      )
     ORDER BY el.captured_at ASC NULLS FIRST
+    LIMIT ${BATCH_SIZE}
   `);
 
   return rows.rows.map((r) => ({
