@@ -4,6 +4,8 @@ import { eq, and } from 'drizzle-orm';
 import type { RneMaire } from '../sources/rne-maires.js';
 import { logger } from '../logger.js';
 
+const BATCH_SIZE = 2000;
+
 function slugify(firstName: string, lastName: string): string {
   return `${firstName}-${lastName}`
     .normalize('NFD')
@@ -49,58 +51,65 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
     return s;
   }
 
-  for (const maire of maires) {
-    const key = `${maire.firstName.toLowerCase()}|${maire.lastName.toLowerCase()}|${maire.birthDate}`;
-    let official = officialByKey.get(key);
+  for (let start = 0; start < maires.length; start += BATCH_SIZE) {
+    const batch = maires.slice(start, start + BATCH_SIZE);
+    logger.info(
+      `  Processing batch ${Math.floor(start / BATCH_SIZE) + 1}/${Math.ceil(maires.length / BATCH_SIZE)} (${batch.length} maires)`,
+    );
 
-    if (!official) {
-      const slug = uniqueSlug(slugify(maire.firstName, maire.lastName));
-      const [inserted] = await db
-        .insert(officials)
-        .values({
-          firstName: maire.firstName,
-          lastName: maire.lastName,
-          birthDate: maire.birthDate,
-          slug,
-        })
-        .returning({ id: officials.id });
-      official = { id: inserted!.id, slug };
-      officialByKey.set(key, official);
-      summary.officials++;
-    }
+    for (const maire of batch) {
+      const key = `${maire.firstName.toLowerCase()}|${maire.lastName.toLowerCase()}|${maire.birthDate}`;
+      let official = officialByKey.get(key);
 
-    const existingMandate = await db
-      .select({ id: mandates.id })
-      .from(mandates)
-      .where(
-        and(
-          eq(mandates.officialId, official.id),
-          eq(mandates.type, 'maire'),
-          eq(mandates.communeCode, maire.communeCode),
-        ),
-      )
-      .limit(1);
+      if (!official) {
+        const slug = uniqueSlug(slugify(maire.firstName, maire.lastName));
+        const [inserted] = await db
+          .insert(officials)
+          .values({
+            firstName: maire.firstName,
+            lastName: maire.lastName,
+            birthDate: maire.birthDate,
+            slug,
+          })
+          .returning({ id: officials.id });
+        official = { id: inserted!.id, slug };
+        officialByKey.set(key, official);
+        summary.officials++;
+      }
 
-    if (existingMandate.length === 0) {
-      await db.insert(mandates).values({
-        officialId: official.id,
-        type: 'maire',
-        district: maire.communeName,
-        department: maire.departmentName,
-        startDate: maire.mandateStartDate || maire.functionStartDate,
-        communeCode: maire.communeCode,
-      });
-      summary.mandates++;
-    } else {
-      await db
-        .update(mandates)
-        .set({
+      const existingMandate = await db
+        .select({ id: mandates.id })
+        .from(mandates)
+        .where(
+          and(
+            eq(mandates.officialId, official.id),
+            eq(mandates.type, 'maire'),
+            eq(mandates.communeCode, maire.communeCode),
+          ),
+        )
+        .limit(1);
+
+      if (existingMandate.length === 0) {
+        await db.insert(mandates).values({
+          officialId: official.id,
+          type: 'maire',
           district: maire.communeName,
           department: maire.departmentName,
           startDate: maire.mandateStartDate || maire.functionStartDate,
-        })
-        .where(eq(mandates.id, existingMandate[0].id));
-      summary.mandates++;
+          communeCode: maire.communeCode,
+        });
+        summary.mandates++;
+      } else {
+        await db
+          .update(mandates)
+          .set({
+            district: maire.communeName,
+            department: maire.departmentName,
+            startDate: maire.mandateStartDate || maire.functionStartDate,
+          })
+          .where(eq(mandates.id, existingMandate[0].id));
+        summary.mandates++;
+      }
     }
   }
 
