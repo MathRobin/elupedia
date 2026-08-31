@@ -12,4 +12,6 @@ export const mandates = pgTable('mandates', {
   startDate: date('start_date').notNull(),
   endDate: date('end_date'),
   politicalGroup: varchar('political_group', { length: 255 }),
+  communeCode: varchar('commune_code', { length: 10 }),
+  parentCommuneCode: varchar('parent_commune_code', { length: 10 }),
 });

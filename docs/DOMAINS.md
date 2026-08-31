@@ -8,7 +8,21 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Sources** :
   - data.assemblee-nationale.fr (open data AN) — `assemblee-nationale.ts` → `upsert/officials.ts`
   - data.senat.fr (API JSON Sénat) — `senat.ts` → `upsert/senators.ts`
-- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés et sénateurs. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
+- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés, sénateurs et maires. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
+- **Types de mandats** : `depute`, `senateur`, `maire`
+- **Champs commune (mandats maires)** :
+  - `commune_code` (varchar 10) — code INSEE de la commune (ex. `75056` pour Paris, `75101` pour le 1er arrondissement)
+  - `parent_commune_code` (varchar 10) — code INSEE de la ville de rattachement pour les arrondissements PLM (ex. `75056` pour un arrondissement de Paris), null sinon
+- **Source maires** :
+  - RNE (data.gouv.fr) — fichier CSV des maires (~34 800 entrées), séparateur `;`, UTF-8, CRLF, mise à jour trimestrielle
+  - URL : `https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503`
+  - Colonnes : Code département, Libellé département, Code collectivité statut particulier, Libellé collectivité statut particulier, Code commune (INSEE), Libellé commune, Nom, Prénom, Code sexe, Date naissance, Code CSP, Libellé CSP, Date début mandat, Date début fonction
+  - Les maires d'arrondissement (Paris/Lyon/Marseille) ne sont PAS dans ce fichier — seuls les maires des villes entières y figurent (codes INSEE 75056, 69123, 13055)
+- **Source contacts mairies** :
+  - API Annuaire de l'administration (DILA) — endpoint ODSQL, ~35 800 mairies
+  - URL : `https://api-lannuaire.service-public.fr/api/explore/v2.1/catalog/datasets/api-lannuaire-administration/records`
+  - Filtre : `pivot like "mairie"` (le champ `pivot` contient `type_service_local: "mairie"` et `code_insee_commune`)
+  - Champs utiles : `adresse` (JSON : numéro_voie, code_postal, nom_commune, longitude, latitude), `telephone`, `adresse_courriel`, `site_internet`, `code_insee_commune`
 - **Pages** : page d'accueil (grille des élus actifs avec badge député/sénateur genré, filtre département), fiche élu (identité, mandat, historique des mandats)
 
 ## Activité parlementaire

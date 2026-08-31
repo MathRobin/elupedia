@@ -1,9 +1,9 @@
 name: Social Daily Post
 
 on:
-#  schedule:
-#    - cron: '30 6 * * *' # 08:30 Paris (UTC+2) — official
-#    - cron: '30 16 * * *' # 18:30 Paris (UTC+2) — vote
+  #  schedule:
+  #    - cron: '30 6 * * *' # 08:30 Paris (UTC+2) — official
+  #    - cron: '30 16 * * *' # 18:30 Paris (UTC+2) — vote
   workflow_dispatch:
     inputs:
       mode:
