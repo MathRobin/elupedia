@@ -133,15 +133,15 @@ export default function QuestionDetailDrawer() {
         onClick={close}
       />
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-lg transform bg-white shadow-xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-lg transform bg-white shadow-xl transition-transform duration-300 dark:bg-slate-900 ${open ? 'translate-x-0' : 'translate-x-full'}`}
         role="dialog"
         aria-modal="true"
         aria-label="Détail de la question"
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200/60 ring-inset">
+              <span className="inline-flex items-center rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200/60 ring-inset dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-500/30">
                 {question
                   ? (activityTypeLabels[question.type] ?? question.type)
                   : ''}
@@ -162,7 +162,7 @@ export default function QuestionDetailDrawer() {
             </div>
             <button
               onClick={close}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-300"
               aria-label="Fermer"
             >
               <svg
@@ -184,7 +184,7 @@ export default function QuestionDetailDrawer() {
           {question && (
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
               <div>
-                <h4 className="text-lg font-semibold text-slate-900 leading-snug">
+                <h4 className="text-lg font-semibold text-slate-900 leading-snug dark:text-white">
                   {question.title}
                 </h4>
                 <p className="mt-2 text-sm text-slate-500">
@@ -241,7 +241,7 @@ export default function QuestionDetailDrawer() {
               )}
 
               {question.governmentComments && (
-                <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-4 py-3">
+                <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-4 py-3 dark:bg-slate-800">
                   <svg
                     className="h-4 w-4 shrink-0 text-slate-400"
                     fill="none"
@@ -255,7 +255,7 @@ export default function QuestionDetailDrawer() {
                       d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21"
                     />
                   </svg>
-                  <p className="text-sm font-medium text-slate-600">
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                     {question.governmentComments}
                   </p>
                 </div>
@@ -263,9 +263,9 @@ export default function QuestionDetailDrawer() {
 
               {isQuestion && (
                 <>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/50">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
                     <div className="border-b border-slate-200 px-4 py-3">
-                      <h4 className="text-sm font-semibold text-slate-700">
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                         Texte de la question
                       </h4>
                     </div>
@@ -275,7 +275,7 @@ export default function QuestionDetailDrawer() {
                           Chargement…
                         </p>
                       ) : question.questionText ? (
-                        <p className="whitespace-pre-line text-sm leading-7 text-slate-700">
+                        <p className="whitespace-pre-line text-sm leading-7 text-slate-700 dark:text-slate-300">
                           {stripHtml(question.questionText)}
                         </p>
                       ) : (
@@ -286,9 +286,9 @@ export default function QuestionDetailDrawer() {
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-indigo-200 bg-indigo-50/40">
+                  <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 dark:border-indigo-500/30 dark:bg-indigo-900/20">
                     <div className="flex items-center justify-between border-b border-indigo-200 px-4 py-3">
-                      <h4 className="text-sm font-semibold text-indigo-800">
+                      <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">
                         Réponse du gouvernement
                       </h4>
                       {question.responseDate && (
@@ -303,7 +303,7 @@ export default function QuestionDetailDrawer() {
                           Chargement…
                         </p>
                       ) : question.responseText ? (
-                        <p className="whitespace-pre-line text-sm leading-7 text-slate-700">
+                        <p className="whitespace-pre-line text-sm leading-7 text-slate-700 dark:text-slate-300">
                           {stripHtml(question.responseText)}
                         </p>
                       ) : (
@@ -319,13 +319,13 @@ export default function QuestionDetailDrawer() {
               {(question.rubrique ||
                 question.teteAnalyse ||
                 question.questionNumber) && (
-                <div className="border-t border-slate-200 pt-5">
+                <div className="border-t border-slate-200 pt-5 dark:border-slate-700">
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Métadonnées
                   </h4>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {question.rubrique && (
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                         {question.rubrique}
                       </span>
                     )}

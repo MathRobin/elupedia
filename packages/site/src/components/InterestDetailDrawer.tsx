@@ -90,21 +90,21 @@ export default function InterestDetailDrawer() {
         onClick={close}
       />
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-full max-w-lg transform bg-white shadow-xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-y-0 right-0 z-50 w-full max-w-lg transform bg-white shadow-xl transition-transform duration-300 dark:bg-slate-900 ${open ? 'translate-x-0' : 'translate-x-full'}`}
         role="dialog"
         aria-modal="true"
         aria-label="Détail de l'intérêt déclaré"
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-            <h3 className="text-base font-semibold text-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
               {interest
                 ? (categoryLabels[interest.category] ?? interest.category)
                 : ''}
             </h3>
             <button
               onClick={close}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-300"
               aria-label="Fermer"
             >
               <svg
@@ -126,16 +126,20 @@ export default function InterestDetailDrawer() {
           {interest && (
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               <div>
-                <p className="text-sm font-medium text-slate-500">Entité</p>
-                <p className="mt-1 text-slate-900 font-medium">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                  Entité
+                </p>
+                <p className="mt-1 text-slate-900 font-medium dark:text-white">
                   {interest.entityName}
                 </p>
               </div>
 
               {interest.roleDescription && (
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Rôle</p>
-                  <p className="mt-1 text-sm text-slate-700">
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    Rôle
+                  </p>
+                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                     {interest.roleDescription}
                   </p>
                 </div>
@@ -143,10 +147,10 @@ export default function InterestDetailDrawer() {
 
               <div className="flex flex-wrap gap-4 text-sm">
                 <div>
-                  <span className="font-medium text-slate-500">
+                  <span className="font-medium text-slate-500 dark:text-slate-400">
                     Déclaré le :{' '}
                   </span>
-                  <span className="text-slate-900">
+                  <span className="text-slate-900 dark:text-white">
                     {formatDate(interest.declaredDate)}
                   </span>
                 </div>
@@ -154,7 +158,7 @@ export default function InterestDetailDrawer() {
 
               {interest.declarantComment && (
                 <div>
-                  <p className="text-sm font-medium text-slate-500">
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                     Commentaire du déclarant
                   </p>
                   <p className="mt-1 text-sm text-slate-700 whitespace-pre-line">
@@ -165,10 +169,10 @@ export default function InterestDetailDrawer() {
 
               {interest.ownershipDetail && (
                 <div>
-                  <p className="text-sm font-medium text-slate-500">
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                     Détail de participation
                   </p>
-                  <p className="mt-1 text-sm text-slate-700">
+                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                     {interest.ownershipDetail}
                   </p>
                 </div>
@@ -176,7 +180,7 @@ export default function InterestDetailDrawer() {
 
               {interest.annualAmount && (
                 <div>
-                  <p className="text-sm font-medium text-slate-500">
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                     Montant annuel déclaré
                     {interest.amountYear ? ` (${interest.amountYear})` : ''}
                   </p>
@@ -213,15 +217,15 @@ export default function InterestDetailDrawer() {
               )}
 
               {interest.declarationSnapshots.length > 0 && (
-                <div className="border-t border-slate-200 pt-5">
-                  <p className="text-sm font-medium text-slate-500">
+                <div className="border-t border-slate-200 pt-5 dark:border-slate-700">
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                     Historique des déclarations
                   </p>
                   <ul className="mt-3 space-y-2">
                     {interest.declarationSnapshots.map((snap, i) => (
                       <li key={i} className="flex items-center gap-3 text-sm">
                         <span className="h-2 w-2 shrink-0 rounded-full bg-indigo-400" />
-                        <span className="text-slate-700">
+                        <span className="text-slate-700 dark:text-slate-300">
                           {formatDate(snap.declarationDate)}
                         </span>
                         <span className="text-xs text-slate-400">

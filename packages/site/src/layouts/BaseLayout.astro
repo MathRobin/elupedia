@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface Props {
   title?: string;
@@ -62,25 +63,31 @@ const websiteJsonLd = {
     <script type="application/ld+json" set:html={JSON.stringify(websiteJsonLd)} />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <slot name="head" />
+    <script is:inline>
+      (function(){var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')})();
+    </script>
   </head>
-  <body class="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:text-sm">
+  <body class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 flex flex-col antialiased transition-colors">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:text-sm dark:focus:bg-indigo-500">
       Aller au contenu principal
     </a>
 
     <div class="h-1 bg-gradient-to-r from-blue-700 via-white to-red-600" aria-hidden="true"></div>
 
-    <header class="bg-slate-900 shadow-lg">
+    <header class="bg-slate-900 shadow-lg dark:bg-slate-950 dark:shadow-slate-950/50">
       <nav class="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between" aria-label="Navigation principale">
         <a href="/" class="flex items-center gap-2.5 text-xl font-bold text-white no-underline tracking-tight">
           <img src="/img/logo-32x32.png" alt="" width="32" height="32" class="w-8 h-8 rounded-lg" />
           Elupedia
         </a>
-        <ul class="flex items-center gap-6 text-sm font-medium">
-          <li><a href="/elus" class="text-slate-300 hover:text-white transition-colors no-underline">Élus</a></li>
-          <li><a href="/votes" class="text-slate-300 hover:text-white transition-colors no-underline">Votes</a></li>
-          <li><a href="/a-propos" class="text-slate-300 hover:text-white transition-colors no-underline">À propos</a></li>
-        </ul>
+        <div class="flex items-center gap-4">
+          <ul class="flex items-center gap-6 text-sm font-medium">
+            <li><a href="/elus" class="text-slate-300 hover:text-white transition-colors no-underline">Élus</a></li>
+            <li><a href="/votes" class="text-slate-300 hover:text-white transition-colors no-underline">Votes</a></li>
+            <li><a href="/a-propos" class="text-slate-300 hover:text-white transition-colors no-underline">À propos</a></li>
+          </ul>
+          <ThemeToggle client:load />
+        </div>
       </nav>
     </header>
 
@@ -88,7 +95,7 @@ const websiteJsonLd = {
       <slot />
     </main>
 
-    <footer class="bg-slate-900 mt-auto">
+    <footer class="bg-slate-900 mt-auto dark:bg-slate-950">
       <div class="mx-auto max-w-6xl px-4 py-8">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -108,7 +115,7 @@ const websiteJsonLd = {
             </li>
           </ul>
         </div>
-        <p class="mt-6 pt-6 border-t border-slate-800 text-xs text-slate-500">
+        <p class="mt-6 pt-6 border-t border-slate-800 text-xs text-slate-500 dark:border-slate-700">
           © 2024–2026 Elupedia · Licence AGPL-3.0 · Données sous Licence Ouverte 2.0
         </p>
       </div>
