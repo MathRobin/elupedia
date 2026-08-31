@@ -660,70 +660,116 @@ const positionColors: Record<string, string> = {
       Retour à l'annuaire
     </a>
 
-    <div class="mt-6 flex items-start gap-6">
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-6 items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700">
       {deputy.photoUrl ? (
         <img
           src={deputy.photoUrl}
           alt={fullName}
-          class="h-28 w-28 shrink-0 rounded-2xl object-cover ring-4 ring-white shadow-lg"
+          class="h-28 w-28 shrink-0 rounded-2xl object-cover ring-2 ring-offset-2 ring-indigo-400 shadow-lg dark:ring-offset-slate-800"
           fetchpriority="high"
           decoding="async"
           width="112"
           height="112"
         />
       ) : (
-        <div class="flex h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-3xl font-semibold text-indigo-600 ring-4 ring-white shadow-lg">
+        <div class="flex h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-3xl font-semibold text-indigo-600 ring-2 ring-offset-2 ring-indigo-400 shadow-lg dark:bg-indigo-900/30 dark:text-indigo-400 dark:ring-offset-slate-800">
           {deputy.firstName[0]}{deputy.lastName[0]}
         </div>
       )}
 
       <div>
-        <h1 class="text-3xl font-extrabold tracking-tight">{fullName}</h1>
+        <h1 class="text-2xl font-bold tracking-tight dark:text-white">{fullName}</h1>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          {mandateLabel}
+          {deputy.district && deputy.department && ` — ${deputy.district} (${deputy.department})`}
+        </p>
+        {deputy.politicalGroup && (
+          <span class="mt-2 inline-block rounded-full bg-indigo-50 border border-indigo-200/50 px-3 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-500/30 dark:text-indigo-300">
+            {deputy.politicalGroup}
+          </span>
+        )}
         {deputy.birthDate && (
-          <p class="mt-1 text-slate-500">
+          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
             Né{deputy.firstName.endsWith('e') ? 'e' : ''} le {new Date(deputy.birthDate).toLocaleDateString('fr-FR')} ({differenceInYears(new Date(), new Date(deputy.birthDate))} ans)
           </p>
         )}
       </div>
+
+      <div class="flex flex-wrap gap-2 md:flex-col">
+        {deputy.mandateType === 'depute' && deputy.anId && (
+          <a
+            href={`https://www.assemblee-nationale.fr/dyn/deputes/${deputy.anId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors no-underline dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+            Assemblée nationale
+          </a>
+        )}
+      </div>
     </div>
 
-    <p class="mt-4 text-xs text-slate-500">
+    <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
       Dernière mise à jour le {new Date(lastUpdated).toLocaleDateString('fr-FR')}
     </p>
 
-    <nav id="toc-inline" class="mt-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5" aria-label="Sommaire">
+    <nav id="toc-inline" class="mt-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700" aria-label="Sommaire">
       <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Sommaire</p>
       <ul class="columns-2 gap-x-6 text-sm space-y-1">
-        <li><a href="#mandat" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Mandat en cours</a></li>
-        <li><a href="#tous-mandats" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Tous les mandats</a></li>
-        <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Coordonnées</a></li>
-        <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Affiliations politiques</a></li>
-        <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Collaborateurs</a></li>
-        <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Activité parlementaire</a></li>
-        <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Commissions & groupes</a></li>
-        <li><a href="#electoral" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Historique électoral</a></li>
-        <li><a href="#interets" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Intérêts déclarés</a></li>
-        <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Historique des votes</a></li>
-        <li><a href="#presse" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Dans la presse</a></li>
-        <li><a href="#liens" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline">Liens extérieurs</a></li>
+        <li><a href="#mandat" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandat en cours</a></li>
+        <li><a href="#tous-mandats" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Tous les mandats</a></li>
+        <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
+        <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations politiques</a></li>
+        <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>
+        <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité parlementaire</a></li>
+        <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions & groupes</a></li>
+        <li><a href="#electoral" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral</a></li>
+        <li><a href="#interets" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts déclarés</a></li>
+        <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique des votes</a></li>
+        <li><a href="#presse" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Dans la presse</a></li>
+        <li><a href="#liens" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Liens extérieurs</a></li>
       </ul>
     </nav>
 
-    <nav id="toc-sticky" class="fixed top-0 left-0 right-0 z-40 -translate-y-full bg-white/95 backdrop-blur-sm shadow-md border-b border-slate-200 transition-transform duration-300" aria-label="Sommaire" aria-hidden="true">
+    {deputyVotes.length > 0 && (() => {
+      const voteCounts: Record<string, number> = { for: 0, against: 0, abstain: 0, absent: 0 };
+      for (const v of deputyVotes) { voteCounts[v.position] = (voteCounts[v.position] ?? 0) + 1; }
+      const total = deputyVotes.length;
+      return (
+        <div class="mt-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Répartition des votes</p>
+          <div class="h-3 flex rounded-full overflow-hidden bg-slate-100 dark:bg-slate-700">
+            {voteCounts.for > 0 && <div class="bg-emerald-500" style={`width:${(voteCounts.for / total) * 100}%`}></div>}
+            {voteCounts.against > 0 && <div class="bg-rose-500" style={`width:${(voteCounts.against / total) * 100}%`}></div>}
+            {voteCounts.abstain > 0 && <div class="bg-amber-500" style={`width:${(voteCounts.abstain / total) * 100}%`}></div>}
+            {voteCounts.absent > 0 && <div class="bg-slate-300 dark:bg-slate-600" style={`width:${(voteCounts.absent / total) * 100}%`}></div>}
+          </div>
+          <div class="mt-2 flex flex-wrap gap-4 text-xs text-slate-600 dark:text-slate-400">
+            <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> Pour {voteCounts.for} ({(voteCounts.for / total * 100).toFixed(1)}%)</span>
+            <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-rose-500"></span> Contre {voteCounts.against} ({(voteCounts.against / total * 100).toFixed(1)}%)</span>
+            <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-500"></span> Abstention {voteCounts.abstain} ({(voteCounts.abstain / total * 100).toFixed(1)}%)</span>
+            {voteCounts.absent > 0 && <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600"></span> Absent {voteCounts.absent} ({(voteCounts.absent / total * 100).toFixed(1)}%)</span>}
+          </div>
+        </div>
+      );
+    })()}
+
+    <nav id="toc-sticky" class="fixed top-0 left-0 right-0 z-40 -translate-y-full bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200 transition-transform duration-300 dark:bg-slate-900/95 dark:border-slate-700" aria-label="Sommaire" aria-hidden="true">
       <div class="mx-auto max-w-6xl px-4 py-2 overflow-x-auto">
         <ul class="flex items-center gap-4 text-xs font-medium whitespace-nowrap">
-          <li><a href="#mandat" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Mandat</a></li>
-          <li><a href="#tous-mandats" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Mandats</a></li>
-          <li><a href="#coordonnees" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Coordonnées</a></li>
-          <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Affiliations</a></li>
-          <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Collaborateurs</a></li>
-          <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Activité</a></li>
-          <li><a href="#commissions" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Commissions</a></li>
-          <li><a href="#electoral" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Électoral</a></li>
-          <li><a href="#interets" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Intérêts</a></li>
-          <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Votes</a></li>
-          <li><a href="#presse" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Presse</a></li>
-          <li><a href="#liens" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline">Liens</a></li>
+          <li><a href="#mandat" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandat</a></li>
+          <li><a href="#tous-mandats" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandats</a></li>
+          <li><a href="#coordonnees" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
+          <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations</a></li>
+          <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>
+          <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité</a></li>
+          <li><a href="#commissions" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions</a></li>
+          <li><a href="#electoral" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral</a></li>
+          <li><a href="#interets" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts</a></li>
+          <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Votes</a></li>
+          <li><a href="#presse" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Presse</a></li>
+          <li><a href="#liens" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Liens</a></li>
         </ul>
       </div>
     </nav>
@@ -775,39 +821,31 @@ const positionColors: Record<string, string> = {
     </section>
 
     <section id="tous-mandats" class="mt-8 scroll-mt-12">
-      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Tous les mandats</h2>
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">Tous les mandats</h2>
       {deputyMandates.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucun mandat enregistré.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucun mandat enregistré.</p>
       ) : (
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-sm border-collapse">
-            <thead>
-              <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
-                <th class="py-2 pr-4">Type</th>
-                <th class="py-2 pr-4">Circonscription</th>
-                <th class="py-2 pr-4">Département</th>
-                <th class="py-2 pr-4">Groupe politique</th>
-                <th class="py-2 pr-4">Début</th>
-                <th class="py-2">Fin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deputyMandates.map((m) => (
-                <tr class="border-b border-slate-100 hover:bg-slate-50">
-                  <td class="py-2 pr-4 font-medium">{mandateTypeLabels[m.type] ?? m.type}</td>
-                  <td class="py-2 pr-4">{m.district ?? '—'}</td>
-                  <td class="py-2 pr-4">{m.department ?? '—'}</td>
-                  <td class="py-2 pr-4">{m.politicalGroup ?? '—'}</td>
-                  <td class="py-2 pr-4 whitespace-nowrap">{new Date(m.startDate).toLocaleDateString('fr-FR')}</td>
-                  <td class="py-2 whitespace-nowrap">
-                    {m.endDate ? new Date(m.endDate).toLocaleDateString('fr-FR') : (
-                      <span class="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">En cours</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div class="mt-4 border-l-2 border-slate-200 ml-3 pl-4 space-y-6 dark:border-slate-700">
+          {deputyMandates.map((m) => (
+            <div class="relative">
+              <div class={`absolute -left-[calc(1rem+5px)] top-1 h-2.5 w-2.5 rounded-full ${m.endDate ? 'bg-slate-300 dark:bg-slate-600' : 'bg-indigo-500'}`}></div>
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-sm dark:text-white">{mandateTypeLabels[m.type] ?? m.type}</span>
+                {!m.endDate && (
+                  <span class="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/20 dark:text-green-400">En cours</span>
+                )}
+              </div>
+              <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+                {m.district && `${m.district} — `}{m.department ?? ''}
+                {m.politicalGroup && ` · ${m.politicalGroup}`}
+              </p>
+              <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                {new Date(m.startDate).toLocaleDateString('fr-FR')}
+                {' → '}
+                {m.endDate ? new Date(m.endDate).toLocaleDateString('fr-FR') : "aujourd'hui"}
+              </p>
+            </div>
+          ))}
         </div>
       )}
     </section>
