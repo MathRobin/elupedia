@@ -26,30 +26,31 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (8 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat pour un run complet
+- Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (9 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
 - Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
-| Client                     | Fichier                           | Source                      | Format        | Statut   |
-| -------------------------- | --------------------------------- | --------------------------- | ------------- | -------- |
-| Députés (tous)             | `sources/assemblee-nationale.ts`  | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Collaborateurs AN          | `sources/an-collaborateurs.ts`    | data.assemblee-nationale.fr | CSV           | ✅ actif |
-| Adresses/contacts AN       | `sources/an-adresses.ts`          | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Activité parlementaire     | `sources/an-activite.ts`          | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Commissions/délégations    | `sources/an-commissions.ts`       | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Intérêts (HATVP)           | `sources/hatvp.ts`                | hatvp.fr                    | XML streaming | ✅ actif |
-| Sénateurs                  | `sources/senat.ts`                | data.senat.fr               | JSON API      | ✅ actif |
-| Scrutins Sénat             | `sources/senat-scrutins.ts`       | data.senat.fr               | JSON API      | ✅ actif |
-| Groupes Sénat              | `sources/senat-groupes.ts`        | data.senat.fr               | JSON API      | ✅ actif |
-| Collaborateurs Sénat       | `sources/senat-collaborateurs.ts` | data.senat.fr               | JSON API      | ✅ actif |
-| Adresses Sénat             | `sources/senat-adresses.ts`       | data.senat.fr               | JSON API      | ✅ actif |
-| Historique électoral Sénat | `sources/senat-elections.ts`      | data.senat.fr               | JSON API      | ✅ actif |
-| Commissions Sénat          | `sources/senat-commissions.ts`    | data.senat.fr               | JSON API      | ✅ actif |
-| Scrutins AN                | `sources/an-scrutins.ts`          | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Presse (Google News)       | `sources/google-news.ts`          | news.google.com             | RSS/XML       | ✅ actif |
-| Résultats électoraux AN    | `sources/datagouv-elections.ts`   | data.gouv.fr                | —             | ⏸ prévu  |
+| Client                     | Fichier                            | Source                      | Format        | Statut   |
+| -------------------------- | ---------------------------------- | --------------------------- | ------------- | -------- |
+| Députés (tous)             | `sources/assemblee-nationale.ts`   | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Collaborateurs AN          | `sources/an-collaborateurs.ts`     | data.assemblee-nationale.fr | CSV           | ✅ actif |
+| Adresses/contacts AN       | `sources/an-adresses.ts`           | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Activité parlementaire     | `sources/an-activite.ts`           | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Commissions/délégations    | `sources/an-commissions.ts`        | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Intérêts (HATVP)           | `sources/hatvp.ts`                 | hatvp.fr                    | XML streaming | ✅ actif |
+| Sénateurs                  | `sources/senat.ts`                 | data.senat.fr               | JSON API      | ✅ actif |
+| Scrutins Sénat             | `sources/senat-scrutins.ts`        | data.senat.fr               | JSON API      | ✅ actif |
+| Groupes Sénat              | `sources/senat-groupes.ts`         | data.senat.fr               | JSON API      | ✅ actif |
+| Collaborateurs Sénat       | `sources/senat-collaborateurs.ts`  | data.senat.fr               | JSON API      | ✅ actif |
+| Adresses Sénat             | `sources/senat-adresses.ts`        | data.senat.fr               | JSON API      | ✅ actif |
+| Historique électoral Sénat | `sources/senat-elections.ts`       | data.senat.fr               | JSON API      | ✅ actif |
+| Commissions Sénat          | `sources/senat-commissions.ts`     | data.senat.fr               | JSON API      | ✅ actif |
+| Réseaux sociaux Sénat      | `sources/senat-reseaux-sociaux.ts` | senat.fr                    | JSON + HTML   | ✅ actif |
+| Scrutins AN                | `sources/an-scrutins.ts`           | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
+| Presse (Google News)       | `sources/google-news.ts`           | news.google.com             | RSS/XML       | ✅ actif |
+| Résultats électoraux AN    | `sources/datagouv-elections.ts`    | data.gouv.fr                | —             | ⏸ prévu  |
 
 #### Upsert / Diff
 
@@ -71,6 +72,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Résultats électoraux AN    | `upsert/electoral-results.ts`       | Upsert sur official + election + round |
 | Résultats électoraux Sénat | `upsert/senat-electoral-results.ts` | Upsert sur official + election + round |
 | Commissions Sénat          | `upsert/senat-committees.ts`        | Upsert sur official + name + type      |
+| Liens sociaux Sénat        | `upsert/senat-social-links.ts`      | Upsert sur official + platform         |
 | Mentions presse            | `upsert/press-mentions.ts`          | Insert dédupliqué sur official + URL   |
 
 ### 2. Base de données (PostgreSQL / Neon)
