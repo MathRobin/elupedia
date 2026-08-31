@@ -1,0 +1,55 @@
+name: Social Daily Post
+
+on:
+  schedule:
+    - cron: '30 6 * * *' # 08:30 Paris (UTC+2) — official
+    - cron: '30 16 * * *' # 18:30 Paris (UTC+2) — vote
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Post mode'
+        required: true
+        type: choice
+        options:
+          - official
+          - vote
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Determine mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "30 6 * * *" ]; then
+            echo "value=official" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=vote" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate social image
+        run: npx tsx scripts/generate-social-image.ts ${{ steps.mode.outputs.value }} social.png social-data.json
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Publish to Postiz
+        run: npx tsx scripts/publish-to-postiz.ts ${{ steps.mode.outputs.value }} social.png social-data.json
+        env:
+          POSTIZ_API_KEY: ${{ secrets.POSTIZ_API_KEY }}
+          POSTIZ_URL: ${{ secrets.POSTIZ_URL }}

@@ -151,6 +151,7 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 - **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, activité parlementaire + HATVP avec critérisation (exclut décédés, mandats terminés, Q/R anciennes, déclarations inactifs)
 - **GitHub Actions Ingestion Sénat** (`.github/workflows/ingest-senat.yml`) : mardi/samedi 03:00 UTC, pipeline Sénat
 - **GitHub Actions Ingestion liens sociaux** (`.github/workflows/ingest-social-links.yml`) : quotidien 03:30 UTC, crawl des 2 pages AN (réseaux sociaux + sites personnels) + scraping de 50 sites perso/jour pour détection Instagram/TikTok/YouTube
+- **GitHub Actions Social Daily Post** (`.github/workflows/social-daily-post.yml`) : deux publications quotidiennes sur les réseaux sociaux via Postiz — matin 08:30 Paris (élu aléatoire), soir 18:30 Paris (vote récent) ; déclenchement manuel avec choix du mode
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 
 ## Tests

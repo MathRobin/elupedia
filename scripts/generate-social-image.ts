@@ -540,20 +540,22 @@ async function main() {
   const mode = process.argv[2];
   if (mode !== 'official' && mode !== 'vote') {
     console.error(
-      'Usage: tsx scripts/generate-social-image.ts <official|vote> [output.png]',
+      'Usage: tsx scripts/generate-social-image.ts <official|vote> [output.png] [data.json]',
     );
     process.exit(1);
   }
 
   const outPath = process.argv[3] ?? `social-${mode}.png`;
+  const dataPath = process.argv[4];
 
   let markup: Record<string, unknown>;
+  let data: OfficialData | VoteData;
   if (mode === 'official') {
-    const data = await fetchRandomOfficial();
+    data = await fetchRandomOfficial();
     console.log(`Generating image for: ${data.firstName} ${data.lastName}`);
     markup = buildOfficialMarkup(data);
   } else {
-    const data = await fetchRecentVote();
+    data = await fetchRecentVote();
     console.log(`Generating image for vote: ${data.title}`);
     markup = buildVoteMarkup(data);
   }
@@ -562,6 +564,11 @@ async function main() {
   const { writeFileSync } = await import('node:fs');
   writeFileSync(outPath, png);
   console.log(`Wrote ${outPath} (${(png.length / 1024).toFixed(0)} KB)`);
+
+  if (dataPath) {
+    writeFileSync(dataPath, JSON.stringify(data, null, 2));
+    console.log(`Wrote ${dataPath}`);
+  }
 }
 
 const isDirectRun =
