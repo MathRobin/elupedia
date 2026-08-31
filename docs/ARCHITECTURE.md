@@ -26,7 +26,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (6 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat pour un run complet
+- Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (7 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
 - Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main.ts` (`ingest`, combiné)
 

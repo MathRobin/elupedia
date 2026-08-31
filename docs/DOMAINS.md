@@ -15,8 +15,10 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 
 - **Tables** : `parliamentary_activity`
 - **Source** : data.assemblee-nationale.fr — ZIP questions écrites (~17 800 fichiers) + ZIP questions au gouvernement (~1 800 fichiers)
-- **Client M1** : `an-activite.ts` → `upsert/parliamentary-activity.ts`
-- **Description** : Questions écrites (written_question) et questions au gouvernement (oral_question). Amendements et rapports prévus ultérieurement (volumes trop importants pour l'instant).
+- **Clients** :
+  - AN : `an-activite.ts` → `upsert/parliamentary-activity.ts` (ZIP/JSON, ~19 600 questions)
+  - Sénat : `senat-activite.ts` → `upsert/senat-parliamentary-activity.ts` (dump SQL questions.zip, ~529 000 questions dont QE, QOSD, QOAD, QG, QC, QOAE). Parse le bloc `COPY tam_questions` + `COPY tam_reponses` du dump PostgreSQL de data.senat.fr.
+- **Description** : Questions écrites (written_question) et questions au gouvernement / orales (oral_question). Amendements et rapports prévus ultérieurement.
 - **Métadonnées capturées** (M13) :
   - `rubrique` (varchar 255) — thème de la question tel qu'indexé par l'AN (ex. « agriculture », « santé »). Champ `indexationAN.rubrique` du JSON source. 211 valeurs distinctes (17e législature). Valeur unique par question.
   - `tete_analyse` (varchar 512) — sous-catégorie d'analyse, souvent null. Champ `indexationAN.teteAnalyse`.
