@@ -13,7 +13,7 @@ export { InterestItemSchema, type InterestItem, type Declaration };
 export const DECLARATIONS_URL =
   'https://www.hatvp.fr/livraison/merge/declarations.xml';
 
-const PARLIAMENTARY_MANDATS = new Set([
+const ELIGIBLE_MANDATS = new Set([
   'DEPUTE',
   'DÉPUTÉ',
   'DEPUTEE',
@@ -22,11 +22,12 @@ const PARLIAMENTARY_MANDATS = new Set([
   'SÉNATEUR',
   'SENATRICE',
   'SÉNATRICE',
+  'MAIRE',
 ]);
 
-function isParliamentary(description: string): boolean {
+function isEligibleMandat(description: string): boolean {
   const upper = description.toUpperCase().trim();
-  for (const m of PARLIAMENTARY_MANDATS) {
+  for (const m of ELIGIBLE_MANDATS) {
     if (upper.startsWith(m)) return true;
   }
   return false;
@@ -172,7 +173,7 @@ async function parseDeclarationsStream(
             current.mandatDescriptions.push(
               currentMandatElectif.descriptionMandat,
             );
-            if (!isParliamentary(currentMandatElectif.descriptionMandat)) {
+            if (!isEligibleMandat(currentMandatElectif.descriptionMandat)) {
               current.mandatsElectifs.push({ ...currentMandatElectif });
             }
           }
@@ -261,7 +262,7 @@ async function parseDeclarationsStream(
 
       if (tag === 'declaration') {
         const isParlementaire =
-          current.mandatDescriptions.some(isParliamentary);
+          current.mandatDescriptions.some(isEligibleMandat);
         if (isParlementaire && current.nom && current.prenom) {
           const interests: InterestItem[] = [];
           const declaredDate = parseDate(current.dateDepot);

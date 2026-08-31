@@ -112,7 +112,7 @@ function nonParlementaireDeclaration(): string {
     <dateDepot>01/01/2023 10:00:00</dateDepot>
     <participationFinanciereDto><items><items><nomSociete>SomeCompany</nomSociete></items></items></participationFinanciereDto>
     <fonctionBenevoleDto><neant>true</neant></fonctionBenevoleDto>
-    <mandatElectifDto><items><items><descriptionMandat>MAIRE</descriptionMandat></items></items></mandatElectifDto>
+    <mandatElectifDto><items><items><descriptionMandat>Conseiller régional</descriptionMandat></items></items></mandatElectifDto>
     <general><declarant><nom>MARTIN</nom><prenom>JEAN</prenom></declarant></general>
   </declaration>`;
 }
@@ -212,6 +212,22 @@ describe('HATVP client', () => {
     expect(declarations).toHaveLength(1);
     expect(declarations[0].nom).toBe('DUVAL');
     expect(declarations[0].prenom).toBe('Claire');
+  });
+
+  it('handles mayors (MAIRE)', async () => {
+    const xml = buildXml([
+      `<declaration>
+        <dateDepot>15/03/2024 09:00:00</dateDepot>
+        <participationFinanciereDto><items><items><nomSociete>MairieCo</nomSociete></items></items></participationFinanciereDto>
+        <fonctionBenevoleDto><neant>true</neant></fonctionBenevoleDto>
+        <mandatElectifDto><items><items><descriptionMandat>Maire de Tilhouse</descriptionMandat></items></items></mandatElectifDto>
+        <general><declarant><nom>DUPUIS</nom><prenom>JEAN</prenom></declarant></general>
+      </declaration>`,
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+    expect(declarations).toHaveLength(1);
+    expect(declarations[0].nom).toBe('DUPUIS');
   });
 
   it('throws on HTTP error', async () => {
