@@ -181,7 +181,7 @@ describe('HATVP client', () => {
     expect(declarations).toHaveLength(0);
   });
 
-  it('handles senators', async () => {
+  it('handles senators (SÉNATEUR)', async () => {
     const xml = buildXml([
       `<declaration>
         <dateDepot>15/03/2024 09:00:00</dateDepot>
@@ -195,6 +195,23 @@ describe('HATVP client', () => {
     const declarations = await fetchDeclarations(mockFetch(xml));
     expect(declarations).toHaveLength(1);
     expect(declarations[0].nom).toBe('MARTIN');
+  });
+
+  it('handles senators (SÉNATRICE)', async () => {
+    const xml = buildXml([
+      `<declaration>
+        <dateDepot>15/03/2024 09:00:00</dateDepot>
+        <participationFinanciereDto><items><items><nomSociete>SomeCo</nomSociete></items></items></participationFinanciereDto>
+        <fonctionBenevoleDto><neant>true</neant></fonctionBenevoleDto>
+        <mandatElectifDto><items><items><descriptionMandat>SÉNATRICE</descriptionMandat></items></items></mandatElectifDto>
+        <general><declarant><nom>DUVAL</nom><prenom>CLAIRE</prenom></declarant></general>
+      </declaration>`,
+    ]);
+
+    const declarations = await fetchDeclarations(mockFetch(xml));
+    expect(declarations).toHaveLength(1);
+    expect(declarations[0].nom).toBe('DUVAL');
+    expect(declarations[0].prenom).toBe('Claire');
   });
 
   it('throws on HTTP error', async () => {
