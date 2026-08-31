@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 type Official = {
   id: string;
@@ -23,14 +23,14 @@ type Filters = {
   sort: 'name' | 'department';
 };
 
-const PAGE_SIZE = 60;
+const PAGE_SIZE = 50;
 
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-function readFiltersFromUrl(): Partial<Filters> {
-  if (typeof window === 'undefined') return {};
+function readFiltersFromUrl(): { filters: Partial<Filters>; page?: number } {
+  if (typeof window === 'undefined') return { filters: {} };
   const p = new URLSearchParams(window.location.search);
   const f: Partial<Filters> = {};
   if (p.has('q')) f.search = p.get('q')!;
@@ -47,10 +47,11 @@ function readFiltersFromUrl(): Partial<Filters> {
     (p.get('tri') === 'name' || p.get('tri') === 'department')
   )
     f.sort = p.get('tri') as 'name' | 'department';
-  return f;
+  const pg = parseInt(p.get('page') ?? '', 10);
+  return { filters: f, page: pg > 0 ? pg : undefined };
 }
 
-function writeFiltersToUrl(filters: Filters) {
+function writeFiltersToUrl(filters: Filters, page: number) {
   if (typeof window === 'undefined') return;
   const p = new URLSearchParams();
   if (filters.search) p.set('q', filters.search);
@@ -66,11 +67,107 @@ function writeFiltersToUrl(filters: Filters) {
   if (filters.department) p.set('dep', filters.department);
   if (filters.group) p.set('groupe', filters.group);
   if (filters.sort !== 'name') p.set('tri', filters.sort);
+  if (page > 1) p.set('page', String(page));
   const qs = p.toString();
   const url = qs
     ? `${window.location.pathname}?${qs}`
     : window.location.pathname;
   window.history.replaceState(null, '', url);
+}
+
+function pageRange(current: number, total: number): (number | '…')[] {
+  const pages: (number | '…')[] = [];
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+    return pages;
+  }
+  pages.push(1);
+  if (current > 3) pages.push('…');
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push('…');
+  pages.push(total);
+  return pages;
+}
+
+function Pagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (p: number) => void;
+}) {
+  const btn =
+    'inline-flex items-center justify-center h-9 min-w-[2.25rem] rounded-lg text-sm font-medium transition-colors';
+  const inactive =
+    'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700';
+  const active = 'bg-indigo-600 text-white dark:bg-indigo-500';
+  const disabled = 'text-slate-300 pointer-events-none dark:text-slate-600';
+
+  return (
+    <nav
+      className="mt-8 flex items-center justify-center gap-1"
+      aria-label="Pagination"
+    >
+      <button
+        onClick={() => onChange(page - 1)}
+        className={`${btn} px-2 ${page <= 1 ? disabled : inactive}`}
+        aria-label="Page précédente"
+      >
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15.75 19.5 8.25 12l7.5-7.5"
+          />
+        </svg>
+      </button>
+      {pageRange(page, totalPages).map((p, i) =>
+        p === '…' ? (
+          <span key={`e${i}`} className="px-1 text-slate-400">
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            className={`${btn} ${p === page ? active : inactive}`}
+            aria-current={p === page ? 'page' : undefined}
+          >
+            {p}
+          </button>
+        ),
+      )}
+      <button
+        onClick={() => onChange(page + 1)}
+        className={`${btn} px-2 ${page >= totalPages ? disabled : inactive}`}
+        aria-label="Page suivante"
+      >
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="m8.25 4.5 7.5 7.5-7.5 7.5"
+          />
+        </svg>
+      </button>
+    </nav>
+  );
 }
 
 function FilterPanel({
@@ -221,21 +318,35 @@ export default function OfficialsList({
     sort: 'name',
   };
 
+  const initial = readFiltersFromUrl();
   const [filters, setFilters] = useState<Filters>({
     ...defaultFilters,
-    ...readFiltersFromUrl(),
+    ...initial.filters,
   });
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initial.page ?? 1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    writeFiltersToUrl(filters);
+    writeFiltersToUrl(filters, page);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [filters, page]);
+
+  const updateFilters = (f: Filters) => {
+    setFilters(f);
     setPage(1);
-  }, [filters]);
+  };
 
   useEffect(() => {
-    const onPop = () =>
-      setFilters({ ...defaultFilters, ...readFiltersFromUrl() });
+    const onPop = () => {
+      const u = readFiltersFromUrl();
+      setFilters({ ...defaultFilters, ...u.filters });
+      setPage(u.page ?? 1);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -292,8 +403,12 @@ export default function OfficialsList({
     return list;
   }, [officials, filters]);
 
-  const paged = filtered.slice(0, page * PAGE_SIZE);
-  const hasMore = paged.length < filtered.length;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paged = filtered.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   const activeCount =
     (filters.search ? 1 : 0) +
@@ -301,7 +416,10 @@ export default function OfficialsList({
     (filters.department ? 1 : 0) +
     (filters.group ? 1 : 0);
 
-  const resetFilters = () => setFilters(defaultFilters);
+  const resetFilters = () => {
+    setFilters(defaultFilters);
+    setPage(1);
+  };
 
   return (
     <div className="flex gap-8">
@@ -310,7 +428,7 @@ export default function OfficialsList({
         <div className="sticky top-24">
           <FilterPanel
             filters={filters}
-            onChange={setFilters}
+            onChange={updateFilters}
             onReset={resetFilters}
             counts={counts}
             groups={groups}
@@ -326,7 +444,9 @@ export default function OfficialsList({
           <input
             type="search"
             value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            onChange={(e) =>
+              updateFilters({ ...filters, search: e.target.value })
+            }
             placeholder="Rechercher un élu…"
             className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
           />
@@ -354,13 +474,14 @@ export default function OfficialsList({
         {/* En-tête résultats */}
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {filtered.length} élu{filtered.length !== 1 ? 's' : ''} trouvé
-            {filtered.length !== 1 ? 's' : ''}
+            {filtered.length > PAGE_SIZE
+              ? `${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, filtered.length)} sur ${filtered.length.toLocaleString('fr-FR')} élus`
+              : `${filtered.length} élu${filtered.length !== 1 ? 's' : ''} trouvé${filtered.length !== 1 ? 's' : ''}`}
           </p>
           <select
             value={filters.sort}
             onChange={(e) =>
-              setFilters({
+              updateFilters({
                 ...filters,
                 sort: e.target.value as 'name' | 'department',
               })
@@ -448,15 +569,12 @@ export default function OfficialsList({
               ))}
             </div>
 
-            {hasMore && (
-              <div className="mt-8 text-center">
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border border-slate-300 bg-white px-6 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                >
-                  Voir plus ({filtered.length - paged.length} restants)
-                </button>
-              </div>
+            {totalPages > 1 && (
+              <Pagination
+                page={safePage}
+                totalPages={totalPages}
+                onChange={setPage}
+              />
             )}
           </>
         )}
@@ -497,7 +615,7 @@ export default function OfficialsList({
             <div className="flex-1 overflow-y-auto px-6 py-5">
               <FilterPanel
                 filters={filters}
-                onChange={setFilters}
+                onChange={updateFilters}
                 onReset={resetFilters}
                 counts={counts}
                 groups={groups}
