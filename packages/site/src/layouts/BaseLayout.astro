@@ -1,10 +1,12 @@
 ---
 import '../styles/global.css';
 import ThemeToggle from '../components/ThemeToggle';
+import ShareButton from '../components/ShareButton';
 
 interface Props {
   title?: string;
   description?: string;
+  hideShare?: boolean;
   image?: string;
   jsonLd?: Record<string, unknown>;
   ogType?: string;
@@ -16,6 +18,7 @@ const {
   image,
   jsonLd,
   ogType = 'website',
+  hideShare = false,
 } = Astro.props;
 
 const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
@@ -92,6 +95,11 @@ const websiteJsonLd = {
     </header>
 
     <main id="main-content" class="mx-auto max-w-6xl px-4 py-10 flex-1 w-full">
+      {!hideShare && (
+        <div class="flex justify-end mb-4">
+          <ShareButton client:load title={fullTitle} description={description} />
+        </div>
+      )}
       <slot />
     </main>
 
