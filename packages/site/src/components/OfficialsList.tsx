@@ -17,6 +17,7 @@ type Filters = {
   search: string;
   depute: boolean;
   senateur: boolean;
+  maire: boolean;
   department: string;
   group: string;
   sort: 'name' | 'department';
@@ -34,14 +35,10 @@ function readFiltersFromUrl(): Partial<Filters> {
   const f: Partial<Filters> = {};
   if (p.has('q')) f.search = p.get('q')!;
   if (p.has('type')) {
-    const t = p.get('type')!;
-    if (t === 'depute') {
-      f.depute = true;
-      f.senateur = false;
-    } else if (t === 'senateur') {
-      f.depute = false;
-      f.senateur = true;
-    }
+    const types = new Set(p.get('type')!.split(','));
+    f.depute = types.has('depute');
+    f.senateur = types.has('senateur');
+    f.maire = types.has('maire');
   }
   if (p.has('dep')) f.department = p.get('dep')!;
   if (p.has('groupe')) f.group = p.get('groupe')!;
@@ -57,8 +54,15 @@ function writeFiltersToUrl(filters: Filters) {
   if (typeof window === 'undefined') return;
   const p = new URLSearchParams();
   if (filters.search) p.set('q', filters.search);
-  if (!filters.depute && filters.senateur) p.set('type', 'senateur');
-  else if (filters.depute && !filters.senateur) p.set('type', 'depute');
+  const activeTypes = [
+    filters.depute && 'depute',
+    filters.senateur && 'senateur',
+    filters.maire && 'maire',
+  ].filter(Boolean) as string[];
+  const allTypes = 3;
+  if (activeTypes.length > 0 && activeTypes.length < allTypes) {
+    p.set('type', activeTypes.join(','));
+  }
   if (filters.department) p.set('dep', filters.department);
   if (filters.group) p.set('groupe', filters.group);
   if (filters.sort !== 'name') p.set('tri', filters.sort);
@@ -80,13 +84,13 @@ function FilterPanel({
   filters: Filters;
   onChange: (f: Filters) => void;
   onReset: () => void;
-  counts: { depute: number; senateur: number };
+  counts: { depute: number; senateur: number; maire: number };
   groups: string[];
   departments: string[];
 }) {
   const activeCount =
     (filters.search ? 1 : 0) +
-    (!filters.depute || !filters.senateur ? 1 : 0) +
+    (!filters.depute || !filters.senateur || !filters.maire ? 1 : 0) +
     (filters.department ? 1 : 0) +
     (filters.group ? 1 : 0);
 
@@ -138,12 +142,25 @@ function FilterPanel({
               <span className="text-slate-400">({counts.senateur})</span>
             </span>
           </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filters.maire}
+              onChange={(e) =>
+                onChange({ ...filters, maire: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              Maires <span className="text-slate-400">({counts.maire})</span>
+            </span>
+          </label>
         </div>
       </fieldset>
 
       <fieldset>
         <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-          Groupe parlementaire
+          Groupe politique
         </legend>
         <select
           value={filters.group}
@@ -198,6 +215,7 @@ export default function OfficialsList({
     search: '',
     depute: true,
     senateur: true,
+    maire: true,
     department: '',
     group: '',
     sort: 'name',
@@ -226,6 +244,7 @@ export default function OfficialsList({
     () => ({
       depute: officials.filter((o) => o.mandateType === 'depute').length,
       senateur: officials.filter((o) => o.mandateType === 'senateur').length,
+      maire: officials.filter((o) => o.mandateType === 'maire').length,
     }),
     [officials],
   );
@@ -251,6 +270,7 @@ export default function OfficialsList({
     let list = officials.filter((o) => {
       if (o.mandateType === 'depute' && !filters.depute) return false;
       if (o.mandateType === 'senateur' && !filters.senateur) return false;
+      if (o.mandateType === 'maire' && !filters.maire) return false;
       if (filters.department && o.department !== filters.department)
         return false;
       if (filters.group && o.politicalGroup !== filters.group) return false;
@@ -277,7 +297,7 @@ export default function OfficialsList({
 
   const activeCount =
     (filters.search ? 1 : 0) +
-    (!filters.depute || !filters.senateur ? 1 : 0) +
+    (!filters.depute || !filters.senateur || !filters.maire ? 1 : 0) +
     (filters.department ? 1 : 0) +
     (filters.group ? 1 : 0);
 
@@ -334,8 +354,7 @@ export default function OfficialsList({
         {/* En-tête résultats */}
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {filtered.length} parlementaire{filtered.length !== 1 ? 's' : ''}{' '}
-            trouvé
+            {filtered.length} élu{filtered.length !== 1 ? 's' : ''} trouvé
             {filtered.length !== 1 ? 's' : ''}
           </p>
           <select
@@ -389,15 +408,25 @@ export default function OfficialsList({
                       </div>
                     )}
                     <span
-                      className={`text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full ${d.mandateType === 'depute' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}
+                      className={`text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                        d.mandateType === 'depute'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                          : d.mandateType === 'senateur'
+                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      }`}
                     >
                       {d.mandateType === 'depute'
                         ? d.isFemale
                           ? 'Députée'
                           : 'Député'
-                        : d.isFemale
-                          ? 'Sénatrice'
-                          : 'Sénateur'}
+                        : d.mandateType === 'senateur'
+                          ? d.isFemale
+                            ? 'Sénatrice'
+                            : 'Sénateur'
+                          : d.isFemale
+                            ? 'Mairesse'
+                            : 'Maire'}
                     </span>
                   </div>
                   <div className="min-w-0">

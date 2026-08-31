@@ -455,6 +455,7 @@ const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers,
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
   assembly_office: 'Bureau AN/Sénat',
+  town_hall: 'Mairie',
 };
 
 const addressImages: Record<string, { src: string; alt: string; credit: string }> = {
@@ -466,6 +467,11 @@ const addressImages: Record<string, { src: string; alt: string; credit: string }
   constituency_office: {
     src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Circle-icons-gps.svg/960px-Circle-icons-gps.svg.png',
     alt: 'Immeuble de bureaux',
+    credit: 'Albrecht Voß / CC BY-SA 4.0',
+  },
+  town_hall: {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Circle-icons-gps.svg/960px-Circle-icons-gps.svg.png',
+    alt: 'Mairie',
     credit: 'Albrecht Voß / CC BY-SA 4.0',
   },
 };
@@ -578,7 +584,12 @@ const worksForName = deputy.mandateType === 'depute'
   ? 'Assemblée nationale'
   : deputy.mandateType === 'senateur'
     ? 'Sénat'
-    : undefined;
+    : deputy.mandateType === 'maire'
+      ? deputy.district ?? undefined
+      : undefined;
+
+const isMaire = deputy.mandateType === 'maire';
+const isParliamentary = deputy.mandateType === 'depute' || deputy.mandateType === 'senateur';
 
 const constituencyAddress = deputyAddresses.find((a) => a.type === 'constituency_office');
 
@@ -720,19 +731,19 @@ const positionColors: Record<string, string> = {
         <li><a href="#mandat" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandat en cours</a></li>
         <li><a href="#tous-mandats" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Tous les mandats</a></li>
         <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
-        <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations politiques</a></li>
-        <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>
-        <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité parlementaire</a></li>
-        <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions & groupes</a></li>
-        <li><a href="#electoral" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral</a></li>
+        {isParliamentary && <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations politiques</a></li>}
+        {isParliamentary && <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
+        {isParliamentary && <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité parlementaire</a></li>}
+        {isParliamentary && <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions & groupes</a></li>}
+        {isParliamentary && <li><a href="#electoral" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral</a></li>}
         <li><a href="#interets" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts déclarés</a></li>
-        <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique des votes</a></li>
+        {isParliamentary && <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique des votes</a></li>}
         <li><a href="#presse" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Dans la presse</a></li>
         <li><a href="#liens" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Liens extérieurs</a></li>
       </ul>
     </nav>
 
-    {deputyVotes.length > 0 && (() => {
+    {isParliamentary && deputyVotes.length > 0 && (() => {
       const voteCounts: Record<string, number> = { for: 0, against: 0, abstain: 0, absent: 0 };
       for (const v of deputyVotes) { voteCounts[v.position] = (voteCounts[v.position] ?? 0) + 1; }
       const total = deputyVotes.length;
@@ -761,13 +772,13 @@ const positionColors: Record<string, string> = {
           <li><a href="#mandat" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandat</a></li>
           <li><a href="#tous-mandats" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandats</a></li>
           <li><a href="#coordonnees" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
-          <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations</a></li>
-          <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>
-          <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité</a></li>
-          <li><a href="#commissions" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions</a></li>
-          <li><a href="#electoral" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral</a></li>
+          {isParliamentary && <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations</a></li>}
+          {isParliamentary && <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
+          {isParliamentary && <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité</a></li>}
+          {isParliamentary && <li><a href="#commissions" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions</a></li>}
+          {isParliamentary && <li><a href="#electoral" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral</a></li>}
           <li><a href="#interets" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts</a></li>
-          <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Votes</a></li>
+          {isParliamentary && <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Votes</a></li>}
           <li><a href="#presse" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Presse</a></li>
           <li><a href="#liens" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Liens</a></li>
         </ul>
@@ -975,7 +986,7 @@ const positionColors: Record<string, string> = {
       )}
     </section>
 
-    <section id="affiliations" class="mt-8 scroll-mt-12">
+    {isParliamentary && <section id="affiliations" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Affiliations politiques
         {deputyAffiliations.length > 0 && (
@@ -999,9 +1010,9 @@ const positionColors: Record<string, string> = {
           ))}
         </ul>
       )}
-    </section>
+    </section>}
 
-    <section id="collaborateurs" class="mt-8 scroll-mt-12">
+    {isParliamentary && <section id="collaborateurs" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Collaborateurs
         {deputyStaffers.length > 0 && (
@@ -1033,9 +1044,9 @@ const positionColors: Record<string, string> = {
           ))}
         </ul>
       )}
-    </section>
+    </section>}
 
-    <section id="activite" class="mt-8 scroll-mt-12">
+    {isParliamentary && <section id="activite" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Activité parlementaire
         {deputyActivities.length > 0 && (
@@ -1172,9 +1183,9 @@ const positionColors: Record<string, string> = {
           </div>
         </>
       )}
-    </section>
+    </section>}
 
-    <section id="commissions" class="mt-8 scroll-mt-12">
+    {isParliamentary && <section id="commissions" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Commissions & groupes
         {deputyCommittees.length > 0 && (
@@ -1247,9 +1258,9 @@ const positionColors: Record<string, string> = {
           </div>
         </>
       )}
-    </section>
+    </section>}
 
-    <section id="electoral" class="mt-8 scroll-mt-12">
+    {isParliamentary && <section id="electoral" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Historique électoral
         {deputyElectoralResults.length > 0 && (
@@ -1291,7 +1302,7 @@ const positionColors: Record<string, string> = {
           </table>
         </div>
       )}
-    </section>
+    </section>}
 
     <section id="interets" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
@@ -1356,7 +1367,7 @@ const positionColors: Record<string, string> = {
       )}
     </section>
 
-    <section id="votes" class="mt-8 scroll-mt-12">
+    {isParliamentary && <section id="votes" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Historique des votes
         {deputyVotes.length > 0 && (
@@ -1396,7 +1407,7 @@ const positionColors: Record<string, string> = {
           </table>
         </div>
       )}
-    </section>
+    </section>}
 
     <section id="presse" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
