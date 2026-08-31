@@ -26,9 +26,9 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN) et `run-senat.ts` (9 étapes Sénat), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat pour un run complet
+- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat) et `run-maires.ts` (1 étape Maires), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -50,6 +50,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Réseaux sociaux Sénat      | `sources/senat-reseaux-sociaux.ts` | senat.fr                    | JSON + HTML   | ✅ actif |
 | Scrutins AN                | `sources/an-scrutins.ts`           | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
 | Presse (Google News)       | `sources/google-news.ts`           | news.google.com             | RSS/XML       | ✅ actif |
+| Maires (RNE)               | `sources/rne-maires.ts`            | data.gouv.fr                | CSV           | ✅ actif |
 | Résultats électoraux AN    | `sources/datagouv-elections.ts`    | data.gouv.fr                | —             | ⏸ prévu  |
 
 #### Upsert / Diff
@@ -73,6 +74,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Résultats électoraux Sénat | `upsert/senat-electoral-results.ts` | Upsert sur official + election + round |
 | Commissions Sénat          | `upsert/senat-committees.ts`        | Upsert sur official + name + type      |
 | Liens sociaux Sénat        | `upsert/senat-social-links.ts`      | Upsert sur official + platform         |
+| Maires                     | `upsert/mayors.ts`                  | Upsert sur nom + prénom + naissance    |
 | Mentions presse            | `upsert/press-mentions.ts`          | Insert dédupliqué sur official + URL   |
 
 ### 2. Base de données (PostgreSQL / Neon)

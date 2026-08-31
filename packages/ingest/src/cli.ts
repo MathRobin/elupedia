@@ -20,15 +20,23 @@ export const SENAT_STEP_NAMES = [
   'senat-collaborateurs',
   'senat-adresses',
   'senat-elections',
+  'senat-commissions',
+  'senat-activite',
+  'senat-social-links',
 ] as const;
 
 export type SenatStepName = (typeof SENAT_STEP_NAMES)[number];
 
-export type StepName = AnStepName | SenatStepName;
+export const MAIRES_STEP_NAMES = ['maires'] as const;
+
+export type MairesStepName = (typeof MAIRES_STEP_NAMES)[number];
+
+export type StepName = AnStepName | SenatStepName | MairesStepName;
 
 export const STEP_NAMES: readonly StepName[] = [
   ...AN_STEP_NAMES,
   ...SENAT_STEP_NAMES,
+  ...MAIRES_STEP_NAMES,
 ];
 
 function printHelp(stepNames: readonly string[]): void {
