@@ -115,6 +115,12 @@ vi.mock('./sources/senat-activite.js', () => ({
 vi.mock('./upsert/senat-parliamentary-activity.js', () => ({
   upsertSenatParliamentaryActivity: vi.fn(),
 }));
+vi.mock('./sources/senat-commissions.js', () => ({
+  fetchSenatCommissions: vi.fn(),
+}));
+vi.mock('./upsert/senat-committees.js', () => ({
+  upsertSenatCommittees: vi.fn(),
+}));
 
 import { run } from './run.js';
 import { fetchDeputes } from './sources/assemblee-nationale.js';
@@ -146,6 +152,8 @@ import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js
 import { upsertDeclarationSnapshots } from './upsert/declaration-snapshots.js';
 import { fetchSenatActivities } from './sources/senat-activite.js';
 import { upsertSenatParliamentaryActivity } from './upsert/senat-parliamentary-activity.js';
+import { fetchSenatCommissions } from './sources/senat-commissions.js';
+import { upsertSenatCommittees } from './upsert/senat-committees.js';
 
 function setupHappyPath() {
   vi.mocked(fetchDeputes).mockResolvedValue([
@@ -219,6 +227,12 @@ function setupHappyPath() {
     updated: 0,
     skipped: 0,
   });
+  vi.mocked(fetchSenatCommissions).mockResolvedValue([]);
+  vi.mocked(upsertSenatCommittees).mockResolvedValue({
+    created: 0,
+    updated: 0,
+    skipped: 0,
+  });
 }
 
 beforeEach(() => {
@@ -234,7 +248,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(14);
+    expect(results).toHaveLength(15);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -263,7 +277,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(14);
+    expect(results).toHaveLength(15);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

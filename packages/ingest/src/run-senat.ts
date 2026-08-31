@@ -17,6 +17,8 @@ import { fetchSenatElections } from './sources/senat-elections.js';
 import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js';
 import { fetchSenatActivities } from './sources/senat-activite.js';
 import { upsertSenatParliamentaryActivity } from './upsert/senat-parliamentary-activity.js';
+import { fetchSenatCommissions } from './sources/senat-commissions.js';
+import { upsertSenatCommittees } from './upsert/senat-committees.js';
 
 export async function runSenat(
   enabledSteps?: Set<string>,
@@ -28,7 +30,7 @@ export async function runSenat(
   logger.info('=== Ingestion Sénat started ===\n');
 
   if (enabled('senateurs')) {
-    logger.info('[1/7] Sénateurs & mandats...');
+    logger.info('[1/8] Sénateurs & mandats...');
     results.push(
       await runStep('senateurs', async () => {
         const senateurs = await withRetry(() => fetchSenateurs(), {
@@ -46,7 +48,7 @@ export async function runSenat(
   }
 
   if (enabled('senat-votes')) {
-    logger.info('[2/7] Senate votes...');
+    logger.info('[2/8] Senate votes...');
     results.push(
       await runStep('senat-votes', async () => {
         const scrutins = await withRetry(() => fetchSenatScrutins('2025'), {
@@ -64,7 +66,7 @@ export async function runSenat(
   }
 
   if (enabled('senat-affiliations')) {
-    logger.info('[3/7] Senate affiliations...');
+    logger.info('[3/8] Senate affiliations...');
     results.push(
       await runStep('senat-affiliations', async () => {
         const groupes = await withRetry(() => fetchSenatGroupes(), {
@@ -82,7 +84,7 @@ export async function runSenat(
   }
 
   if (enabled('senat-collaborateurs')) {
-    logger.info('[4/7] Senate collaborateurs...');
+    logger.info('[4/8] Senate collaborateurs...');
     results.push(
       await runStep('senat-collaborateurs', async () => {
         const collabs = await withRetry(() => fetchSenatCollaborateurs(), {
@@ -100,7 +102,7 @@ export async function runSenat(
   }
 
   if (enabled('senat-adresses')) {
-    logger.info('[5/7] Senate addresses...');
+    logger.info('[5/8] Senate addresses...');
     results.push(
       await runStep('senat-adresses', async () => {
         const addr = await withRetry(() => fetchSenatAdresses(), {
@@ -118,7 +120,7 @@ export async function runSenat(
   }
 
   if (enabled('senat-elections')) {
-    logger.info('[6/7] Senate electoral results...');
+    logger.info('[6/8] Senate electoral results...');
     results.push(
       await runStep('senat-elections', async () => {
         const elec = await withRetry(() => fetchSenatElections('2023'), {
@@ -135,8 +137,26 @@ export async function runSenat(
     );
   }
 
+  if (enabled('senat-commissions')) {
+    logger.info('[7/8] Senate commissions & delegations...');
+    results.push(
+      await runStep('senat-commissions', async () => {
+        const comms = await withRetry(() => fetchSenatCommissions(), {
+          source: 'senat-commissions',
+        });
+        const r = await upsertSenatCommittees(db, comms);
+        return {
+          source: 'senat-commissions',
+          created: r.created,
+          updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
   if (enabled('senat-activite')) {
-    logger.info('[7/7] Senate parliamentary activity...');
+    logger.info('[8/8] Senate parliamentary activity...');
     results.push(
       await runStep('senat-activite', async () => {
         const activities = await withRetry(() => fetchSenatActivities(), {
