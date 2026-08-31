@@ -7,6 +7,7 @@ import { fetchRneMaires } from './sources/rne-maires.js';
 import { upsertMayors } from './upsert/mayors.js';
 import { fetchDilaMairies } from './sources/dila-mairies.js';
 import { upsertMayorAddresses } from './upsert/mayor-addresses.js';
+import { scrapeMayorWebsites } from './upsert/mayor-social-scrape.js';
 
 export async function runMaires(
   enabledSteps?: Set<string>,
@@ -18,7 +19,7 @@ export async function runMaires(
   logger.info('=== Ingestion Maires started ===\n');
 
   if (enabled('maires')) {
-    logger.info('[1/2] RNE maires...');
+    logger.info('[1/3] RNE maires...');
     results.push(
       await runStep('maires', async () => {
         const maires = await withRetry(() => fetchRneMaires(), {
@@ -36,7 +37,7 @@ export async function runMaires(
   }
 
   if (enabled('maires-addresses')) {
-    logger.info('[2/2] DILA mairie addresses...');
+    logger.info('[2/3] DILA mairie addresses...');
     results.push(
       await runStep('maires-addresses', async () => {
         const mairies = await withRetry(() => fetchDilaMairies(), {
@@ -47,6 +48,21 @@ export async function runMaires(
           source: 'maires-addresses',
           created: r.created,
           updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('maires-social-scrape')) {
+    logger.info('[3/3] Mayor website social links scrape...');
+    results.push(
+      await runStep('maires-social-scrape', async () => {
+        const r = await scrapeMayorWebsites(db);
+        return {
+          source: 'maires-social-scrape',
+          created: r.created,
+          updated: r.skipped,
           durationMs: 0,
         };
       }),
