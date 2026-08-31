@@ -84,6 +84,25 @@ describe('buildVoteMarkup', () => {
   });
 });
 
+describe('buildOfficialMarkup edge cases', () => {
+  it('handles missing photo, group, district, department', () => {
+    const minimal: OfficialData = {
+      firstName: 'Jean',
+      lastName: 'Martin',
+      photoUrl: null,
+      politicalGroup: null,
+      district: null,
+      department: null,
+      slug: null,
+      mandateType: 'depute',
+    };
+    const json = JSON.stringify(buildOfficialMarkup(minimal));
+    expect(json).toContain('Jean Martin');
+    expect(json).toContain('JM');
+    expect(json).not.toContain('null');
+  });
+});
+
 describe('renderToPng', () => {
   it('generates a PNG buffer for official mode', async () => {
     const markup = buildOfficialMarkup(officialData);

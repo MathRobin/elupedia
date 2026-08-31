@@ -548,26 +548,37 @@ async function main() {
   const outPath = process.argv[3] ?? `social-${mode}.png`;
   const dataPath = process.argv[4];
 
+  console.log(`[generate] mode=${mode}`);
+
   let markup: Record<string, unknown>;
   let data: OfficialData | VoteData;
   if (mode === 'official') {
+    console.log('[generate] Fetching random official from database…');
     data = await fetchRandomOfficial();
-    console.log(`Generating image for: ${data.firstName} ${data.lastName}`);
+    console.log(
+      `[generate] Selected: ${data.firstName} ${data.lastName} (slug=${data.slug}, group=${data.politicalGroup})`,
+    );
     markup = buildOfficialMarkup(data);
   } else {
+    console.log('[generate] Fetching recent vote from database…');
     data = await fetchRecentVote();
-    console.log(`Generating image for vote: ${data.title}`);
+    console.log(
+      `[generate] Selected: ballot=${data.id}, title="${data.title}"`,
+    );
     markup = buildVoteMarkup(data);
   }
 
+  console.log('[generate] Rendering PNG…');
   const png = await renderToPng(markup);
   const { writeFileSync } = await import('node:fs');
   writeFileSync(outPath, png);
-  console.log(`Wrote ${outPath} (${(png.length / 1024).toFixed(0)} KB)`);
+  console.log(
+    `[generate] Wrote ${outPath} (${(png.length / 1024).toFixed(0)} KB)`,
+  );
 
   if (dataPath) {
     writeFileSync(dataPath, JSON.stringify(data, null, 2));
-    console.log(`Wrote ${dataPath}`);
+    console.log(`[generate] Wrote ${dataPath}`);
   }
 }
 

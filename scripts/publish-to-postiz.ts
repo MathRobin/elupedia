@@ -61,7 +61,7 @@ export async function uploadImage(
   }
 
   const body = (await res.json()) as { id: string; path: string };
-  console.log(`Image uploaded: ${body.id}`);
+  console.log(`[postiz] Image uploaded: id=${body.id}, path=${body.path}`);
   return body.id;
 }
 
@@ -110,7 +110,11 @@ async function main() {
     process.exit(1);
   }
 
+  console.log(`[postiz] mode=${mode}, image=${imagePath}, data=${dataPath}`);
+
   const png = readFileSync(imagePath);
+  console.log(`[postiz] Image loaded (${(png.length / 1024).toFixed(0)} KB)`);
+
   const data = JSON.parse(readFileSync(dataPath, 'utf-8'));
 
   let caption: string;
@@ -119,16 +123,19 @@ async function main() {
   } else if (mode === 'vote') {
     caption = buildVoteCaption(data as VoteData);
   } else {
-    console.error('Mode must be "official" or "vote"');
+    console.error('[postiz] ERROR: Mode must be "official" or "vote"');
     process.exit(1);
   }
 
-  console.log('Caption:\n', caption, '\n');
+  console.log(`[postiz] Caption generated (${caption.length} chars)`);
 
+  console.log('[postiz] Uploading image…');
   const mediaId = await uploadImage(png, `social-${mode}.png`);
+
+  console.log('[postiz] Creating post…');
   const postId = await createPost(caption, mediaId);
 
-  console.log(`Published: ${POSTIZ_URL}/posts/${postId}`);
+  console.log(`[postiz] Done: post=${postId}`);
 }
 
 const isDirectRun =
