@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import type { MairieData } from '../sources/dila-mairies.js';
 import { logger } from '../logger.js';
 
-const BATCH_SIZE = 2000;
+const BATCH_SIZE = 500;
 
 export async function upsertMayorAddresses(
   db: NeonHttpDatabase,

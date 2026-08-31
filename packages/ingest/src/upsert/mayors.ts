@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import type { RneMaire } from '../sources/rne-maires.js';
 import { logger } from '../logger.js';
 
-const BATCH_SIZE = 2000;
+const BATCH_SIZE = 500;
 
 function slugify(firstName: string, lastName: string): string {
   return `${firstName}-${lastName}`
