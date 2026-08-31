@@ -3,8 +3,14 @@ import { officials, mandates } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import type { RneMaire } from '../sources/rne-maires.js';
 import { logger } from '../logger.js';
+import {
+  loadCheckpoint,
+  saveCheckpoint,
+  clearCheckpoint,
+} from '../utils/checkpoint.js';
 
 const BATCH_SIZE = 200;
+const CHECKPOINT_NAME = 'upsert-mayors';
 
 function slugify(firstName: string, lastName: string): string {
   return `${firstName}-${lastName}`
@@ -16,8 +22,26 @@ function slugify(firstName: string, lastName: string): string {
     .replace(/^-|-$/g, '');
 }
 
+function sortKey(m: RneMaire): string {
+  return `${m.communeCode}|${m.lastName}|${m.firstName}`;
+}
+
 export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
   const summary = { officials: 0, mandates: 0, skipped: 0 };
+
+  const sorted = [...maires].sort((a, b) =>
+    sortKey(a).localeCompare(sortKey(b)),
+  );
+
+  const checkpoint = loadCheckpoint(CHECKPOINT_NAME);
+  let startIndex = 0;
+  if (checkpoint) {
+    startIndex = sorted.findIndex((m) => sortKey(m) > checkpoint);
+    if (startIndex === -1) startIndex = sorted.length;
+    logger.info(
+      `  Checkpoint found — resuming after "${checkpoint}" (skipping ${startIndex}/${sorted.length})`,
+    );
+  }
 
   const allOfficials = await db
     .select({
@@ -51,10 +75,13 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
     return s;
   }
 
-  for (let start = 0; start < maires.length; start += BATCH_SIZE) {
-    const batch = maires.slice(start, start + BATCH_SIZE);
+  const totalBatches = Math.ceil((sorted.length - startIndex) / BATCH_SIZE);
+
+  for (let start = startIndex; start < sorted.length; start += BATCH_SIZE) {
+    const batch = sorted.slice(start, start + BATCH_SIZE);
+    const batchNum = Math.floor((start - startIndex) / BATCH_SIZE) + 1;
     logger.info(
-      `  Processing batch ${Math.floor(start / BATCH_SIZE) + 1}/${Math.ceil(maires.length / BATCH_SIZE)} (${batch.length} maires)`,
+      `  Processing batch ${batchNum}/${totalBatches} (${batch.length} maires)`,
     );
 
     for (const maire of batch) {
@@ -111,7 +138,12 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
         summary.mandates++;
       }
     }
+
+    saveCheckpoint(CHECKPOINT_NAME, sortKey(batch[batch.length - 1]));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
+
+  clearCheckpoint(CHECKPOINT_NAME);
 
   logger.info(
     `Mayors: ${summary.officials} officials created, ${summary.mandates} mandates upserted`,

@@ -3,14 +3,34 @@ import { mandates, addresses, externalLinks } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import type { MairieData } from '../sources/dila-mairies.js';
 import { logger } from '../logger.js';
+import {
+  loadCheckpoint,
+  saveCheckpoint,
+  clearCheckpoint,
+} from '../utils/checkpoint.js';
 
 const BATCH_SIZE = 200;
+const CHECKPOINT_NAME = 'upsert-mayor-addresses';
 
 export async function upsertMayorAddresses(
   db: NeonHttpDatabase,
   mairies: MairieData[],
 ) {
   const summary = { created: 0, updated: 0, websites: 0, skipped: 0 };
+
+  const sorted = [...mairies].sort((a, b) =>
+    a.communeCode.localeCompare(b.communeCode),
+  );
+
+  const checkpoint = loadCheckpoint(CHECKPOINT_NAME);
+  let startIndex = 0;
+  if (checkpoint) {
+    startIndex = sorted.findIndex((m) => m.communeCode > checkpoint);
+    if (startIndex === -1) startIndex = sorted.length;
+    logger.info(
+      `  Checkpoint found — resuming after "${checkpoint}" (skipping ${startIndex}/${sorted.length})`,
+    );
+  }
 
   const mayorMandates = await db
     .select({
@@ -29,10 +49,13 @@ export async function upsertMayorAddresses(
 
   logger.info(`  Mayor mandates cache: ${officialByCommune.size} communes`);
 
-  for (let start = 0; start < mairies.length; start += BATCH_SIZE) {
-    const batch = mairies.slice(start, start + BATCH_SIZE);
+  const totalBatches = Math.ceil((sorted.length - startIndex) / BATCH_SIZE);
+
+  for (let start = startIndex; start < sorted.length; start += BATCH_SIZE) {
+    const batch = sorted.slice(start, start + BATCH_SIZE);
+    const batchNum = Math.floor((start - startIndex) / BATCH_SIZE) + 1;
     logger.info(
-      `  Processing batch ${Math.floor(start / BATCH_SIZE) + 1}/${Math.ceil(mairies.length / BATCH_SIZE)} (${batch.length} mairies)`,
+      `  Processing batch ${batchNum}/${totalBatches} (${batch.length} mairies)`,
     );
 
     for (const mairie of batch) {
@@ -112,7 +135,11 @@ export async function upsertMayorAddresses(
         }
       }
     }
+
+    saveCheckpoint(CHECKPOINT_NAME, batch[batch.length - 1].communeCode);
   }
+
+  clearCheckpoint(CHECKPOINT_NAME);
 
   logger.info(
     `Mayor addresses: ${summary.created} created, ${summary.updated} updated, ${summary.websites} websites, ${summary.skipped} skipped`,
