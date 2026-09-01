@@ -35,12 +35,18 @@ export const MAIRES_STEP_NAMES = [
 
 export type MairesStepName = (typeof MAIRES_STEP_NAMES)[number];
 
-export type StepName = AnStepName | SenatStepName | MairesStepName;
+export const COMMON_STEP_NAMES = ['geocode'] as const;
+
+export type CommonStepName = (typeof COMMON_STEP_NAMES)[number];
+
+export type StepName =
+  AnStepName | SenatStepName | MairesStepName | CommonStepName;
 
 export const STEP_NAMES: readonly StepName[] = [
   ...AN_STEP_NAMES,
   ...SENAT_STEP_NAMES,
   ...MAIRES_STEP_NAMES,
+  ...COMMON_STEP_NAMES,
 ];
 
 function printHelp(stepNames: readonly string[]): void {
