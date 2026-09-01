@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && node .yarn/releases/yarn-4.18.0.cjs db:migrate && cd packages/site && node ../../.yarn/releases/yarn-4.18.0.cjs astro build",
+  "buildCommand": "cd ../.. && node .yarn/releases/yarn-4.18.0.cjs db:migrate && cd packages/site && node ../../.yarn/releases/yarn-4.18.0.cjs astro build && (cp -r public/maps .vercel/output/static/maps 2>/dev/null || true)",
   "outputDirectory": "dist",
   "installCommand": "cd ../.. && node .yarn/releases/yarn-4.18.0.cjs install",
   "framework": null

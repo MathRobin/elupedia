@@ -77,7 +77,11 @@ export async function generateStaticMap(
 
     writeFileSync(cached, buffer);
     return buffer;
-  } catch {
+  } catch (err) {
+    console.error(
+      `[static-map] Failed for ${resolved.latitude},${resolved.longitude}:`,
+      err,
+    );
     return null;
   }
 }
