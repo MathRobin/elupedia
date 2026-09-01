@@ -941,7 +941,7 @@ const positionColors: Record<string, string> = {
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {deputyAddresses.map((addr) => {
             const fallbackImg = addressImages[addr.type];
-            const hasMap = !!addr.mapUrl;
+            const hasMap = !!addr.mapUrl && addr.type !== 'assembly_office';
             const imgSrc = hasMap ? addr.mapUrl! : fallbackImg?.src;
             const imgAlt = hasMap
               ? `Carte OpenStreetMap — ${[addr.street, addr.city].filter(Boolean).join(', ')}`
