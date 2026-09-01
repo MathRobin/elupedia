@@ -68,7 +68,7 @@ export async function getStaticPaths() {
   const votesByOfficial = new Map<string, typeof allVotes>();
   for (const v of allVotes) {
     const list = votesByOfficial.get(v.officialId) ?? [];
-    list.push(v);
+    if (list.length < 20) list.push(v);
     votesByOfficial.set(v.officialId, list);
   }
 
