@@ -1,8 +1,8 @@
 name: Ingestion Sénat
 
 on:
-  schedule:
-    - cron: '0 3 * * 2,6'
+#  schedule:
+#    - cron: '0 3 * * 2,6'
   workflow_dispatch:
 
 jobs:

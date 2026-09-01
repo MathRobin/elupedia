@@ -5,6 +5,18 @@ import { join } from 'node:path';
 
 const CACHE_DIR = join(process.cwd(), 'node_modules', '.cache', 'static-maps');
 
+const MARKER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="32" viewBox="0 0 20 32">
+  <path d="M10 0C4.5 0 0 4.5 0 10c0 7.5 10 22 10 22s10-14.5 10-22C20 4.5 15.5 0 10 0z" fill="#4F46E5"/>
+  <circle cx="10" cy="10" r="4" fill="white"/>
+</svg>`;
+
+function ensureMarkerFile(): string {
+  mkdirSync(CACHE_DIR, { recursive: true });
+  const path = join(CACHE_DIR, 'marker.svg');
+  if (!existsSync(path)) writeFileSync(path, MARKER_SVG);
+  return path;
+}
+
 export interface MapOptions {
   latitude: number;
   longitude: number;
@@ -38,6 +50,8 @@ export async function generateStaticMap(
   }
 
   try {
+    const markerPath = ensureMarkerFile();
+
     const map = new StaticMaps({
       width: resolved.width,
       height: resolved.height,
@@ -51,7 +65,7 @@ export async function generateStaticMap(
 
     map.addMarker({
       coord: [resolved.longitude, resolved.latitude],
-      img: markerSvgDataUri(),
+      img: markerPath,
       height: 32,
       width: 20,
       offsetX: 10,
@@ -66,12 +80,4 @@ export async function generateStaticMap(
   } catch {
     return null;
   }
-}
-
-function markerSvgDataUri(): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="32" viewBox="0 0 20 32">
-    <path d="M10 0C4.5 0 0 4.5 0 10c0 7.5 10 22 10 22s10-14.5 10-22C20 4.5 15.5 0 10 0z" fill="#4F46E5"/>
-    <circle cx="10" cy="10" r="4" fill="white"/>
-  </svg>`;
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }

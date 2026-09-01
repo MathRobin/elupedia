@@ -1,8 +1,8 @@
 name: Ingestion — liens sociaux
 
 on:
-  schedule:
-    - cron: '30 3 * * *'
+#  schedule:
+#    - cron: '30 3 * * *'
   workflow_dispatch:
 
 jobs:
