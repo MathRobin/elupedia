@@ -59,6 +59,26 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - Titre de l'article, nom de la source, URL de l'article, date de publication
 - **Remarque** : Cette source n'est pas institutionnelle. Les résultats de recherche peuvent contenir des faux positifs (homonymes) et ne sont pas exhaustifs.
 
+### OpenStreetMap (cartes statiques)
+
+- **Éditeur** : Fondation OpenStreetMap et contributeurs
+- **Licence** : ODbL (Open Database License) pour les données, CC BY-SA 2.0 pour les tuiles cartographiques
+- **Obligations** :
+  - Attribution obligatoire : « © OpenStreetMap » affiché sur chaque carte générée
+  - Partage à l'identique si redistribution de la base de données dérivée
+- **URL** : https://www.openstreetmap.org
+- **Utilisation** : tuiles cartographiques (`tile.openstreetmap.org`) pour générer des images PNG statiques de localisation des adresses d'élus au moment du build
+
+### API Adresse (géocodage)
+
+- **Éditeur** : Etalab / DINUM
+- **Licence** : Licence Ouverte / Open Licence 2.0 (Etalab)
+- **Obligations** :
+  - Attribution obligatoire : mentionner la source
+  - Pas de restriction sur l'usage commercial
+- **URL** : https://api-adresse.data.gouv.fr
+- **Utilisation** : géocodage des adresses de mairies et permanences en coordonnées GPS (latitude, longitude)
+
 ## Sources prévues (non encore actives)
 
 ### data.gouv.fr (résultats électoraux AN)
@@ -79,6 +99,8 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | Sénat               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | Google Actualités   | RSS public          | N/A         | Titres + liens   | ✅ active |
+| OpenStreetMap       | ODbL / CC BY-SA 2.0 | Oui         | Autorisé         | ✅ active |
+| API Adresse         | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | data.gouv.fr        | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
 
 ## Licence du code source

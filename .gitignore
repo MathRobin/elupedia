@@ -12,3 +12,4 @@ dist/
 .env.*
 !.env.example
 ingest-report*.json
+packages/site/public/maps/

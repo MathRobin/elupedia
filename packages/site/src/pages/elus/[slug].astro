@@ -4,6 +4,10 @@ import { getDb } from '../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
+import { generateStaticMap } from '../../lib/static-map.js';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
 
@@ -179,11 +183,42 @@ export async function getStaticPaths() {
       city: addresses.city,
       phone: addresses.phone,
       email: addresses.email,
+      latitude: addresses.latitude,
+      longitude: addresses.longitude,
     })
     .from(addresses);
 
-  const addressesByOfficial = new Map<string, typeof allAddresses>();
+  const mapsDir = join(process.cwd(), 'public', 'maps');
+  mkdirSync(mapsDir, { recursive: true });
+
+  type AddressWithMap = (typeof allAddresses)[number] & { mapUrl: string | null };
+  const addressesWithMaps: AddressWithMap[] = [];
   for (const addr of allAddresses) {
+    let mapUrl: string | null = null;
+    if (addr.latitude != null && addr.longitude != null) {
+      const hash = createHash('md5')
+        .update(`${addr.latitude}_${addr.longitude}_13_400x200`)
+        .digest('hex');
+      const filename = `${hash}.png`;
+      const filepath = join(mapsDir, filename);
+      if (!existsSync(filepath)) {
+        const buf = await generateStaticMap({
+          latitude: addr.latitude,
+          longitude: addr.longitude,
+        });
+        if (buf) {
+          writeFileSync(filepath, buf);
+          mapUrl = `/maps/${filename}`;
+        }
+      } else {
+        mapUrl = `/maps/${filename}`;
+      }
+    }
+    addressesWithMaps.push({ ...addr, mapUrl });
+  }
+
+  const addressesByOfficial = new Map<string, AddressWithMap[]>();
+  for (const addr of addressesWithMaps) {
     const list = addressesByOfficial.get(addr.officialId) ?? [];
     list.push(addr);
     addressesByOfficial.set(addr.officialId, list);
@@ -388,6 +423,9 @@ type Address = {
   city: string | null;
   phone: string | null;
   email: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  mapUrl: string | null;
 };
 
 type ExternalLink = {
@@ -920,36 +958,46 @@ const positionColors: Record<string, string> = {
       ) : (
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {deputyAddresses.map((addr) => {
-            const img = addressImages[addr.type];
+            const fallbackImg = addressImages[addr.type];
+            const hasMap = !!addr.mapUrl;
+            const imgSrc = hasMap ? addr.mapUrl! : fallbackImg?.src;
+            const imgAlt = hasMap
+              ? `Carte OpenStreetMap — ${[addr.street, addr.city].filter(Boolean).join(', ')}`
+              : fallbackImg?.alt;
             const addressParts = [addr.street, addr.postalCode, addr.city].filter(Boolean);
             const mapsQuery = addressParts.length > 0 ? encodeURIComponent(addressParts.join(' ')) : null;
+            const osmUrl = addr.latitude != null && addr.longitude != null
+              ? `https://www.openstreetmap.org/?mlat=${addr.latitude}&mlon=${addr.longitude}#map=15/${addr.latitude}/${addr.longitude}`
+              : null;
             return (
               <div class="group rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 overflow-hidden transition-shadow hover:shadow-md dark:bg-slate-800 dark:ring-slate-700">
-                {img && (
+                {imgSrc && (
                   <div class="relative h-40 overflow-hidden">
                     <img
-                      src={img.src}
-                      alt={img.alt}
+                      src={imgSrc}
+                      alt={imgAlt}
                       class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       loading="lazy"
                     />
                     <span class="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-sm">
                       {addressTypeLabels[addr.type] ?? addr.type}
                     </span>
-                    {mapsQuery && (
+                    {(osmUrl || mapsQuery) && (
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${mapsQuery}`}
+                        href={osmUrl ?? `https://www.openstreetmap.org/search?query=${mapsQuery}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         class="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-indigo-600 hover:text-white"
-                        title="Voir sur Google Maps"
+                        title="Voir sur OpenStreetMap"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                           <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
                         </svg>
                       </a>
                     )}
-                    <span class="absolute bottom-1 right-2 text-[9px] text-white/70">{img.credit}</span>
+                    <span class="absolute bottom-1 right-2 text-[9px] text-white/70">
+                      {hasMap ? '© OpenStreetMap' : fallbackImg?.credit}
+                    </span>
                   </div>
                 )}
                 <div class="p-4">

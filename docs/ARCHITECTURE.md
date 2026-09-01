@@ -121,6 +121,7 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
 - Site URL : `https://elupedia.fr`
 - Consentement cookies : tarteaucitron.js vendorisé dans `public/tarteaucitron/`, conforme CNIL (highPrivacy, DenyAllCta, AcceptAllCta)
 - Composants React : `src/components/OfficialsList.tsx` (grille d'accueil avec filtres), `src/components/QuestionDetailDrawer.tsx` (tiroir de détail d'une question)
+- Cartes statiques : les adresses des élus sont géocodées via l'API adresse du gouvernement (api-adresse.data.gouv.fr) à l'ingestion. Au build, des cartes statiques PNG sont générées avec la librairie `staticmaps` (tuiles OpenStreetMap), mises en cache sur disque via hash MD5 des coordonnées, et servies en remplacement de l'icône GPS. Crédit « © OpenStreetMap » affiché sur chaque carte. Lien vers OpenStreetMap au lieu de Google Maps
 - Accessibilité : skip-to-content, focus-visible global, aria-label sur la navigation, contraste WCAG AA (minimum text-gray-500 pour le texte informatif)
 - Pages :
   - `src/pages/index.astro` — page d'accueil (grille de cartes des élus avec photo, badge député/sénateur genré, nom, circonscription, groupe politique ; filtres par type de mandat et département)
