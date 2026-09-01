@@ -140,7 +140,7 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
     }
 
     saveCheckpoint(CHECKPOINT_NAME, sortKey(batch[batch.length - 1]));
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1200));
   }
 
   clearCheckpoint(CHECKPOINT_NAME);
