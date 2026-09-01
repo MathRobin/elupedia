@@ -4,6 +4,7 @@ import { runAn } from './run-an.js';
 import { runSenat } from './run-senat.js';
 import { runMaires } from './run-maires.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
+import { uploadMaps } from './upsert/upload-maps.js';
 import { logger } from './logger.js';
 
 export type { StepResult };
@@ -31,5 +32,28 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     );
   }
 
-  return [...anResults, ...senatResults, ...mairesResults, ...geocodeResults];
+  const mapsResults: StepResult[] = [];
+  if (enabled('maps')) {
+    logger.info('[Maps] Generating and uploading static maps...');
+    const mapsDb = createDb();
+    mapsResults.push(
+      await runStep('maps', async () => {
+        const r = await uploadMaps(mapsDb);
+        return {
+          source: 'maps',
+          created: r.uploaded,
+          updated: r.skipped,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  return [
+    ...anResults,
+    ...senatResults,
+    ...mairesResults,
+    ...geocodeResults,
+    ...mapsResults,
+  ];
 }

@@ -14,11 +14,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1121.0",
     "@elupedia/shared": "*",
     "@neondatabase/serverless": "^1.1.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "sax": "^1.6.1",
+    "staticmaps": "^1.13.1",
     "unzipper": "^0.12.5",
     "winston": "^3.19.0",
     "xlsx": "^0.18.5",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",
     "@types/sax": "^1.2.7",
+    "@types/staticmaps": "^1.12.5",
     "@types/unzipper": "^0",
     "adm-zip": "^0.6.0",
     "tsx": "^4.23.12"

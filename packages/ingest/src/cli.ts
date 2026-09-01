@@ -35,7 +35,7 @@ export const MAIRES_STEP_NAMES = [
 
 export type MairesStepName = (typeof MAIRES_STEP_NAMES)[number];
 
-export const COMMON_STEP_NAMES = ['geocode'] as const;
+export const COMMON_STEP_NAMES = ['geocode', 'maps'] as const;
 
 export type CommonStepName = (typeof COMMON_STEP_NAMES)[number];
 

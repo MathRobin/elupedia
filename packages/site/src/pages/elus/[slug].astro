@@ -4,9 +4,6 @@ import { getDb } from '../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
-import { generateStaticMap } from '../../lib/static-map.js';
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
@@ -188,34 +185,19 @@ export async function getStaticPaths() {
     })
     .from(addresses);
 
-  const mapsDir = join(process.cwd(), 'public', 'maps');
-  mkdirSync(mapsDir, { recursive: true });
+  const mapsBaseUrl = process.env.MAPS_BASE_URL;
 
   type AddressWithMap = (typeof allAddresses)[number] & { mapUrl: string | null };
-  const addressesWithMaps: AddressWithMap[] = [];
-  for (const addr of allAddresses) {
+  const addressesWithMaps: AddressWithMap[] = allAddresses.map((addr) => {
     let mapUrl: string | null = null;
-    if (addr.latitude != null && addr.longitude != null) {
+    if (mapsBaseUrl && addr.latitude != null && addr.longitude != null) {
       const hash = createHash('md5')
         .update(`${addr.latitude}_${addr.longitude}_13_400x200`)
         .digest('hex');
-      const filename = `${hash}.png`;
-      const filepath = join(mapsDir, filename);
-      if (!existsSync(filepath)) {
-        const buf = await generateStaticMap({
-          latitude: addr.latitude,
-          longitude: addr.longitude,
-        });
-        if (buf) {
-          writeFileSync(filepath, buf);
-          mapUrl = `/maps/${filename}`;
-        }
-      } else {
-        mapUrl = `/maps/${filename}`;
-      }
+      mapUrl = `${mapsBaseUrl}/maps/${hash}.png`;
     }
-    addressesWithMaps.push({ ...addr, mapUrl });
-  }
+    return { ...addr, mapUrl };
+  });
 
   const addressesByOfficial = new Map<string, AddressWithMap[]>();
   for (const addr of addressesWithMaps) {
