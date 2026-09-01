@@ -144,22 +144,27 @@ export async function getStaticPaths() {
     snapshotsByOfficial.set(s.officialId, list);
   }
 
-  const allPress = await db
-    .select({
-      officialId: pressMentions.officialId,
-      title: pressMentions.title,
-      sourceName: pressMentions.sourceName,
-      sourceUrl: pressMentions.sourceUrl,
-      publishedDate: pressMentions.publishedDate,
-    })
-    .from(pressMentions)
-    .orderBy(desc(pressMentions.publishedDate));
-
-  const pressByOfficial = new Map<string, typeof allPress>();
-  for (const p of allPress) {
-    const list = pressByOfficial.get(p.officialId) ?? [];
-    list.push(p);
-    pressByOfficial.set(p.officialId, list);
+  const pressByOfficial = new Map<string, {
+    officialId: string;
+    title: string | null;
+    sourceName: string | null;
+    sourceUrl: string | null;
+    publishedDate: string | null;
+  }[]>();
+  for (const row of rows) {
+    const press = await db
+      .select({
+        officialId: pressMentions.officialId,
+        title: pressMentions.title,
+        sourceName: pressMentions.sourceName,
+        sourceUrl: pressMentions.sourceUrl,
+        publishedDate: pressMentions.publishedDate,
+      })
+      .from(pressMentions)
+      .where(eq(pressMentions.officialId, row.id))
+      .orderBy(desc(pressMentions.publishedDate))
+      .limit(20);
+    if (press.length > 0) pressByOfficial.set(row.id, press);
   }
 
   const allAddresses = await db
