@@ -1,6 +1,6 @@
 {
   "buildCommand": "yarn db:migrate && cd packages/site && yarn astro build",
   "outputDirectory": "packages/site/dist",
-  "installCommand": "corepack enable && corepack install && yarn install",
+  "installCommand": "yarn install",
   "framework": null
 }
