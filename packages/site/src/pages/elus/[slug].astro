@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots } from '@elupedia/shared';
-import { eq, isNull, desc, and, lt, gt, isNotNull } from 'drizzle-orm';
+import { eq, isNull, desc, and, lt, gt, isNotNull, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
@@ -144,15 +144,12 @@ export async function getStaticPaths() {
     snapshotsByOfficial.set(s.officialId, list);
   }
 
-  const pressByOfficial = new Map<string, {
-    officialId: string;
-    title: string | null;
-    sourceName: string | null;
-    sourceUrl: string | null;
-    publishedDate: string | null;
-  }[]>();
-  for (const row of rows) {
-    const press = await db
+  const PRESS_BATCH = 50;
+  const officialIds = rows.map((r) => r.id);
+  const allPress: { officialId: string; title: string | null; sourceName: string | null; sourceUrl: string | null; publishedDate: string | null }[] = [];
+  for (let i = 0; i < officialIds.length; i += PRESS_BATCH) {
+    const chunk = officialIds.slice(i, i + PRESS_BATCH);
+    const batch = await db
       .select({
         officialId: pressMentions.officialId,
         title: pressMentions.title,
@@ -161,10 +158,16 @@ export async function getStaticPaths() {
         publishedDate: pressMentions.publishedDate,
       })
       .from(pressMentions)
-      .where(eq(pressMentions.officialId, row.id))
-      .orderBy(desc(pressMentions.publishedDate))
-      .limit(20);
-    if (press.length > 0) pressByOfficial.set(row.id, press);
+      .where(inArray(pressMentions.officialId, chunk))
+      .orderBy(desc(pressMentions.publishedDate));
+    allPress.push(...batch);
+  }
+
+  const pressByOfficial = new Map<string, typeof allPress>();
+  for (const p of allPress) {
+    const list = pressByOfficial.get(p.officialId) ?? [];
+    if (list.length < 20) list.push(p);
+    pressByOfficial.set(p.officialId, list);
   }
 
   const allAddresses = await db
