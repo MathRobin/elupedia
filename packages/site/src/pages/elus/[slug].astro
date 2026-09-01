@@ -1001,13 +1001,13 @@ const positionColors: Record<string, string> = {
                   </div>
                 )}
                 <div class="p-4">
-                  {!img && (
+                  {!imgSrc && (
                     <p class="text-sm font-semibold text-slate-700">
                       {addressTypeLabels[addr.type] ?? addr.type}
                     </p>
                   )}
                   {addressParts.length > 0 && (
-                    <p class={`text-sm text-slate-600 ${img ? '' : 'mt-2'}`}>
+                    <p class={`text-sm text-slate-600 ${imgSrc ? '' : 'mt-2'}`}>
                       {addr.street && <span>{addr.street}<br /></span>}
                       {addr.postalCode && <span>{addr.postalCode} </span>}
                       {addr.city}
