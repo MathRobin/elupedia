@@ -1,6 +1,6 @@
 {
-  "buildCommand": "yarn db:migrate && cd packages/site && yarn astro build",
+  "buildCommand": "node .yarn/releases/yarn-4.18.0.cjs db:migrate && cd packages/site && node ../../.yarn/releases/yarn-4.18.0.cjs astro build",
   "outputDirectory": "packages/site/dist",
-  "installCommand": "yarn install",
+  "installCommand": "node .yarn/releases/yarn-4.18.0.cjs install",
   "framework": null
 }
