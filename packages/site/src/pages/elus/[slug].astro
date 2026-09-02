@@ -249,7 +249,7 @@ export async function getStaticPaths() {
   const activitiesByOfficial = new Map<string, typeof allActivities>();
   for (const act of allActivities) {
     const list = activitiesByOfficial.get(act.officialId) ?? [];
-    list.push(act);
+    if (list.length < 20) list.push(act);
     activitiesByOfficial.set(act.officialId, list);
   }
 
