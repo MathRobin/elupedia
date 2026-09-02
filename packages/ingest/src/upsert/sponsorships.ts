@@ -2,6 +2,7 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, sponsorships } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import type { ParrainageRow } from '../sources/parrainages.js';
+import type { RipSignataireRow } from '../sources/rip-signatures.js';
 import { logger } from '../logger.js';
 
 function normalize(s: string): string {
@@ -106,4 +107,57 @@ export async function upsertSponsorships(
     `[Parrainages] ${electionYear}: ${created} created, ${skipped} skipped (existing), ${matched}/${rows.length} matched`,
   );
   return { created, updated: skipped, matched };
+}
+
+export async function upsertRipSignatures(
+  db: NeonHttpDatabase,
+  rows: RipSignataireRow[],
+  year: number,
+  subject: string,
+): Promise<{ created: number; skipped: number; matched: number }> {
+  const type = 'rip_signature';
+  const officialCache = await buildOfficialCache(db);
+  const existingNames = await buildExistingCache(db, year, type);
+  let created = 0;
+  let skipped = 0;
+  let matched = 0;
+
+  const toInsert: (typeof sponsorships.$inferInsert)[] = [];
+
+  for (const row of rows) {
+    const key = `${normalize(row.lastName)}|${normalize(row.firstName)}`;
+    const officialId = officialCache.get(key) ?? null;
+    if (officialId) matched++;
+
+    const rawName = `${row.lastName} ${row.firstName}`;
+
+    if (existingNames.has(rawName)) {
+      skipped++;
+      continue;
+    }
+
+    toInsert.push({
+      officialId,
+      type,
+      electionYear: year,
+      candidateName: subject,
+      rawElectedName: rawName,
+      rawFunction: 'Parlementaire',
+      matched: !!officialId,
+    });
+  }
+
+  for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+    const batch = toInsert.slice(i, i + BATCH_SIZE);
+    await db.insert(sponsorships).values(batch);
+    created += batch.length;
+    logger.info(
+      `[RIP] ${year} ${subject}: inserted ${Math.min(i + BATCH_SIZE, toInsert.length)}/${toInsert.length}`,
+    );
+  }
+
+  logger.info(
+    `[RIP] ${year} ${subject}: ${created} created, ${skipped} skipped, ${matched}/${rows.length} matched`,
+  );
+  return { created, skipped, matched };
 }

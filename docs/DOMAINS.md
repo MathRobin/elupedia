@@ -121,9 +121,18 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Types de mandats dans les données** : Maire, Député(e), Sénateur/Sénatrice, Conseiller(ère) départemental(e), Conseiller(ère) régional(e), Conseiller(ère) de Paris, Membre d'assemblée d'outre-mer, Président(e) d'EPCI, Représentant(e) au Parlement européen, etc.
 - **Schéma** : `official_id` (nullable — la majorité des parrains sont des maires/conseillers non encore ingérés), `type` (`parrainage_presidentiel` ou `rip_signature`), `election_year`, `candidate_name`, données brutes (`raw_elected_name`, `raw_function`, `raw_circumscription`, `raw_department`), `matched` (booléen)
 - **Description** : Parrainages validés par le Conseil constitutionnel pour les candidatures à l'élection présidentielle. Données publiées deux fois par semaine pendant la période de recueil, puis figées. Ingestion one-shot (pas de cron). Le type `rip_signature` couvre les signataires des propositions de loi référendaires (art. 11 Constitution).
-- **Pages** : fiche élu (section parrainages, affichée uniquement si l'élu a parrainé)
-- **Client** : `sources/parrainages.ts` (fetch + parse CSV) → `upsert/sponsorships.ts` (batch insert 500/batch, matching officials par nom normalisé)
-- **Point d'entrée** : `main-parrainages.ts` — `yarn --cwd packages/ingest ingest:parrainages [année]`
+- **Sources RIP** :
+  - ADP 2019 : `https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L15B1867.html` (~250 signataires, décision 2019-1 RIP)
+  - Retraites 2023 (proposition n°959) : `https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L16B0959.html` (~600 signataires, décision 2023-4 RIP)
+  - Retraites 2023 (proposition n°530 Sénat) : `https://www.senat.fr/leg/ppl22-530.html` (~600 signataires, décision 2023-5 RIP)
+- **Format RIP** : HTML, noms dans une liste séparée par virgules (`Prénom NOM`), précédée de « présentée par Mesdames et Messieurs », terminée par « députés et sénateurs ». Certains noms ont des préfixes (Mme, M., MM.) à retirer.
+- **Pages** : fiche élu (section « Parrainages et engagements », affichée uniquement si l'élu a des données)
+- **Clients** :
+  - Parrainages : `sources/parrainages.ts` (fetch + parse CSV) → `upsert/sponsorships.ts` (batch insert 500/batch, matching officials par nom normalisé)
+  - RIP : `sources/rip-signatures.ts` (fetch HTML + extraction noms) → `upsert/sponsorships.ts` (`upsertRipSignatures`)
+- **Points d'entrée** :
+  - `main-parrainages.ts` — `yarn --cwd packages/ingest ingest:parrainages [année]`
+  - `main-rip-signatures.ts` — `yarn --cwd packages/ingest ingest:rip`
 - **Procédure pour une nouvelle élection présidentielle (ex. 2027)** :
   1. Vérifier la publication du jeu de données sur data.gouv.fr (Conseil constitutionnel). Le fichier est publié deux fois par semaine pendant la période de recueil (~6 semaines avant l'élection), puis figé.
   2. Identifier l'URL du CSV final et le nom de la colonne candidat (peut changer : `Candidat` en 2022, `Candidat-e parrainé-e` en 2017).

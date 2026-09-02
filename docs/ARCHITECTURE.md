@@ -29,7 +29,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
 - Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat) et `run-maires.ts` (3 étapes Maires), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -54,6 +54,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Maires (RNE)               | `sources/rne-maires.ts`            | data.gouv.fr                | CSV           | ✅ actif |
 | Mairies (DILA)             | `sources/dila-mairies.ts`          | service-public.fr           | JSON API      | ✅ actif |
 | Parrainages présidentiels  | `sources/parrainages.ts`           | data.gouv.fr                | CSV           | ✅ actif |
+| Signatures RIP             | `sources/rip-signatures.ts`        | AN / Sénat                  | HTML          | ✅ actif |
 | Résultats électoraux AN    | `sources/datagouv-elections.ts`    | data.gouv.fr                | —             | ⏸ prévu  |
 
 #### Upsert / Diff

@@ -12,6 +12,7 @@
     "ingest:press": "tsx src/main-press.ts",
     "ingest:maires": "tsx src/main-maires.ts",
     "ingest:parrainages": "tsx src/main-parrainages.ts",
+    "ingest:rip": "tsx src/main-rip-signatures.ts",
     "test": "vitest run"
   },
   "dependencies": {
