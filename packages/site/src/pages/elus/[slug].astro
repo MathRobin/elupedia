@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -281,6 +281,33 @@ export async function getStaticPaths() {
     electoralByOfficial.set(er.officialId, list);
   }
 
+  const allCampaignAccounts = await db
+    .select({
+      officialId: campaignAccounts.officialId,
+      electionType: campaignAccounts.electionType,
+      electionDate: campaignAccounts.electionDate,
+      politicalLabel: campaignAccounts.politicalLabel,
+      expensesDeclared: campaignAccounts.expensesDeclared,
+      expensesRetained: campaignAccounts.expensesRetained,
+      revenueDeclared: campaignAccounts.revenueDeclared,
+      donationsDeclared: campaignAccounts.donationsDeclared,
+      personalContributionDeclared: campaignAccounts.personalContributionDeclared,
+      partyContributionsDeclared: campaignAccounts.partyContributionsDeclared,
+      reimbursement: campaignAccounts.reimbursement,
+      decision: campaignAccounts.decision,
+    })
+    .from(campaignAccounts)
+    .where(isNotNull(campaignAccounts.officialId))
+    .orderBy(desc(campaignAccounts.electionDate));
+
+  const campaignByOfficial = new Map<string, typeof allCampaignAccounts>();
+  for (const ca of allCampaignAccounts) {
+    if (!ca.officialId) continue;
+    const list = campaignByOfficial.get(ca.officialId) ?? [];
+    list.push(ca);
+    campaignByOfficial.set(ca.officialId, list);
+  }
+
   return rows.map((row) => {
     const dates: string[] = [row.startDate];
     for (const a of affiliationsByOfficial.get(row.id) ?? []) {
@@ -329,6 +356,7 @@ export async function getStaticPaths() {
         deputyActivities: activitiesByOfficial.get(row.id) ?? [],
         deputyCommittees: committeesByOfficial.get(row.id) ?? [],
         deputyElectoralResults: electoralByOfficial.get(row.id) ?? [],
+        deputyCampaignAccounts: campaignByOfficial.get(row.id) ?? [],
         lastUpdated,
       },
     };
@@ -444,6 +472,21 @@ type ElectoralResult = {
   opponentCount: number;
 };
 
+type CampaignAccount = {
+  officialId: string | null;
+  electionType: string;
+  electionDate: string;
+  politicalLabel: string | null;
+  expensesDeclared: number | null;
+  expensesRetained: number | null;
+  revenueDeclared: number | null;
+  donationsDeclared: number | null;
+  personalContributionDeclared: number | null;
+  partyContributionsDeclared: number | null;
+  reimbursement: number | null;
+  decision: string;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -471,10 +514,11 @@ type Props = {
   deputyActivities: Activity[];
   deputyCommittees: Committee[];
   deputyElectoralResults: ElectoralResult[];
+  deputyCampaignAccounts: CampaignAccount[];
   lastUpdated: string;
 };
 
-const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputySnapshots, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, lastUpdated } = Astro.props as Props;
+const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputySnapshots, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, deputyCampaignAccounts, lastUpdated } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -516,6 +560,24 @@ const roundLabels: Record<number, string> = {
   1: '1er tour',
   2: '2nd tour',
 };
+
+const decisionLabels: Record<string, { label: string; color: string }> = {
+  A: { label: 'Approuvé', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' },
+  AR: { label: 'Approuvé après réformation', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' },
+  R: { label: 'Rejeté', color: 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200' },
+  DD: { label: 'Non déposé', color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' },
+};
+
+const electionTypeLabels: Record<string, string> = {
+  legislatives_2024: 'Législatives 2024',
+  legislatives_2022: 'Législatives 2022',
+  senatoriales_2023: 'Sénatoriales 2023',
+};
+
+function formatEuros(amount: number | null): string {
+  if (amount == null) return '—';
+  return amount.toLocaleString('fr-FR') + ' €';
+}
 
 const committeeTypeLabels: Record<string, string> = {
   standing_committee: 'Commission permanente',
@@ -764,6 +826,7 @@ const positionColors: Record<string, string> = {
         {isParliamentary && <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité parlementaire</a></li>}
         {isParliamentary && <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions & groupes</a></li>}
         {isParliamentary && <li><a href="#electoral" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral</a></li>}
+        {deputyCampaignAccounts.length > 0 && <li><a href="#financement" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Financement</a></li>}
         <li><a href="#interets" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts déclarés</a></li>
         {isParliamentary && <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique des votes</a></li>}
         <li><a href="#presse" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Dans la presse</a></li>
@@ -805,6 +868,7 @@ const positionColors: Record<string, string> = {
           {isParliamentary && <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité</a></li>}
           {isParliamentary && <li><a href="#commissions" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions</a></li>}
           {isParliamentary && <li><a href="#electoral" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral</a></li>}
+          {deputyCampaignAccounts.length > 0 && <li><a href="#financement" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Financement</a></li>}
           <li><a href="#interets" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts</a></li>
           {isParliamentary && <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Votes</a></li>}
           <li><a href="#presse" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Presse</a></li>
@@ -1342,6 +1406,75 @@ const positionColors: Record<string, string> = {
       )}
     </section>}
 
+    {deputyCampaignAccounts.length > 0 && (
+      <section id="financement" class="mt-8 scroll-mt-12">
+        <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+          Financement de campagne
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputyCampaignAccounts.length})</span>
+        </h2>
+
+        <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {deputyCampaignAccounts.map((ca) => {
+            const d = decisionLabels[ca.decision] ?? { label: ca.decision, color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' };
+            const isDd = ca.decision === 'DD';
+            return (
+              <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                  <h3 class="text-base font-semibold text-slate-900 dark:text-white">
+                    {electionTypeLabels[ca.electionType] ?? ca.electionType}
+                  </h3>
+                  <span class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${d.color}`}>
+                    {d.label}
+                  </span>
+                </div>
+
+                {isDd ? (
+                  <p class="text-sm text-slate-500">Aucun compte de campagne déposé.</p>
+                ) : (
+                  <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div>
+                      <dt class="text-slate-500 dark:text-slate-400">Dépenses</dt>
+                      <dd class="font-medium text-slate-900 dark:text-white">{formatEuros(ca.expensesRetained ?? ca.expensesDeclared)}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-slate-500 dark:text-slate-400">Recettes</dt>
+                      <dd class="font-medium text-slate-900 dark:text-white">{formatEuros(ca.revenueDeclared)}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-slate-500 dark:text-slate-400">Dons</dt>
+                      <dd class="font-medium text-slate-900 dark:text-white">{formatEuros(ca.donationsDeclared)}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-slate-500 dark:text-slate-400">Apport personnel</dt>
+                      <dd class="font-medium text-slate-900 dark:text-white">{formatEuros(ca.personalContributionDeclared)}</dd>
+                    </div>
+                    {ca.partyContributionsDeclared != null && ca.partyContributionsDeclared > 0 && (
+                      <div>
+                        <dt class="text-slate-500 dark:text-slate-400">Concours de partis</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white">{formatEuros(ca.partyContributionsDeclared)}</dd>
+                      </div>
+                    )}
+                    {ca.reimbursement != null && ca.reimbursement > 0 && (
+                      <div>
+                        <dt class="text-slate-500 dark:text-slate-400">Remboursement</dt>
+                        <dd class="font-medium text-emerald-600 dark:text-emerald-400">{formatEuros(ca.reimbursement)}</dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
+
+                {ca.politicalLabel && (
+                  <p class="mt-3 text-xs text-slate-400">{ca.politicalLabel}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <p class="mt-3 text-xs text-slate-400">Source : CNCCFP via data.gouv.fr — Licence Ouverte 2.0</p>
+      </section>
+    )}
+
     <section id="interets" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Intérêts déclarés
@@ -1702,8 +1835,8 @@ const positionColors: Record<string, string> = {
 
       const sectionIds = [
         'mandat', 'coordonnees', 'affiliations', 'collaborateurs',
-        'activite', 'commissions', 'electoral', 'interets',
-        'votes', 'presse', 'liens',
+        'activite', 'commissions', 'electoral', 'financement',
+        'interets', 'votes', 'presse', 'liens',
       ];
 
       let currentId = '';
