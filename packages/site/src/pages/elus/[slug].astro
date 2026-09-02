@@ -20,6 +20,7 @@ export async function getStaticPaths() {
       birthDate: officials.birthDate,
       photoUrl: officials.photoUrl,
       anId: officials.anId,
+      senatId: officials.senatId,
       district: mandates.district,
       department: mandates.department,
       startDate: mandates.startDate,
@@ -507,6 +508,7 @@ type Props = {
     birthDate: string | null;
     photoUrl: string | null;
     anId: string | null;
+    senatId: string | null;
     district: string | null;
     department: string | null;
     startDate: string;
@@ -852,6 +854,17 @@ function fmtRetrieval(date: Date | null): string {
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
             Assemblée nationale
+          </a>
+        )}
+        {deputy.mandateType === 'senateur' && deputy.photoUrl && (
+          <a
+            href={`https://www.senat.fr/senateur/${deputy.photoUrl.match(/senimg\/(.+)_carre\.jpg/)?.[1] ?? ''}.html`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors no-underline dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+            Sénat
           </a>
         )}
       </div>

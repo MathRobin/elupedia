@@ -19,6 +19,12 @@ interface OfficialLookup {
   firstName: string;
   lastName: string;
   departments: string[];
+  districts: string[];
+}
+
+function extractCirconscriptionNumber(s: string): string | null {
+  const m = s.match(/(\d+)/);
+  return m ? m[1] : null;
 }
 
 async function buildLookup(db: NeonHttpDatabase): Promise<OfficialLookup[]> {
@@ -28,6 +34,7 @@ async function buildLookup(db: NeonHttpDatabase): Promise<OfficialLookup[]> {
       firstName: officials.firstName,
       lastName: officials.lastName,
       department: mandates.department,
+      district: mandates.district,
     })
     .from(officials)
     .innerJoin(mandates, eq(mandates.officialId, officials.id));
@@ -41,11 +48,15 @@ async function buildLookup(db: NeonHttpDatabase): Promise<OfficialLookup[]> {
         firstName: r.firstName,
         lastName: r.lastName,
         departments: [],
+        districts: [],
       };
       map.set(r.officialId, entry);
     }
     if (r.department && !entry.departments.includes(r.department)) {
       entry.departments.push(r.department);
+    }
+    if (r.district && !entry.districts.includes(r.district)) {
+      entry.districts.push(r.district);
     }
   }
   return [...map.values()];
@@ -73,8 +84,18 @@ function matchOfficial(
   );
   if (withDept.length === 1) return withDept[0].officialId;
 
+  if (withDept.length > 1 && row.constituency) {
+    const circNum = extractCirconscriptionNumber(row.constituency);
+    if (circNum) {
+      const withCirc = withDept.filter((o) =>
+        o.districts.some((d) => extractCirconscriptionNumber(d) === circNum),
+      );
+      if (withCirc.length === 1) return withCirc[0].officialId;
+    }
+  }
+
   logger.warn(
-    `[CNCCFP] Ambiguous match for ${row.candidateName} (${row.department}): ${candidates.length} candidates`,
+    `[CNCCFP] Ambiguous match for ${row.candidateName} (${row.department}, ${row.constituency}): ${(withDept.length > 0 ? withDept : candidates).length} candidates`,
   );
   return null;
 }
