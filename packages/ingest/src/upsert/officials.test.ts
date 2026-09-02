@@ -17,6 +17,16 @@ const mockDepute: Depute = {
     'https://www2.assemblee-nationale.fr/static/tribun/17/photos/100001.jpg',
   mandat_type: 'depute',
   full: { uid: 'PA100001', raw: true },
+  allMandates: [
+    {
+      type: 'depute',
+      nom_circo: 'Gironde',
+      num_deptmt: '33',
+      num_circo: 3,
+      mandat_debut: '2022-06-19',
+      groupe_sigle: 'RE',
+    },
+  ],
 };
 
 const DRIZZLE_NAME = Symbol.for('drizzle:Name');

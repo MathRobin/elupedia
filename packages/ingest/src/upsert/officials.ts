@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
 import { writeProvenance } from './provenance.js';
 
@@ -66,33 +66,41 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
       officialId = inserted!.id;
     }
 
-    const existingMandate = await db
-      .select()
-      .from(mandates)
-      .where(eq(mandates.officialId, officialId))
-      .limit(1);
+    for (const m of depute.allMandates) {
+      const existingMandate = await db
+        .select({ id: mandates.id })
+        .from(mandates)
+        .where(
+          and(
+            eq(mandates.officialId, officialId),
+            eq(mandates.type, m.type),
+            eq(mandates.startDate, m.mandat_debut),
+          ),
+        )
+        .limit(1);
 
-    if (existingMandate.length === 0) {
-      await db.insert(mandates).values({
-        officialId,
-        type: depute.mandat_type,
-        district: `${depute.num_circo}e circonscription`,
-        department: depute.nom_circo,
-        startDate: depute.mandat_debut,
-        endDate: depute.mandat_fin ?? null,
-        politicalGroup: depute.groupe_sigle ?? null,
-      });
-    } else {
-      await db
-        .update(mandates)
-        .set({
-          district: `${depute.num_circo}e circonscription`,
-          department: depute.nom_circo,
-          endDate: depute.mandat_fin ?? null,
-          politicalGroup: depute.groupe_sigle ?? null,
-          updatedAt: new Date(),
-        })
-        .where(eq(mandates.id, existingMandate[0].id));
+      if (existingMandate.length === 0) {
+        await db.insert(mandates).values({
+          officialId,
+          type: m.type,
+          district: `${m.num_circo}e circonscription`,
+          department: m.nom_circo,
+          startDate: m.mandat_debut,
+          endDate: m.mandat_fin ?? null,
+          politicalGroup: m.groupe_sigle ?? null,
+        });
+      } else {
+        await db
+          .update(mandates)
+          .set({
+            district: `${m.num_circo}e circonscription`,
+            department: m.nom_circo,
+            endDate: m.mandat_fin ?? null,
+            politicalGroup: m.groupe_sigle ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(mandates.id, existingMandate[0].id));
+      }
     }
 
     await writeProvenance(db, {

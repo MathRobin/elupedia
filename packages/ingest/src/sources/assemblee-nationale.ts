@@ -6,6 +6,16 @@ import { Extract } from 'unzipper';
 
 import { ActeurFileSchema, OrganeFileSchema } from '../schemas.js';
 
+export interface DeputeMandat {
+  type: 'depute' | 'senateur';
+  nom_circo: string;
+  num_deptmt: string;
+  num_circo: number;
+  mandat_debut: string;
+  mandat_fin?: string;
+  groupe_sigle?: string;
+}
+
 export interface Depute {
   id_an: string;
   nom: string;
@@ -23,6 +33,7 @@ export interface Depute {
   mandat_type: 'depute' | 'senateur';
   death_date?: string;
   full: unknown;
+  allMandates: DeputeMandat[];
 }
 
 export const DATASET_URL =
@@ -168,6 +179,20 @@ async function loadActeurs(
     const deathDate =
       typeof ec.dateDeces === 'string' ? ec.dateDeces : undefined;
 
+    const allParlMandates: DeputeMandat[] = parlMandats.map((m) => {
+      const mLieu = m.election?.lieu;
+      const mIsSenat = m.typeOrgane === 'SENAT';
+      return {
+        type: mIsSenat ? ('senateur' as const) : ('depute' as const),
+        nom_circo: mLieu?.departement ?? '',
+        num_deptmt: mLieu?.numDepartement ?? '',
+        num_circo: parseInt(mLieu?.numCirco ?? '0', 10),
+        mandat_debut: m.dateDebut,
+        mandat_fin: m.dateFin ?? undefined,
+        groupe_sigle: groupeSigle,
+      };
+    });
+
     deputes.push({
       id_an: anId,
       nom: ec.ident.nom,
@@ -188,6 +213,7 @@ async function loadActeurs(
       mandat_type: isSenat ? 'senateur' : 'depute',
       death_date: deathDate,
       full: rawJson,
+      allMandates: allParlMandates,
     });
   }
 
