@@ -92,6 +92,17 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - **Législatives 2022** : CSV (comptes de campagne, publication au JO du 05/09/2023)
   - **Sénatoriales 2023** : CSV (comptes de campagne, publication au JO du 23/07/2024)
 
+### Conseil constitutionnel (parrainages présidentiels)
+
+- **Éditeur** : Conseil constitutionnel
+- **Licence** : Domaine Public (Public Domain)
+- **Obligations** :
+  - Aucune restriction, données du domaine public
+- **URL** : https://www.data.gouv.fr
+- **Jeux de données utilisés** :
+  - **Parrainages 2022** : CSV (13 427 parrainages, publication finale 7 mars 2022)
+  - **Parrainages 2017** : CSV (14 296 parrainages, publication finale 18 mars 2017)
+
 ## Sources prévues (non encore actives)
 
 ### data.gouv.fr (résultats électoraux AN)
@@ -115,6 +126,7 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | OpenStreetMap       | ODbL / CC BY-SA 2.0 | Oui         | Autorisé         | ✅ active |
 | API Adresse         | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | CNCCFP              | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
+| Conseil constit.    | Domaine Public      | Non         | Autorisé         | ✅ active |
 | data.gouv.fr        | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
 
 ## Licence du code source

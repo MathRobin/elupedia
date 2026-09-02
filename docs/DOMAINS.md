@@ -109,3 +109,16 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - Sénat : `senat-elections.ts` (API JSON) → `upsert/senat-electoral-results.ts`
 - **Description** : Résultats des élections par circonscription : pourcentage, tour, nombre d'opposants.
 - **Pages** : fiche élu (section historique électoral)
+
+## Parrainages présidentiels et signataires RIP
+
+- **Table** : `sponsorships`
+- **Sources** :
+  - Conseil constitutionnel via data.gouv.fr — CSV des parrainages validés pour chaque élection présidentielle
+  - 2022 : `https://static.data.gouv.fr/resources/parrainages-des-candidats-a-lelection-presidentielle-francaise-de-2022/20220307-183308/parrainagestotal.csv` (13 427 parrainages, publication finale du 7 mars 2022, licence Domaine Public)
+  - 2017 : `https://static.data.gouv.fr/resources/parrainages/20170320-103202/parrainagestotal.csv` (14 296 parrainages, publication finale du 18 mars 2017, licence Domaine Public)
+- **Format CSV** : séparateur `;`, UTF-8, colonnes : `Civilité`, `Nom`, `Prénom`, `Mandat`, `Circonscription`, `Département`, `Candidat` (2022) ou `Candidat-e parrainé-e` (2017), `Date de publication`
+- **Types de mandats dans les données** : Maire, Député(e), Sénateur/Sénatrice, Conseiller(ère) départemental(e), Conseiller(ère) régional(e), Conseiller(ère) de Paris, Membre d'assemblée d'outre-mer, Président(e) d'EPCI, Représentant(e) au Parlement européen, etc.
+- **Schéma** : `official_id` (nullable — la majorité des parrains sont des maires/conseillers non encore ingérés), `type` (`parrainage_presidentiel` ou `rip_signature`), `election_year`, `candidate_name`, données brutes (`raw_elected_name`, `raw_function`, `raw_circumscription`, `raw_department`), `matched` (booléen)
+- **Description** : Parrainages validés par le Conseil constitutionnel pour les candidatures à l'élection présidentielle. Données publiées deux fois par semaine pendant la période de recueil, puis figées. Ingestion one-shot (pas de cron). Le type `rip_signature` couvre les signataires des propositions de loi référendaires (art. 11 Constitution).
+- **Pages** : fiche élu (section parrainage présidentiel, affichée uniquement si l'élu a parrainé)

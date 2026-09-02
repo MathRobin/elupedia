@@ -32,3 +32,4 @@ export {
   type DeclarationType,
 } from './declaration-snapshots.js';
 export { campaignAccounts } from './campaign-accounts.js';
+export { sponsorships } from './sponsorships.js';
