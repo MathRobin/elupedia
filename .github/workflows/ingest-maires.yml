@@ -41,38 +41,3 @@ jobs:
           name: ingest-report-maires
           path: packages/ingest/ingest-report-maires.json
           if-no-files-found: ignore
-
-  deploy:
-    needs: ingest
-    if: needs.ingest.outputs.has_changes == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: yarn
-
-      - name: Install dependencies
-        run: yarn install --immutable
-
-      - name: Run database migrations
-        run: yarn db:migrate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Build site
-        run: yarn workspace @elupedia/site build
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-
-      - name: Deploy to production
-        run: vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }} packages/site/dist
