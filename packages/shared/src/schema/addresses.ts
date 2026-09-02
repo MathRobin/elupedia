@@ -1,4 +1,10 @@
-import { pgTable, uuid, varchar, doublePrecision } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  doublePrecision,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const addressTypeEnum = [
@@ -19,4 +25,7 @@ export const addresses = pgTable('addresses', {
   email: varchar('email', { length: 255 }),
   latitude: doublePrecision('latitude'),
   longitude: doublePrecision('longitude'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

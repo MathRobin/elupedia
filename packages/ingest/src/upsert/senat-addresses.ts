@@ -49,6 +49,7 @@ export async function upsertSenatAddresses(
           city: addr.city,
           phone: addr.phone,
           email: addr.email ?? null,
+          updatedAt: new Date(),
         })
         .where(eq(addresses.id, existing[0].id));
       summary.updated++;

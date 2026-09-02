@@ -57,6 +57,7 @@ export async function upsertSenatElectoralResults(
         .set({
           scorePercent: item.scorePercent,
           opponentCount: item.opponentCount,
+          updatedAt: new Date(),
         })
         .where(eq(electoralResults.id, existing[0].id));
       summary.updated++;

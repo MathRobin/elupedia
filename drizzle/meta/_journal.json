@@ -134,6 +134,13 @@
       "when": 1788328531185,
       "tag": "0018_adorable_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788338116613,
+      "tag": "0019_early_crusher_hogan",
+      "breakpoints": true
     }
   ]
 }

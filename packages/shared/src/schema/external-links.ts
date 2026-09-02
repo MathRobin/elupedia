@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, date, timestamp } from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const platformEnum = [
@@ -32,4 +32,7 @@ export const externalLinks = pgTable('external_links', {
   status: varchar('status', { length: 20 }).notNull().default('published'),
   source: varchar('source', { length: 50 }).notNull().default('official'),
   capturedAt: date('captured_at'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

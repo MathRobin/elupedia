@@ -5,6 +5,7 @@ import {
   date,
   text,
   integer,
+  timestamp,
 } from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
@@ -38,4 +39,7 @@ export const parliamentaryActivity = pgTable('parliamentary_activity', {
   rubrique: varchar('rubrique', { length: 255 }),
   teteAnalyse: varchar('tete_analyse', { length: 512 }),
   questionNumber: integer('question_number'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

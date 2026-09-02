@@ -8,6 +8,7 @@ import {
   numeric,
   integer,
   boolean,
+  timestamp,
 } from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
@@ -41,4 +42,7 @@ export const interests = pgTable('interests', {
   annualAmount: numeric('annual_amount'),
   amountYear: integer('amount_year'),
   amountIsNet: boolean('amount_is_net'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

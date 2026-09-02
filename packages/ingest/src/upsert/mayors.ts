@@ -133,6 +133,7 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
             district: maire.communeName,
             department: maire.departmentName,
             startDate: maire.mandateStartDate || maire.functionStartDate,
+            updatedAt: new Date(),
           })
           .where(eq(mandates.id, existingMandate[0].id));
         summary.mandates++;

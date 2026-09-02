@@ -96,6 +96,7 @@ export async function upsertMayorAddresses(
             city: mairie.city || null,
             phone: mairie.phone ?? null,
             email: mairie.email ?? null,
+            updatedAt: new Date(),
           })
           .where(eq(addresses.id, existing[0].id));
         summary.updated++;
@@ -129,6 +130,7 @@ export async function upsertMayorAddresses(
             .set({
               url: mairie.website,
               capturedAt: new Date().toISOString().slice(0, 10),
+              updatedAt: new Date(),
             })
             .where(eq(externalLinks.id, existingLink[0].id));
           summary.websites++;

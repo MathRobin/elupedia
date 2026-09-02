@@ -1,4 +1,11 @@
-import { pgTable, uuid, varchar, integer, date } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  integer,
+  date,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const campaignAccounts = pgTable('campaign_accounts', {
@@ -24,4 +31,7 @@ export const campaignAccounts = pgTable('campaign_accounts', {
   partyContributionsRetained: integer('party_contributions_retained'),
   reimbursement: integer('reimbursement'),
   decision: varchar('decision', { length: 10 }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

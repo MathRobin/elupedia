@@ -46,6 +46,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           deathDate: depute.death_date ?? null,
           slug: existing[0].slug ?? slug,
           full: depute.full,
+          updatedAt: new Date(),
         })
         .where(eq(officials.id, officialId));
     } else {
@@ -89,6 +90,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           department: depute.nom_circo,
           endDate: depute.mandat_fin ?? null,
           politicalGroup: depute.groupe_sigle ?? null,
+          updatedAt: new Date(),
         })
         .where(eq(mandates.id, existingMandate[0].id));
     }

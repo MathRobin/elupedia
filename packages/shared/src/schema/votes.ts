@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp } from 'drizzle-orm/pg-core';
 import { ballots } from './ballots.js';
 import { officials } from './officials.js';
 
@@ -18,4 +18,7 @@ export const votes = pgTable('votes', {
     .notNull()
     .references(() => officials.id),
   position: varchar('position', { length: 20 }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

@@ -42,6 +42,7 @@ export async function upsertSenators(
           photoUrl: sen.photo_url,
           slug: existing[0].slug ?? slug,
           full: sen.full,
+          updatedAt: new Date(),
         })
         .where(eq(officials.id, officialId));
     } else {
@@ -89,6 +90,7 @@ export async function upsertSenators(
           .set({
             department: m.department,
             endDate: m.end_date,
+            updatedAt: new Date(),
           })
           .where(eq(mandates.id, existingMandat[0].id));
       }

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, date, timestamp } from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const mandates = pgTable('mandates', {
@@ -14,4 +14,7 @@ export const mandates = pgTable('mandates', {
   politicalGroup: varchar('political_group', { length: 255 }),
   communeCode: varchar('commune_code', { length: 10 }),
   parentCommuneCode: varchar('parent_commune_code', { length: 10 }),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

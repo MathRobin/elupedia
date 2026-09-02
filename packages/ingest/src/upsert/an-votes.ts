@@ -45,6 +45,7 @@ export async function upsertAnVotes(
           title: scrutin.titre,
           date: scrutin.date,
           type: scrutin.type,
+          updatedAt: new Date(),
         })
         .where(eq(ballots.id, ballotId));
     } else {
@@ -81,7 +82,7 @@ export async function upsertAnVotes(
       } else if (existing.length > 0) {
         await db
           .update(votes)
-          .set({ position })
+          .set({ position, updatedAt: new Date() })
           .where(eq(votes.id, existing[0].id));
         updated++;
       }

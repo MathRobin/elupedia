@@ -119,6 +119,7 @@ export async function upsertCampaignAccounts(
       partyContributionsRetained: row.partyContributionsRetained,
       reimbursement: row.reimbursement,
       decision: row.decision,
+      updatedAt: new Date(),
     };
 
     if (existing.length > 0) {

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, date, timestamp } from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const committeeTypeEnum = [
@@ -18,4 +18,7 @@ export const committees = pgTable('committees', {
   type: varchar('type', { length: 50 }).notNull(),
   startDate: date('start_date').notNull(),
   endDate: date('end_date'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

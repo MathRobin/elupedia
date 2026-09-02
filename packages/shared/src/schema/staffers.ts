@@ -1,4 +1,11 @@
-import { pgTable, uuid, varchar, date, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  date,
+  index,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const staffers = pgTable(
@@ -12,6 +19,9 @@ export const staffers = pgTable(
     lastName: varchar('last_name', { length: 255 }).notNull(),
     startDate: date('start_date').notNull(),
     endDate: date('end_date'),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [index('staffers_official_id_idx').on(table.officialId)],
 );

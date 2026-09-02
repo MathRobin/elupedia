@@ -5,6 +5,7 @@ import {
   date,
   integer,
   real,
+  timestamp,
 } from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
@@ -18,4 +19,7 @@ export const electoralResults = pgTable('electoral_results', {
   round: integer('round').notNull(),
   scorePercent: real('score_percent').notNull(),
   opponentCount: integer('opponent_count').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

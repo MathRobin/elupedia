@@ -56,7 +56,7 @@ export async function diffAffiliations(
       for (const aff of currentAffiliations) {
         await db
           .update(affiliations)
-          .set({ endDate: today })
+          .set({ endDate: today, updatedAt: new Date() })
           .where(eq(affiliations.id, aff.id));
         summary.ended++;
       }

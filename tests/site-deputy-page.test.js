@@ -465,69 +465,35 @@ describe('Fiche élu — InterestDetailDrawer integration (#181)', () => {
   });
 });
 
-describe('Fiche élu — modales de provenance données', () => {
+describe('Fiche élu — attribution des sources inline', () => {
   const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
 
-  it('has AN provenance button on mandat section for députés', () => {
+  it('shows source attribution with retrieval date per section', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('Mandat en cours');
-    expect(content).toContain('an-provenance-btn');
+    expect(content).toContain('fmtRetrieval(sectionDates.');
+    expect(content).toContain('dernière récupération le');
   });
 
-  it('has AN provenance button on coordonnées section for députés', () => {
+  it('does not contain provenance modals', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('Coordonnées');
-    expect(content).toContain('an-provenance-btn');
-  });
-
-  it('has a shared AN provenance modal with assemblee-nationale link', () => {
-    const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('an-provenance-modal');
-    expect(content).toContain('an-provenance-close');
-    expect(content).toContain('assemblee-nationale.fr/dyn/deputes/');
-  });
-
-  it('has liens provenance button on liens section for députés', () => {
-    const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('liens-provenance-btn');
-  });
-
-  it('has liens provenance modal with two AN source URLs', () => {
-    const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('liens-provenance-modal');
-    expect(content).toContain(
-      'www2.assemblee-nationale.fr/deputes/liste/réseaux-sociaux',
-    );
-    expect(content).toContain(
-      'www2.assemblee-nationale.fr/deputes/liste/site-internet',
-    );
-  });
-
-  it('uses a shared setupModal function for all provenance modals', () => {
-    const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('function setupModal(');
-    const matches = content.match(/setupModal\(/g);
-    expect(matches.length).toBeGreaterThanOrEqual(3);
-  });
-
-  it('only shows provenance buttons for députés', () => {
-    const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain("deputy.mandateType === 'depute'");
+    expect(content).not.toContain('an-provenance-modal');
+    expect(content).not.toContain('liens-provenance-modal');
+    expect(content).not.toContain('setupModal');
   });
 });
 
 describe('Fiche élu — indicateur dernière mise à jour (#67)', () => {
   const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
 
-  it('computes lastUpdated from all related data dates', () => {
+  it('computes lastUpdated from updatedAt timestamps', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('lastUpdated');
-    expect(content).toContain('dates.sort');
+    expect(content).toContain('item.updatedAt');
   });
 
   it('includes lastUpdated in props', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('lastUpdated: string');
+    expect(content).toContain('lastUpdated: Date');
     expect(content).toContain('lastUpdated,');
   });
 

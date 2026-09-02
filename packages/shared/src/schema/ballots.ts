@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, date, timestamp } from 'drizzle-orm/pg-core';
 
 export const ballots = pgTable('ballots', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -6,4 +6,7 @@ export const ballots = pgTable('ballots', {
   title: varchar('title', { length: 1024 }).notNull(),
   date: date('date').notNull(),
   type: varchar('type', { length: 100 }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

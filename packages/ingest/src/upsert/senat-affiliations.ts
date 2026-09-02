@@ -49,7 +49,7 @@ export async function upsertSenatAffiliations(
     } else {
       await db
         .update(affiliations)
-        .set({ endDate: item.end_date })
+        .set({ endDate: item.end_date, updatedAt: new Date() })
         .where(eq(affiliations.id, existing[0].id));
       summary.updated++;
     }

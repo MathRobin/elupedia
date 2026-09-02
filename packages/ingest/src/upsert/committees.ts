@@ -44,7 +44,7 @@ export async function upsertCommittees(
       } else {
         await db
           .update(committees)
-          .set({ endDate: item.end_date ?? null })
+          .set({ endDate: item.end_date ?? null, updatedAt: new Date() })
           .where(eq(committees.id, existing[0].id));
         summary.updated++;
       }

@@ -1,4 +1,11 @@
-import { pgTable, uuid, varchar, date, text } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  date,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const declarationTypeEnum = ['initial', 'modification'] as const;
@@ -13,4 +20,7 @@ export const declarationSnapshots = pgTable('declaration_snapshots', {
   declarationDate: date('declaration_date').notNull(),
   declarationType: varchar('declaration_type', { length: 20 }).notNull(),
   sourceDocumentUrl: text('source_document_url'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

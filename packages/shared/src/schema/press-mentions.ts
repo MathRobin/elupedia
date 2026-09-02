@@ -1,4 +1,11 @@
-import { pgTable, uuid, varchar, date, text } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  date,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
 export const pressMentions = pgTable('press_mentions', {
@@ -11,4 +18,7 @@ export const pressMentions = pgTable('press_mentions', {
   sourceUrl: varchar('source_url', { length: 1024 }).notNull(),
   publishedDate: date('published_date').notNull(),
   summary: text('summary'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });

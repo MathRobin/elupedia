@@ -54,7 +54,7 @@ export async function diffSenatStaffers(
       if (!incomingNames.has(key)) {
         await db
           .update(staffers)
-          .set({ endDate: today })
+          .set({ endDate: today, updatedAt: new Date() })
           .where(eq(staffers.id, existing.id));
         summary.ended++;
       }

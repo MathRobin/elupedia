@@ -76,6 +76,7 @@ export async function upsertDeclarationSnapshots(
         .set({
           declarationType: decl.declaration_type ?? 'initial',
           sourceDocumentUrl: decl.source_document_url ?? null,
+          updatedAt: new Date(),
         })
         .where(eq(declarationSnapshots.id, existingId));
       summary.updated++;

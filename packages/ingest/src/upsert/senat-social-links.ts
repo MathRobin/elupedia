@@ -59,6 +59,7 @@ export async function upsertSenatSocialLinks(
         .set({
           url: link.url,
           capturedAt: new Date().toISOString().slice(0, 10),
+          updatedAt: new Date(),
         })
         .where(eq(externalLinks.id, existing[0].id));
       summary.updated++;

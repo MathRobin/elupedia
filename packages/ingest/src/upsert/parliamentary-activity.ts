@@ -62,6 +62,7 @@ export async function upsertParliamentaryActivity(
             rubrique: item.rubrique ?? null,
             teteAnalyse: item.teteAnalyse ?? null,
             questionNumber: item.questionNumber ?? null,
+            updatedAt: new Date(),
           })
           .where(eq(parliamentaryActivity.id, existing[0].id));
         summary.updated++;

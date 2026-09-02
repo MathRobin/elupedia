@@ -112,6 +112,7 @@ export async function upsertInterests(
             annualAmount: item.annual_amount ?? null,
             amountYear: item.amount_year ?? null,
             amountIsNet: item.amount_is_net ?? null,
+            updatedAt: new Date(),
           })
           .where(eq(interests.id, existingId));
         summary.updated++;

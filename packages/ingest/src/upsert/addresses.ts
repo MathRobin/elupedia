@@ -54,6 +54,7 @@ export async function upsertAddresses(
           city: addr.city ?? null,
           phone: addr.phone ?? null,
           email: addr.email ?? null,
+          updatedAt: new Date(),
         })
         .where(eq(addresses.id, existing[0].id));
       summary.updated++;

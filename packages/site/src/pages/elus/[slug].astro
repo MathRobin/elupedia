@@ -39,6 +39,7 @@ export async function getStaticPaths() {
       startDate: mandates.startDate,
       endDate: mandates.endDate,
       politicalGroup: mandates.politicalGroup,
+      updatedAt: mandates.updatedAt,
     })
     .from(mandates)
     .orderBy(desc(mandates.startDate));
@@ -57,6 +58,7 @@ export async function getStaticPaths() {
       position: votes.position,
       ballotTitle: ballots.title,
       ballotDate: ballots.date,
+      updatedAt: votes.updatedAt,
     })
     .from(votes)
     .innerJoin(ballots, eq(ballots.id, votes.ballotId))
@@ -75,6 +77,7 @@ export async function getStaticPaths() {
       partyOrGroup: affiliations.partyOrGroup,
       startDate: affiliations.startDate,
       endDate: affiliations.endDate,
+      updatedAt: affiliations.updatedAt,
     })
     .from(affiliations)
     .orderBy(desc(affiliations.startDate));
@@ -93,6 +96,7 @@ export async function getStaticPaths() {
       lastName: staffers.lastName,
       startDate: staffers.startDate,
       endDate: staffers.endDate,
+      updatedAt: staffers.updatedAt,
     })
     .from(staffers)
     .orderBy(desc(staffers.startDate), staffers.lastName);
@@ -118,6 +122,7 @@ export async function getStaticPaths() {
       annualAmount: interests.annualAmount,
       amountYear: interests.amountYear,
       amountIsNet: interests.amountIsNet,
+      updatedAt: interests.updatedAt,
     })
     .from(interests)
     .orderBy(desc(interests.declaredDate));
@@ -157,6 +162,7 @@ export async function getStaticPaths() {
         sourceName: pressMentions.sourceName,
         sourceUrl: pressMentions.sourceUrl,
         publishedDate: pressMentions.publishedDate,
+        updatedAt: pressMentions.updatedAt,
       })
       .from(pressMentions)
       .where(inArray(pressMentions.officialId, chunk))
@@ -182,6 +188,7 @@ export async function getStaticPaths() {
       email: addresses.email,
       latitude: addresses.latitude,
       longitude: addresses.longitude,
+      updatedAt: addresses.updatedAt,
     })
     .from(addresses);
 
@@ -212,6 +219,7 @@ export async function getStaticPaths() {
       platform: externalLinks.platform,
       url: externalLinks.url,
       source: externalLinks.source,
+      updatedAt: externalLinks.updatedAt,
     })
     .from(externalLinks)
     .where(eq(externalLinks.status, 'published'));
@@ -233,6 +241,7 @@ export async function getStaticPaths() {
       responseDate: parliamentaryActivity.responseDate,
       governmentComments: parliamentaryActivity.governmentComments,
       rubrique: parliamentaryActivity.rubrique,
+      updatedAt: parliamentaryActivity.updatedAt,
     })
     .from(parliamentaryActivity)
     .orderBy(desc(parliamentaryActivity.date));
@@ -251,6 +260,7 @@ export async function getStaticPaths() {
       type: committees.type,
       startDate: committees.startDate,
       endDate: committees.endDate,
+      updatedAt: committees.updatedAt,
     })
     .from(committees)
     .orderBy(desc(committees.startDate));
@@ -270,6 +280,7 @@ export async function getStaticPaths() {
       round: electoralResults.round,
       scorePercent: electoralResults.scorePercent,
       opponentCount: electoralResults.opponentCount,
+      updatedAt: electoralResults.updatedAt,
     })
     .from(electoralResults)
     .orderBy(desc(electoralResults.electionDate));
@@ -295,6 +306,7 @@ export async function getStaticPaths() {
       partyContributionsDeclared: campaignAccounts.partyContributionsDeclared,
       reimbursement: campaignAccounts.reimbursement,
       decision: campaignAccounts.decision,
+      updatedAt: campaignAccounts.updatedAt,
     })
     .from(campaignAccounts)
     .where(isNotNull(campaignAccounts.officialId))
@@ -309,36 +321,23 @@ export async function getStaticPaths() {
   }
 
   return rows.map((row) => {
-    const dates: string[] = [row.startDate];
-    for (const a of affiliationsByOfficial.get(row.id) ?? []) {
-      dates.push(a.startDate);
-      if (a.endDate) dates.push(a.endDate);
-    }
-    for (const s of staffersByOfficial.get(row.id) ?? []) {
-      dates.push(s.startDate);
-      if (s.endDate) dates.push(s.endDate);
-    }
-    for (const v of votesByOfficial.get(row.id) ?? []) {
-      dates.push(v.ballotDate);
-    }
-    for (const i of interestsByOfficial.get(row.id) ?? []) {
-      dates.push(i.declaredDate);
-    }
-    for (const p of pressByOfficial.get(row.id) ?? []) {
-      dates.push(p.publishedDate);
-    }
-    for (const act of activitiesByOfficial.get(row.id) ?? []) {
-      dates.push(act.date);
-    }
-    for (const c of committeesByOfficial.get(row.id) ?? []) {
-      dates.push(c.startDate);
-      if (c.endDate) dates.push(c.endDate);
-    }
-    for (const er of electoralByOfficial.get(row.id) ?? []) {
-      dates.push(er.electionDate);
-    }
-    dates.sort((a, b) => b.localeCompare(a));
-    const lastUpdated = dates[0] ?? row.startDate;
+    const allItems: { updatedAt: Date }[] = [
+      ...(mandatesByOfficial.get(row.id) ?? []),
+      ...(affiliationsByOfficial.get(row.id) ?? []),
+      ...(staffersByOfficial.get(row.id) ?? []),
+      ...(votesByOfficial.get(row.id) ?? []),
+      ...(interestsByOfficial.get(row.id) ?? []),
+      ...(pressByOfficial.get(row.id) ?? []),
+      ...(activitiesByOfficial.get(row.id) ?? []),
+      ...(committeesByOfficial.get(row.id) ?? []),
+      ...(electoralByOfficial.get(row.id) ?? []),
+      ...(addressesByOfficial.get(row.id) ?? []),
+      ...(linksByOfficial.get(row.id) ?? []),
+      ...(campaignByOfficial.get(row.id) ?? []),
+    ];
+    const lastUpdated = allItems.length > 0
+      ? allItems.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, allItems[0].updatedAt)
+      : new Date(row.startDate);
 
     return {
       params: { slug: row.slug ?? row.id },
@@ -371,6 +370,7 @@ type Mandate = {
   startDate: string;
   endDate: string | null;
   politicalGroup: string | null;
+  updatedAt: Date;
 };
 
 type Vote = {
@@ -379,6 +379,7 @@ type Vote = {
   position: string;
   ballotTitle: string;
   ballotDate: string;
+  updatedAt: Date;
 };
 
 type Affiliation = {
@@ -386,6 +387,7 @@ type Affiliation = {
   partyOrGroup: string;
   startDate: string;
   endDate: string | null;
+  updatedAt: Date;
 };
 
 type Staffer = {
@@ -394,6 +396,7 @@ type Staffer = {
   lastName: string;
   startDate: string;
   endDate: string | null;
+  updatedAt: Date;
 };
 
 type Interest = {
@@ -409,6 +412,7 @@ type Interest = {
   annualAmount: string | null;
   amountYear: number | null;
   amountIsNet: boolean | null;
+  updatedAt: Date;
 };
 
 type DeclarationSnapshot = {
@@ -423,6 +427,7 @@ type PressMention = {
   sourceName: string;
   sourceUrl: string;
   publishedDate: string;
+  updatedAt: Date;
 };
 
 type Address = {
@@ -436,12 +441,14 @@ type Address = {
   latitude: number | null;
   longitude: number | null;
   mapUrl: string | null;
+  updatedAt: Date;
 };
 
 type ExternalLink = {
   officialId: string;
   platform: string;
   url: string;
+  updatedAt: Date;
 };
 
 type Activity = {
@@ -453,6 +460,7 @@ type Activity = {
   responseDate: string | null;
   governmentComments: string | null;
   rubrique: string | null;
+  updatedAt: Date;
 };
 
 type Committee = {
@@ -461,6 +469,7 @@ type Committee = {
   type: string;
   startDate: string;
   endDate: string | null;
+  updatedAt: Date;
 };
 
 type ElectoralResult = {
@@ -470,6 +479,7 @@ type ElectoralResult = {
   round: number;
   scorePercent: number;
   opponentCount: number;
+  updatedAt: Date;
 };
 
 type CampaignAccount = {
@@ -485,6 +495,7 @@ type CampaignAccount = {
   partyContributionsDeclared: number | null;
   reimbursement: number | null;
   decision: string;
+  updatedAt: Date;
 };
 
 type Props = {
@@ -515,7 +526,7 @@ type Props = {
   deputyCommittees: Committee[];
   deputyElectoralResults: ElectoralResult[];
   deputyCampaignAccounts: CampaignAccount[];
-  lastUpdated: string;
+  lastUpdated: Date;
 };
 
 const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputySnapshots, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, deputyCampaignAccounts, lastUpdated } = Astro.props as Props;
@@ -756,27 +767,29 @@ const contactSource = deputy.mandateType === 'maire'
   ? { name: 'DILA', url: 'https://api-lannuaire.service-public.fr' }
   : parliamentSource;
 
-function maxDate(dates: (string | null | undefined)[]): string | null {
-  const valid = dates.filter((d): d is string => !!d);
-  if (valid.length === 0) return null;
-  return valid.sort((a, b) => b.localeCompare(a))[0];
+function maxUpdatedAt(items: { updatedAt: Date }[]): Date | null {
+  if (items.length === 0) return null;
+  return items.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, items[0].updatedAt);
 }
 
 const sectionDates = {
-  mandates: maxDate(deputyMandates.flatMap(m => [m.startDate, m.endDate])),
-  affiliations: maxDate(deputyAffiliations.flatMap(a => [a.startDate, a.endDate])),
-  staffers: maxDate(deputyStaffers.flatMap(s => [s.startDate, s.endDate])),
-  activities: maxDate(deputyActivities.map(a => a.date)),
-  committees: maxDate(deputyCommittees.flatMap(c => [c.startDate, c.endDate])),
-  electoral: maxDate(deputyElectoralResults.map(er => er.electionDate)),
-  interests: maxDate(deputyInterests.map(i => i.declaredDate)),
-  votes: maxDate(deputyVotes.map(v => v.ballotDate)),
-  press: maxDate(deputyPress.map(p => p.publishedDate)),
+  mandates: maxUpdatedAt(deputyMandates),
+  affiliations: maxUpdatedAt(deputyAffiliations),
+  staffers: maxUpdatedAt(deputyStaffers),
+  activities: maxUpdatedAt(deputyActivities),
+  committees: maxUpdatedAt(deputyCommittees),
+  electoral: maxUpdatedAt(deputyElectoralResults),
+  interests: maxUpdatedAt(deputyInterests),
+  votes: maxUpdatedAt(deputyVotes),
+  press: maxUpdatedAt(deputyPress),
+  addresses: maxUpdatedAt(deputyAddresses),
+  links: maxUpdatedAt(deputyLinks),
+  campaigns: maxUpdatedAt(deputyCampaignAccounts),
 };
 
-function fmtRetrieval(date: string | null): string {
+function fmtRetrieval(date: Date | null): string {
   if (!date) return '';
-  return ` — dernière récupération le ${new Date(date).toLocaleDateString('fr-FR')}`;
+  return ` — dernière récupération le ${date.toLocaleDateString('fr-FR')}`;
 }
 
 ---
@@ -845,7 +858,7 @@ function fmtRetrieval(date: string | null): string {
     </div>
 
     <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
-      Dernière mise à jour le {new Date(lastUpdated).toLocaleDateString('fr-FR')}
+      Dernière mise à jour le {lastUpdated.toLocaleDateString('fr-FR')}
     </p>
 
     <nav id="toc-inline" class="mt-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700" aria-label="Sommaire">
@@ -913,18 +926,6 @@ function fmtRetrieval(date: string | null): string {
     <section id="mandat" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Mandat en cours
-        {deputy.mandateType === 'depute' && deputy.anId && (
-          <button
-            type="button"
-            class="an-provenance-btn ml-2 inline-flex items-center justify-center rounded-full h-5 w-5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors align-middle"
-            title="Source des données"
-            aria-label="Provenance des données de mandat"
-          >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-            </svg>
-          </button>
-        )}
       </h2>
       <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -954,7 +955,7 @@ function fmtRetrieval(date: string | null): string {
           <dd class="font-medium dark:text-white">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
         </div>
       </dl>
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a></p>
+      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
     </section>
 
     <section id="tous-mandats" class="mt-8 scroll-mt-12">
@@ -991,48 +992,7 @@ function fmtRetrieval(date: string | null): string {
     <section id="coordonnees" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Coordonnées
-        {deputy.mandateType === 'depute' && deputy.anId && (
-          <button
-            type="button"
-            class="an-provenance-btn ml-2 inline-flex items-center justify-center rounded-full h-5 w-5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors align-middle"
-            title="Source des données"
-            aria-label="Provenance des coordonnées"
-          >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-            </svg>
-          </button>
-        )}
       </h2>
-
-      {deputy.mandateType === 'depute' && deputy.anId && (
-        <div id="an-provenance-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30" role="dialog" aria-modal="true" aria-label="Provenance des coordonnées">
-          <div class="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-base font-semibold text-slate-900 dark:text-white">Source des données</h3>
-              <button id="an-provenance-close" type="button" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" aria-label="Fermer">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <p class="text-sm text-slate-600">
-              Les données affichées proviennent de la fiche officielle de l'élu sur le site de l'Assemblée nationale.
-            </p>
-            <a
-              href={`https://www.assemblee-nationale.fr/dyn/deputes/${deputy.anId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-            >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-              </svg>
-              Voir la fiche sur assemblee-nationale.fr
-            </a>
-          </div>
-        </div>
-      )}
 
       {deputyAddresses.length === 0 ? (
         <p class="mt-4 text-slate-500">Aucune adresse enregistrée/trouvée.</p>
@@ -1121,7 +1081,7 @@ function fmtRetrieval(date: string | null): string {
           })}
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={contactSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{contactSource.name}</a></p>
+      <p class="mt-3 text-xs text-slate-400">Source : <a href={contactSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{contactSource.name}</a>{fmtRetrieval(sectionDates.addresses)}</p>
     </section>
 
     {isParliamentary && <section id="affiliations" class="mt-8 scroll-mt-12">
@@ -1512,7 +1472,7 @@ function fmtRetrieval(date: string | null): string {
           })}
         </div>
 
-        <p class="mt-3 text-xs text-slate-400">Source : CNCCFP via data.gouv.fr — Licence Ouverte 2.0</p>
+        <p class="mt-3 text-xs text-slate-400">Source : CNCCFP via data.gouv.fr — Licence Ouverte 2.0{fmtRetrieval(sectionDates.campaigns)}</p>
       </section>
     )}
 
@@ -1689,66 +1649,7 @@ function fmtRetrieval(date: string | null): string {
     <section id="liens" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Liens extérieurs
-        {deputy.mandateType === 'depute' && (
-          <button
-            id="liens-provenance-btn"
-            type="button"
-            class="ml-2 inline-flex items-center justify-center rounded-full h-5 w-5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors align-middle"
-            title="Source des données"
-            aria-label="Provenance des liens"
-          >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-            </svg>
-          </button>
-        )}
       </h2>
-
-      {deputy.mandateType === 'depute' && (
-        <div id="liens-provenance-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30" role="dialog" aria-modal="true" aria-label="Provenance des liens">
-          <div class="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-base font-semibold text-slate-900 dark:text-white">Source des liens</h3>
-              <button id="liens-provenance-close" type="button" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" aria-label="Fermer">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <p class="text-sm text-slate-600">
-              Les liens affichés proviennent des pages suivantes du site de l'Assemblée nationale :
-            </p>
-            <ul class="mt-3 space-y-2">
-              <li>
-                <a
-                  href="https://www2.assemblee-nationale.fr/deputes/liste/réseaux-sociaux"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-                >
-                  <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                  </svg>
-                  Réseaux sociaux des députés
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://www2.assemblee-nationale.fr/deputes/liste/site-internet"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-                >
-                  <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                  </svg>
-                  Sites internet des députés
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      )}
 
       {(() => {
         const cardPlatforms = new Set(['facebook', 'twitter', 'personal_website']);
@@ -1853,7 +1754,7 @@ function fmtRetrieval(date: string | null): string {
           </>
         );
       })()}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a></p>
+      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.links)}</p>
     </section>
   </div>
 
@@ -2047,33 +1948,6 @@ function fmtRetrieval(date: string | null): string {
         window.dispatchEvent(new CustomEvent('open-question-detail', { detail }));
       });
     });
-
-    function setupModal(modalId: string, closeId: string, triggerSelector: string) {
-      const modal = document.getElementById(modalId);
-      const close = document.getElementById(closeId);
-      if (!modal || !close) return;
-
-      function open() {
-        modal!.classList.remove('hidden');
-        modal!.classList.add('flex');
-      }
-      function shut() {
-        modal!.classList.remove('flex');
-        modal!.classList.add('hidden');
-      }
-
-      for (const btn of document.querySelectorAll(triggerSelector)) {
-        btn.addEventListener('click', open);
-      }
-      close.addEventListener('click', shut);
-      modal.addEventListener('click', (e) => { if (e.target === modal) shut(); });
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !modal!.classList.contains('hidden')) shut();
-      });
-    }
-
-    setupModal('an-provenance-modal', 'an-provenance-close', '.an-provenance-btn');
-    setupModal('liens-provenance-modal', 'liens-provenance-close', '#liens-provenance-btn');
 
     const pressBtn = document.getElementById('press-show-more');
     if (pressBtn) {

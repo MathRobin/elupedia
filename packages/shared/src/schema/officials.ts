@@ -1,4 +1,11 @@
-import { pgTable, uuid, varchar, date, jsonb } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  date,
+  jsonb,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 export const officials = pgTable('officials', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -11,4 +18,7 @@ export const officials = pgTable('officials', {
   deathDate: date('death_date'),
   slug: varchar('slug', { length: 512 }).unique(),
   full: jsonb('full'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
