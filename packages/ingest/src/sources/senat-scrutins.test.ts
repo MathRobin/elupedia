@@ -39,6 +39,15 @@ describe('parseScrutinsIndex', () => {
     expect(result[2].date).toBe('2026-07-09');
   });
 
+  it('handles &deg; entity and &nbsp; before colon (real HTML)', () => {
+    const html = `<div class="list-group-subtitle">21 juillet 2026</div>
+<p><a href="2025/scr2025-340.html">Scrutin N&deg;340</a>&nbsp;: sur l'ensemble du projet de loi agricole. Adoption</p>`;
+    const result = parseScrutinsIndex(html, '2025');
+    expect(result).toHaveLength(1);
+    expect(result[0].number).toBe(340);
+    expect(result[0].title).toBe("sur l'ensemble du projet de loi agricole");
+  });
+
   it('returns empty for HTML without scrutins', () => {
     expect(parseScrutinsIndex('<html></html>', '2025')).toHaveLength(0);
   });

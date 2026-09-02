@@ -53,14 +53,21 @@ export async function runSenat(
     logger.info('[2/9] Senate votes...');
     results.push(
       await runStep('senat-votes', async () => {
-        const scrutins = await withRetry(() => fetchSenatScrutins('2025'), {
-          source: 'senat-scrutins',
-        });
-        const r = await upsertSenatVotes(db, scrutins);
+        const sessions = ['2020', '2021', '2022', '2023', '2024', '2025'];
+        let totalBallots = 0;
+        let totalVotes = 0;
+        for (const session of sessions) {
+          const scrutins = await withRetry(() => fetchSenatScrutins(session), {
+            source: `senat-scrutins-${session}`,
+          });
+          const r = await upsertSenatVotes(db, scrutins);
+          totalBallots += r.ballots;
+          totalVotes += r.votes;
+        }
         return {
           source: 'senat-votes',
-          created: r.ballots,
-          updated: r.votes,
+          created: totalBallots,
+          updated: totalVotes,
           durationMs: 0,
         };
       }),

@@ -73,7 +73,7 @@ export function parseScrutinsIndex(
     }
 
     const scrutinMatch = line.match(
-      /scr\d{4}-(\d+)\.html[^>]*>.*?N°\s*(\d+)<\/a>\s*:\s*(.*)/i,
+      /scr\d{4}-(\d+)\.html[^>]*>.*?N(?:°|&deg;)\s*(\d+)<\/a>\s*(?:&nbsp;)?:\s*(.*)/i,
     );
     if (scrutinMatch && currentDate) {
       const number = parseInt(scrutinMatch[1], 10);
