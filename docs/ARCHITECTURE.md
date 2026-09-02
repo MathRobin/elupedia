@@ -29,7 +29,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
 - Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat) et `run-maires.ts` (3 étapes Maires), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -53,6 +53,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Presse (Google News)       | `sources/google-news.ts`           | news.google.com             | RSS/XML       | ✅ actif |
 | Maires (RNE)               | `sources/rne-maires.ts`            | data.gouv.fr                | CSV           | ✅ actif |
 | Mairies (DILA)             | `sources/dila-mairies.ts`          | service-public.fr           | JSON API      | ✅ actif |
+| Parrainages présidentiels  | `sources/parrainages.ts`           | data.gouv.fr                | CSV           | ✅ actif |
 | Résultats électoraux AN    | `sources/datagouv-elections.ts`    | data.gouv.fr                | —             | ⏸ prévu  |
 
 #### Upsert / Diff
@@ -80,6 +81,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Adresses mairies           | `upsert/mayor-addresses.ts`         | Upsert sur official + town_hall        |
 | Scrape réseaux maires      | `upsert/mayor-social-scrape.ts`     | Scrape sites officiels communes        |
 | Mentions presse            | `upsert/press-mentions.ts`          | Insert dédupliqué sur official + URL   |
+| Parrainages                | `upsert/sponsorships.ts`            | Batch insert, skip si existant         |
 
 ### 2. Base de données (PostgreSQL / Neon)
 
@@ -107,6 +109,7 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 | `parliamentary_activity` | type, title, date, status, question_text, response_text, response_date, government_comments, source_url, rubrique, tete_analyse, question_number                   | officials          |
 | `committees`             | name, type, start_date, end_date                                                                                                                                   | officials          |
 | `electoral_results`      | election_type, election_date, round, score_percent, opponent_count                                                                                                 | officials          |
+| `sponsorships`           | type, election_year, candidate_name, raw_elected_name, raw_function, publication_date, matched                                                                     | officials          |
 
 ### 3. Build du site (`packages/site`)
 
