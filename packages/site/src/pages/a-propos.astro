@@ -95,6 +95,135 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       d'altérer sa neutralité.
     </p>
 
+    <h2>Sources de données</h2>
+
+    <p>
+      Élupedia agrège exclusivement des données publiques issues de sources
+      officielles. Voici l'ensemble des domaines couverts et leurs origines.
+    </p>
+
+    <h3>Élus et mandats</h3>
+    <p>
+      Identité des élus (nom, prénom, date de naissance, photo) et historique
+      de leurs mandats (législature, circonscription, dates de début/fin).
+      Couvre les députés, sénateurs et maires.
+    </p>
+    <ul>
+      <li><a href="https://data.assemblee-nationale.fr" target="_blank" rel="noopener noreferrer">data.assemblee-nationale.fr</a> — open data de l'Assemblée nationale (ZIP/JSON)</li>
+      <li><a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer">data.senat.fr</a> — API JSON du Sénat</li>
+      <li><a href="https://www.data.gouv.fr/fr/datasets/repertoire-national-des-elus-1/" target="_blank" rel="noopener noreferrer">RNE (data.gouv.fr)</a> — Répertoire national des élus, fichier CSV des maires</li>
+      <li><a href="https://api-lannuaire.service-public.fr" target="_blank" rel="noopener noreferrer">API Annuaire de l'administration (DILA)</a> — adresses et contacts des mairies</li>
+    </ul>
+
+    <h3>Activité parlementaire</h3>
+    <p>
+      Questions écrites et questions au gouvernement / orales posées par les
+      parlementaires.
+    </p>
+    <ul>
+      <li><a href="https://data.assemblee-nationale.fr" target="_blank" rel="noopener noreferrer">data.assemblee-nationale.fr</a> — questions écrites (~17 800) et questions au gouvernement (~1 800)</li>
+      <li><a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer">data.senat.fr</a> — questions sénatoriales (~529 000)</li>
+    </ul>
+
+    <h3>Votes et scrutins</h3>
+    <p>
+      Scrutins publics et position de chaque élu (pour, contre, abstention, absent).
+    </p>
+    <ul>
+      <li><a href="https://data.assemblee-nationale.fr" target="_blank" rel="noopener noreferrer">data.assemblee-nationale.fr</a> — scrutins AN (~8 400)</li>
+      <li><a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer">data.senat.fr</a> — scrutins publics du Sénat</li>
+    </ul>
+
+    <h3>Affiliations politiques</h3>
+    <p>
+      Appartenance aux groupes parlementaires et partis politiques, avec
+      historique des changements.
+    </p>
+    <ul>
+      <li><a href="https://data.assemblee-nationale.fr" target="_blank" rel="noopener noreferrer">data.assemblee-nationale.fr</a></li>
+      <li><a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer">data.senat.fr</a> — groupes politiques</li>
+    </ul>
+
+    <h3>Collaborateurs parlementaires</h3>
+    <p>
+      Collaborateurs déclarés par les parlementaires, avec suivi des arrivées
+      et départs.
+    </p>
+    <ul>
+      <li><a href="https://data.assemblee-nationale.fr" target="_blank" rel="noopener noreferrer">data.assemblee-nationale.fr</a> — CSV collaborateurs</li>
+      <li><a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer">data.senat.fr</a> — API collaborateurs</li>
+    </ul>
+
+    <h3>Intérêts et patrimoine</h3>
+    <p>
+      Déclarations d'intérêts et d'activités&nbsp;: activités professionnelles,
+      activités de conseil, organes dirigeants, activités bénévoles, fonctions
+      électives annexes, participations financières.
+    </p>
+    <ul>
+      <li><a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer">HATVP</a> — Haute Autorité pour la Transparence de la Vie Publique (XML)</li>
+    </ul>
+
+    <h3>Commissions et délégations</h3>
+    <p>
+      Composition des commissions permanentes, spéciales, délégations, groupes
+      d'études et d'amitié.
+    </p>
+    <ul>
+      <li><a href="https://data.assemblee-nationale.fr" target="_blank" rel="noopener noreferrer">data.assemblee-nationale.fr</a></li>
+      <li><a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer">data.senat.fr</a></li>
+    </ul>
+
+    <h3>Adresses et contacts</h3>
+    <p>
+      Adresses de permanence et de l'assemblée, coordonnées (téléphone, email),
+      liens vers les réseaux sociaux et sites personnels.
+    </p>
+    <ul>
+      <li><a href="https://data.assemblee-nationale.fr" target="_blank" rel="noopener noreferrer">data.assemblee-nationale.fr</a></li>
+      <li><a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer">data.senat.fr</a></li>
+    </ul>
+
+    <h3>Historique électoral</h3>
+    <p>
+      Résultats des élections par circonscription&nbsp;: pourcentage, tour,
+      nombre d'opposants.
+    </p>
+    <ul>
+      <li><a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer">data.senat.fr</a> — résultats par sénateur</li>
+    </ul>
+
+    <h3>Comptes de campagne</h3>
+    <p>
+      Données financières des campagnes électorales&nbsp;: dépenses, recettes,
+      dons, apport personnel, concours des partis, remboursement, décision de
+      la CNCCFP.
+    </p>
+    <ul>
+      <li><a href="https://www.data.gouv.fr/organizations/commission-nationale-des-comptes-de-campagne-et-des-financements-politiques-cnccfp" target="_blank" rel="noopener noreferrer">CNCCFP (data.gouv.fr)</a> — législatives 2022 et 2024, sénatoriales 2023</li>
+    </ul>
+
+    <h3>Mentions presse</h3>
+    <p>
+      Articles de presse mentionnant un élu, collectés automatiquement via les
+      flux RSS de Google&nbsp;Actualités. <strong>Ce n'est pas une source
+      officielle</strong>&nbsp;: les résultats peuvent contenir du bruit
+      (homonymes, mentions indirectes) et ne sont pas exhaustifs.
+    </p>
+    <ul>
+      <li><a href="https://news.google.com" target="_blank" rel="noopener noreferrer">Google Actualités</a> — flux RSS publics</li>
+    </ul>
+
+    <h3>Cartographie</h3>
+    <p>
+      Cartes statiques de localisation des permanences et mairies, générées à
+      partir des coordonnées géocodées.
+    </p>
+    <ul>
+      <li><a href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> — tuiles cartographiques (ODbL / CC BY-SA 2.0)</li>
+      <li><a href="https://api-adresse.data.gouv.fr" target="_blank" rel="noopener noreferrer">API Adresse (Etalab)</a> — géocodage des adresses</li>
+    </ul>
+
     <h2>Contribuer au projet</h2>
 
     <p>
