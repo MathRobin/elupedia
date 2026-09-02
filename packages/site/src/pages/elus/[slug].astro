@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships } from '@elupedia/shared';
 import { eq, isNull, desc, and, lt, gt, isNotNull, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -321,6 +321,26 @@ export async function getStaticPaths() {
     campaignByOfficial.set(ca.officialId, list);
   }
 
+  const allSponsorships = await db
+    .select({
+      officialId: sponsorships.officialId,
+      type: sponsorships.type,
+      electionYear: sponsorships.electionYear,
+      candidateName: sponsorships.candidateName,
+      publicationDate: sponsorships.publicationDate,
+      updatedAt: sponsorships.updatedAt,
+    })
+    .from(sponsorships)
+    .where(isNotNull(sponsorships.officialId));
+
+  const sponsorshipsByOfficial = new Map<string, typeof allSponsorships>();
+  for (const s of allSponsorships) {
+    if (!s.officialId) continue;
+    const list = sponsorshipsByOfficial.get(s.officialId) ?? [];
+    list.push(s);
+    sponsorshipsByOfficial.set(s.officialId, list);
+  }
+
   return rows.map((row) => {
     const allItems: { updatedAt: Date }[] = [
       ...(mandatesByOfficial.get(row.id) ?? []),
@@ -335,6 +355,7 @@ export async function getStaticPaths() {
       ...(addressesByOfficial.get(row.id) ?? []),
       ...(linksByOfficial.get(row.id) ?? []),
       ...(campaignByOfficial.get(row.id) ?? []),
+      ...(sponsorshipsByOfficial.get(row.id) ?? []),
     ];
     const lastUpdated = allItems.length > 0
       ? allItems.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, allItems[0].updatedAt)
@@ -357,6 +378,7 @@ export async function getStaticPaths() {
         deputyCommittees: committeesByOfficial.get(row.id) ?? [],
         deputyElectoralResults: electoralByOfficial.get(row.id) ?? [],
         deputyCampaignAccounts: campaignByOfficial.get(row.id) ?? [],
+        deputySponsorships: sponsorshipsByOfficial.get(row.id) ?? [],
         lastUpdated,
       },
     };
@@ -499,6 +521,15 @@ type CampaignAccount = {
   updatedAt: Date;
 };
 
+type Sponsorship = {
+  officialId: string | null;
+  type: string;
+  electionYear: number;
+  candidateName: string;
+  publicationDate: string | null;
+  updatedAt: Date;
+};
+
 type Props = {
   deputy: {
     id: string;
@@ -528,10 +559,11 @@ type Props = {
   deputyCommittees: Committee[];
   deputyElectoralResults: ElectoralResult[];
   deputyCampaignAccounts: CampaignAccount[];
+  deputySponsorships: Sponsorship[];
   lastUpdated: Date;
 };
 
-const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputySnapshots, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, deputyCampaignAccounts, lastUpdated } = Astro.props as Props;
+const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputySnapshots, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, deputyCampaignAccounts, deputySponsorships, lastUpdated } = Astro.props as Props;
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -793,6 +825,7 @@ const sectionDates = {
   addresses: maxUpdatedAt(deputyAddresses),
   links: maxUpdatedAt(deputyLinks),
   campaigns: maxUpdatedAt(deputyCampaignAccounts),
+  sponsorships: maxUpdatedAt(deputySponsorships),
 };
 
 function fmtRetrieval(date: Date | null): string {
@@ -1492,6 +1525,42 @@ function fmtRetrieval(date: Date | null): string {
         </div>
 
         <p class="mt-3 text-xs text-slate-400">Source : CNCCFP via data.gouv.fr — Licence Ouverte 2.0{fmtRetrieval(sectionDates.campaigns)}</p>
+      </section>
+    )}
+
+    {deputySponsorships.length > 0 && (
+      <section id="parrainages" class="mt-8 scroll-mt-12">
+        <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+          Parrainages
+          <span class="ml-2 text-sm font-normal text-slate-500">({deputySponsorships.length})</span>
+        </h2>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-left text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                <th class="pb-2 pr-4 font-medium">Année</th>
+                <th class="pb-2 pr-4 font-medium">Type</th>
+                <th class="pb-2 pr-4 font-medium">Candidat parrainé</th>
+                <th class="pb-2 font-medium">Date de publication</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deputySponsorships.map((s) => (
+                <tr class="border-b border-slate-100 dark:border-slate-700">
+                  <td class="py-2 pr-4 whitespace-nowrap font-medium">{s.electionYear}</td>
+                  <td class="py-2 pr-4">{s.type === 'parrainage_presidentiel' ? 'Présidentielle' : s.type}</td>
+                  <td class="py-2 pr-4">{s.candidateName}</td>
+                  <td class="py-2 whitespace-nowrap">
+                    {s.publicationDate ? new Date(s.publicationDate).toLocaleDateString('fr-FR') : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.conseil-constitutionnel.fr/les-parrainages" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Conseil constitutionnel</a> — Domaine public{fmtRetrieval(sectionDates.sponsorships)}</p>
       </section>
     )}
 
