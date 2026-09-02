@@ -12,8 +12,8 @@
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
     "@elupedia/shared": "*",
-    "@mantine/core": "^9.5.2",
-    "@mantine/hooks": "^9.5.2",
+    "@mantine/core": "8.3.18",
+    "@mantine/hooks": "8.3.18",
     "@neondatabase/serverless": "^1.1.0",
     "drizzle-orm": "^0.45.2",
     "next": "^15.3.4",
