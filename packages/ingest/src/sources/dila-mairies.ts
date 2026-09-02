@@ -73,15 +73,28 @@ function parseWebsite(raw: string | null): string | undefined {
   }
 }
 
-export async function fetchDilaMairies(
-  fetchFn: typeof fetch = fetch,
+// API offset limit is 10 000 — partition by department prefix to stay under
+const DEPT_PREFIXES = [
+  ...Array.from({ length: 96 }, (_, i) => String(i + 1).padStart(2, '0')),
+  '2A',
+  '2B',
+  ...['971', '972', '973', '974', '976'],
+];
+
+async function fetchPartition(
+  prefix: string,
+  fetchFn: typeof fetch,
 ): Promise<MairieData[]> {
   const results: MairieData[] = [];
   let offset = 0;
   let total = Infinity;
 
+  const whereClause = encodeURIComponent(
+    `pivot like "mairie" AND startswith(code_insee_commune, "${prefix}")`,
+  );
+
   while (offset < total) {
-    const url = `${API_BASE}?where=pivot%20like%20%22mairie%22&limit=${PAGE_SIZE}&offset=${offset}&select=code_insee_commune,adresse,telephone,adresse_courriel,site_internet,pivot`;
+    const url = `${API_BASE}?where=${whereClause}&limit=${PAGE_SIZE}&offset=${offset}&select=code_insee_commune,adresse,telephone,adresse_courriel,site_internet,pivot`;
 
     const res = await fetchFn(url);
     if (!res.ok) {
@@ -112,6 +125,19 @@ export async function fetchDilaMairies(
     }
 
     offset += PAGE_SIZE;
+  }
+
+  return results;
+}
+
+export async function fetchDilaMairies(
+  fetchFn: typeof fetch = fetch,
+): Promise<MairieData[]> {
+  const results: MairieData[] = [];
+
+  for (const prefix of DEPT_PREFIXES) {
+    const batch = await fetchPartition(prefix, fetchFn);
+    results.push(...batch);
   }
 
   logger.info(`DILA mairies: ${results.length} mairies fetched`);

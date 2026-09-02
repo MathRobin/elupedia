@@ -19,13 +19,16 @@ function makeRecord(overrides: Record<string, unknown> = {}) {
 }
 
 function makeFetch(records: Record<string, unknown>[], total?: number) {
-  return vi.fn().mockResolvedValue({
-    ok: true,
-    json: () =>
-      Promise.resolve({
-        total_count: total ?? records.length,
-        results: records,
-      }),
+  return vi.fn().mockImplementation((url: string) => {
+    const hasRecords = url.includes('%2201%22') || url.includes('"01"');
+    return Promise.resolve({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          total_count: hasRecords ? (total ?? records.length) : 0,
+          results: hasRecords ? records : [],
+        }),
+    });
   }) as unknown as typeof fetch;
 }
 
