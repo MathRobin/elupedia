@@ -1738,8 +1738,9 @@ function fmtRetrieval(date: Date | null): string {
       {(() => {
         const cardPlatforms = new Set(['facebook', 'twitter', 'personal_website']);
         const cardLinks = deputyLinks.filter((l) => cardPlatforms.has(l.platform));
-        const pillLinks = deputyLinks.filter((l) => !cardPlatforms.has(l.platform));
-        const hasInstitutionCard = !!deputy.anId || (deputy.mandateType === 'senateur' && !!deputy.photoUrl);
+        const pillLinks = deputyLinks.filter((l) => !cardPlatforms.has(l.platform) && !(maireOfficialLink && l.platform === 'official_page'));
+        const maireOfficialLink = isMaire ? deputyLinks.find((l) => l.platform === 'official_page') : null;
+        const hasInstitutionCard = !!deputy.anId || (deputy.mandateType === 'senateur' && !!deputy.photoUrl) || !!maireOfficialLink;
         const hasCards = hasInstitutionCard || cardLinks.length > 0;
         const hasPills = pillLinks.length > 0;
         const hasNothing = !hasCards && !hasPills;
@@ -1802,6 +1803,24 @@ function fmtRetrieval(date: Date | null): string {
                     <div class="min-w-0">
                       <p class="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
                         Sénat
+                      </p>
+                      <p class="text-xs text-slate-500 truncate dark:text-slate-400" set:html={`Fiche officielle${externalLinkIcon}`} />
+                    </div>
+                  </a>
+                )}
+                {maireOfficialLink && (
+                  <a
+                    href={maireOfficialLink.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 transition-shadow hover:shadow-md no-underline dark:bg-slate-800 dark:ring-slate-700"
+                  >
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
+                        Mairie
                       </p>
                       <p class="text-xs text-slate-500 truncate dark:text-slate-400" set:html={`Fiche officielle${externalLinkIcon}`} />
                     </div>
