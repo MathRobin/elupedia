@@ -141,6 +141,13 @@
       "when": 1788338116613,
       "tag": "0019_early_crusher_hogan",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788358433249,
+      "tag": "0020_friendly_oracle",
+      "breakpoints": true
     }
   ]
 }

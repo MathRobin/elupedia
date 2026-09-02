@@ -1,11 +1,22 @@
 import NextAuth from 'next-auth';
 import Nodemailer from 'next-auth/providers/nodemailer';
 import { eq } from 'drizzle-orm';
-import { createDb, users } from '@elupedia/shared';
+import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import {
+  createDb,
+  users,
+  accounts,
+  verificationTokens,
+} from '@elupedia/shared';
 
 const db = createDb();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  adapter: DrizzleAdapter(db, {
+    usersTable: users,
+    accountsTable: accounts,
+    verificationTokensTable: verificationTokens,
+  }),
   providers: [
     Nodemailer({
       server: process.env.EMAIL_SERVER,
