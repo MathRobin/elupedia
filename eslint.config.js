@@ -9,6 +9,8 @@ export default tseslint.config(
       '**/dist/',
       '.yarn/',
       '**/.astro/',
+      '**/.next/',
+      '**/next-env.d.ts',
       '**/public/',
     ],
   },

@@ -540,11 +540,17 @@ const addressTypeLabels: Record<string, string> = {
 };
 
 const addressImages: Record<string, { src: string; alt: string; credit: string }> = {
-  assembly_office: {
-    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Fa%C3%A7ade_Palais_Bourbon_3.jpg/960px-Fa%C3%A7ade_Palais_Bourbon_3.jpg',
-    alt: 'Palais Bourbon, siège de l\'Assemblée nationale',
-    credit: 'ZeusUpsistos / CC BY-SA 4.0',
-  },
+  assembly_office: deputy.mandateType === 'senateur'
+    ? {
+        src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Palais_du_Luxembourg%2C_South_View_140116_1.jpg/960px-Palais_du_Luxembourg%2C_South_View_140116_1.jpg',
+        alt: 'Palais du Luxembourg, siège du Sénat',
+        credit: 'DXR / CC BY-SA 3.0',
+      }
+    : {
+        src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Fa%C3%A7ade_Palais_Bourbon_3.jpg/960px-Fa%C3%A7ade_Palais_Bourbon_3.jpg',
+        alt: 'Palais Bourbon, siège de l\'Assemblée nationale',
+        credit: 'ZeusUpsistos / CC BY-SA 4.0',
+      },
   constituency_office: {
     src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Circle-icons-gps.svg/960px-Circle-icons-gps.svg.png',
     alt: 'Immeuble de bureaux',
