@@ -1,4 +1,4 @@
-CREATE TABLE "sponsorships" (
+CREATE TABLE IF NOT EXISTS "sponsorships" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"official_id" uuid,
 	"type" varchar(50) NOT NULL,
@@ -13,4 +13,7 @@ CREATE TABLE "sponsorships" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "sponsorships" ADD CONSTRAINT "sponsorships_official_id_officials_id_fk" FOREIGN KEY ("official_id") REFERENCES "public"."officials"("id") ON DELETE no action ON UPDATE no action;
+DO $$ BEGIN
+  ALTER TABLE "sponsorships" ADD CONSTRAINT "sponsorships_official_id_officials_id_fk" FOREIGN KEY ("official_id") REFERENCES "public"."officials"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
