@@ -234,6 +234,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@auth/drizzle-adapter@npm:^1.11.3":
+  version: 1.11.3
+  resolution: "@auth/drizzle-adapter@npm:1.11.3"
+  dependencies:
+    "@auth/core": "npm:0.41.3"
+  checksum: 10c0/c13f7ab7f1d68af0f09861ea8ffd1e7905cdb2dc37e16fd722439cac33d9ec606fb6a12b6bbdfdc561c64fea6f634ed3425fe3644a4d0252b91219ee7e73b0bf
+  languageName: node
+  linkType: hard
+
 "@aws-sdk/checksums@npm:^3.1000.29":
   version: 3.1000.29
   resolution: "@aws-sdk/checksums@npm:3.1000.29"
@@ -1038,6 +1047,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@elupedia/admin@workspace:packages/admin"
   dependencies:
+    "@auth/drizzle-adapter": "npm:^1.11.3"
     "@elupedia/shared": "npm:*"
     "@mantine/core": "npm:^9.5.2"
     "@mantine/hooks": "npm:^9.5.2"

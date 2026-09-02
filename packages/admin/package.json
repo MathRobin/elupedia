@@ -10,6 +10,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "^1.11.3",
     "@elupedia/shared": "*",
     "@mantine/core": "^9.5.2",
     "@mantine/hooks": "^9.5.2",
