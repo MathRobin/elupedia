@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import QrCodeModal from './QrCodeModal';
 
 type ShareButtonProps = {
   title: string;
@@ -25,6 +26,7 @@ export { buildShareUrl };
 export default function ShareButton({ title, description }: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -153,8 +155,32 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
             </svg>
             {copied ? 'Lien copié !' : 'Copier le lien'}
           </button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              setShowQr(true);
+            }}
+            className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
+          >
+            <svg
+              className="h-4 w-4 shrink-0 text-slate-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5Zm0 9.75c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Zm9.75-9.75c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Zm1.5 9.75a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H15.75a.75.75 0 0 1-.75-.75v-.008Zm3 0a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H18.75a.75.75 0 0 1-.75-.75v-.008Zm-1.5 3a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H15.75a.75.75 0 0 1-.75-.75v-.008Zm3 0a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H18.75a.75.75 0 0 1-.75-.75v-.008Z"
+              />
+            </svg>
+            QR Code
+          </button>
         </div>
       )}
+
+      {showQr && <QrCodeModal url={url} onClose={() => setShowQr(false)} />}
     </div>
   );
 }
