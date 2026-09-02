@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { DEPARTMENT_CODES } from '../lib/department-codes.js';
 
 type Official = {
   id: string;
@@ -286,6 +287,7 @@ function FilterPanel({
           {departments.map((d) => (
             <option key={d} value={d}>
               {d}
+              {DEPARTMENT_CODES[d] ? ` (${DEPARTMENT_CODES[d]})` : ''}
             </option>
           ))}
         </select>
