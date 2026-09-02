@@ -8,6 +8,7 @@ dist/
 !.yarn/versions
 *.tsbuildinfo
 .astro/
+.next/
 .env
 .env.*
 !.env.example

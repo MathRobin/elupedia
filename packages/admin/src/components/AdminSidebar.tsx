@@ -5,6 +5,10 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   {
+    label: 'Élus',
+    children: [{ label: 'Doublons', href: '/elus/doublons' }],
+  },
+  {
     label: 'Modération',
     children: [{ label: 'Queue de modération', href: '/moderation' }],
   },
