@@ -79,6 +79,19 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 - **URL** : https://api-adresse.data.gouv.fr
 - **Utilisation** : géocodage des adresses de mairies et permanences en coordonnées GPS (latitude, longitude)
 
+### CNCCFP (comptes de campagne)
+
+- **Éditeur** : Commission nationale des comptes de campagne et des financements politiques
+- **Licence** : Licence Ouverte / Open Licence 2.0 (Etalab)
+- **Obligations** :
+  - Attribution obligatoire : mentionner la CNCCFP comme source
+  - Pas de restriction sur l'usage commercial
+- **URL** : https://www.data.gouv.fr/organizations/commission-nationale-des-comptes-de-campagne-et-des-financements-politiques-cnccfp
+- **Jeux de données utilisés** :
+  - **Législatives 2024** : CSV (comptes de campagne, publication simplifiée au JO du 22/07/2025)
+  - **Législatives 2022** : CSV (comptes de campagne, publication au JO du 05/09/2023)
+  - **Sénatoriales 2023** : CSV (comptes de campagne, publication au JO du 23/07/2024)
+
 ## Sources prévues (non encore actives)
 
 ### data.gouv.fr (résultats électoraux AN)
@@ -101,6 +114,7 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | Google Actualités   | RSS public          | N/A         | Titres + liens   | ✅ active |
 | OpenStreetMap       | ODbL / CC BY-SA 2.0 | Oui         | Autorisé         | ✅ active |
 | API Adresse         | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
+| CNCCFP              | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | data.gouv.fr        | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
 
 ## Licence du code source

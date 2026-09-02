@@ -13,6 +13,7 @@ vi.mock('@elupedia/shared', () => ({
   parliamentaryActivity: {},
   committees: {},
   electoralResults: {},
+  campaignAccounts: {},
 }));
 
 vi.mock('./logger.js', () => ({
@@ -148,6 +149,32 @@ vi.mock('./upsert/geocode-addresses.js', () => ({
 vi.mock('./upsert/upload-maps.js', () => ({
   uploadMaps: vi.fn(),
 }));
+vi.mock('./sources/cnccfp.js', () => ({
+  fetchCnccfpAccounts: vi.fn(),
+  CNCCFP_ELECTIONS: [
+    {
+      id: 'legislatives_2024',
+      type: 'legislatives',
+      date: '2024-07-07',
+      url: '',
+    },
+    {
+      id: 'legislatives_2022',
+      type: 'legislatives',
+      date: '2022-06-19',
+      url: '',
+    },
+    {
+      id: 'senatoriales_2023',
+      type: 'senatoriales',
+      date: '2023-09-24',
+      url: '',
+    },
+  ],
+}));
+vi.mock('./upsert/campaign-accounts.js', () => ({
+  upsertCampaignAccounts: vi.fn(),
+}));
 
 import { run } from './run.js';
 import { fetchDeputes } from './sources/assemblee-nationale.js';
@@ -190,6 +217,8 @@ import { upsertMayorAddresses } from './upsert/mayor-addresses.js';
 import { scrapeMayorWebsites } from './upsert/mayor-social-scrape.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
+import { fetchCnccfpAccounts } from './sources/cnccfp.js';
+import { upsertCampaignAccounts } from './upsert/campaign-accounts.js';
 
 function setupHappyPath() {
   vi.mocked(fetchDeputes).mockResolvedValue([
@@ -302,6 +331,12 @@ function setupHappyPath() {
     skipped: 0,
     failed: 0,
   });
+  vi.mocked(fetchCnccfpAccounts).mockResolvedValue([]);
+  vi.mocked(upsertCampaignAccounts).mockResolvedValue({
+    created: 0,
+    updated: 0,
+    skipped: 0,
+  });
 }
 
 beforeEach(() => {
@@ -317,7 +352,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(21);
+    expect(results).toHaveLength(22);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -346,7 +381,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(21);
+    expect(results).toHaveLength(22);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

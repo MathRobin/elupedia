@@ -5,6 +5,8 @@ import { runSenat } from './run-senat.js';
 import { runMaires } from './run-maires.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
+import { fetchCnccfpAccounts, CNCCFP_ELECTIONS } from './sources/cnccfp.js';
+import { upsertCampaignAccounts } from './upsert/campaign-accounts.js';
 import { logger } from './logger.js';
 
 export type { StepResult };
@@ -49,11 +51,36 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     );
   }
 
+  const campaignResults: StepResult[] = [];
+  if (enabled('campaign-accounts')) {
+    logger.info('[CNCCFP] Fetching and upserting campaign accounts...');
+    const campaignDb = createDb();
+    campaignResults.push(
+      await runStep('campaign-accounts', async () => {
+        let totalCreated = 0;
+        let totalUpdated = 0;
+        for (const election of CNCCFP_ELECTIONS) {
+          const rows = await fetchCnccfpAccounts(election);
+          const r = await upsertCampaignAccounts(campaignDb, rows, election);
+          totalCreated += r.created;
+          totalUpdated += r.updated;
+        }
+        return {
+          source: 'campaign-accounts',
+          created: totalCreated,
+          updated: totalUpdated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
   return [
     ...anResults,
     ...senatResults,
     ...mairesResults,
     ...geocodeResults,
     ...mapsResults,
+    ...campaignResults,
   ];
 }

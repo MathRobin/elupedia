@@ -31,3 +31,4 @@ export {
   declarationTypeEnum,
   type DeclarationType,
 } from './declaration-snapshots.js';
+export { campaignAccounts } from './campaign-accounts.js';
