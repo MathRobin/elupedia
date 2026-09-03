@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
 import { ballots, votes, officials, mandates } from '@elupedia/shared';
-import { eq, isNull, sql } from 'drizzle-orm';
+import { eq, isNull, and, inArray } from 'drizzle-orm';
 import { DEPARTMENT_CODES } from '../../lib/department-codes.js';
 import DepartmentMapWrapper from '../../components/DepartmentMapWrapper';
 
@@ -27,12 +27,12 @@ const ballotVotesRaw = await db
 const officialIds = [...new Set(ballotVotesRaw.map((v) => v.officialId))];
 
 const officialRows = officialIds.length > 0
-  ? await db.select({ id: officials.id, slug: officials.slug, firstName: officials.firstName, lastName: officials.lastName, photoUrl: officials.photoUrl }).from(officials).where(sql`${officials.id} = ANY(${officialIds})`)
+  ? await db.select({ id: officials.id, slug: officials.slug, firstName: officials.firstName, lastName: officials.lastName, photoUrl: officials.photoUrl }).from(officials).where(inArray(officials.id, officialIds))
   : [];
 const officialMap = new Map(officialRows.map((o) => [o.id, o]));
 
 const mandateRows = officialIds.length > 0
-  ? await db.select({ officialId: mandates.officialId, politicalGroup: mandates.politicalGroup, department: mandates.department }).from(mandates).where(sql`${mandates.officialId} = ANY(${officialIds}) AND ${mandates.endDate} IS NULL`)
+  ? await db.select({ officialId: mandates.officialId, politicalGroup: mandates.politicalGroup, department: mandates.department }).from(mandates).where(and(inArray(mandates.officialId, officialIds), isNull(mandates.endDate)))
   : [];
 const mandateMap = new Map(mandateRows.map((m) => [m.officialId, m]));
 
