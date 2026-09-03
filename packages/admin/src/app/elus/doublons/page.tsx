@@ -106,6 +106,11 @@ export default function DoublonsPage() {
     setKeepId(null);
     open();
     const d = await getDuplicateDetails(group.ids);
+    d.sort((a, b) => {
+      const sa = a.slug ?? '￿';
+      const sb = b.slug ?? '￿';
+      return sa.localeCompare(sb, 'fr');
+    });
     setDetails(d);
     if (d.length > 0) setKeepId(d[0].id);
   }
