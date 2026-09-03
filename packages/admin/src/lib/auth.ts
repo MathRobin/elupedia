@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
-import Nodemailer from 'next-auth/providers/nodemailer';
+import Credentials from 'next-auth/providers/credentials';
+import { compare } from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import {
@@ -17,32 +18,54 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     accountsTable: accounts,
     verificationTokensTable: verificationTokens,
   }),
+  session: { strategy: 'jwt' },
   providers: [
-    Nodemailer({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM ?? 'noreply@elupedia.fr',
+    Credentials({
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Mot de passe', type: 'password' },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email;
+        const password = credentials?.password;
+        if (typeof email !== 'string' || typeof password !== 'string')
+          return null;
+
+        const rows = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+        if (rows.length === 0) return null;
+
+        const user = rows[0];
+        if (!user.passwordHash) return null;
+
+        const valid = await compare(password, user.passwordHash);
+        if (!valid) return null;
+
+        return { id: user.id, email: user.email, name: user.name };
+      },
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
-      if (!user.email) return false;
-      const rows = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.email, user.email))
-        .limit(1);
-      return rows.length > 0;
-    },
-    async session({ session }) {
-      if (session.user?.email) {
+    async jwt({ token, user }) {
+      if (user?.email) {
         const rows = await db
           .select({ role: users.role })
           .from(users)
-          .where(eq(users.email, session.user.email))
+          .where(eq(users.email, user.email))
           .limit(1);
         if (rows.length > 0) {
-          (session as { user: { role?: string } }).user.role = rows[0].role;
+          token.role = rows[0].role;
         }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token.role) {
+        (session as { user: { role?: string } }).user.role =
+          token.role as string;
       }
       return session;
     },

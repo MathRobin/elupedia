@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import {
   Container,
   Title,
   TextInput,
+  PasswordInput,
   Button,
   Alert,
   Stack,
@@ -13,32 +15,26 @@ import {
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    const result = await signIn('nodemailer', {
+    setLoading(true);
+    const result = await signIn('credentials', {
       email,
+      password,
       redirect: false,
     });
+    setLoading(false);
     if (result?.error) {
-      setError('Connexion refusée. Vérifiez que votre email est autorisé.');
+      setError('Email ou mot de passe incorrect.');
     } else {
-      setSent(true);
+      router.push('/');
     }
-  }
-
-  if (sent) {
-    return (
-      <Container size="xs" py="xl">
-        <Alert color="green" title="Lien envoyé">
-          Un lien de connexion a été envoyé à {email}. Vérifiez votre boîte
-          mail.
-        </Alert>
-      </Container>
-    );
   }
 
   return (
@@ -56,8 +52,16 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.currentTarget.value)}
             placeholder="votre@email.fr"
           />
+          <PasswordInput
+            label="Mot de passe"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.currentTarget.value)}
+          />
           {error && <Alert color="red">{error}</Alert>}
-          <Button type="submit">Recevoir un lien de connexion</Button>
+          <Button type="submit" loading={loading}>
+            Se connecter
+          </Button>
         </Stack>
       </form>
     </Container>

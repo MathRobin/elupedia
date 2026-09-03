@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const adminDir = resolve(root, 'packages/admin');
 
-describe('Auth email magic link (#140)', () => {
+describe('Auth email/password (#140)', () => {
   it('next-auth is a dependency', () => {
     const pkg = JSON.parse(
       readFileSync(resolve(adminDir, 'package.json'), 'utf-8'),
@@ -13,22 +13,27 @@ describe('Auth email magic link (#140)', () => {
     expect(pkg.dependencies['next-auth']).toBeDefined();
   });
 
-  it('auth.ts configures Nodemailer provider', () => {
+  it('auth.ts configures Credentials provider', () => {
     const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
-    expect(auth).toContain('Nodemailer');
-    expect(auth).toContain('EMAIL_SERVER');
+    expect(auth).toContain('Credentials');
+    expect(auth).toContain('authorize');
   });
 
-  it('auth.ts checks user exists in DB on signIn', () => {
+  it('auth.ts verifies password with bcrypt', () => {
     const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
-    expect(auth).toContain('signIn');
+    expect(auth).toContain('compare');
+    expect(auth).toContain('passwordHash');
+  });
+
+  it('auth.ts checks user exists in DB', () => {
+    const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
     expect(auth).toContain('users');
     expect(auth).toContain('eq(users.email');
   });
 
-  it('auth.ts injects role into session', () => {
+  it('auth.ts injects role into session via JWT', () => {
     const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
-    expect(auth).toContain('session');
+    expect(auth).toContain('jwt');
     expect(auth).toContain('role');
   });
 
@@ -38,21 +43,21 @@ describe('Auth email magic link (#140)', () => {
     ).toBe(true);
   });
 
-  it('login page exists with email form', () => {
+  it('login page has email and password fields', () => {
     const page = readFileSync(
       resolve(adminDir, 'src/app/login/page.tsx'),
       'utf-8',
     );
     expect(page).toContain('TextInput');
-    expect(page).toContain('email');
+    expect(page).toContain('PasswordInput');
     expect(page).toContain('signIn');
   });
 
-  it('login page handles error for unauthorized email', () => {
+  it('login page handles incorrect credentials error', () => {
     const page = readFileSync(
       resolve(adminDir, 'src/app/login/page.tsx'),
       'utf-8',
     );
-    expect(page).toContain('Connexion refusée');
+    expect(page).toContain('incorrect');
   });
 });
