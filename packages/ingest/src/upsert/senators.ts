@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import type { Senateur } from '../sources/senat.js';
 import { logger } from '../logger.js';
 
@@ -18,7 +18,7 @@ export async function upsertSenators(
   db: NeonHttpDatabase,
   senateurs: Senateur[],
 ) {
-  const summary = { officials: 0, mandates: 0 };
+  const summary = { officials: 0, mandates: 0, merged: 0 };
 
   for (const sen of senateurs) {
     const existing = await db
@@ -46,20 +46,49 @@ export async function upsertSenators(
         })
         .where(eq(officials.id, officialId));
     } else {
-      const [inserted] = await db
-        .insert(officials)
-        .values({
-          firstName: sen.prenom,
-          lastName: sen.nom,
-          senatId: sen.matricule,
-          birthDate: sen.date_naissance,
-          photoUrl: sen.photo_url,
-          slug,
-          full: sen.full,
-        })
-        .returning();
-      officialId = inserted!.id;
-      summary.officials++;
+      const anMatch = sen.date_naissance
+        ? await db
+            .select()
+            .from(officials)
+            .where(
+              and(
+                eq(officials.lastName, sen.nom),
+                eq(officials.firstName, sen.prenom),
+                eq(officials.birthDate, sen.date_naissance),
+                isNull(officials.senatId),
+              ),
+            )
+            .limit(1)
+        : [];
+
+      if (anMatch.length > 0) {
+        officialId = anMatch[0].id;
+        await db
+          .update(officials)
+          .set({
+            senatId: sen.matricule,
+            photoUrl: sen.photo_url ?? anMatch[0].photoUrl,
+            full: sen.full,
+            updatedAt: new Date(),
+          })
+          .where(eq(officials.id, officialId));
+        summary.merged++;
+      } else {
+        const [inserted] = await db
+          .insert(officials)
+          .values({
+            firstName: sen.prenom,
+            lastName: sen.nom,
+            senatId: sen.matricule,
+            birthDate: sen.date_naissance,
+            photoUrl: sen.photo_url,
+            slug,
+            full: sen.full,
+          })
+          .returning();
+        officialId = inserted!.id;
+        summary.officials++;
+      }
     }
 
     for (const m of sen.mandats) {
@@ -98,7 +127,7 @@ export async function upsertSenators(
   }
 
   logger.info(
-    `Senators: ${summary.officials} new officials, ${summary.mandates} new mandates`,
+    `Senators: ${summary.officials} new officials, ${summary.mandates} new mandates, ${summary.merged} merged with AN`,
   );
   return summary;
 }

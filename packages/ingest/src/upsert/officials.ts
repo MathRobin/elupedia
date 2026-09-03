@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
 import { writeProvenance } from './provenance.js';
 
@@ -50,20 +50,53 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
         })
         .where(eq(officials.id, officialId));
     } else {
-      const [inserted] = await db
-        .insert(officials)
-        .values({
-          firstName: depute.prenom,
-          lastName: depute.nom,
-          anId,
-          birthDate: depute.date_naissance,
-          photoUrl: depute.photo_url ?? null,
-          deathDate: depute.death_date ?? null,
-          slug,
-          full: depute.full,
-        })
-        .returning();
-      officialId = inserted!.id;
+      const senatMatch = depute.date_naissance
+        ? await db
+            .select()
+            .from(officials)
+            .where(
+              and(
+                eq(officials.lastName, depute.nom),
+                eq(officials.firstName, depute.prenom),
+                eq(officials.birthDate, depute.date_naissance),
+                isNull(officials.anId),
+              ),
+            )
+            .limit(1)
+        : [];
+
+      if (senatMatch.length > 0) {
+        officialId = senatMatch[0].id;
+        await db
+          .update(officials)
+          .set({
+            anId,
+            firstName: depute.prenom,
+            lastName: depute.nom,
+            birthDate: depute.date_naissance,
+            photoUrl: depute.photo_url ?? senatMatch[0].photoUrl,
+            deathDate: depute.death_date ?? null,
+            slug: senatMatch[0].slug ?? slug,
+            full: depute.full,
+            updatedAt: new Date(),
+          })
+          .where(eq(officials.id, officialId));
+      } else {
+        const [inserted] = await db
+          .insert(officials)
+          .values({
+            firstName: depute.prenom,
+            lastName: depute.nom,
+            anId,
+            birthDate: depute.date_naissance,
+            photoUrl: depute.photo_url ?? null,
+            deathDate: depute.death_date ?? null,
+            slug,
+            full: depute.full,
+          })
+          .returning();
+        officialId = inserted!.id;
+      }
     }
 
     for (const m of depute.allMandates) {
@@ -79,11 +112,16 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
         )
         .limit(1);
 
+      const district =
+        m.type === 'senateur' || m.num_circo === 0
+          ? null
+          : `${m.num_circo}e circonscription`;
+
       if (existingMandate.length === 0) {
         await db.insert(mandates).values({
           officialId,
           type: m.type,
-          district: `${m.num_circo}e circonscription`,
+          district,
           department: m.nom_circo,
           startDate: m.mandat_debut,
           endDate: m.mandat_fin ?? null,
@@ -93,7 +131,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
         await db
           .update(mandates)
           .set({
-            district: `${m.num_circo}e circonscription`,
+            district,
             department: m.nom_circo,
             endDate: m.mandat_fin ?? null,
             politicalGroup: m.groupe_sigle ?? null,

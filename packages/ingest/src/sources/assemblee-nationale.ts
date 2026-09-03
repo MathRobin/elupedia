@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { Extract } from 'unzipper';
 
+import { DEPARTMENT_NAMES } from '@elupedia/shared';
 import { ActeurFileSchema, OrganeFileSchema } from '../schemas.js';
 
 export interface DeputeMandat {
@@ -182,9 +183,13 @@ async function loadActeurs(
     const allParlMandates: DeputeMandat[] = parlMandats.map((m) => {
       const mLieu = m.election?.lieu;
       const mIsSenat = m.typeOrgane === 'SENAT';
+      const dept =
+        mLieu?.departement ||
+        DEPARTMENT_NAMES[mLieu?.numDepartement ?? ''] ||
+        '';
       return {
         type: mIsSenat ? ('senateur' as const) : ('depute' as const),
-        nom_circo: mLieu?.departement ?? '',
+        nom_circo: dept,
         num_deptmt: mLieu?.numDepartement ?? '',
         num_circo: parseInt(mLieu?.numCirco ?? '0', 10),
         mandat_debut: m.dateDebut,
@@ -192,6 +197,9 @@ async function loadActeurs(
         groupe_sigle: groupeSigle,
       };
     });
+
+    const latestDept =
+      lieu?.departement || DEPARTMENT_NAMES[lieu?.numDepartement ?? ''] || '';
 
     deputes.push({
       id_an: anId,
@@ -202,7 +210,7 @@ async function loadActeurs(
         typeof ec.infoNaissance.dateNais === 'string'
           ? ec.infoNaissance.dateNais
           : '',
-      nom_circo: lieu?.departement ?? '',
+      nom_circo: latestDept,
       num_deptmt: lieu?.numDepartement ?? '',
       num_circo: parseInt(lieu?.numCirco ?? '0', 10),
       mandat_debut: latestMandat.dateDebut,

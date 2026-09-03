@@ -167,6 +167,11 @@ export async function mergeOfficials(
 
   await db
     .update(officials)
+    .set({ anId: null, senatId: null, slug: null })
+    .where(eq(officials.id, removeId));
+
+  await db
+    .update(officials)
     .set({
       anId: keep.anId ?? remove.anId,
       senatId: keep.senatId ?? remove.senatId,
