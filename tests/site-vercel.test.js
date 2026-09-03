@@ -5,12 +5,12 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 
 describe('Config déploiement Vercel (#77)', () => {
-  it('astro.config.ts uses hybrid output', () => {
+  it('astro.config.ts uses static output with server-rendered routes', () => {
     const content = readFileSync(
       resolve(root, 'packages/site/astro.config.ts'),
       'utf-8',
     );
-    expect(content).toContain("output: 'hybrid'");
+    expect(content).toContain("output: 'static'");
   });
 
   it('vercel.json exists at repo root', () => {

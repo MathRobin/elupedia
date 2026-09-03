@@ -35,8 +35,8 @@ describe('Site DB connection (#50)', () => {
     expect(pkg.dependencies['@elupedia/shared']).toBeDefined();
   });
 
-  it('astro config uses hybrid output', () => {
+  it('astro config uses static output', () => {
     const content = readFileSync(configPath, 'utf-8');
-    expect(content).toContain("output: 'hybrid'");
+    expect(content).toContain("output: 'static'");
   });
 });
