@@ -13,6 +13,11 @@ export const prerender = false;
 const { slug } = Astro.params;
 const db = getDb();
 
+const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(slug!);
+const slugFilter = isUuid
+  ? or(eq(officials.slug, slug!), eq(officials.id, slug!))
+  : eq(officials.slug, slug!);
+
 const [row] = await db
   .select({
     id: officials.id,
@@ -31,10 +36,7 @@ const [row] = await db
   })
   .from(officials)
   .innerJoin(mandates, eq(mandates.officialId, officials.id))
-  .where(and(
-    or(eq(officials.slug, slug!), eq(officials.id, slug!)),
-    isNull(mandates.endDate),
-  ))
+  .where(and(slugFilter, isNull(mandates.endDate)))
   .limit(1);
 
 if (!row) return Astro.redirect('/elus');
