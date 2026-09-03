@@ -66,7 +66,7 @@ export default function ModerationPage() {
               <Table.Tr key={link.id}>
                 <Table.Td>
                   <a
-                    href={`https://elupedia.fr/elus/${link.officialFirstName.toLowerCase()}-${link.officialLastName.toLowerCase()}`}
+                    href={`https://www.elupedia.fr/elus/${link.officialFirstName.toLowerCase()}-${link.officialLastName.toLowerCase()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

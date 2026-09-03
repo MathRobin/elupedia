@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildShareUrl } from './ShareButton';
 
 describe('buildShareUrl', () => {
-  const url = 'https://elupedia.fr/elus/jean-dupont';
+  const url = 'https://www.elupedia.fr/elus/jean-dupont';
   const title = 'Jean Dupont — Député';
 
   it('generates an email mailto link', () => {

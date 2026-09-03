@@ -745,7 +745,7 @@ const personJsonLd: Record<string, unknown> = {
   givenName: deputy.firstName,
   familyName: deputy.lastName,
   jobTitle: mandateLabel,
-  url: `https://elupedia.fr/elus/${deputy.slug ?? deputy.id}`,
+  url: `https://www.elupedia.fr/elus/${deputy.slug ?? deputy.id}`,
   nationality: { '@type': 'Country', name: 'France' },
   ...(deputy.photoUrl && { image: deputy.photoUrl }),
   ...(deputy.birthDate && { birthDate: deputy.birthDate }),
@@ -777,9 +777,9 @@ const breadcrumbJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://elupedia.fr/' },
-    { '@type': 'ListItem', position: 2, name: 'Élus', item: 'https://elupedia.fr/elus' },
-    { '@type': 'ListItem', position: 3, name: fullName, item: `https://elupedia.fr/elus/${deputy.slug ?? deputy.id}` },
+    { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://www.elupedia.fr/' },
+    { '@type': 'ListItem', position: 2, name: 'Élus', item: 'https://www.elupedia.fr/elus' },
+    { '@type': 'ListItem', position: 3, name: fullName, item: `https://www.elupedia.fr/elus/${deputy.slug ?? deputy.id}` },
   ],
 };
 

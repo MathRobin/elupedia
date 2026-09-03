@@ -15,7 +15,7 @@ export function buildOfficialCaption(data: OfficialData): string {
 
   const location = [data.district, data.department].filter(Boolean).join(', ');
   const group = data.politicalGroup ? ` (${data.politicalGroup})` : '';
-  const url = `https://elupedia.fr/elus/${data.slug ?? ''}`;
+  const url = `https://www.elupedia.fr/elus/${data.slug ?? ''}`;
 
   return (
     `Focus élu : ${data.firstName} ${data.lastName}${group} — ${mandateLabel}` +
@@ -32,7 +32,7 @@ export function buildVoteCaption(data: VoteData): string {
     month: 'long',
     year: 'numeric',
   });
-  const url = `https://elupedia.fr/scrutins/${data.id}`;
+  const url = `https://www.elupedia.fr/scrutins/${data.id}`;
 
   return (
     `Scrutin du ${dateFormatted} : ${data.title}\n\n` +

@@ -1,4 +1,5 @@
-const USER_AGENT = 'ElupediaBot/1.0 (+https://elupedia.fr/mentions-legales)';
+const USER_AGENT =
+  'ElupediaBot/1.0 (+https://www.elupedia.fr/mentions-legales)';
 
 type SocialPlatform = 'instagram' | 'tiktok' | 'youtube';
 

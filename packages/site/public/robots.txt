@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://elupedia.fr/sitemap-index.xml
+Sitemap: https://www.elupedia.fr/sitemap-index.xml

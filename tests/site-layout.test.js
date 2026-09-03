@@ -116,7 +116,7 @@ describe('SEO de base (#47)', () => {
 
   it('astro config has site URL for sitemap generation', () => {
     const content = readFileSync(configPath, 'utf-8');
-    expect(content).toContain("site: 'https://elupedia.fr'");
+    expect(content).toContain("site: 'https://www.elupedia.fr'");
   });
 
   it('has Open Graph meta tags', () => {

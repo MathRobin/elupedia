@@ -51,7 +51,7 @@ describe('buildOfficialCaption', () => {
 
   it('includes elupedia URL', () => {
     const caption = buildOfficialCaption(officialData);
-    expect(caption).toContain('https://elupedia.fr/elus/marie-dupont');
+    expect(caption).toContain('https://www.elupedia.fr/elus/marie-dupont');
   });
 
   it('handles missing political group', () => {
@@ -95,7 +95,7 @@ describe('buildVoteCaption', () => {
   it('includes elupedia URL', () => {
     const caption = buildVoteCaption(voteData);
     expect(caption).toContain(
-      'https://elupedia.fr/scrutins/123e4567-e89b-12d3-a456-426614174000',
+      'https://www.elupedia.fr/scrutins/123e4567-e89b-12d3-a456-426614174000',
     );
   });
 });

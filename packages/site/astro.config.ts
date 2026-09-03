@@ -11,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 loadDotenv({ path: path.resolve(__dirname, '../../.env') });
 
 export default defineConfig({
-  site: 'https://elupedia.fr',
+  site: 'https://www.elupedia.fr',
   integrations: [react(), sitemap()],
   vite: {
     envDir: '../../',
