@@ -2,8 +2,8 @@ import { hash } from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { createDb, users } from '@elupedia/shared';
 
-const email = 'mthrobin@gmail.com';
-const password = 'KHWHXeZCsXW2y@j@0e$rb#8JVGZtV@';
+const email = process.argv[2];
+const password = process.argv[3];
 
 if (!email || !password) {
   console.error('Usage: tsx scripts/set-password.ts <email> <password>');
