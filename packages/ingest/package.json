@@ -10,6 +10,7 @@
     "ingest:senat": "tsx src/main-senat.ts",
     "ingest:social-links": "tsx src/main-social-links.ts",
     "ingest:press": "tsx src/main-press.ts",
+    "ingest:interests": "tsx src/main-interests.ts",
     "ingest:maires": "tsx src/main-maires.ts",
     "ingest:parrainages": "tsx src/main-parrainages.ts",
     "ingest:rip": "tsx src/main-rip-signatures.ts",

@@ -1,0 +1,43 @@
+name: Ingestion HATVP — intérêts
+
+on:
+  #  schedule:
+  #    - cron: '0 4 1,15 * *'
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.run.outputs.has_changes }}
+      total_created: ${{ steps.run.outputs.total_created }}
+      total_updated: ${{ steps.run.outputs.total_updated }}
+      changed_sources: ${{ steps.run.outputs.changed_sources }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run ingestion HATVP interests
+        id: run
+        run: yarn workspace @elupedia/ingest ingest:interests
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingest-report-interests
+          path: packages/ingest/ingest-report-interests.json
+          if-no-files-found: ignore

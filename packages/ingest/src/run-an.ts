@@ -5,15 +5,12 @@ import { withRetry } from './utils/retry.js';
 import { type StepResult, runStep, printSummary } from './run-helpers.js';
 import { fetchDeputes } from './sources/assemblee-nationale.js';
 import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
-import { fetchDeclarations } from './sources/hatvp.js';
 import { fetchAddresses } from './sources/an-adresses.js';
 import { fetchActivities } from './sources/an-activite.js';
 import { fetchCommittees } from './sources/an-commissions.js';
 import { fetchScrutins } from './sources/an-scrutins.js';
 import { upsertOfficials } from './upsert/officials.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
-import { upsertInterests } from './upsert/interests.js';
-import { upsertDeclarationSnapshots } from './upsert/declaration-snapshots.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
 import { upsertCommittees } from './upsert/committees.js';
@@ -26,7 +23,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   logger.info('=== Ingestion AN started ===\n');
 
   if (enabled('deputes')) {
-    logger.info('[1/7] Députés & mandats...');
+    logger.info('[1/6] Députés & mandats...');
     results.push(
       await runStep('deputes', async () => {
         const deputes = await withRetry(() => fetchDeputes(), {
@@ -44,7 +41,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('collaborateurs')) {
-    logger.info('[2/7] Collaborateurs...');
+    logger.info('[2/6] Collaborateurs...');
     results.push(
       await runStep('collaborateurs', async () => {
         const collabs = await withRetry(() => fetchCollaborateurs(), {
@@ -61,27 +58,8 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
     );
   }
 
-  if (enabled('interests')) {
-    logger.info('[3/7] Interests (HATVP)...');
-    results.push(
-      await runStep('interests', async () => {
-        const declarations = await withRetry(() => fetchDeclarations(), {
-          source: 'hatvp',
-        });
-        const r = await upsertInterests(db, declarations);
-        const snap = await upsertDeclarationSnapshots(db, declarations);
-        return {
-          source: 'interests',
-          created: r.created + snap.created,
-          updated: r.updated + snap.updated,
-          durationMs: 0,
-        };
-      }),
-    );
-  }
-
   if (enabled('addresses')) {
-    logger.info('[4/7] Addresses...');
+    logger.info('[3/6] Addresses...');
     results.push(
       await runStep('addresses', async () => {
         const addr = await withRetry(() => fetchAddresses(), {
@@ -99,7 +77,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('activity')) {
-    logger.info('[5/7] Parliamentary activity...');
+    logger.info('[4/6] Parliamentary activity...');
     results.push(
       await runStep('parliamentary-activity', async () => {
         const activities = await withRetry(() => fetchActivities(), {
@@ -117,7 +95,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('committees')) {
-    logger.info('[6/7] Committees...');
+    logger.info('[5/6] Committees...');
     results.push(
       await runStep('committees', async () => {
         const comm = await withRetry(() => fetchCommittees(), {
@@ -135,7 +113,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('votes')) {
-    logger.info('[7/7] Votes (scrutins)...');
+    logger.info('[6/6] Votes (scrutins)...');
     results.push(
       await runStep('votes', async () => {
         const scrutins = await withRetry(() => fetchScrutins(), {

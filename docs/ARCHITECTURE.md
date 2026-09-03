@@ -19,17 +19,18 @@ flowchart LR
 Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script télécharge des archives ZIP ou des fichiers CSV depuis les portails open data et effectue un upsert en base.
 
 - Exécution : quatre cron GitHub Actions séparés :
-  - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, intérêts HATVP, adresses, activité parlementaire, commissions, votes (scrutins)
-  - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire + intérêts HATVP, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois, déclarations d'élus inactifs
+  - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, adresses, activité parlementaire, commissions, votes (scrutins)
+  - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois
   - Sénat (`.github/workflows/ingest-senat.yml`, mardi/samedi 03:00 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
   - Maires (`.github/workflows/ingest-maires.yml`, 1er du mois 04:00 UTC) — maires RNE, adresses DILA, scrape réseaux sociaux communes
+  - Intérêts HATVP (`.github/workflows/ingest-interests.yml`, 1er et 15 du mois 04:00 UTC) — déclarations d'intérêts transverses (députés, sénateurs, maires), une seule passe indépendante des pipelines par institution
   - Presse (`.github/workflows/ingest-press.yml`, lundi 05:00 UTC) — articles de presse via Google News RSS, élus vivants uniquement, délai 3s entre chaque élu
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat) et `run-maires.ts` (3 étapes Maires), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires pour un run complet
+- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (3 étapes Maires) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Intérêts pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`, 7 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -162,10 +163,11 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 ## CI / CD
 
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) : lint, format, typecheck et tests sur chaque PR et push sur `main`
-- **GitHub Actions Ingestion AN — complète** (`.github/workflows/ingest-an.yml`) : 1er dimanche du mois 21:00 UTC, pipeline AN intégral
-- **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, activité parlementaire + HATVP avec critérisation (exclut décédés, mandats terminés, Q/R anciennes, déclarations inactifs)
+- **GitHub Actions Ingestion AN — complète** (`.github/workflows/ingest-an.yml`) : 1er dimanche du mois 21:00 UTC, pipeline AN intégral (sans intérêts, désormais transverse)
+- **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, activité parlementaire avec critérisation (exclut décédés, mandats terminés, Q/R anciennes)
 - **GitHub Actions Ingestion Sénat** (`.github/workflows/ingest-senat.yml`) : mardi/samedi 03:00 UTC, pipeline Sénat
 - **GitHub Actions Ingestion Maires** (`.github/workflows/ingest-maires.yml`) : 1er du mois 04:00 UTC, pipeline Maires (RNE + DILA + scrape communes)
+- **GitHub Actions Ingestion HATVP intérêts** (`.github/workflows/ingest-interests.yml`) : 1er et 15 du mois 04:00 UTC, déclarations d'intérêts transverses (députés, sénateurs, maires)
 - **GitHub Actions Ingestion liens sociaux** (`.github/workflows/ingest-social-links.yml`) : quotidien 03:30 UTC, crawl des 2 pages AN (réseaux sociaux + sites personnels) + scraping de 50 sites perso/jour pour détection Instagram/TikTok/YouTube
 - **GitHub Actions Social Daily Post** (`.github/workflows/social-daily-post.yml`) : deux publications quotidiennes sur les réseaux sociaux via Postiz — matin 08:30 Paris (élu aléatoire), soir 18:30 Paris (vote récent) ; déclenchement manuel avec choix du mode
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm

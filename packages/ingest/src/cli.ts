@@ -4,7 +4,6 @@ import { logger } from './logger.js';
 export const AN_STEP_NAMES = [
   'deputes',
   'collaborateurs',
-  'interests',
   'addresses',
   'activity',
   'committees',
@@ -36,6 +35,7 @@ export const MAIRES_STEP_NAMES = [
 export type MairesStepName = (typeof MAIRES_STEP_NAMES)[number];
 
 export const COMMON_STEP_NAMES = [
+  'interests',
   'geocode',
   'maps',
   'campaign-accounts',

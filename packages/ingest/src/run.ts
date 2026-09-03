@@ -3,6 +3,7 @@ import { type StepResult, runStep } from './run-helpers.js';
 import { runAn } from './run-an.js';
 import { runSenat } from './run-senat.js';
 import { runMaires } from './run-maires.js';
+import { runInterests } from './run-interests.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
 import { fetchCnccfpAccounts, CNCCFP_ELECTIONS } from './sources/cnccfp.js';
@@ -16,6 +17,12 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
   const anResults = await runAn(enabledSteps);
   const senatResults = await runSenat(enabledSteps);
   const mairesResults = await runMaires(enabledSteps);
+
+  const interestsResults: StepResult[] = [];
+  if (enabled('interests')) {
+    const r = await runInterests();
+    interestsResults.push(...r);
+  }
 
   const geocodeResults: StepResult[] = [];
   if (enabled('geocode')) {
@@ -79,6 +86,7 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     ...anResults,
     ...senatResults,
     ...mairesResults,
+    ...interestsResults,
     ...geocodeResults,
     ...mapsResults,
     ...campaignResults,

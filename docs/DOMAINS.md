@@ -72,6 +72,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Tables** : `interests`
 - **Source** : HATVP (Haute Autorité pour la Transparence de la Vie Publique) — XML streaming (`declarations.xml`)
 - **Client** : `hatvp.ts` (SAX streaming parser) → `upsert/interests.ts`
+- **Orchestration** : `run-interests.ts` — étape d'ingestion transverse unique, indépendante de `run-an.ts` / `run-senat.ts` / `run-maires.ts`. Tourne sur l'ensemble des officials éligibles (députés, sénateurs, maires) en une seule passe.
 - **Description** : Déclarations d'intérêts et d'activités des parlementaires. Catégories : activités professionnelles (`professional_activity`), activités de conseil (`consulting_activity`), organes dirigeants (`governing_body_membership`), activités bénévoles (`voluntary_activity`), fonctions électives annexes (`elected_function`), participations financières (`financial_participation`). Les mandats parlementaires (DEPUTE, SENATEUR, etc.) sont filtrés pour ne retenir que les fonctions annexes.
 - **Pages** : fiche élu (section intérêts déclarés, groupés par catégorie avec labels colorés)
 

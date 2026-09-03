@@ -31,17 +31,17 @@ yarn --cwd packages/ingest ingest:an --only deputes
 yarn --cwd packages/ingest ingest:an --only deputes,collaborateurs,activity
 ```
 
-7 étapes : `deputes`, `collaborateurs`, `interests`, `addresses`, `activity`, `committees`, `votes`
+6 étapes : `deputes`, `collaborateurs`, `addresses`, `activity`, `committees`, `votes`
 
 Accepte `--only`, `--skip`, `--help`.
 
-### `ingest:an:partial` — AN partielle (activité + HATVP)
+### `ingest:an:partial` — AN partielle (activité)
 
 ```bash
 yarn --cwd packages/ingest ingest:an:partial
 ```
 
-Pas d'options. Exclut les députés décédés, mandats terminés, questions répondues > 3 mois, déclarations d'élus inactifs.
+Pas d'options. Exclut les députés décédés, mandats terminés, questions répondues > 3 mois.
 
 ### `ingest:senat` — Sénat
 
@@ -64,6 +64,14 @@ yarn --cwd packages/ingest ingest:maires --only maires
 3 étapes : `maires`, `maires-addresses`, `maires-social-scrape`
 
 Accepte `--only`, `--skip`, `--help`.
+
+### `ingest:interests` — Intérêts HATVP (transverse)
+
+```bash
+yarn --cwd packages/ingest ingest:interests
+```
+
+Pas d'options. Ingestion transverse des déclarations d'intérêts HATVP pour tous les types de mandat (députés, sénateurs, maires) en une seule passe.
 
 ### `ingest:social-links` — Réseaux sociaux
 
@@ -106,6 +114,7 @@ Pas d'options. Ingère les 3 propositions RIP configurées (ADP 2019, retraites 
 | `ingest-an-partial.yml`   | mardi/samedi 02:00 UTC         | `ingest:an:partial`   |
 | `ingest-senat.yml`        | mardi/samedi 03:00 UTC         | `ingest:senat`        |
 | `ingest-maires.yml`       | 1er du mois 04:00 UTC          | `ingest:maires`       |
+| `ingest-interests.yml`    | 1er et 15 du mois 04:00 UTC    | `ingest:interests`    |
 | `ingest-social-links.yml` | quotidien 03:30 UTC            | `ingest:social-links` |
 | `ingest-press.yml`        | lundi 05:00 UTC                | `ingest:press`        |
 
