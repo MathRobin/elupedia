@@ -11,9 +11,9 @@ describe('Page détail scrutin (#66)', () => {
     expect(existsSync(pagePath)).toBe(true);
   });
 
-  it('exports getStaticPaths', () => {
+  it('is server-rendered (prerender = false)', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('export async function getStaticPaths');
+    expect(content).toContain('export const prerender = false');
   });
 
   it('queries ballots and votes with officials', () => {

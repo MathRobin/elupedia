@@ -11,9 +11,9 @@ describe('Fiche élu (#53)', () => {
     expect(existsSync(pagePath)).toBe(true);
   });
 
-  it('exports getStaticPaths', () => {
+  it('is server-rendered (prerender = false)', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('export async function getStaticPaths');
+    expect(content).toContain('export const prerender = false');
   });
 
   it('queries officials with active mandates', () => {
@@ -116,7 +116,7 @@ describe('Fiche élu — section affiliations (#55)', () => {
   it('queries affiliations table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('affiliations');
-    expect(content).toContain('affiliationsByOfficial');
+    expect(content).toContain('deputyAffiliations');
   });
 
   it('sorts affiliations by date descending', () => {
@@ -148,7 +148,7 @@ describe('Fiche élu — section collaborateurs (#56)', () => {
   it('queries staffers table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('staffers');
-    expect(content).toContain('staffersByOfficial');
+    expect(content).toContain('deputyStaffers');
   });
 
   it('displays staffer name and dates', () => {
@@ -176,7 +176,7 @@ describe('Fiche élu — section participations (#57)', () => {
   it('queries interests table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('interests');
-    expect(content).toContain('interestsByOfficial');
+    expect(content).toContain('deputyInterests');
   });
 
   it('displays entity name and declared date', () => {
@@ -208,7 +208,7 @@ describe('Fiche élu — section presse (#58)', () => {
   it('queries press_mentions table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('pressMentions');
-    expect(content).toContain('pressByOfficial');
+    expect(content).toContain('deputyPress');
   });
 
   it('displays article title as link to source', () => {
@@ -237,7 +237,7 @@ describe('Fiche élu — section adresses (#59)', () => {
   it('queries addresses table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('addresses');
-    expect(content).toContain('addressesByOfficial');
+    expect(content).toContain('deputyAddresses');
   });
 
   it('translates address types to French', () => {
@@ -273,7 +273,7 @@ describe('Fiche élu — section liens extérieurs (#60)', () => {
   it('queries external_links table filtered by published status', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('externalLinks');
-    expect(content).toContain('linksByOfficial');
+    expect(content).toContain('deputyLinks');
     expect(content).toContain("eq(externalLinks.status, 'published')");
   });
 
@@ -312,7 +312,7 @@ describe('Fiche élu — activité parlementaire (#62)', () => {
   it('queries parliamentary_activity table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('parliamentaryActivity');
-    expect(content).toContain('activitiesByOfficial');
+    expect(content).toContain('deputyActivities');
   });
 
   it('translates activity types to French', () => {
@@ -352,7 +352,7 @@ describe('Fiche élu — commissions & groupes (#63)', () => {
   it('queries committees table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('committees');
-    expect(content).toContain('committeesByOfficial');
+    expect(content).toContain('deputyCommittees');
   });
 
   it('translates committee types to French', () => {
@@ -390,7 +390,7 @@ describe('Fiche élu — historique électoral (#64)', () => {
   it('queries electoral_results table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('electoralResults');
-    expect(content).toContain('electoralByOfficial');
+    expect(content).toContain('deputyElectoralResults');
   });
 
   it('displays election table with date, type, round, score, opponents', () => {
@@ -456,7 +456,7 @@ describe('Fiche élu — InterestDetailDrawer integration (#181)', () => {
   it('queries declaration_snapshots table', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('declarationSnapshots');
-    expect(content).toContain('snapshotsByOfficial');
+    expect(content).toContain('deputySnapshots');
   });
 
   it('passes deputySnapshots in props', () => {
@@ -491,10 +491,10 @@ describe('Fiche élu — indicateur dernière mise à jour (#67)', () => {
     expect(content).toContain('item.updatedAt');
   });
 
-  it('includes lastUpdated in props', () => {
+  it('computes lastUpdated from child records', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('lastUpdated: Date');
-    expect(content).toContain('lastUpdated,');
+    expect(content).toContain('lastUpdated');
+    expect(content).toContain('updatedAt');
   });
 
   it('displays last updated indicator', () => {

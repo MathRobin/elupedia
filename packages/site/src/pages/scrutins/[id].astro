@@ -2,109 +2,59 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
 import { ballots, votes, officials, mandates } from '@elupedia/shared';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, isNull, sql } from 'drizzle-orm';
 import { DEPARTMENT_CODES } from '../../lib/department-codes.js';
 import DepartmentMapWrapper from '../../components/DepartmentMapWrapper';
 
-export async function getStaticPaths() {
-  const db = getDb();
+export const prerender = false;
 
-  const allBallots = await db
-    .select({
-      id: ballots.id,
-      anId: ballots.anId,
-      title: ballots.title,
-      date: ballots.date,
-      type: ballots.type,
-    })
-    .from(ballots);
+const { id } = Astro.params;
+const db = getDb();
 
-  const allVotesRaw = await db
-    .select({
-      ballotId: votes.ballotId,
-      position: votes.position,
-      officialId: votes.officialId,
-    })
-    .from(votes);
+const [ballot] = await db
+  .select({ id: ballots.id, anId: ballots.anId, title: ballots.title, date: ballots.date, type: ballots.type })
+  .from(ballots)
+  .where(eq(ballots.id, id!))
+  .limit(1);
 
-  const allOfficials = await db
-    .select({
-      id: officials.id,
-      slug: officials.slug,
-      firstName: officials.firstName,
-      lastName: officials.lastName,
-      photoUrl: officials.photoUrl,
-    })
-    .from(officials);
+if (!ballot) return Astro.redirect('/votes');
 
-  const activeMandates = await db
-    .select({
-      officialId: mandates.officialId,
-      politicalGroup: mandates.politicalGroup,
-      department: mandates.department,
-    })
-    .from(mandates)
-    .where(isNull(mandates.endDate));
+const ballotVotesRaw = await db
+  .select({ position: votes.position, officialId: votes.officialId })
+  .from(votes)
+  .where(eq(votes.ballotId, ballot.id));
 
-  const officialMap = new Map(allOfficials.map((o) => [o.id, o]));
-  const mandateMap = new Map(activeMandates.map((m) => [m.officialId, m]));
+const officialIds = [...new Set(ballotVotesRaw.map((v) => v.officialId))];
 
-  const allVotes = allVotesRaw.map((v) => {
-    const o = officialMap.get(v.officialId);
+const officialRows = officialIds.length > 0
+  ? await db.select({ id: officials.id, slug: officials.slug, firstName: officials.firstName, lastName: officials.lastName, photoUrl: officials.photoUrl }).from(officials).where(sql`${officials.id} = ANY(${officialIds})`)
+  : [];
+const officialMap = new Map(officialRows.map((o) => [o.id, o]));
+
+const mandateRows = officialIds.length > 0
+  ? await db.select({ officialId: mandates.officialId, politicalGroup: mandates.politicalGroup, department: mandates.department }).from(mandates).where(sql`${mandates.officialId} = ANY(${officialIds}) AND ${mandates.endDate} IS NULL`)
+  : [];
+const mandateMap = new Map(mandateRows.map((m) => [m.officialId, m]));
+
+const ballotVotes = ballotVotesRaw
+  .filter((v) => officialMap.has(v.officialId))
+  .map((v) => {
+    const o = officialMap.get(v.officialId)!;
     const m = mandateMap.get(v.officialId);
     return {
-      ballotId: v.ballotId,
+      ballotId: ballot.id,
       position: v.position,
       officialId: v.officialId,
-      slug: o?.slug ?? null,
-      firstName: o?.firstName ?? '',
-      lastName: o?.lastName ?? '',
-      photoUrl: o?.photoUrl ?? null,
+      slug: o.slug,
+      firstName: o.firstName,
+      lastName: o.lastName,
+      photoUrl: o.photoUrl,
       politicalGroup: m?.politicalGroup ?? null,
       department: m?.department ?? null,
     };
-  }).filter((v) => officialMap.has(v.officialId));
+  });
 
-  const votesByBallot = new Map<string, typeof allVotes>();
-  for (const v of allVotes) {
-    const list = votesByBallot.get(v.ballotId) ?? [];
-    list.push(v);
-    votesByBallot.set(v.ballotId, list);
-  }
-
-  return allBallots.map((ballot) => ({
-    params: { id: ballot.id },
-    props: {
-      ballot,
-      ballotVotes: votesByBallot.get(ballot.id) ?? [],
-    },
-  }));
-}
-
-type BallotVote = {
-  ballotId: string;
-  position: string;
-  officialId: string;
-  slug: string | null;
-  firstName: string;
-  lastName: string;
-  photoUrl: string | null;
-  politicalGroup: string | null;
-  department: string | null;
-};
-
-type Props = {
-  ballot: {
-    id: string;
-    anId: string | null;
-    title: string;
-    date: string;
-    type: string;
-  };
-  ballotVotes: BallotVote[];
-};
-
-const { ballot, ballotVotes } = Astro.props as Props;
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 
 const positionLabels: Record<string, string> = {
   for: 'Pour',

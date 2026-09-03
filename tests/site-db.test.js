@@ -35,10 +35,8 @@ describe('Site DB connection (#50)', () => {
     expect(pkg.dependencies['@elupedia/shared']).toBeDefined();
   });
 
-  it('astro config uses static output (no serverless)', () => {
+  it('astro config uses hybrid output', () => {
     const content = readFileSync(configPath, 'utf-8');
-    expect(content).toContain("output: 'static'");
-    expect(content).not.toContain("output: 'server'");
-    expect(content).not.toContain("output: 'hybrid'");
+    expect(content).toContain("output: 'hybrid'");
   });
 });

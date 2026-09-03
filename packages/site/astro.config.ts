@@ -20,6 +20,6 @@ export default defineConfig({
     },
     plugins: [tailwindcss()],
   },
-  output: 'static',
+  output: 'hybrid',
   adapter: vercel(),
 });

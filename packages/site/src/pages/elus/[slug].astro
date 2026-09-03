@@ -2,596 +2,184 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships } from '@elupedia/shared';
-import { eq, isNull, desc, and, lt, gt, isNotNull, inArray } from 'drizzle-orm';
+import { eq, isNull, desc, and, isNotNull, or, sql } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
 
-export async function getStaticPaths() {
-  const db = getDb();
+export const prerender = false;
 
-  const rows = await db
-    .select({
-      id: officials.id,
-      slug: officials.slug,
-      firstName: officials.firstName,
-      lastName: officials.lastName,
-      birthDate: officials.birthDate,
-      photoUrl: officials.photoUrl,
-      anId: officials.anId,
-      senatId: officials.senatId,
-      district: mandates.district,
-      department: mandates.department,
-      startDate: mandates.startDate,
-      politicalGroup: mandates.politicalGroup,
-      mandateType: mandates.type,
-    })
-    .from(officials)
-    .innerJoin(mandates, eq(mandates.officialId, officials.id))
-    .where(isNull(mandates.endDate));
+const { slug } = Astro.params;
+const db = getDb();
 
-  const allMandates = await db
-    .select({
-      officialId: mandates.officialId,
-      type: mandates.type,
-      district: mandates.district,
-      department: mandates.department,
-      startDate: mandates.startDate,
-      endDate: mandates.endDate,
-      politicalGroup: mandates.politicalGroup,
-      updatedAt: mandates.updatedAt,
-    })
-    .from(mandates)
-    .orderBy(desc(mandates.startDate));
+const [row] = await db
+  .select({
+    id: officials.id,
+    slug: officials.slug,
+    firstName: officials.firstName,
+    lastName: officials.lastName,
+    birthDate: officials.birthDate,
+    photoUrl: officials.photoUrl,
+    anId: officials.anId,
+    senatId: officials.senatId,
+    district: mandates.district,
+    department: mandates.department,
+    startDate: mandates.startDate,
+    politicalGroup: mandates.politicalGroup,
+    mandateType: mandates.type,
+  })
+  .from(officials)
+  .innerJoin(mandates, eq(mandates.officialId, officials.id))
+  .where(and(
+    or(eq(officials.slug, slug!), eq(officials.id, slug!)),
+    isNull(mandates.endDate),
+  ))
+  .limit(1);
 
-  const mandatesByOfficial = new Map<string, typeof allMandates>();
-  for (const m of allMandates) {
-    const list = mandatesByOfficial.get(m.officialId) ?? [];
-    list.push(m);
-    mandatesByOfficial.set(m.officialId, list);
+if (!row) return Astro.redirect('/elus');
+
+const officialId = row.id;
+
+const deputyMandates = await db
+  .select({
+    officialId: mandates.officialId,
+    type: mandates.type,
+    district: mandates.district,
+    department: mandates.department,
+    startDate: mandates.startDate,
+    endDate: mandates.endDate,
+    politicalGroup: mandates.politicalGroup,
+    updatedAt: mandates.updatedAt,
+  })
+  .from(mandates)
+  .where(eq(mandates.officialId, officialId))
+  .orderBy(desc(mandates.startDate));
+
+const votesRaw = await db
+  .select({
+    ballotId: votes.ballotId,
+    position: votes.position,
+    updatedAt: votes.updatedAt,
+  })
+  .from(votes)
+  .where(eq(votes.officialId, officialId));
+
+const ballotIds = [...new Set(votesRaw.map((v) => v.ballotId))];
+const ballotRows = ballotIds.length > 0
+  ? await db.select({ id: ballots.id, title: ballots.title, date: ballots.date }).from(ballots).where(sql`${ballots.id} = ANY(${ballotIds})`)
+  : [];
+const ballotMap = new Map(ballotRows.map((b) => [b.id, b]));
+
+const deputyVotes = votesRaw
+  .map((v) => {
+    const b = ballotMap.get(v.ballotId);
+    if (!b) return null;
+    return { officialId, ballotId: v.ballotId, position: v.position, ballotTitle: b.title, ballotDate: b.date, updatedAt: v.updatedAt };
+  })
+  .filter(Boolean)
+  .sort((a, b) => b!.ballotDate.localeCompare(a!.ballotDate))
+  .slice(0, 20) as { officialId: string; ballotId: string; position: string; ballotTitle: string; ballotDate: string; updatedAt: Date }[];
+
+const deputyAffiliations = await db
+  .select({ officialId: affiliations.officialId, partyOrGroup: affiliations.partyOrGroup, startDate: affiliations.startDate, endDate: affiliations.endDate, updatedAt: affiliations.updatedAt })
+  .from(affiliations)
+  .where(eq(affiliations.officialId, officialId))
+  .orderBy(desc(affiliations.startDate));
+
+const deputyStaffers = await db
+  .select({ officialId: staffers.officialId, firstName: staffers.firstName, lastName: staffers.lastName, startDate: staffers.startDate, endDate: staffers.endDate, updatedAt: staffers.updatedAt })
+  .from(staffers)
+  .where(eq(staffers.officialId, officialId))
+  .orderBy(desc(staffers.startDate), staffers.lastName);
+
+const deputyInterests = await db
+  .select({
+    officialId: interests.officialId, type: interests.type, category: interests.category, entityName: interests.entityName,
+    roleDescription: interests.roleDescription, declaredDate: interests.declaredDate, declarantComment: interests.declarantComment,
+    sourceDocumentUrl: interests.sourceDocumentUrl, ownershipDetail: interests.ownershipDetail, annualAmount: interests.annualAmount,
+    amountYear: interests.amountYear, amountIsNet: interests.amountIsNet, updatedAt: interests.updatedAt,
+  })
+  .from(interests)
+  .where(eq(interests.officialId, officialId))
+  .orderBy(desc(interests.declaredDate));
+
+const deputySnapshots = await db
+  .select({ officialId: declarationSnapshots.officialId, declarationDate: declarationSnapshots.declarationDate, declarationType: declarationSnapshots.declarationType })
+  .from(declarationSnapshots)
+  .where(eq(declarationSnapshots.officialId, officialId))
+  .orderBy(desc(declarationSnapshots.declarationDate));
+
+const deputyPress = await db
+  .select({ officialId: pressMentions.officialId, title: pressMentions.title, sourceName: pressMentions.sourceName, sourceUrl: pressMentions.sourceUrl, publishedDate: pressMentions.publishedDate, updatedAt: pressMentions.updatedAt })
+  .from(pressMentions)
+  .where(eq(pressMentions.officialId, officialId))
+  .orderBy(desc(pressMentions.publishedDate))
+  .limit(20);
+
+const mapsBaseUrl = process.env.MAPS_BASE_URL;
+const rawAddresses = await db
+  .select({ officialId: addresses.officialId, type: addresses.type, street: addresses.street, postalCode: addresses.postalCode, city: addresses.city, phone: addresses.phone, email: addresses.email, latitude: addresses.latitude, longitude: addresses.longitude, updatedAt: addresses.updatedAt })
+  .from(addresses)
+  .where(eq(addresses.officialId, officialId));
+
+const deputyAddresses = rawAddresses.map((addr) => {
+  let mapUrl: string | null = null;
+  if (mapsBaseUrl && addr.latitude != null && addr.longitude != null) {
+    const hash = createHash('md5').update(`${addr.latitude}_${addr.longitude}_13_400x200`).digest('hex');
+    mapUrl = `${mapsBaseUrl}/maps/${hash}.png`;
   }
+  return { ...addr, mapUrl };
+});
 
-  const allBallotRows = await db
-    .select({
-      id: ballots.id,
-      title: ballots.title,
-      date: ballots.date,
-    })
-    .from(ballots);
+const deputyLinks = await db
+  .select({ officialId: externalLinks.officialId, platform: externalLinks.platform, url: externalLinks.url, source: externalLinks.source, updatedAt: externalLinks.updatedAt })
+  .from(externalLinks)
+  .where(and(eq(externalLinks.officialId, officialId), eq(externalLinks.status, 'published')));
 
-  const ballotMap = new Map(allBallotRows.map((b) => [b.id, b]));
+const deputyActivities = await db
+  .select({ officialId: parliamentaryActivity.officialId, type: parliamentaryActivity.type, title: parliamentaryActivity.title, date: parliamentaryActivity.date, status: parliamentaryActivity.status, responseDate: parliamentaryActivity.responseDate, governmentComments: parliamentaryActivity.governmentComments, rubrique: parliamentaryActivity.rubrique, updatedAt: parliamentaryActivity.updatedAt })
+  .from(parliamentaryActivity)
+  .where(eq(parliamentaryActivity.officialId, officialId))
+  .orderBy(desc(parliamentaryActivity.date))
+  .limit(20);
 
-  const allVotesRaw = await db
-    .select({
-      officialId: votes.officialId,
-      ballotId: votes.ballotId,
-      position: votes.position,
-      updatedAt: votes.updatedAt,
-    })
-    .from(votes);
+const deputyCommittees = await db
+  .select({ officialId: committees.officialId, name: committees.name, type: committees.type, startDate: committees.startDate, endDate: committees.endDate, updatedAt: committees.updatedAt })
+  .from(committees)
+  .where(eq(committees.officialId, officialId))
+  .orderBy(desc(committees.startDate));
 
-  type EnrichedVote = {
-    officialId: string;
-    ballotId: string;
-    position: string;
-    ballotTitle: string;
-    ballotDate: string;
-    updatedAt: Date;
-  };
+const deputyElectoralResults = await db
+  .select({ officialId: electoralResults.officialId, electionType: electoralResults.electionType, electionDate: electoralResults.electionDate, round: electoralResults.round, scorePercent: electoralResults.scorePercent, opponentCount: electoralResults.opponentCount, updatedAt: electoralResults.updatedAt })
+  .from(electoralResults)
+  .where(eq(electoralResults.officialId, officialId))
+  .orderBy(desc(electoralResults.electionDate));
 
-  const votesByOfficial = new Map<string, EnrichedVote[]>();
-  for (const v of allVotesRaw) {
-    const ballot = ballotMap.get(v.ballotId);
-    if (!ballot) continue;
-    const list = votesByOfficial.get(v.officialId) ?? [];
-    list.push({
-      officialId: v.officialId,
-      ballotId: v.ballotId,
-      position: v.position,
-      ballotTitle: ballot.title,
-      ballotDate: ballot.date,
-      updatedAt: v.updatedAt,
-    });
-    votesByOfficial.set(v.officialId, list);
-  }
-  for (const [id, list] of votesByOfficial) {
-    list.sort((a, b) => b.ballotDate.localeCompare(a.ballotDate));
-    if (list.length > 20) votesByOfficial.set(id, list.slice(0, 20));
-  }
+const deputyCampaignAccounts = await db
+  .select({ officialId: campaignAccounts.officialId, electionType: campaignAccounts.electionType, electionDate: campaignAccounts.electionDate, politicalLabel: campaignAccounts.politicalLabel, expensesDeclared: campaignAccounts.expensesDeclared, expensesRetained: campaignAccounts.expensesRetained, revenueDeclared: campaignAccounts.revenueDeclared, donationsDeclared: campaignAccounts.donationsDeclared, personalContributionDeclared: campaignAccounts.personalContributionDeclared, partyContributionsDeclared: campaignAccounts.partyContributionsDeclared, reimbursement: campaignAccounts.reimbursement, decision: campaignAccounts.decision, updatedAt: campaignAccounts.updatedAt })
+  .from(campaignAccounts)
+  .where(eq(campaignAccounts.officialId, officialId))
+  .orderBy(desc(campaignAccounts.electionDate));
 
-  const allAffiliations = await db
-    .select({
-      officialId: affiliations.officialId,
-      partyOrGroup: affiliations.partyOrGroup,
-      startDate: affiliations.startDate,
-      endDate: affiliations.endDate,
-      updatedAt: affiliations.updatedAt,
-    })
-    .from(affiliations)
-    .orderBy(desc(affiliations.startDate));
+const deputySponsorships = await db
+  .select({ officialId: sponsorships.officialId, type: sponsorships.type, electionYear: sponsorships.electionYear, candidateName: sponsorships.candidateName, publicationDate: sponsorships.publicationDate, updatedAt: sponsorships.updatedAt })
+  .from(sponsorships)
+  .where(eq(sponsorships.officialId, officialId));
 
-  const affiliationsByOfficial = new Map<string, typeof allAffiliations>();
-  for (const a of allAffiliations) {
-    const list = affiliationsByOfficial.get(a.officialId) ?? [];
-    list.push(a);
-    affiliationsByOfficial.set(a.officialId, list);
-  }
+const allItems: { updatedAt: Date }[] = [
+  ...deputyMandates, ...deputyAffiliations, ...deputyStaffers, ...deputyVotes,
+  ...deputyInterests, ...deputyPress, ...deputyActivities, ...deputyCommittees,
+  ...deputyElectoralResults, ...deputyAddresses, ...deputyLinks,
+  ...deputyCampaignAccounts, ...deputySponsorships,
+];
+const lastUpdated = allItems.length > 0
+  ? allItems.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, allItems[0].updatedAt)
+  : new Date(row.startDate);
 
-  const allStaffers = await db
-    .select({
-      officialId: staffers.officialId,
-      firstName: staffers.firstName,
-      lastName: staffers.lastName,
-      startDate: staffers.startDate,
-      endDate: staffers.endDate,
-      updatedAt: staffers.updatedAt,
-    })
-    .from(staffers)
-    .orderBy(desc(staffers.startDate), staffers.lastName);
+const deputy = row;
 
-  const staffersByOfficial = new Map<string, typeof allStaffers>();
-  for (const s of allStaffers) {
-    const list = staffersByOfficial.get(s.officialId) ?? [];
-    list.push(s);
-    staffersByOfficial.set(s.officialId, list);
-  }
-
-  const allInterests = await db
-    .select({
-      officialId: interests.officialId,
-      type: interests.type,
-      category: interests.category,
-      entityName: interests.entityName,
-      roleDescription: interests.roleDescription,
-      declaredDate: interests.declaredDate,
-      declarantComment: interests.declarantComment,
-      sourceDocumentUrl: interests.sourceDocumentUrl,
-      ownershipDetail: interests.ownershipDetail,
-      annualAmount: interests.annualAmount,
-      amountYear: interests.amountYear,
-      amountIsNet: interests.amountIsNet,
-      updatedAt: interests.updatedAt,
-    })
-    .from(interests)
-    .orderBy(desc(interests.declaredDate));
-
-  const interestsByOfficial = new Map<string, typeof allInterests>();
-  for (const i of allInterests) {
-    const list = interestsByOfficial.get(i.officialId) ?? [];
-    list.push(i);
-    interestsByOfficial.set(i.officialId, list);
-  }
-
-  const allSnapshots = await db
-    .select({
-      officialId: declarationSnapshots.officialId,
-      declarationDate: declarationSnapshots.declarationDate,
-      declarationType: declarationSnapshots.declarationType,
-    })
-    .from(declarationSnapshots)
-    .orderBy(desc(declarationSnapshots.declarationDate));
-
-  const snapshotsByOfficial = new Map<string, typeof allSnapshots>();
-  for (const s of allSnapshots) {
-    const list = snapshotsByOfficial.get(s.officialId) ?? [];
-    list.push(s);
-    snapshotsByOfficial.set(s.officialId, list);
-  }
-
-  const PRESS_BATCH = 50;
-  const officialIds = rows.map((r) => r.id);
-  const allPress: { officialId: string; title: string | null; sourceName: string | null; sourceUrl: string | null; publishedDate: string | null }[] = [];
-  for (let i = 0; i < officialIds.length; i += PRESS_BATCH) {
-    const chunk = officialIds.slice(i, i + PRESS_BATCH);
-    const batch = await db
-      .select({
-        officialId: pressMentions.officialId,
-        title: pressMentions.title,
-        sourceName: pressMentions.sourceName,
-        sourceUrl: pressMentions.sourceUrl,
-        publishedDate: pressMentions.publishedDate,
-        updatedAt: pressMentions.updatedAt,
-      })
-      .from(pressMentions)
-      .where(inArray(pressMentions.officialId, chunk))
-      .orderBy(desc(pressMentions.publishedDate));
-    allPress.push(...batch);
-  }
-
-  const pressByOfficial = new Map<string, typeof allPress>();
-  for (const p of allPress) {
-    const list = pressByOfficial.get(p.officialId) ?? [];
-    if (list.length < 20) list.push(p);
-    pressByOfficial.set(p.officialId, list);
-  }
-
-  const allAddresses = await db
-    .select({
-      officialId: addresses.officialId,
-      type: addresses.type,
-      street: addresses.street,
-      postalCode: addresses.postalCode,
-      city: addresses.city,
-      phone: addresses.phone,
-      email: addresses.email,
-      latitude: addresses.latitude,
-      longitude: addresses.longitude,
-      updatedAt: addresses.updatedAt,
-    })
-    .from(addresses);
-
-  const mapsBaseUrl = process.env.MAPS_BASE_URL;
-
-  type AddressWithMap = (typeof allAddresses)[number] & { mapUrl: string | null };
-  const addressesWithMaps: AddressWithMap[] = allAddresses.map((addr) => {
-    let mapUrl: string | null = null;
-    if (mapsBaseUrl && addr.latitude != null && addr.longitude != null) {
-      const hash = createHash('md5')
-        .update(`${addr.latitude}_${addr.longitude}_13_400x200`)
-        .digest('hex');
-      mapUrl = `${mapsBaseUrl}/maps/${hash}.png`;
-    }
-    return { ...addr, mapUrl };
-  });
-
-  const addressesByOfficial = new Map<string, AddressWithMap[]>();
-  for (const addr of addressesWithMaps) {
-    const list = addressesByOfficial.get(addr.officialId) ?? [];
-    list.push(addr);
-    addressesByOfficial.set(addr.officialId, list);
-  }
-
-  const allLinks = await db
-    .select({
-      officialId: externalLinks.officialId,
-      platform: externalLinks.platform,
-      url: externalLinks.url,
-      source: externalLinks.source,
-      updatedAt: externalLinks.updatedAt,
-    })
-    .from(externalLinks)
-    .where(eq(externalLinks.status, 'published'));
-
-  const linksByOfficial = new Map<string, typeof allLinks>();
-  for (const l of allLinks) {
-    const list = linksByOfficial.get(l.officialId) ?? [];
-    list.push(l);
-    linksByOfficial.set(l.officialId, list);
-  }
-
-  const allActivities = await db
-    .select({
-      officialId: parliamentaryActivity.officialId,
-      type: parliamentaryActivity.type,
-      title: parliamentaryActivity.title,
-      date: parliamentaryActivity.date,
-      status: parliamentaryActivity.status,
-      responseDate: parliamentaryActivity.responseDate,
-      governmentComments: parliamentaryActivity.governmentComments,
-      rubrique: parliamentaryActivity.rubrique,
-      updatedAt: parliamentaryActivity.updatedAt,
-    })
-    .from(parliamentaryActivity)
-    .orderBy(desc(parliamentaryActivity.date));
-
-  const activitiesByOfficial = new Map<string, typeof allActivities>();
-  for (const act of allActivities) {
-    const list = activitiesByOfficial.get(act.officialId) ?? [];
-    if (list.length < 20) list.push(act);
-    activitiesByOfficial.set(act.officialId, list);
-  }
-
-  const allCommittees = await db
-    .select({
-      officialId: committees.officialId,
-      name: committees.name,
-      type: committees.type,
-      startDate: committees.startDate,
-      endDate: committees.endDate,
-      updatedAt: committees.updatedAt,
-    })
-    .from(committees)
-    .orderBy(desc(committees.startDate));
-
-  const committeesByOfficial = new Map<string, typeof allCommittees>();
-  for (const c of allCommittees) {
-    const list = committeesByOfficial.get(c.officialId) ?? [];
-    list.push(c);
-    committeesByOfficial.set(c.officialId, list);
-  }
-
-  const allElectoralResults = await db
-    .select({
-      officialId: electoralResults.officialId,
-      electionType: electoralResults.electionType,
-      electionDate: electoralResults.electionDate,
-      round: electoralResults.round,
-      scorePercent: electoralResults.scorePercent,
-      opponentCount: electoralResults.opponentCount,
-      updatedAt: electoralResults.updatedAt,
-    })
-    .from(electoralResults)
-    .orderBy(desc(electoralResults.electionDate));
-
-  const electoralByOfficial = new Map<string, typeof allElectoralResults>();
-  for (const er of allElectoralResults) {
-    const list = electoralByOfficial.get(er.officialId) ?? [];
-    list.push(er);
-    electoralByOfficial.set(er.officialId, list);
-  }
-
-  const allCampaignAccounts = await db
-    .select({
-      officialId: campaignAccounts.officialId,
-      electionType: campaignAccounts.electionType,
-      electionDate: campaignAccounts.electionDate,
-      politicalLabel: campaignAccounts.politicalLabel,
-      expensesDeclared: campaignAccounts.expensesDeclared,
-      expensesRetained: campaignAccounts.expensesRetained,
-      revenueDeclared: campaignAccounts.revenueDeclared,
-      donationsDeclared: campaignAccounts.donationsDeclared,
-      personalContributionDeclared: campaignAccounts.personalContributionDeclared,
-      partyContributionsDeclared: campaignAccounts.partyContributionsDeclared,
-      reimbursement: campaignAccounts.reimbursement,
-      decision: campaignAccounts.decision,
-      updatedAt: campaignAccounts.updatedAt,
-    })
-    .from(campaignAccounts)
-    .where(isNotNull(campaignAccounts.officialId))
-    .orderBy(desc(campaignAccounts.electionDate));
-
-  const campaignByOfficial = new Map<string, typeof allCampaignAccounts>();
-  for (const ca of allCampaignAccounts) {
-    if (!ca.officialId) continue;
-    const list = campaignByOfficial.get(ca.officialId) ?? [];
-    list.push(ca);
-    campaignByOfficial.set(ca.officialId, list);
-  }
-
-  const allSponsorships = await db
-    .select({
-      officialId: sponsorships.officialId,
-      type: sponsorships.type,
-      electionYear: sponsorships.electionYear,
-      candidateName: sponsorships.candidateName,
-      publicationDate: sponsorships.publicationDate,
-      updatedAt: sponsorships.updatedAt,
-    })
-    .from(sponsorships)
-    .where(isNotNull(sponsorships.officialId));
-
-  const sponsorshipsByOfficial = new Map<string, typeof allSponsorships>();
-  for (const s of allSponsorships) {
-    if (!s.officialId) continue;
-    const list = sponsorshipsByOfficial.get(s.officialId) ?? [];
-    list.push(s);
-    sponsorshipsByOfficial.set(s.officialId, list);
-  }
-
-  return rows.map((row) => {
-    const allItems: { updatedAt: Date }[] = [
-      ...(mandatesByOfficial.get(row.id) ?? []),
-      ...(affiliationsByOfficial.get(row.id) ?? []),
-      ...(staffersByOfficial.get(row.id) ?? []),
-      ...(votesByOfficial.get(row.id) ?? []),
-      ...(interestsByOfficial.get(row.id) ?? []),
-      ...(pressByOfficial.get(row.id) ?? []),
-      ...(activitiesByOfficial.get(row.id) ?? []),
-      ...(committeesByOfficial.get(row.id) ?? []),
-      ...(electoralByOfficial.get(row.id) ?? []),
-      ...(addressesByOfficial.get(row.id) ?? []),
-      ...(linksByOfficial.get(row.id) ?? []),
-      ...(campaignByOfficial.get(row.id) ?? []),
-      ...(sponsorshipsByOfficial.get(row.id) ?? []),
-    ];
-    const lastUpdated = allItems.length > 0
-      ? allItems.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, allItems[0].updatedAt)
-      : new Date(row.startDate);
-
-    return {
-      params: { slug: row.slug ?? row.id },
-      props: {
-        deputy: row,
-        deputyMandates: mandatesByOfficial.get(row.id) ?? [],
-        deputyVotes: votesByOfficial.get(row.id) ?? [],
-        deputyAffiliations: affiliationsByOfficial.get(row.id) ?? [],
-        deputyStaffers: staffersByOfficial.get(row.id) ?? [],
-        deputyInterests: interestsByOfficial.get(row.id) ?? [],
-        deputySnapshots: snapshotsByOfficial.get(row.id) ?? [],
-        deputyPress: pressByOfficial.get(row.id) ?? [],
-        deputyAddresses: addressesByOfficial.get(row.id) ?? [],
-        deputyLinks: linksByOfficial.get(row.id) ?? [],
-        deputyActivities: activitiesByOfficial.get(row.id) ?? [],
-        deputyCommittees: committeesByOfficial.get(row.id) ?? [],
-        deputyElectoralResults: electoralByOfficial.get(row.id) ?? [],
-        deputyCampaignAccounts: campaignByOfficial.get(row.id) ?? [],
-        deputySponsorships: sponsorshipsByOfficial.get(row.id) ?? [],
-        lastUpdated,
-      },
-    };
-  });
-}
-
-type Mandate = {
-  officialId: string;
-  type: string;
-  district: string | null;
-  department: string | null;
-  startDate: string;
-  endDate: string | null;
-  politicalGroup: string | null;
-  updatedAt: Date;
-};
-
-type Vote = {
-  officialId: string;
-  ballotId: string;
-  position: string;
-  ballotTitle: string;
-  ballotDate: string;
-  updatedAt: Date;
-};
-
-type Affiliation = {
-  officialId: string;
-  partyOrGroup: string;
-  startDate: string;
-  endDate: string | null;
-  updatedAt: Date;
-};
-
-type Staffer = {
-  officialId: string;
-  firstName: string;
-  lastName: string;
-  startDate: string;
-  endDate: string | null;
-  updatedAt: Date;
-};
-
-type Interest = {
-  officialId: string;
-  type: string;
-  category: string;
-  entityName: string;
-  roleDescription: string | null;
-  declaredDate: string;
-  declarantComment: string | null;
-  sourceDocumentUrl: string | null;
-  ownershipDetail: string | null;
-  annualAmount: string | null;
-  amountYear: number | null;
-  amountIsNet: boolean | null;
-  updatedAt: Date;
-};
-
-type DeclarationSnapshot = {
-  officialId: string;
-  declarationDate: string;
-  declarationType: string;
-};
-
-type PressMention = {
-  officialId: string;
-  title: string;
-  sourceName: string;
-  sourceUrl: string;
-  publishedDate: string;
-  updatedAt: Date;
-};
-
-type Address = {
-  officialId: string;
-  type: string;
-  street: string | null;
-  postalCode: string | null;
-  city: string | null;
-  phone: string | null;
-  email: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  mapUrl: string | null;
-  updatedAt: Date;
-};
-
-type ExternalLink = {
-  officialId: string;
-  platform: string;
-  url: string;
-  updatedAt: Date;
-};
-
-type Activity = {
-  officialId: string;
-  type: string;
-  title: string;
-  date: string;
-  status: string | null;
-  responseDate: string | null;
-  governmentComments: string | null;
-  rubrique: string | null;
-  updatedAt: Date;
-};
-
-type Committee = {
-  officialId: string;
-  name: string;
-  type: string;
-  startDate: string;
-  endDate: string | null;
-  updatedAt: Date;
-};
-
-type ElectoralResult = {
-  officialId: string;
-  electionType: string;
-  electionDate: string;
-  round: number;
-  scorePercent: number;
-  opponentCount: number;
-  updatedAt: Date;
-};
-
-type CampaignAccount = {
-  officialId: string | null;
-  electionType: string;
-  electionDate: string;
-  politicalLabel: string | null;
-  expensesDeclared: number | null;
-  expensesRetained: number | null;
-  revenueDeclared: number | null;
-  donationsDeclared: number | null;
-  personalContributionDeclared: number | null;
-  partyContributionsDeclared: number | null;
-  reimbursement: number | null;
-  decision: string;
-  updatedAt: Date;
-};
-
-type Sponsorship = {
-  officialId: string | null;
-  type: string;
-  electionYear: number;
-  candidateName: string;
-  publicationDate: string | null;
-  updatedAt: Date;
-};
-
-type Props = {
-  deputy: {
-    id: string;
-    slug: string | null;
-    firstName: string;
-    lastName: string;
-    birthDate: string | null;
-    photoUrl: string | null;
-    anId: string | null;
-    senatId: string | null;
-    district: string | null;
-    department: string | null;
-    startDate: string;
-    politicalGroup: string | null;
-    mandateType: string;
-  };
-  deputyMandates: Mandate[];
-  deputyVotes: Vote[];
-  deputyAffiliations: Affiliation[];
-  deputyStaffers: Staffer[];
-  deputyInterests: Interest[];
-  deputySnapshots: DeclarationSnapshot[];
-  deputyPress: PressMention[];
-  deputyAddresses: Address[];
-  deputyLinks: ExternalLink[];
-  deputyActivities: Activity[];
-  deputyCommittees: Committee[];
-  deputyElectoralResults: ElectoralResult[];
-  deputyCampaignAccounts: CampaignAccount[];
-  deputySponsorships: Sponsorship[];
-  lastUpdated: Date;
-};
-
-const { deputy, deputyMandates, deputyVotes, deputyAffiliations, deputyStaffers, deputyInterests, deputySnapshots, deputyPress, deputyAddresses, deputyLinks, deputyActivities, deputyCommittees, deputyElectoralResults, deputyCampaignAccounts, deputySponsorships, lastUpdated } = Astro.props as Props;
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
