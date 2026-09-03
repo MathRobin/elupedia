@@ -180,32 +180,35 @@ export async function mergeOfficials(
 
   if (!keep || !remove) throw new Error('Official not found');
 
-  await db.transaction(async (tx) => {
-    for (const table of CHILD_TABLES) {
-      await tx
-        .update(table)
-        .set({ officialId: keepId })
-        .where(eq(table.officialId, removeId));
-    }
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  if (!UUID_RE.test(keepId) || !UUID_RE.test(removeId))
+    throw new Error('Invalid ID');
 
-    await tx
-      .update(officials)
-      .set({ anId: null, senatId: null, slug: null })
-      .where(eq(officials.id, removeId));
+  const sqlVal = (v: string | null | undefined) =>
+    v ? `'${v.replace(/'/g, "''")}'` : 'NULL';
 
-    await tx
-      .update(officials)
-      .set({
-        anId: keep.anId ?? remove.anId,
-        senatId: keep.senatId ?? remove.senatId,
-        birthDate: keep.birthDate ?? remove.birthDate,
-        photoUrl: keep.photoUrl ?? remove.photoUrl,
-        deathDate: keep.deathDate ?? remove.deathDate,
-        slug: keep.slug ?? remove.slug,
-        updatedAt: new Date(),
-      })
-      .where(eq(officials.id, keepId));
+  const childUpdates = CHILD_TABLES.map(
+    (t) =>
+      `UPDATE "${getTableName(t)}" SET official_id = '${keepId}' WHERE official_id = '${removeId}';`,
+  ).join('\n    ');
 
-    await tx.delete(officials).where(eq(officials.id, removeId));
-  });
+  await db.execute(
+    sql.raw(`DO $$
+  BEGIN
+    ${childUpdates}
+    UPDATE officials SET an_id = NULL, senat_id = NULL, slug = NULL
+      WHERE id = '${removeId}';
+    UPDATE officials SET
+      an_id = ${sqlVal(keep.anId ?? remove.anId)},
+      senat_id = ${sqlVal(keep.senatId ?? remove.senatId)},
+      birth_date = ${sqlVal(keep.birthDate ?? remove.birthDate)},
+      photo_url = ${sqlVal(keep.photoUrl ?? remove.photoUrl)},
+      death_date = ${sqlVal(keep.deathDate ?? remove.deathDate)},
+      slug = ${sqlVal(keep.slug ?? remove.slug)},
+      updated_at = NOW()
+      WHERE id = '${keepId}';
+    DELETE FROM officials WHERE id = '${removeId}';
+  END $$;`),
+  );
 }
