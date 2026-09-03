@@ -180,30 +180,32 @@ export async function mergeOfficials(
 
   if (!keep || !remove) throw new Error('Official not found');
 
-  for (const table of CHILD_TABLES) {
-    await db
-      .update(table)
-      .set({ officialId: keepId })
-      .where(eq(table.officialId, removeId));
-  }
+  await db.transaction(async (tx) => {
+    for (const table of CHILD_TABLES) {
+      await tx
+        .update(table)
+        .set({ officialId: keepId })
+        .where(eq(table.officialId, removeId));
+    }
 
-  await db
-    .update(officials)
-    .set({ anId: null, senatId: null, slug: null })
-    .where(eq(officials.id, removeId));
+    await tx
+      .update(officials)
+      .set({ anId: null, senatId: null, slug: null })
+      .where(eq(officials.id, removeId));
 
-  await db
-    .update(officials)
-    .set({
-      anId: keep.anId ?? remove.anId,
-      senatId: keep.senatId ?? remove.senatId,
-      birthDate: keep.birthDate ?? remove.birthDate,
-      photoUrl: keep.photoUrl ?? remove.photoUrl,
-      deathDate: keep.deathDate ?? remove.deathDate,
-      slug: keep.slug ?? remove.slug,
-      updatedAt: new Date(),
-    })
-    .where(eq(officials.id, keepId));
+    await tx
+      .update(officials)
+      .set({
+        anId: keep.anId ?? remove.anId,
+        senatId: keep.senatId ?? remove.senatId,
+        birthDate: keep.birthDate ?? remove.birthDate,
+        photoUrl: keep.photoUrl ?? remove.photoUrl,
+        deathDate: keep.deathDate ?? remove.deathDate,
+        slug: keep.slug ?? remove.slug,
+        updatedAt: new Date(),
+      })
+      .where(eq(officials.id, keepId));
 
-  await db.delete(officials).where(eq(officials.id, removeId));
+    await tx.delete(officials).where(eq(officials.id, removeId));
+  });
 }
