@@ -19,22 +19,51 @@ export async function getStaticPaths() {
     })
     .from(ballots);
 
-  const allVotes = await db
+  const allVotesRaw = await db
     .select({
       ballotId: votes.ballotId,
       position: votes.position,
       officialId: votes.officialId,
+    })
+    .from(votes);
+
+  const allOfficials = await db
+    .select({
+      id: officials.id,
       slug: officials.slug,
       firstName: officials.firstName,
       lastName: officials.lastName,
       photoUrl: officials.photoUrl,
+    })
+    .from(officials);
+
+  const activeMandates = await db
+    .select({
+      officialId: mandates.officialId,
       politicalGroup: mandates.politicalGroup,
       department: mandates.department,
     })
-    .from(votes)
-    .innerJoin(officials, eq(officials.id, votes.officialId))
-    .leftJoin(mandates, eq(mandates.officialId, votes.officialId))
+    .from(mandates)
     .where(isNull(mandates.endDate));
+
+  const officialMap = new Map(allOfficials.map((o) => [o.id, o]));
+  const mandateMap = new Map(activeMandates.map((m) => [m.officialId, m]));
+
+  const allVotes = allVotesRaw.map((v) => {
+    const o = officialMap.get(v.officialId);
+    const m = mandateMap.get(v.officialId);
+    return {
+      ballotId: v.ballotId,
+      position: v.position,
+      officialId: v.officialId,
+      slug: o?.slug ?? null,
+      firstName: o?.firstName ?? '',
+      lastName: o?.lastName ?? '',
+      photoUrl: o?.photoUrl ?? null,
+      politicalGroup: m?.politicalGroup ?? null,
+      department: m?.department ?? null,
+    };
+  }).filter((v) => officialMap.has(v.officialId));
 
   const votesByBallot = new Map<string, typeof allVotes>();
   for (const v of allVotes) {
