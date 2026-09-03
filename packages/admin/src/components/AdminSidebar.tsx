@@ -1,53 +1,41 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Badge, NavLink } from '@mantine/core';
+import { NavLink } from '@mantine/core';
 import { usePathname } from 'next/navigation';
-import { countDuplicates } from '@/app/elus/doublons/actions';
+
+const navItems = [
+  {
+    label: 'Élus',
+    children: [{ label: 'Doublons', href: '/elus/doublons' }],
+  },
+  {
+    label: 'Modération',
+    children: [{ label: 'Queue de modération', href: '/moderation' }],
+  },
+  {
+    label: 'Utilisateurs',
+    children: [{ label: 'Gestion des comptes', href: '/users' }],
+  },
+];
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const [dupCount, setDupCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    countDuplicates()
-      .then(setDupCount)
-      .catch(() => {});
-  }, []);
 
   return (
     <nav aria-label="Navigation admin">
-      <NavLink label="Élus" defaultOpened>
-        <NavLink
-          label="Doublons"
-          href="/elus/doublons"
-          component="a"
-          active={pathname === '/elus/doublons'}
-          rightSection={
-            dupCount != null && dupCount > 0 ? (
-              <Badge size="sm" variant="filled" color="red" circle>
-                {dupCount}
-              </Badge>
-            ) : undefined
-          }
-        />
-      </NavLink>
-      <NavLink label="Modération" defaultOpened>
-        <NavLink
-          label="Queue de modération"
-          href="/moderation"
-          component="a"
-          active={pathname === '/moderation'}
-        />
-      </NavLink>
-      <NavLink label="Utilisateurs" defaultOpened>
-        <NavLink
-          label="Gestion des comptes"
-          href="/users"
-          component="a"
-          active={pathname === '/users'}
-        />
-      </NavLink>
+      {navItems.map((section) => (
+        <NavLink key={section.label} label={section.label} defaultOpened>
+          {section.children.map((item) => (
+            <NavLink
+              key={item.href}
+              label={item.label}
+              href={item.href}
+              component="a"
+              active={pathname === item.href}
+            />
+          ))}
+        </NavLink>
+      ))}
     </nav>
   );
 }

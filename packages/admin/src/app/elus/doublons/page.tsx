@@ -123,7 +123,14 @@ export default function DoublonsPage() {
 
   return (
     <Stack>
-      <Title order={2}>Doublons d&apos;élus</Title>
+      <Group align="center">
+        <Title order={2}>Doublons d&apos;élus</Title>
+        {!loading && groups.length > 0 && (
+          <Badge size="lg" variant="filled" color="red">
+            {groups.length}
+          </Badge>
+        )}
+      </Group>
       <Text c="dimmed" size="sm">
         Élus ayant les mêmes nom, prénom et département dans au moins un mandat.
       </Text>
