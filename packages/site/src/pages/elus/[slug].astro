@@ -52,24 +52,52 @@ export async function getStaticPaths() {
     mandatesByOfficial.set(m.officialId, list);
   }
 
-  const allVotes = await db
+  const allBallotRows = await db
+    .select({
+      id: ballots.id,
+      title: ballots.title,
+      date: ballots.date,
+    })
+    .from(ballots);
+
+  const ballotMap = new Map(allBallotRows.map((b) => [b.id, b]));
+
+  const allVotesRaw = await db
     .select({
       officialId: votes.officialId,
       ballotId: votes.ballotId,
       position: votes.position,
-      ballotTitle: ballots.title,
-      ballotDate: ballots.date,
       updatedAt: votes.updatedAt,
     })
-    .from(votes)
-    .innerJoin(ballots, eq(ballots.id, votes.ballotId))
-    .orderBy(desc(ballots.date));
+    .from(votes);
 
-  const votesByOfficial = new Map<string, typeof allVotes>();
-  for (const v of allVotes) {
+  type EnrichedVote = {
+    officialId: string;
+    ballotId: string;
+    position: string;
+    ballotTitle: string;
+    ballotDate: string;
+    updatedAt: Date;
+  };
+
+  const votesByOfficial = new Map<string, EnrichedVote[]>();
+  for (const v of allVotesRaw) {
+    const ballot = ballotMap.get(v.ballotId);
+    if (!ballot) continue;
     const list = votesByOfficial.get(v.officialId) ?? [];
-    if (list.length < 20) list.push(v);
+    list.push({
+      officialId: v.officialId,
+      ballotId: v.ballotId,
+      position: v.position,
+      ballotTitle: ballot.title,
+      ballotDate: ballot.date,
+      updatedAt: v.updatedAt,
+    });
     votesByOfficial.set(v.officialId, list);
+  }
+  for (const [id, list] of votesByOfficial) {
+    list.sort((a, b) => b.ballotDate.localeCompare(a.ballotDate));
+    if (list.length > 20) votesByOfficial.set(id, list.slice(0, 20));
   }
 
   const allAffiliations = await db

@@ -72,7 +72,7 @@ describe('Fiche élu — section votes (#54)', () => {
 
   it('sorts votes by date descending', () => {
     const content = readFileSync(pagePath, 'utf-8');
-    expect(content).toContain('desc(ballots.date)');
+    expect(content).toContain('ballotDate.localeCompare');
   });
 
   it('displays vote history table', () => {
