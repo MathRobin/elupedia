@@ -17,6 +17,7 @@ import {
   electoralResults,
   campaignAccounts,
   declarationSnapshots,
+  sponsorships,
 } from '@elupedia/shared';
 import { auth } from '@/lib/auth';
 
@@ -80,6 +81,7 @@ const CHILD_TABLES = [
   electoralResults,
   campaignAccounts,
   declarationSnapshots,
+  sponsorships,
 ] as const;
 
 interface OfficialDetail {
