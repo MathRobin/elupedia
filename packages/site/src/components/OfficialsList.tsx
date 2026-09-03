@@ -24,7 +24,7 @@ type Filters = {
   sort: 'name' | 'department';
 };
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
