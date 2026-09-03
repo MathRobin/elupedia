@@ -38,6 +38,26 @@ export interface DuplicateGroup {
   ids: string[];
 }
 
+export async function countDuplicates(): Promise<number> {
+  await requireAdmin();
+
+  const rows = await db.execute<{ count: number }>(sql`
+    SELECT COUNT(*)::int AS count FROM (
+      SELECT 1
+      FROM (
+        SELECT DISTINCT o.id, o.first_name, o.last_name, m.department
+        FROM officials o
+        INNER JOIN mandates m ON m.official_id = o.id
+        WHERE m.department IS NOT NULL
+      ) sub
+      GROUP BY first_name, last_name, department
+      HAVING COUNT(*) > 1
+    ) groups
+  `);
+
+  return rows.rows[0]?.count ?? 0;
+}
+
 export async function listDuplicates(): Promise<DuplicateGroup[]> {
   await requireAdmin();
 
