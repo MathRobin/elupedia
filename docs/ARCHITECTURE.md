@@ -22,13 +22,13 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
   - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, adresses, activité parlementaire, commissions, votes (scrutins)
   - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois
   - Sénat (`.github/workflows/ingest-senat.yml`, mardi/samedi 03:00 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
-  - Maires (`.github/workflows/ingest-maires.yml`, 1er du mois 04:00 UTC) — maires RNE, adresses DILA, scrape réseaux sociaux communes
+  - Maires (`.github/workflows/ingest-maires.yml`, 1er du mois 04:00 UTC) — maires RNE, adresses DILA, photos Wikidata, scrape réseaux sociaux communes
   - Intérêts HATVP (`.github/workflows/ingest-interests.yml`, 1er et 15 du mois 04:00 UTC) — déclarations d'intérêts transverses (députés, sénateurs, maires), une seule passe indépendante des pipelines par institution
   - Presse (`.github/workflows/ingest-press.yml`, lundi 05:00 UTC) — articles de presse via Google News RSS, élus vivants uniquement, délai 3s entre chaque élu
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (3 étapes Maires) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Intérêts pour un run complet
+- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (4 étapes Maires) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Intérêts pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
 - Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main.ts` (`ingest`, combiné)
 
@@ -56,6 +56,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Mairies (DILA)             | `sources/dila-mairies.ts`          | service-public.fr           | JSON API      | ✅ actif |
 | Parrainages présidentiels  | `sources/parrainages.ts`           | data.gouv.fr                | CSV           | ✅ actif |
 | Signatures RIP             | `sources/rip-signatures.ts`        | AN / Sénat                  | HTML          | ✅ actif |
+| Photos maires (Wikidata)   | `sources/wikidata-mayor-photos.ts` | query.wikidata.org          | SPARQL/JSON   | ✅ actif |
 | Résultats électoraux AN    | `sources/datagouv-elections.ts`    | data.gouv.fr                | —             | ⏸ prévu  |
 
 #### Upsert / Diff
@@ -80,6 +81,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Commissions Sénat          | `upsert/senat-committees.ts`        | Upsert sur official + name + type      |
 | Liens sociaux Sénat        | `upsert/senat-social-links.ts`      | Upsert sur official + platform         |
 | Maires                     | `upsert/mayors.ts`                  | Upsert sur nom + prénom + naissance    |
+| Photos maires              | `upsert/mayor-photos.ts`            | Match nom + naissance, skip si photo   |
 | Adresses mairies           | `upsert/mayor-addresses.ts`         | Upsert sur official + town_hall        |
 | Scrape réseaux maires      | `upsert/mayor-social-scrape.ts`     | Scrape sites officiels communes        |
 | Mentions presse            | `upsert/press-mentions.ts`          | Insert dédupliqué sur official + URL   |

@@ -29,6 +29,7 @@ export type SenatStepName = (typeof SENAT_STEP_NAMES)[number];
 export const MAIRES_STEP_NAMES = [
   'maires',
   'maires-addresses',
+  'maires-photos',
   'maires-social-scrape',
 ] as const;
 

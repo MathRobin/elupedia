@@ -59,6 +59,18 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - Titre de l'article, nom de la source, URL de l'article, date de publication
 - **Remarque** : Cette source n'est pas institutionnelle. Les résultats de recherche peuvent contenir des faux positifs (homonymes) et ne sont pas exhaustifs.
 
+### Wikidata / Wikimedia Commons (photos maires)
+
+- **Éditeur** : Fondation Wikimedia et contributeurs
+- **Licence** : CC0 (données Wikidata), licences variées par fichier sur Commons (majoritairement CC BY-SA)
+- **Obligations** :
+  - Les données Wikidata sont sous CC0 (domaine public)
+  - Les images Wikimedia Commons ont des licences individuelles — vérifier chaque fichier si redistribution directe. Elupedia utilise les URLs de Commons (hotlinking via `Special:FilePath`) sans héberger les images.
+- **URL** : https://www.wikidata.org / https://commons.wikimedia.org
+- **Données collectées** :
+  - Photos de maires français via requête SPARQL (propriétés P39, P18, P569)
+- **Endpoint SPARQL** : https://query.wikidata.org/sparql
+
 ### OpenStreetMap (cartes statiques)
 
 - **Éditeur** : Fondation OpenStreetMap et contributeurs
@@ -123,6 +135,7 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | Sénat               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | Google Actualités   | RSS public          | N/A         | Titres + liens   | ✅ active |
+| Wikidata/Commons    | CC0 / CC BY-SA      | Non / Oui   | Autorisé         | ✅ active |
 | OpenStreetMap       | ODbL / CC BY-SA 2.0 | Oui         | Autorisé         | ✅ active |
 | API Adresse         | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | CNCCFP              | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |

@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import type { RneMaire } from '../sources/rne-maires.js';
 import { logger } from '../logger.js';
 import {
@@ -27,7 +27,7 @@ function sortKey(m: RneMaire): string {
 }
 
 export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
-  const summary = { officials: 0, mandates: 0, skipped: 0 };
+  const summary = { officials: 0, mandates: 0, ended: 0, skipped: 0 };
 
   const sorted = [...maires].sort((a, b) =>
     sortKey(a).localeCompare(sortKey(b)),
@@ -75,6 +75,42 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
     return s;
   }
 
+  const activeMandatesByCommune = new Map<
+    string,
+    { id: string; officialId: string }
+  >();
+  const activeMandates = await db
+    .select({
+      id: mandates.id,
+      officialId: mandates.officialId,
+      communeCode: mandates.communeCode,
+    })
+    .from(mandates)
+    .where(and(eq(mandates.type, 'maire'), isNull(mandates.endDate)));
+
+  for (const m of activeMandates) {
+    if (m.communeCode) {
+      activeMandatesByCommune.set(m.communeCode, {
+        id: m.id,
+        officialId: m.officialId,
+      });
+    }
+  }
+
+  const rneCommuneCodes = new Set(sorted.map((m) => m.communeCode));
+  const today = new Date().toISOString().split('T')[0];
+
+  // Close mandates for communes no longer in RNE (mayor left, commune merged, etc.)
+  for (const [communeCode, mandate] of activeMandatesByCommune) {
+    if (!rneCommuneCodes.has(communeCode)) {
+      await db
+        .update(mandates)
+        .set({ endDate: today, updatedAt: new Date() })
+        .where(eq(mandates.id, mandate.id));
+      summary.ended++;
+    }
+  }
+
   const totalBatches = Math.ceil((sorted.length - startIndex) / BATCH_SIZE);
 
   for (let start = startIndex; start < sorted.length; start += BATCH_SIZE) {
@@ -104,6 +140,20 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
         summary.officials++;
       }
 
+      const previous = activeMandatesByCommune.get(maire.communeCode);
+
+      if (previous && previous.officialId !== official.id) {
+        await db
+          .update(mandates)
+          .set({
+            endDate: maire.mandateStartDate || maire.functionStartDate || today,
+            updatedAt: new Date(),
+          })
+          .where(eq(mandates.id, previous.id));
+        summary.ended++;
+        activeMandatesByCommune.delete(maire.communeCode);
+      }
+
       const existingMandate = await db
         .select({ id: mandates.id })
         .from(mandates)
@@ -117,13 +167,20 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
         .limit(1);
 
       if (existingMandate.length === 0) {
-        await db.insert(mandates).values({
+        const [inserted] = await db
+          .insert(mandates)
+          .values({
+            officialId: official.id,
+            type: 'maire',
+            district: maire.communeName,
+            department: maire.departmentName,
+            startDate: maire.mandateStartDate || maire.functionStartDate,
+            communeCode: maire.communeCode,
+          })
+          .returning({ id: mandates.id });
+        activeMandatesByCommune.set(maire.communeCode, {
+          id: inserted!.id,
           officialId: official.id,
-          type: 'maire',
-          district: maire.communeName,
-          department: maire.departmentName,
-          startDate: maire.mandateStartDate || maire.functionStartDate,
-          communeCode: maire.communeCode,
         });
         summary.mandates++;
       } else {
@@ -133,6 +190,7 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
             district: maire.communeName,
             department: maire.departmentName,
             startDate: maire.mandateStartDate || maire.functionStartDate,
+            endDate: null,
             updatedAt: new Date(),
           })
           .where(eq(mandates.id, existingMandate[0].id));
@@ -147,7 +205,7 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
   clearCheckpoint(CHECKPOINT_NAME);
 
   logger.info(
-    `Mayors: ${summary.officials} officials created, ${summary.mandates} mandates upserted`,
+    `Mayors: ${summary.officials} officials created, ${summary.mandates} mandates upserted, ${summary.ended} mandates ended`,
   );
   return summary;
 }

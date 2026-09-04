@@ -143,6 +143,12 @@ vi.mock('./upsert/mayor-addresses.js', () => ({
 vi.mock('./upsert/mayor-social-scrape.js', () => ({
   scrapeMayorWebsites: vi.fn(),
 }));
+vi.mock('./sources/wikidata-mayor-photos.js', () => ({
+  fetchWikidataMayorPhotos: vi.fn(),
+}));
+vi.mock('./upsert/mayor-photos.js', () => ({
+  upsertMayorPhotos: vi.fn(),
+}));
 vi.mock('./upsert/geocode-addresses.js', () => ({
   geocodeAllAddresses: vi.fn(),
 }));
@@ -215,6 +221,8 @@ import { upsertMayors } from './upsert/mayors.js';
 import { fetchDilaMairies } from './sources/dila-mairies.js';
 import { upsertMayorAddresses } from './upsert/mayor-addresses.js';
 import { scrapeMayorWebsites } from './upsert/mayor-social-scrape.js';
+import { fetchWikidataMayorPhotos } from './sources/wikidata-mayor-photos.js';
+import { upsertMayorPhotos } from './upsert/mayor-photos.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
 import { fetchCnccfpAccounts } from './sources/cnccfp.js';
@@ -308,6 +316,7 @@ function setupHappyPath() {
   vi.mocked(upsertMayors).mockResolvedValue({
     officials: 0,
     mandates: 0,
+    ended: 0,
     skipped: 0,
   });
   vi.mocked(fetchDilaMairies).mockResolvedValue([]);
@@ -321,6 +330,12 @@ function setupHappyPath() {
     created: 0,
     skipped: 0,
     errors: 0,
+  });
+  vi.mocked(fetchWikidataMayorPhotos).mockResolvedValue([]);
+  vi.mocked(upsertMayorPhotos).mockResolvedValue({
+    matched: 0,
+    updated: 0,
+    skipped: 0,
   });
   vi.mocked(geocodeAllAddresses).mockResolvedValue({
     geocoded: 0,
@@ -352,7 +367,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(22);
+    expect(results).toHaveLength(23);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -381,7 +396,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(22);
+    expect(results).toHaveLength(23);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

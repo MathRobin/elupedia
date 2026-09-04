@@ -14,6 +14,7 @@ type Ballot = {
 type Filters = {
   search: string;
   type: string;
+  result: '' | 'adopted' | 'rejected';
   dateFrom: string;
   dateTo: string;
   sort: 'date-desc' | 'date-asc' | 'alpha';
@@ -31,6 +32,11 @@ function readFiltersFromUrl(): Partial<Filters> {
   const f: Partial<Filters> = {};
   if (p.has('q')) f.search = p.get('q')!;
   if (p.has('type')) f.type = p.get('type')!;
+  if (
+    p.has('resultat') &&
+    (p.get('resultat') === 'adopted' || p.get('resultat') === 'rejected')
+  )
+    f.result = p.get('resultat') as 'adopted' | 'rejected';
   if (p.has('du')) f.dateFrom = p.get('du')!;
   if (p.has('au')) f.dateTo = p.get('au')!;
   if (p.has('tri')) f.sort = p.get('tri') as Filters['sort'];
@@ -42,6 +48,7 @@ function writeFiltersToUrl(filters: Filters) {
   const p = new URLSearchParams();
   if (filters.search) p.set('q', filters.search);
   if (filters.type) p.set('type', filters.type);
+  if (filters.result) p.set('resultat', filters.result);
   if (filters.dateFrom) p.set('du', filters.dateFrom);
   if (filters.dateTo) p.set('au', filters.dateTo);
   if (filters.sort !== 'date-desc') p.set('tri', filters.sort);
@@ -66,6 +73,7 @@ function FilterPanel({
   const activeCount =
     (filters.search ? 1 : 0) +
     (filters.type ? 1 : 0) +
+    (filters.result ? 1 : 0) +
     (filters.dateFrom ? 1 : 0) +
     (filters.dateTo ? 1 : 0);
 
@@ -99,6 +107,26 @@ function FilterPanel({
               {t}
             </option>
           ))}
+        </select>
+      </fieldset>
+
+      <fieldset>
+        <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          Résultat
+        </legend>
+        <select
+          value={filters.result}
+          onChange={(e) =>
+            onChange({
+              ...filters,
+              result: e.target.value as Filters['result'],
+            })
+          }
+          className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+        >
+          <option value="">Tous</option>
+          <option value="adopted">Adopté</option>
+          <option value="rejected">Rejeté</option>
         </select>
       </fieldset>
 
@@ -153,6 +181,7 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
   const defaultFilters: Filters = {
     search: '',
     type: '',
+    result: '',
     dateFrom: '',
     dateTo: '',
     sort: 'date-desc',
@@ -182,6 +211,11 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
     const q = normalize(filters.search);
     let list = ballots.filter((b) => {
       if (filters.type && b.type !== filters.type) return false;
+      if (filters.result) {
+        const adopted = b.forCount > b.againstCount;
+        if (filters.result === 'adopted' && !adopted) return false;
+        if (filters.result === 'rejected' && adopted) return false;
+      }
       if (filters.dateFrom && b.date < filters.dateFrom) return false;
       if (filters.dateTo && b.date > filters.dateTo) return false;
       if (q && !normalize(b.title).includes(q)) return false;
@@ -204,6 +238,7 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
   const activeCount =
     (filters.search ? 1 : 0) +
     (filters.type ? 1 : 0) +
+    (filters.result ? 1 : 0) +
     (filters.dateFrom ? 1 : 0) +
     (filters.dateTo ? 1 : 0);
 

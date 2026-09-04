@@ -41,18 +41,26 @@ try {
     .where(isNull(mandates.endDate))
     .orderBy(officials.lastName);
 
-  officialsList = rows.map((r) => ({
-    id: r.id,
-    slug: r.slug,
-    firstName: r.firstName,
-    lastName: r.lastName,
-    photoUrl: r.photoUrl,
-    district: r.district,
-    department: r.department,
-    politicalGroup: r.politicalGroup,
-    mandateType: r.mandateType,
-    isFemale: r.civ === 'Mme',
-  }));
+  const seen = new Set<string>();
+  officialsList = rows
+    .map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      photoUrl: r.photoUrl,
+      district: r.district,
+      department: r.department,
+      politicalGroup: r.politicalGroup,
+      mandateType: r.mandateType,
+      isFemale: r.civ === 'Mme',
+    }))
+    .filter((o) => {
+      const key = `${o.id}-${o.mandateType}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 } catch (e) {
   error = e instanceof Error ? e.message : String(e);
 }

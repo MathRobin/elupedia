@@ -18,6 +18,13 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - URL : `https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503`
   - Colonnes : Code département, Libellé département, Code collectivité statut particulier, Libellé collectivité statut particulier, Code commune (INSEE), Libellé commune, Nom, Prénom, Code sexe, Date naissance, Code CSP, Libellé CSP, Date début mandat, Date début fonction
   - Les maires d'arrondissement (Paris/Lyon/Marseille) ne sont PAS dans ce fichier — seuls les maires des villes entières y figurent (codes INSEE 75056, 69123, 13055)
+- **Source photos maires** :
+  - Wikidata (SPARQL) — requête sur les personnes ayant occupé un poste de maire (P39, sous-classes de Q382844) avec une photo (P18)
+  - Endpoint : `https://query.wikidata.org/sparql`
+  - Matching par nom normalisé + date de naissance contre la table `officials`
+  - Ne remplace pas les photos existantes (AN, Sénat) — complète uniquement les maires sans photo
+  - Client : `sources/wikidata-mayor-photos.ts` → `upsert/mayor-photos.ts`
+  - Couverture : bonne pour les grandes villes, limitée pour les petites communes
 - **Source contacts mairies** :
   - API Annuaire de l'administration (DILA) — endpoint ODSQL, ~35 800 mairies
   - URL : `https://api-lannuaire.service-public.fr/api/explore/v2.1/catalog/datasets/api-lannuaire-administration/records`
