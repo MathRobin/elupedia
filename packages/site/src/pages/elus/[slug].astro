@@ -408,6 +408,7 @@ const worksForName = deputy.mandateType === 'depute'
       ? deputy.district ?? undefined
       : undefined;
 
+const isMaire = deputy.mandateType === 'maire';
 const isParliamentary = deputy.mandateType === 'depute' || deputy.mandateType === 'senateur';
 
 const constituencyAddress = deputyAddresses.find((a) =>
