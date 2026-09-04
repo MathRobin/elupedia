@@ -19,7 +19,7 @@ type Filters = {
   depute: boolean;
   senateur: boolean;
   maire: boolean;
-  withPhoto: boolean;
+  photoFilter: '' | 'with' | 'without';
   department: string;
   group: string;
   sort: 'name' | 'department';
@@ -42,7 +42,10 @@ function readFiltersFromUrl(): { filters: Partial<Filters>; page?: number } {
     f.senateur = types.has('senateur');
     f.maire = types.has('maire');
   }
-  if (p.has('photo')) f.withPhoto = p.get('photo') === '1';
+  if (p.has('photo')) {
+    const v = p.get('photo');
+    if (v === 'with' || v === 'without') f.photoFilter = v;
+  }
   if (p.has('dep')) f.department = p.get('dep')!;
   if (p.has('groupe')) f.group = p.get('groupe')!;
   if (
@@ -67,7 +70,7 @@ function writeFiltersToUrl(filters: Filters, page: number) {
   if (activeTypes.length > 0 && activeTypes.length < allTypes) {
     p.set('type', activeTypes.join(','));
   }
-  if (filters.withPhoto) p.set('photo', '1');
+  if (filters.photoFilter) p.set('photo', filters.photoFilter);
   if (filters.department) p.set('dep', filters.department);
   if (filters.group) p.set('groupe', filters.group);
   if (filters.sort !== 'name') p.set('tri', filters.sort);
@@ -192,7 +195,7 @@ function FilterPanel({
   const activeCount =
     (filters.search ? 1 : 0) +
     (!filters.depute || !filters.senateur || !filters.maire ? 1 : 0) +
-    (filters.withPhoto ? 1 : 0) +
+    (filters.photoFilter ? 1 : 0) +
     (filters.department ? 1 : 0) +
     (filters.group ? 1 : 0);
 
@@ -260,26 +263,40 @@ function FilterPanel({
         </div>
       </fieldset>
 
-      <fieldset>
-        <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-          Photo
-        </legend>
-        <div className="mt-3">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={filters.withPhoto}
-              onChange={(e) =>
-                onChange({ ...filters, withPhoto: e.target.checked })
-              }
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm text-slate-700 dark:text-slate-300">
-              Avec photo uniquement
-            </span>
-          </label>
-        </div>
-      </fieldset>
+      <div className="space-y-2">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filters.photoFilter === 'with'}
+            onChange={(e) =>
+              onChange({
+                ...filters,
+                photoFilter: e.target.checked ? 'with' : '',
+              })
+            }
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">
+            Avec photo
+          </span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filters.photoFilter === 'without'}
+            onChange={(e) =>
+              onChange({
+                ...filters,
+                photoFilter: e.target.checked ? 'without' : '',
+              })
+            }
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">
+            Sans photo
+          </span>
+        </label>
+      </div>
 
       <fieldset>
         <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -340,7 +357,7 @@ export default function OfficialsList({
     depute: true,
     senateur: true,
     maire: true,
-    withPhoto: false,
+    photoFilter: '',
     department: '',
     group: '',
     sort: 'name',
@@ -410,7 +427,8 @@ export default function OfficialsList({
       if (o.mandateType === 'depute' && !filters.depute) return false;
       if (o.mandateType === 'senateur' && !filters.senateur) return false;
       if (o.mandateType === 'maire' && !filters.maire) return false;
-      if (filters.withPhoto && !o.photoUrl) return false;
+      if (filters.photoFilter === 'with' && !o.photoUrl) return false;
+      if (filters.photoFilter === 'without' && o.photoUrl) return false;
       if (filters.department && o.department !== filters.department)
         return false;
       if (filters.group && o.politicalGroup !== filters.group) return false;
@@ -442,7 +460,7 @@ export default function OfficialsList({
   const activeCount =
     (filters.search ? 1 : 0) +
     (!filters.depute || !filters.senateur || !filters.maire ? 1 : 0) +
-    (filters.withPhoto ? 1 : 0) +
+    (filters.photoFilter ? 1 : 0) +
     (filters.department ? 1 : 0) +
     (filters.group ? 1 : 0);
 
