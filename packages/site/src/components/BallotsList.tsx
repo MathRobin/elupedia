@@ -13,12 +13,16 @@ type Ballot = {
 
 type Filters = {
   search: string;
-  type: string;
+  types: string[];
   result: '' | 'adopted' | 'rejected';
   dateFrom: string;
   dateTo: string;
   sort: 'date-desc' | 'date-asc' | 'alpha';
 };
+
+function formatLabel(raw: string): string {
+  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+}
 
 const PAGE_SIZE = 30;
 
@@ -31,7 +35,7 @@ function readFiltersFromUrl(): Partial<Filters> {
   const p = new URLSearchParams(window.location.search);
   const f: Partial<Filters> = {};
   if (p.has('q')) f.search = p.get('q')!;
-  if (p.has('type')) f.type = p.get('type')!;
+  if (p.has('type')) f.types = p.get('type')!.split(',').filter(Boolean);
   if (
     p.has('resultat') &&
     (p.get('resultat') === 'adopted' || p.get('resultat') === 'rejected')
@@ -47,7 +51,7 @@ function writeFiltersToUrl(filters: Filters) {
   if (typeof window === 'undefined') return;
   const p = new URLSearchParams();
   if (filters.search) p.set('q', filters.search);
-  if (filters.type) p.set('type', filters.type);
+  if (filters.types.length > 0) p.set('type', filters.types.join(','));
   if (filters.result) p.set('resultat', filters.result);
   if (filters.dateFrom) p.set('du', filters.dateFrom);
   if (filters.dateTo) p.set('au', filters.dateTo);
@@ -72,7 +76,7 @@ function FilterPanel({
 }) {
   const activeCount =
     (filters.search ? 1 : 0) +
-    (filters.type ? 1 : 0) +
+    (filters.types.length > 0 ? 1 : 0) +
     (filters.result ? 1 : 0) +
     (filters.dateFrom ? 1 : 0) +
     (filters.dateTo ? 1 : 0);
@@ -96,18 +100,27 @@ function FilterPanel({
         <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Type de scrutin
         </legend>
-        <select
-          value={filters.type}
-          onChange={(e) => onChange({ ...filters, type: e.target.value })}
-          className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
-        >
-          <option value="">Tous les types</option>
+        <div className="mt-2 space-y-1.5">
           {types.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
+            <label
+              key={t}
+              className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={filters.types.includes(t)}
+                onChange={(e) => {
+                  const next = e.target.checked
+                    ? [...filters.types, t]
+                    : filters.types.filter((v) => v !== t);
+                  onChange({ ...filters, types: next });
+                }}
+                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800"
+              />
+              {formatLabel(t)}
+            </label>
           ))}
-        </select>
+        </div>
       </fieldset>
 
       <fieldset>
@@ -180,7 +193,7 @@ const positionColors: Record<string, string> = {
 export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
   const defaultFilters: Filters = {
     search: '',
-    type: '',
+    types: [],
     result: '',
     dateFrom: '',
     dateTo: '',
@@ -210,7 +223,8 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
   const filtered = useMemo(() => {
     const q = normalize(filters.search);
     let list = ballots.filter((b) => {
-      if (filters.type && b.type !== filters.type) return false;
+      if (filters.types.length > 0 && !filters.types.includes(b.type))
+        return false;
       if (filters.result) {
         const adopted = b.forCount > b.againstCount;
         if (filters.result === 'adopted' && !adopted) return false;
@@ -237,7 +251,7 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
 
   const activeCount =
     (filters.search ? 1 : 0) +
-    (filters.type ? 1 : 0) +
+    (filters.types.length > 0 ? 1 : 0) +
     (filters.result ? 1 : 0) +
     (filters.dateFrom ? 1 : 0) +
     (filters.dateTo ? 1 : 0);
@@ -328,7 +342,7 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
                             {new Date(b.date).toLocaleDateString('fr-FR')}
                           </span>
                           <span className="rounded-full bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">
-                            {b.type}
+                            {formatLabel(b.type)}
                           </span>
                         </div>
                       </div>
