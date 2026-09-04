@@ -172,6 +172,7 @@ const deputySponsorships = await db
   .from(sponsorships)
   .where(eq(sponsorships.officialId, officialId));
 
+const isMaire = deputy.mandateType === 'maire';
 const municipalElectionRows = isMaire && row.communeCode
   ? await db
       .select({
@@ -408,7 +409,6 @@ const worksForName = deputy.mandateType === 'depute'
       ? deputy.district ?? undefined
       : undefined;
 
-const isMaire = deputy.mandateType === 'maire';
 const isParliamentary = deputy.mandateType === 'depute' || deputy.mandateType === 'senateur';
 
 const constituencyAddress = deputyAddresses.find((a) =>
