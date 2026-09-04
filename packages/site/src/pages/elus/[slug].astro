@@ -7,6 +7,7 @@ import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
+import TimelineDrawer from '../../components/TimelineDrawer.tsx';
 
 export const prerender = false;
 
@@ -451,6 +452,81 @@ function fmtRetrieval(date: Date | null): string {
   return ` — dernière récupération le ${date.toLocaleDateString('fr-FR')}`;
 }
 
+type TimelineEvent = {
+  type: 'birth' | 'death' | 'mandate' | 'affiliation' | 'committee' | 'election' | 'staffer' | 'sponsorship';
+  label: string;
+  detail?: string;
+  startDate: string;
+  endDate?: string | null;
+  active?: boolean;
+};
+
+const timelineEvents: TimelineEvent[] = [];
+
+if (deputy.birthDate) {
+  timelineEvents.push({ type: 'birth', label: 'Naissance', startDate: deputy.birthDate });
+}
+
+for (const m of deputyMandates) {
+  timelineEvents.push({
+    type: 'mandate',
+    label: `${mandateTypeLabels[m.type] ?? m.type}`,
+    detail: [m.district, m.department].filter(Boolean).join(' — '),
+    startDate: m.startDate,
+    endDate: m.endDate,
+    active: !m.endDate,
+  });
+}
+
+for (const a of deputyAffiliations) {
+  timelineEvents.push({
+    type: 'affiliation',
+    label: a.partyOrGroup,
+    startDate: a.startDate,
+    endDate: a.endDate,
+    active: !a.endDate,
+  });
+}
+
+for (const c of deputyCommittees) {
+  timelineEvents.push({
+    type: 'committee',
+    label: c.name,
+    detail: committeeTypeLabels[c.type] ?? c.type,
+    startDate: c.startDate,
+    endDate: c.endDate,
+    active: !c.endDate,
+  });
+}
+
+for (const er of deputyElectoralResults) {
+  timelineEvents.push({
+    type: 'election',
+    label: `${er.electionType} — ${roundLabels[er.round] ?? `Tour ${er.round}`}`,
+    detail: `${er.scorePercent.toFixed(1)} %`,
+    startDate: er.electionDate,
+  });
+}
+
+for (const s of deputyStaffers) {
+  timelineEvents.push({
+    type: 'staffer',
+    label: `${s.firstName} ${s.lastName}`,
+    startDate: s.startDate,
+    endDate: s.endDate,
+    active: !s.endDate,
+  });
+}
+
+for (const sp of deputySponsorships) {
+  timelineEvents.push({
+    type: 'sponsorship',
+    label: `Parrainage : ${sp.candidateName}`,
+    detail: sp.type,
+    startDate: sp.publicationDate,
+  });
+}
+
 ---
 
 <BaseLayout title={fullName} description={metaDescription} image={deputy.photoUrl ?? undefined} jsonLd={personJsonLd} ogType="profile">
@@ -524,6 +600,7 @@ function fmtRetrieval(date: Date | null): string {
             Sénat
           </a>
         )}
+        <TimelineDrawer events={timelineEvents} officialName={fullName} client:load />
       </div>
     </div>
 
