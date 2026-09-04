@@ -2,7 +2,10 @@
  * Script temporaire — backfill des mandats historiques de maires
  * via les snapshots Wayback Machine du RNE.
  *
- * Usage: npx tsx packages/ingest/src/backfill-mayor-history.ts
+ * Usage: npx tsx packages/ingest/src/backfill-mayor-history.ts [--apply]
+ *
+ * Par défaut, le script tourne en dry-run (affiche ce qu'il ferait).
+ * Passer --apply pour écrire en base.
  */
 import { config as loadDotenv } from 'dotenv';
 import path from 'node:path';
@@ -87,8 +90,12 @@ function maireKey(m: RneMaire): string {
   return `${m.firstName.toLowerCase()}|${m.lastName.toLowerCase()}|${toIsoDate(m.birthDate)}`;
 }
 
+const DRY_RUN = !process.argv.includes('--apply');
+
 async function run() {
-  logger.info('=== Backfill mayor history from Wayback Machine ===\n');
+  logger.info('=== Backfill mayor history from Wayback Machine ===');
+  if (DRY_RUN) logger.info('Mode DRY-RUN — passer --apply pour écrire en base');
+  logger.info('');
 
   logger.info('Discovering available snapshots via CDX API...');
   const timestamps = await discoverTimestamps();
@@ -186,7 +193,11 @@ async function run() {
       }
 
       const existing = await db
-        .select({ id: mandates.id, endDate: mandates.endDate })
+        .select({
+          id: mandates.id,
+          startDate: mandates.startDate,
+          endDate: mandates.endDate,
+        })
         .from(mandates)
         .where(
           and(
@@ -204,10 +215,25 @@ async function run() {
           (currMaire.functionStartDate &&
             toIsoDate(currMaire.functionStartDate)) ||
           curr.date;
-        await db
-          .update(mandates)
-          .set({ endDate, updatedAt: new Date() })
-          .where(eq(mandates.id, existing[0].id));
+
+        if (existing[0].startDate && endDate <= existing[0].startDate) {
+          logger.warn(
+            `  SKIP ${prevMaire.firstName} ${prevMaire.lastName} in ${communeCode}: endDate ${endDate} <= startDate ${existing[0].startDate}`,
+          );
+          summary.skipped++;
+          continue;
+        }
+
+        if (DRY_RUN) {
+          logger.info(
+            `  [dry-run] would end mandate for ${prevMaire.firstName} ${prevMaire.lastName} in ${communeCode} (endDate=${endDate})`,
+          );
+        } else {
+          await db
+            .update(mandates)
+            .set({ endDate, updatedAt: new Date() })
+            .where(eq(mandates.id, existing[0].id));
+        }
         summary.ended++;
       } else {
         summary.skipped++;

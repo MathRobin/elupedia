@@ -30,6 +30,7 @@ export const MAIRES_STEP_NAMES = [
   'maires',
   'maires-addresses',
   'maires-photos',
+  'maires-elections',
   'maires-social-scrape',
 ] as const;
 

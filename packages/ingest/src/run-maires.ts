@@ -10,6 +10,8 @@ import { upsertMayorAddresses } from './upsert/mayor-addresses.js';
 import { scrapeMayorWebsites } from './upsert/mayor-social-scrape.js';
 import { fetchWikidataMayorPhotos } from './sources/wikidata-mayor-photos.js';
 import { upsertMayorPhotos } from './upsert/mayor-photos.js';
+import { fetchMunicipalElections } from './sources/municipal-elections.js';
+import { upsertMunicipalElections } from './upsert/municipal-elections.js';
 
 export async function runMaires(
   enabledSteps?: Set<string>,
@@ -21,7 +23,7 @@ export async function runMaires(
   logger.info('=== Ingestion Maires started ===\n');
 
   if (enabled('maires')) {
-    logger.info('[1/4] RNE maires...');
+    logger.info('[1/5] RNE maires...');
     results.push(
       await runStep('maires', async () => {
         const maires = await withRetry(() => fetchRneMaires(), {
@@ -39,7 +41,7 @@ export async function runMaires(
   }
 
   if (enabled('maires-addresses')) {
-    logger.info('[2/4] DILA mairie addresses...');
+    logger.info('[2/5] DILA mairie addresses...');
     results.push(
       await runStep('maires-addresses', async () => {
         const mairies = await withRetry(() => fetchDilaMairies(), {
@@ -57,7 +59,7 @@ export async function runMaires(
   }
 
   if (enabled('maires-photos')) {
-    logger.info('[3/4] Wikidata mayor photos...');
+    logger.info('[3/5] Wikidata mayor photos...');
     results.push(
       await runStep('maires-photos', async () => {
         const photos = await withRetry(() => fetchWikidataMayorPhotos(), {
@@ -74,8 +76,26 @@ export async function runMaires(
     );
   }
 
+  if (enabled('maires-elections')) {
+    logger.info('[4/5] Municipal election results...');
+    results.push(
+      await runStep('maires-elections', async () => {
+        const elections = await withRetry(() => fetchMunicipalElections(), {
+          source: 'municipal-elections',
+        });
+        const r = await upsertMunicipalElections(db, elections);
+        return {
+          source: 'maires-elections',
+          created: r.elections,
+          updated: r.candidates,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
   if (enabled('maires-social-scrape')) {
-    logger.info('[4/4] Mayor website social links scrape...');
+    logger.info('[5/5] Mayor website social links scrape...');
     results.push(
       await runStep('maires-social-scrape', async () => {
         const r = await scrapeMayorWebsites(db);

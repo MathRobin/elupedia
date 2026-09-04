@@ -149,6 +149,12 @@ vi.mock('./sources/wikidata-mayor-photos.js', () => ({
 vi.mock('./upsert/mayor-photos.js', () => ({
   upsertMayorPhotos: vi.fn(),
 }));
+vi.mock('./sources/municipal-elections.js', () => ({
+  fetchMunicipalElections: vi.fn(),
+}));
+vi.mock('./upsert/municipal-elections.js', () => ({
+  upsertMunicipalElections: vi.fn(),
+}));
 vi.mock('./upsert/geocode-addresses.js', () => ({
   geocodeAllAddresses: vi.fn(),
 }));
@@ -223,6 +229,8 @@ import { upsertMayorAddresses } from './upsert/mayor-addresses.js';
 import { scrapeMayorWebsites } from './upsert/mayor-social-scrape.js';
 import { fetchWikidataMayorPhotos } from './sources/wikidata-mayor-photos.js';
 import { upsertMayorPhotos } from './upsert/mayor-photos.js';
+import { fetchMunicipalElections } from './sources/municipal-elections.js';
+import { upsertMunicipalElections } from './upsert/municipal-elections.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
 import { fetchCnccfpAccounts } from './sources/cnccfp.js';
@@ -337,6 +345,12 @@ function setupHappyPath() {
     updated: 0,
     skipped: 0,
   });
+  vi.mocked(fetchMunicipalElections).mockResolvedValue([]);
+  vi.mocked(upsertMunicipalElections).mockResolvedValue({
+    elections: 0,
+    candidates: 0,
+    matched: 0,
+  });
   vi.mocked(geocodeAllAddresses).mockResolvedValue({
     geocoded: 0,
     failed: 0,
@@ -367,7 +381,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(23);
+    expect(results).toHaveLength(24);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -396,7 +410,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(23);
+    expect(results).toHaveLength(24);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

@@ -33,3 +33,7 @@ export {
 } from './declaration-snapshots.js';
 export { campaignAccounts } from './campaign-accounts.js';
 export { sponsorships } from './sponsorships.js';
+export {
+  municipalElections,
+  municipalCandidates,
+} from './municipal-elections.js';

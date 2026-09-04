@@ -1,13 +1,14 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
 import TimelineDrawer from '../../components/TimelineDrawer.tsx';
+import MunicipalElectionSection from '../../components/MunicipalElectionDrawer.tsx';
 
 export const prerender = false;
 
@@ -34,6 +35,7 @@ const [row] = await db
     startDate: mandates.startDate,
     politicalGroup: mandates.politicalGroup,
     mandateType: mandates.type,
+    communeCode: mandates.communeCode,
   })
   .from(officials)
   .innerJoin(mandates, eq(mandates.officialId, officials.id))
@@ -169,6 +171,68 @@ const deputySponsorships = await db
   .select({ officialId: sponsorships.officialId, type: sponsorships.type, electionYear: sponsorships.electionYear, candidateName: sponsorships.candidateName, publicationDate: sponsorships.publicationDate, updatedAt: sponsorships.updatedAt })
   .from(sponsorships)
   .where(eq(sponsorships.officialId, officialId));
+
+const municipalElectionRows = isMaire && row.communeCode
+  ? await db
+      .select({
+        id: municipalElections.id,
+        electionId: municipalElections.electionId,
+        communeName: municipalElections.communeName,
+        round: municipalElections.round,
+        electionDate: municipalElections.electionDate,
+        inscrits: municipalElections.inscrits,
+        abstentions: municipalElections.abstentions,
+        votants: municipalElections.votants,
+        blancs: municipalElections.blancs,
+        nuls: municipalElections.nuls,
+        exprimes: municipalElections.exprimes,
+      })
+      .from(municipalElections)
+      .where(eq(municipalElections.communeCode, row.communeCode))
+      .orderBy(desc(municipalElections.electionDate))
+  : [];
+
+const municipalElectionIds = municipalElectionRows.map((e) => e.id);
+const municipalCandidateRows = municipalElectionIds.length > 0
+  ? await db
+      .select({
+        electionId: municipalCandidates.electionId,
+        panneau: municipalCandidates.panneau,
+        nom: municipalCandidates.nom,
+        prenom: municipalCandidates.prenom,
+        sexe: municipalCandidates.sexe,
+        nuance: municipalCandidates.nuance,
+        liste: municipalCandidates.liste,
+        voix: municipalCandidates.voix,
+        ratioInscrits: municipalCandidates.ratioInscrits,
+        ratioExprimes: municipalCandidates.ratioExprimes,
+        officialId: municipalCandidates.officialId,
+      })
+      .from(municipalCandidates)
+      .where(inArray(municipalCandidates.electionId, municipalElectionIds))
+  : [];
+
+const candidateOfficialIds = [...new Set(municipalCandidateRows.map((c) => c.officialId).filter(Boolean))] as string[];
+const candidateOfficials = candidateOfficialIds.length > 0
+  ? await db
+      .select({ id: officials.id, slug: officials.slug })
+      .from(officials)
+      .where(inArray(officials.id, candidateOfficialIds))
+  : [];
+const candidateSlugMap = new Map(candidateOfficials.map((o) => [o.id, o.slug]));
+
+const municipalElectionsData = municipalElectionRows.map((e) => ({
+  ...e,
+  candidates: municipalCandidateRows
+    .filter((c) => c.electionId === e.id)
+    .sort((a, b) => b.voix - a.voix)
+    .map((c) => ({
+      ...c,
+      ratioInscrits: c.ratioInscrits ?? 0,
+      ratioExprimes: c.ratioExprimes ?? 0,
+      officialSlug: c.officialId ? (candidateSlugMap.get(c.officialId) ?? null) : null,
+    })),
+}));
 
 const allItems: { updatedAt: Date }[] = [
   ...deputyMandates, ...deputyAffiliations, ...deputyStaffers, ...deputyVotes,
@@ -619,6 +683,7 @@ for (const sp of deputySponsorships) {
         {isParliamentary && <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité parlementaire</a></li>}
         {isParliamentary && <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions & groupes</a></li>}
         {isParliamentary && <li><a href="#electoral" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral</a></li>}
+        {isMaire && municipalElectionsData.length > 0 && <li><a href="#electoral-municipal" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral</a></li>}
         {deputyCampaignAccounts.length > 0 && <li><a href="#financement" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Financement</a></li>}
         <li><a href="#interets" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts déclarés</a></li>
         {isParliamentary && <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique des votes</a></li>}
@@ -661,6 +726,7 @@ for (const sp of deputySponsorships) {
           {isParliamentary && <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité</a></li>}
           {isParliamentary && <li><a href="#commissions" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions</a></li>}
           {isParliamentary && <li><a href="#electoral" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral</a></li>}
+          {isMaire && municipalElectionsData.length > 0 && <li><a href="#electoral-municipal" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral</a></li>}
           {deputyCampaignAccounts.length > 0 && <li><a href="#financement" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Financement</a></li>}
           <li><a href="#interets" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts</a></li>
           {isParliamentary && <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Votes</a></li>}
@@ -1153,6 +1219,17 @@ for (const sp of deputySponsorships) {
       )}
       <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.electoral)}</p>
     </section>}
+
+    {isMaire && municipalElectionsData.length > 0 && (
+      <section id="electoral-municipal" class="mt-8 scroll-mt-12">
+        <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+          Historique électoral
+          <span class="ml-2 text-sm font-normal text-slate-500">({municipalElectionsData.length} tours)</span>
+        </h2>
+        <MunicipalElectionSection elections={municipalElectionsData} client:load />
+        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/datasets/elections-municipales-2020-resultats/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0</p>
+      </section>
+    )}
 
     {deputyCampaignAccounts.length > 0 && (
       <section id="financement" class="mt-8 scroll-mt-12">
