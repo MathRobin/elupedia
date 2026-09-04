@@ -66,6 +66,11 @@ const typeBgColors: Record<TimelineEvent['type'], string> = {
   sponsorship: 'bg-rose-50 dark:bg-rose-900/20',
 };
 
+function humanize(s: string): string {
+  const result = s.replace(/_/g, ' ').trim();
+  return result.charAt(0).toUpperCase() + result.slice(1).toLowerCase();
+}
+
 function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('fr-FR', {
     year: 'numeric',
@@ -195,14 +200,14 @@ export default function TimelineDrawer({ events, officialName }: Props) {
     for (const [date, data] of dateMap) {
       dates.push({ date, ...data });
     }
-    dates.sort((a, b) => a.date.localeCompare(b.date));
+    dates.sort((a, b) => b.date.localeCompare(a.date));
     return dates;
   }, [pointEvents, lanes]);
 
   const years = useMemo(() => {
     const ySet = new Set<number>();
     for (const d of allDates) ySet.add(yearFromDate(d.date));
-    return [...ySet].sort((a, b) => a - b);
+    return [...ySet].sort((a, b) => b - a);
   }, [allDates]);
 
   function toggleFilter(type: TimelineEvent['type']) {
@@ -351,12 +356,12 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                                     className={`h-2.5 w-2.5 rounded-full ${typeColors[dateEntry.pointEvent.type]}`}
                                   />
                                   <span className="text-sm font-medium text-slate-900 dark:text-white">
-                                    {dateEntry.pointEvent.label}
+                                    {humanize(dateEntry.pointEvent.label)}
                                   </span>
                                 </div>
                                 {dateEntry.pointEvent.detail && (
                                   <p className="mt-1 ml-[18px] text-xs text-slate-600 dark:text-slate-400">
-                                    {dateEntry.pointEvent.detail}
+                                    {humanize(dateEntry.pointEvent.detail)}
                                   </p>
                                 )}
                               </div>
@@ -394,7 +399,7 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                                     <div className="min-w-0">
                                       <p className="text-sm text-slate-900 dark:text-white">
                                         <span className="font-medium">
-                                          {lane.event.label}
+                                          {humanize(lane.event.label)}
                                         </span>
                                         {lane.event.active && (
                                           <span className="ml-1.5 inline-block rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/20 dark:text-green-400">
@@ -404,7 +409,7 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                                       </p>
                                       {lane.event.detail && (
                                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                                          {lane.event.detail}
+                                          {humanize(lane.event.detail)}
                                         </p>
                                       )}
                                     </div>
@@ -444,7 +449,7 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                                         )}
                                       </div>
                                       <p className="text-sm text-slate-400 dark:text-slate-500 italic">
-                                        Fin : {lane.event.label}
+                                        Fin : {humanize(lane.event.label)}
                                       </p>
                                     </div>
                                   ))}

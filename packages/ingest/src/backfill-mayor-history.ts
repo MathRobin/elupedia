@@ -18,30 +18,29 @@ loadDotenv({ path: path.resolve(__dirname, '../../../.env') });
 const RNE_RESOURCE_URL =
   'https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503';
 
-const WAYBACK_TIMESTAMPS = [
-  '20190801',
-  '20200201',
-  '20200801',
-  '20210201',
-  '20210801',
-  '20220201',
-  '20220801',
-  '20230201',
-  '20230801',
-  '20240201',
-  '20240801',
-  '20250201',
-  '20250801',
-  '20260201',
-];
+const CDX_API_URL = 'https://web.archive.org/cdx/search/cdx';
 
 interface Snapshot {
   date: string;
   mayors: Map<string, RneMaire>;
 }
 
+async function discoverTimestamps(): Promise<string[]> {
+  const url = `${CDX_API_URL}?url=${encodeURIComponent(RNE_RESOURCE_URL)}&output=text&fl=timestamp,digest&collapse=digest`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`CDX API error: ${res.status}`);
+  const text = await res.text();
+  const timestamps = text
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => line.split(' ')[0]);
+  logger.info(`CDX API: ${timestamps.length} unique snapshots found`);
+  return timestamps;
+}
+
 function waybackUrl(timestamp: string): string {
-  return `https://web.archive.org/web/${timestamp}000000id_/${RNE_RESOURCE_URL}`;
+  return `https://web.archive.org/web/${timestamp}id_/${RNE_RESOURCE_URL}`;
 }
 
 async function fetchSnapshot(
@@ -78,23 +77,58 @@ async function fetchSnapshot(
   }
 }
 
+function toIsoDate(d: string): string {
+  const parts = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (parts) return `${parts[3]}-${parts[2]}-${parts[1]}`;
+  return d;
+}
+
 function maireKey(m: RneMaire): string {
-  return `${m.firstName.toLowerCase()}|${m.lastName.toLowerCase()}|${m.birthDate}`;
+  return `${m.firstName.toLowerCase()}|${m.lastName.toLowerCase()}|${toIsoDate(m.birthDate)}`;
 }
 
 async function run() {
   logger.info('=== Backfill mayor history from Wayback Machine ===\n');
 
+  logger.info('Discovering available snapshots via CDX API...');
+  const timestamps = await discoverTimestamps();
+
   logger.info('Fetching snapshots...');
   const snapshots: Snapshot[] = [];
 
-  for (const ts of WAYBACK_TIMESTAMPS) {
+  for (const ts of timestamps) {
     const mayors = await fetchSnapshot(ts);
     if (mayors && mayors.size > 1000) {
       const date = `${ts.slice(0, 4)}-${ts.slice(4, 6)}-${ts.slice(6, 8)}`;
       snapshots.push({ date, mayors });
     }
     await new Promise((r) => setTimeout(r, 2000));
+  }
+
+  // Fetch live CSV as the most recent snapshot
+  logger.info('Fetching live RNE CSV...');
+  try {
+    const res = await fetch(RNE_RESOURCE_URL, { redirect: 'follow' });
+    if (res.ok) {
+      const text = await res.text();
+      const lines = text.split('\n');
+      const mayors = new Map<string, RneMaire>();
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const maire = parseCsvRow(line);
+        if (maire) mayors.set(maire.communeCode, maire);
+      }
+      if (mayors.size > 1000) {
+        const today = new Date().toISOString().slice(0, 10);
+        logger.info(`  live: ${mayors.size} maires`);
+        snapshots.push({ date: today, mayors });
+      }
+    }
+  } catch (e) {
+    logger.warn(
+      `  live CSV fetch failed: ${e instanceof Error ? e.message : String(e)}`,
+    );
   }
 
   logger.info(`\n${snapshots.length} valid snapshots loaded\n`);
@@ -123,7 +157,7 @@ async function run() {
 
   logger.info(`${officialByKey.size} officials loaded for matching\n`);
 
-  const summary = { ended: 0, skipped: 0 };
+  const summary = { ended: 0, skipped: 0, unmatched: 0 };
 
   for (let i = 1; i < snapshots.length; i++) {
     const prev = snapshots[i - 1];
@@ -141,7 +175,15 @@ async function run() {
       changes++;
 
       const prevOfficialId = officialByKey.get(maireKey(prevMaire));
-      if (!prevOfficialId) continue;
+      if (!prevOfficialId) {
+        if (summary.unmatched < 5) {
+          logger.debug(
+            `  no match for ${prevMaire.firstName} ${prevMaire.lastName} (${prevMaire.birthDate}) in ${communeCode}`,
+          );
+        }
+        summary.unmatched++;
+        continue;
+      }
 
       const existing = await db
         .select({ id: mandates.id, endDate: mandates.endDate })
@@ -157,8 +199,10 @@ async function run() {
 
       if (existing.length > 0 && !existing[0].endDate) {
         const endDate =
-          currMaire.mandateStartDate ||
-          currMaire.functionStartDate ||
+          (currMaire.mandateStartDate &&
+            toIsoDate(currMaire.mandateStartDate)) ||
+          (currMaire.functionStartDate &&
+            toIsoDate(currMaire.functionStartDate)) ||
           curr.date;
         await db
           .update(mandates)
@@ -176,7 +220,7 @@ async function run() {
   }
 
   logger.info(
-    `\n=== Done: ${summary.ended} mandates ended, ${summary.skipped} skipped ===`,
+    `\n=== Done: ${summary.ended} mandates ended, ${summary.skipped} skipped, ${summary.unmatched} unmatched ===`,
   );
 }
 
