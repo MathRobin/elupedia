@@ -1,5 +1,5 @@
-import { createDb, officials, mandates } from '@elupedia/shared';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { createDb, officials } from '@elupedia/shared';
+import { isNull, sql } from 'drizzle-orm';
 
 import { logger } from './logger.js';
 import { type StepResult, runStep, printSummary } from './run-helpers.js';
@@ -17,28 +17,21 @@ export async function runPressMaires(): Promise<StepResult[]> {
   const db = createDb();
   const results: StepResult[] = [];
 
-  logger.info('=== Press ingestion (maires) started ===\n');
+  logger.info('=== Press ingestion (all officials) started ===\n');
 
-  const maires = await db
+  const batch = await db
     .select({
       id: officials.id,
       firstName: officials.firstName,
       lastName: officials.lastName,
     })
     .from(officials)
-    .innerJoin(mandates, eq(mandates.officialId, officials.id))
-    .where(
-      and(
-        eq(mandates.type, 'maire'),
-        isNull(mandates.endDate),
-        isNull(officials.deathDate),
-      ),
-    )
+    .where(isNull(officials.deathDate))
     .orderBy(sql`random()`)
     .limit(BATCH_SIZE);
 
   logger.info(
-    `${maires.length} mayors selected (random batch of ${BATCH_SIZE})\n`,
+    `${batch.length} officials selected (random batch of ${BATCH_SIZE})\n`,
   );
 
   results.push(
@@ -46,10 +39,10 @@ export async function runPressMaires(): Promise<StepResult[]> {
       let totalCreated = 0;
       let totalUpdated = 0;
 
-      for (let i = 0; i < maires.length; i++) {
-        const official = maires[i];
+      for (let i = 0; i < batch.length; i++) {
+        const official = batch[i];
         logger.info(
-          `  [${i + 1}/${maires.length}] ${official.firstName} ${official.lastName}`,
+          `  [${i + 1}/${batch.length}] ${official.firstName} ${official.lastName}`,
         );
 
         try {
@@ -68,7 +61,7 @@ export async function runPressMaires(): Promise<StepResult[]> {
           );
         }
 
-        if (i < maires.length - 1) {
+        if (i < batch.length - 1) {
           await sleep(DELAY_MS);
         }
       }
@@ -82,6 +75,6 @@ export async function runPressMaires(): Promise<StepResult[]> {
     }),
   );
 
-  printSummary('Press ingestion (maires)', results, logger);
+  printSummary('Press ingestion (all officials)', results, logger);
   return results;
 }
