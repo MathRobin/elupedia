@@ -115,6 +115,30 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - **Parrainages 2022** : CSV (13 427 parrainages, publication finale 7 mars 2022)
   - **Parrainages 2017** : CSV (14 296 parrainages, publication finale 18 mars 2017)
 
+### INSEE (populations communales)
+
+- **Éditeur** : Institut national de la statistique et des études économiques
+- **Licence** : Licence Ouverte / Open Licence 2.0 (Etalab)
+- **Obligations** :
+  - Attribution obligatoire : mentionner l'INSEE comme source
+  - Pas de restriction sur l'usage commercial
+- **URL** : https://www.insee.fr/fr/statistiques/8680726
+- **Données collectées** :
+  - Populations municipales par commune (fichier `donnees_communes.csv`), utilisé pour identifier les communes >20 000 habitants soumises à obligation de déclaration HATVP
+
+### data.gouv.fr (résultats électoraux)
+
+- **Éditeur** : Ministère de l'Intérieur (via data.gouv.fr)
+- **Licence** : Licence Ouverte / Open Licence 2.0 (Etalab)
+- **Obligations** :
+  - Attribution obligatoire : mentionner la source
+  - Pas de restriction sur l'usage commercial
+- **URL** : https://www.data.gouv.fr
+- **Jeux de données utilisés** :
+  - **Municipales 2020** : CSV des résultats par commune, tour et liste
+  - **Législatives 2022 et 2024** : CSV des résultats par circonscription, tour et candidat
+  - **Sénatoriales 2023** : CSV des résultats par département, tour et candidat/liste
+
 ## Sources prévues (non encore actives)
 
 ### data.gouv.fr (résultats électoraux AN)
@@ -140,7 +164,8 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | API Adresse         | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | CNCCFP              | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | Conseil constit.    | Domaine Public      | Non         | Autorisé         | ✅ active |
-| data.gouv.fr        | Licence Ouverte 2.0 | Oui         | Autorisé         | ⏸ prévue  |
+| INSEE               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
+| data.gouv.fr (élec) | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 
 ## Licence du code source
 

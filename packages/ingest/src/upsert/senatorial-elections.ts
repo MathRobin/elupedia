@@ -8,7 +8,12 @@ import type { SenatorialDepartementResult } from '../sources/senat-elections.js'
 import { logger } from '../logger.js';
 
 function normalize(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[-\s]+/g, ' ')
+    .trim();
 }
 
 export async function upsertSenatorialElections(

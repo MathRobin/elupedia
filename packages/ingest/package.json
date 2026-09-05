@@ -17,6 +17,7 @@
     "ingest:photos": "tsx src/main-photos.ts",
     "ingest:press:maires": "tsx src/main-press-maires.ts",
     "ingest:hatvp-status": "tsx src/main-hatvp-status.ts",
+    "reconcile": "tsx src/main-reconcile.ts",
     "test": "vitest run"
   },
   "dependencies": {

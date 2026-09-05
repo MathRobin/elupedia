@@ -28,9 +28,9 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (4 étapes Maires) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Intérêts pour un run complet
+- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (4 étapes Maires) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Intérêts + Photos + HATVP status pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-press-maires.ts` (`ingest:press:maires`, 1500 élus aléatoires), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main-photos.ts` (`ingest:photos`, sauvegarde S3), `main-hatvp-status.ts` (`ingest:hatvp-status`, vérification statuts HATVP), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -57,7 +57,11 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Parrainages présidentiels  | `sources/parrainages.ts`           | data.gouv.fr                | CSV           | ✅ actif |
 | Signatures RIP             | `sources/rip-signatures.ts`        | AN / Sénat                  | HTML          | ✅ actif |
 | Photos maires (Wikidata)   | `sources/wikidata-mayor-photos.ts` | query.wikidata.org          | SPARQL/JSON   | ✅ actif |
-| Résultats électoraux AN    | `sources/datagouv-elections.ts`    | data.gouv.fr                | —             | ⏸ prévu  |
+| Élections municipales      | `sources/municipal-elections.ts`   | data.gouv.fr                | CSV streaming | ✅ actif |
+| Élections législatives     | `sources/legislative-elections.ts` | data.gouv.fr                | CSV streaming | ✅ actif |
+| Élections sénatoriales     | `sources/senatorial-elections.ts`  | data.gouv.fr                | CSV streaming | ✅ actif |
+| Comptes de campagne CNCCFP | `sources/cnccfp.ts`                | data.gouv.fr                | CSV           | ✅ actif |
+| Statut HATVP (fiches)      | `sources/hatvp-status.ts`          | hatvp.fr                    | HTML scraping | ✅ actif |
 
 #### Upsert / Diff
 
@@ -86,6 +90,12 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Scrape réseaux maires      | `upsert/mayor-social-scrape.ts`     | Scrape sites officiels communes        |
 | Mentions presse            | `upsert/press-mentions.ts`          | Insert dédupliqué sur official + URL   |
 | Parrainages                | `upsert/sponsorships.ts`            | Batch insert, skip si existant         |
+| Photos S3                  | `upsert/upload-photos.ts`           | Download + upload S3, skip si existant |
+| Statuts HATVP              | `upsert/hatvp-status.ts`            | Scrape fiches HATVP, set pending/null  |
+| Élections municipales      | `upsert/municipal-elections.ts`     | Upsert sur commune + date + tour       |
+| Élections législatives     | `upsert/legislative-elections.ts`   | Upsert sur circo + date + tour         |
+| Élections sénatoriales     | `upsert/senatorial-elections.ts`    | Upsert sur département + date + tour   |
+| Comptes de campagne        | `upsert/campaign-accounts.ts`       | Upsert sur official + election         |
 
 ### 2. Base de données (PostgreSQL / Neon)
 
@@ -98,36 +108,44 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 
 #### Tables (M0 — schéma)
 
-| Table                    | Colonnes clés                                                                                                                                                      | FK vers            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
-| `officials`              | id, first_name, last_name, an_id, slug (permalink unique), birth_date, death_date, photo_url                                                                       | —                  |
-| `mandates`               | type, district, department, start_date, end_date, political_group, commune_code, parent_commune_code                                                               | officials          |
-| `ballots`                | an_id, title, date, type                                                                                                                                           | —                  |
-| `votes`                  | position (for/against/abstain/absent)                                                                                                                              | ballots, officials |
-| `staffers`               | first_name, last_name, start_date, end_date (index sur official_id)                                                                                                | officials          |
-| `affiliations`           | party_or_group, start_date, end_date                                                                                                                               | officials          |
-| `interests`              | type (professional_activity/consulting_activity/governing_body_membership/voluntary_activity/elected_function/financial_participation), entity_name, declared_date | officials          |
-| `addresses`              | type (constituency/assembly), street, postal_code, city, phone, email                                                                                              | officials          |
-| `external_links`         | platform, url                                                                                                                                                      | officials          |
-| `press_mentions`         | title, source_name, source_url, published_date, summary                                                                                                            | officials          |
-| `parliamentary_activity` | type, title, date, status, question_text, response_text, response_date, government_comments, source_url, rubrique, tete_analyse, question_number                   | officials          |
-| `committees`             | name, type, start_date, end_date                                                                                                                                   | officials          |
-| `electoral_results`      | election_type, election_date, round, score_percent, opponent_count                                                                                                 | officials          |
-| `sponsorships`           | type, election_year, candidate_name, raw_elected_name, raw_function, publication_date, matched                                                                     | officials          |
+| Table                    | Colonnes clés                                                                                                                                                      | FK vers                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| `officials`              | id, first_name, last_name, an_id, slug (permalink unique), birth_date, death_date, photo_url, s3_photo_url, hatvp_status                                           | —                                |
+| `mandates`               | type, district, department, start_date, end_date, political_group, commune_code, parent_commune_code                                                               | officials                        |
+| `ballots`                | an_id, title, date, type                                                                                                                                           | —                                |
+| `votes`                  | position (for/against/abstain/absent)                                                                                                                              | ballots, officials               |
+| `staffers`               | first_name, last_name, start_date, end_date (index sur official_id)                                                                                                | officials                        |
+| `affiliations`           | party_or_group, start_date, end_date                                                                                                                               | officials                        |
+| `interests`              | type (professional_activity/consulting_activity/governing_body_membership/voluntary_activity/elected_function/financial_participation), entity_name, declared_date | officials                        |
+| `addresses`              | type (constituency/assembly), street, postal_code, city, phone, email                                                                                              | officials                        |
+| `external_links`         | platform, url                                                                                                                                                      | officials                        |
+| `press_mentions`         | title, source_name, source_url, published_date, summary                                                                                                            | officials                        |
+| `parliamentary_activity` | type, title, date, status, question_text, response_text, response_date, government_comments, source_url, rubrique, tete_analyse, question_number                   | officials                        |
+| `committees`             | name, type, start_date, end_date                                                                                                                                   | officials                        |
+| `electoral_results`      | election_type, election_date, round, score_percent, opponent_count                                                                                                 | officials                        |
+| `sponsorships`           | type, election_year, candidate_name, raw_elected_name, raw_function, publication_date, matched                                                                     | officials                        |
+| `campaign_accounts`      | election_type, election_date, expenses_declared, expenses_retained, revenue_declared, donations_declared, reimbursement, decision                                  | officials                        |
+| `declaration_snapshots`  | declaration_date, declaration_type, source_document_url                                                                                                            | officials                        |
+| `municipal_elections`    | commune_code, commune_name, election_date, round, inscrits, abstentions, votants, blancs, nuls, exprimes                                                           | —                                |
+| `municipal_candidates`   | panneau, nom, prenom, sexe, nuance, liste, voix, ratio_inscrits, ratio_exprimes                                                                                    | municipal_elections, officials   |
+| `legislative_elections`  | circo_code, department, circo_name, election_date, round, inscrits, abstentions, votants, blancs, nuls, exprimes                                                   | —                                |
+| `legislative_candidates` | panneau, nom, prenom, sexe, nuance, voix, ratio_inscrits, ratio_exprimes, elu                                                                                      | legislative_elections, officials |
+| `senatorial_elections`   | department_code, department, election_date, round, inscrits, votants, blancs, nuls, exprimes, scrutin_type                                                         | —                                |
+| `senatorial_candidates`  | nom, prenom, sexe, nuance, liste, voix, ratio_exprimes, elu                                                                                                        | senatorial_elections, officials  |
 
 ### 3. Build du site (`packages/site`)
 
-Site Astro avec composants React et Tailwind CSS. Les données sont requêtées depuis la base **uniquement au moment du build** (pas de requêtes côté client, pas de SSR).
+Site Astro avec composants React et Tailwind CSS. Mode hybrid : pages statiques par défaut, SSR (server-side rendering via Vercel) pour les pages dynamiques (`prerender = false`).
 
-- Framework : Astro 7 (static output)
+- Framework : Astro 7 (output `static` avec opt-out SSR par page via `prerender = false`)
 - Composants interactifs : React 19 (islands via `@astrojs/react`)
 - Styling : Tailwind CSS 4 (via `@tailwindcss/vite`)
 - Utilitaires date : date-fns (calcul d'âge sur la fiche élu)
 - Layout de base : `src/layouts/BaseLayout.astro` (header, footer, meta description, titre dynamique)
-- SEO : sitemap XML généré au build (`@astrojs/sitemap`), meta tags Open Graph (title, description, image, url, type, locale, site_name), URL canonique. JSON-LD schema.org sur toutes les pages : WebSite+Organization (BaseLayout), BreadcrumbList (annuaire, votes, fiche élu, fiche scrutin), ItemList (annuaire élus, listing votes), Person avec sameAs/worksFor/memberOf/address (fiche élu), VoteAction (fiche scrutin)
+- SEO : sitemap XML généré au build (`@astrojs/sitemap`), meta tags Open Graph (title, description, image, url, type, locale, site_name), URL canonique. JSON-LD schema.org enrichi sur toutes les pages : WebSite+Organization (BaseLayout), BreadcrumbList (annuaire, votes, fiche élu, fiche scrutin), ItemList (annuaire élus, listing votes), Person enrichi (fiche élu : `@id`, `honorificPrefix`, `gender`, `birthPlace`, `hasOccupation` avec tous les mandats, `memberOf` avec groupe politique + commissions actives, `affiliation` dédupliqué, `worksFor` GovernmentOrganization, `address` multiples, `sameAs`, `image` ImageObject, `knowsLanguage`, `deathDate`), VoteAction (fiche scrutin)
 - Site URL : `https://www.elupedia.fr`
 - Consentement cookies : tarteaucitron.js vendorisé dans `public/tarteaucitron/`, conforme CNIL (highPrivacy, DenyAllCta, AcceptAllCta)
-- Composants React : `src/components/OfficialsList.tsx` (grille d'accueil avec filtres), `src/components/QuestionDetailDrawer.tsx` (tiroir de détail d'une question)
+- Composants React : `src/components/OfficialsList.tsx` (grille d'accueil avec filtres : type de mandat, département, mandat actif), `src/components/QuestionDetailDrawer.tsx` (tiroir de détail d'une question), `src/components/InterestDetailDrawer.tsx` (tiroir de détail d'un intérêt), `src/components/TimelineDrawer.tsx` (chronologie complète), `src/components/MunicipalElectionDrawer.tsx` (résultats municipales), `src/components/JurisdictionMap.tsx` (carte de circonscription SVG)
 - Cartes statiques : les adresses des élus sont géocodées via l'API adresse du gouvernement (api-adresse.data.gouv.fr) à l'ingestion. Au build, des cartes statiques PNG sont générées avec la librairie `staticmaps` (tuiles OpenStreetMap), mises en cache sur disque via hash MD5 des coordonnées, et servies en remplacement de l'icône GPS. Crédit « © OpenStreetMap » affiché sur chaque carte. Lien vers OpenStreetMap au lieu de Google Maps
 - Accessibilité : skip-to-content, focus-visible global, aria-label sur la navigation, contraste WCAG AA (minimum text-gray-500 pour le texte informatif)
 - Pages :
@@ -140,10 +158,10 @@ Site Astro avec composants React et Tailwind CSS. Les données sont requêtées 
 
 ### 4. Déploiement (Vercel)
 
-Le site statique généré est déployé sur Vercel. Chaque push sur `main` déclenche un rebuild.
+Le site est déployé sur Vercel. Chaque push sur `main` déclenche un rebuild. Les pages SSR sont servies via Vercel Functions.
 
-- Hébergement : Vercel (CDN mondial)
-- Mode : statique uniquement (pas de fonctions serverless)
+- Hébergement : Vercel (CDN mondial + serverless functions pour SSR)
+- Mode : hybrid (statique par défaut, SSR pour les pages dynamiques via `@astrojs/vercel`)
 - Configuration : `vercel.json` — `installCommand` active corepack pour Yarn 4, `buildCommand` lance `drizzle-kit migrate` puis `astro build` depuis `packages/site`, output dans `packages/site/dist`
 - Domaine : `elupedia.fr` (DNS configuré vers Vercel)
 - Variables d'environnement : `DATABASE_URL` configurée sur Vercel pour le build
@@ -171,6 +189,8 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 - **GitHub Actions Ingestion Maires** (`.github/workflows/ingest-maires.yml`) : 1er du mois 04:00 UTC, pipeline Maires (RNE + DILA + scrape communes)
 - **GitHub Actions Ingestion HATVP intérêts** (`.github/workflows/ingest-interests.yml`) : 1er et 15 du mois 04:00 UTC, déclarations d'intérêts transverses (députés, sénateurs, maires)
 - **GitHub Actions Ingestion liens sociaux** (`.github/workflows/ingest-social-links.yml`) : quotidien 03:30 UTC, crawl des 2 pages AN (réseaux sociaux + sites personnels) + scraping de 50 sites perso/jour pour détection Instagram/TikTok/YouTube
+- **GitHub Actions Ingestion presse tous élus** (`.github/workflows/ingest-press-maires.yml`) : 2x/jour (06:00 et 18:00 UTC), 1500 élus vivants aléatoires par run, timeout 240 min
+- **GitHub Actions Photos S3** (`.github/workflows/ingest-photos.yml`) : hebdomadaire (dimanche 03:30 UTC), sauvegarde des photos officielles vers S3
 - **GitHub Actions Social Daily Post** (`.github/workflows/social-daily-post.yml`) : deux publications quotidiennes sur les réseaux sociaux via Postiz — matin 08:30 Paris (élu aléatoire), soir 18:30 Paris (vote récent) ; déclenchement manuel avec choix du mode
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 

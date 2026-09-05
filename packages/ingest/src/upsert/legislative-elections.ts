@@ -8,7 +8,12 @@ import type { LegislativeGeneralResult } from '../sources/legislative-elections.
 import { logger } from '../logger.js';
 
 function normalize(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[-\s]+/g, ' ')
+    .trim();
 }
 
 export async function upsertLegislativeElections(

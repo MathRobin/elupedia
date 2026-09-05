@@ -95,7 +95,9 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 
 - **Tables** : `press_mentions`
 - **Source** : Google Actualités (flux RSS) — `google-news.ts` → `upsert/press-mentions.ts`
-- **Workflow** : `.github/workflows/ingest-press.yml` (lundi 05:00 UTC), délai 3s entre chaque élu, élus vivants uniquement
+- **Workflows** :
+  - `.github/workflows/ingest-press.yml` (lundi 05:00 UTC) — presse parlementaires, délai 3s entre chaque élu
+  - `.github/workflows/ingest-press-maires.yml` (06:00 et 18:00 UTC, 2x/jour) — 1500 élus vivants aléatoires par run, tous types de mandats
 - **Description** : Articles de presse mentionnant un élu, collectés automatiquement via les flux RSS Google Actualités à partir du nom complet de l'élu. **Ce n'est pas une source officielle** : les résultats peuvent contenir du bruit (homonymes, mentions indirectes) et ne sont pas exhaustifs. Section proposée à titre informatif.
 - **Déduplication** : sur `(official_id, source_url)`, insert uniquement (pas de mise à jour des articles existants)
 - **Pages** : fiche élu (section presse en grille de cards)
@@ -152,3 +154,51 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   5. Lancer l'ingestion : `yarn --cwd packages/ingest ingest:parrainages 2027`
   6. Vérifier les logs de matching (taux d'officials matchés) et les données en base.
   7. Rebuild le site pour que les fiches élus affichent les nouveaux parrainages.
+
+## Résultats électoraux détaillés
+
+- **Tables** : `municipal_elections`, `municipal_candidates`, `legislative_elections`, `legislative_candidates`, `senatorial_elections`, `senatorial_candidates`
+- **Sources** :
+  - Municipales : data.gouv.fr — CSV des résultats par commune et tour
+  - Législatives : data.gouv.fr — CSV des résultats par circonscription et tour
+  - Sénatoriales : data.gouv.fr — CSV des résultats par département et tour
+- **Clients** : `sources/municipal-elections.ts`, `sources/legislative-elections.ts`, `sources/senatorial-elections.ts` (CSV streaming pour éviter les crashes mémoire sur les gros fichiers)
+- **Description** : Résultats complets par tour (inscrits, abstentions, votants, blancs, nuls, exprimés) avec le détail par candidat/liste (voix, ratios, élu). Les candidats sont liés aux `officials` quand le matching est possible.
+- **Pages** : fiche élu (sections résultats municipaux, législatifs, sénatoriaux avec drawer détaillé)
+
+## Réconciliation candidats–élus
+
+- **Script** : `packages/ingest/src/reconcile-elections.ts`
+- **Commande** : `yarn --cwd packages/ingest reconcile`
+- **Description** : Rattache les candidats des tables d'élections (municipales, législatives, sénatoriales) aux fiches `officials` via `official_id`. Le matching est fait par nom normalisé (NFD, minuscules, tirets/espaces unifiés). Indépendant de l'ingestion : à relancer après chaque ajout d'officiels ou d'élections pour combler les trous.
+- **Quand l'exécuter** :
+  - Après l'ingestion d'une nouvelle source d'officiels (AN, Sénat, maires)
+  - Après l'ingestion de nouvelles élections
+  - En maintenance périodique pour rattraper les cas manqués
+
+## Comptes de campagne (CNCCFP)
+
+- **Table** : `campaign_accounts`
+- **Source** : CNCCFP via data.gouv.fr — CSV des comptes de campagne publiés au JO
+- **Client** : `sources/cnccfp.ts` → `upsert/campaign-accounts.ts`
+- **Élections couvertes** : législatives 2022 et 2024, sénatoriales 2023
+- **Description** : Dépenses déclarées/retenues, recettes, dons, contributions personnelles, apports partis, remboursement, décision (Approuvé, Approuvé après réformation, Rejeté, Non déposé). Matching sur nom + département + nuance.
+- **Pages** : fiche élu (section comptes de campagne avec badges de décision colorés)
+
+## Photos (sauvegarde S3)
+
+- **Champ** : `officials.s3_photo_url`
+- **Source** : photos originales (AN, Sénat, Wikidata) téléchargées et uploadées sur S3
+- **Client** : `upsert/upload-photos.ts`
+- **Workflow** : `.github/workflows/ingest-photos.yml` (dimanche 03:30 UTC)
+- **Bucket** : `elus/pp/{officialId}.jpg`
+- **Description** : Les photos des élus sont sauvegardées sur S3 pour éviter la dépendance aux URLs sources. Le site utilise `s3_photo_url` en priorité, avec fallback sur `photo_url`.
+
+## Statut déclaration HATVP
+
+- **Champ** : `officials.hatvp_status`
+- **Source** : fiches nominatives HATVP (`hatvp.fr/fiche-nominative/?declarant=...`) — HTML scraping
+- **Client** : `sources/hatvp-status.ts` → `upsert/hatvp-status.ts`
+- **Cible** : députés, sénateurs, et maires de communes >20 000 habitants (obligation de déclaration loi 2013) n'ayant pas de déclaration publiée dans le XML HATVP
+- **Description** : Détecte les déclarations déposées mais pas encore publiées (statut `pending`). Utilise les données de population INSEE pour identifier les communes >20k. Un bandeau amber est affiché sur la fiche élu avec lien vers la fiche HATVP.
+- **Pages** : fiche élu (bandeau dans la section intérêts quand `hatvp_status = 'pending'`)

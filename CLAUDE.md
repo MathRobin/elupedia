@@ -39,6 +39,9 @@ yarn format           # Vérifier le formatage Prettier
 yarn format:fix       # Appliquer le formatage Prettier
 yarn typecheck        # Vérification TypeScript (tsc --build)
 yarn test             # Lancer les tests (Vitest)
+
+# Réconciliation candidats–élus (rattache les official_id manquants)
+yarn --cwd packages/ingest reconcile
 ```
 
 ## Documentation
