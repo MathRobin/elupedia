@@ -791,6 +791,12 @@ for (const sp of deputySponsorships) {
             <dt class="text-sm text-slate-500 dark:text-slate-400">Début de mandat</dt>
             <dd class="font-medium dark:text-white">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
           </div>
+          {!hasActiveMandate && deputy.endDate && (
+            <div>
+              <dt class="text-sm text-slate-500 dark:text-slate-400">Fin de mandat</dt>
+              <dd class="font-medium dark:text-white">{new Date(deputy.endDate).toLocaleDateString('fr-FR')}</dd>
+            </div>
+          )}
         </dl>
         {jurisdictionCoords && (
           <div class="w-full md:w-48 shrink-0">
