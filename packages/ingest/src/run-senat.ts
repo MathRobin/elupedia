@@ -13,8 +13,12 @@ import { fetchSenatCollaborateurs } from './sources/senat-collaborateurs.js';
 import { diffSenatStaffers } from './upsert/senat-staffers-diff.js';
 import { fetchSenatAdresses } from './sources/senat-adresses.js';
 import { upsertSenatAddresses } from './upsert/senat-addresses.js';
-import { fetchSenatElections } from './sources/senat-elections.js';
+import {
+  fetchSenatElections,
+  fetchSenatorialElections,
+} from './sources/senat-elections.js';
 import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js';
+import { upsertSenatorialElections } from './upsert/senatorial-elections.js';
 import { fetchSenatActivities } from './sources/senat-activite.js';
 import { upsertSenatParliamentaryActivity } from './upsert/senat-parliamentary-activity.js';
 import { fetchSenatCommissions } from './sources/senat-commissions.js';
@@ -136,10 +140,16 @@ export async function runSenat(
           source: 'senat-elections',
         });
         const r = await upsertSenatElectoralResults(db, elec);
+
+        const full = await withRetry(() => fetchSenatorialElections('2023'), {
+          source: 'senat-elections-full',
+        });
+        const r2 = await upsertSenatorialElections(db, full);
+
         return {
           source: 'senat-elections',
-          created: r.created,
-          updated: r.updated,
+          created: r.created + r2.elections,
+          updated: r.updated + r2.candidates,
           durationMs: 0,
         };
       }),

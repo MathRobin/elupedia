@@ -169,6 +169,13 @@
       "when": 1788591795841,
       "tag": "0023_legislative-elections",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788594641945,
+      "tag": "0024_senatorial-elections",
+      "breakpoints": true
     }
   ]
 }

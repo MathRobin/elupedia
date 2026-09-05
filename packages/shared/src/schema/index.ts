@@ -41,3 +41,7 @@ export {
   legislativeElections,
   legislativeCandidates,
 } from './legislative-elections.js';
+export {
+  senatorialElections,
+  senatorialCandidates,
+} from './senatorial-elections.js';

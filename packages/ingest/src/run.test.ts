@@ -106,9 +106,13 @@ vi.mock('./upsert/senat-addresses.js', () => ({
 }));
 vi.mock('./sources/senat-elections.js', () => ({
   fetchSenatElections: vi.fn(),
+  fetchSenatorialElections: vi.fn(),
 }));
 vi.mock('./upsert/senat-electoral-results.js', () => ({
   upsertSenatElectoralResults: vi.fn(),
+}));
+vi.mock('./upsert/senatorial-elections.js', () => ({
+  upsertSenatorialElections: vi.fn(),
 }));
 vi.mock('./sources/senat-activite.js', () => ({
   fetchSenatActivities: vi.fn(),
@@ -219,8 +223,12 @@ import { fetchSenatCollaborateurs } from './sources/senat-collaborateurs.js';
 import { diffSenatStaffers } from './upsert/senat-staffers-diff.js';
 import { fetchSenatAdresses } from './sources/senat-adresses.js';
 import { upsertSenatAddresses } from './upsert/senat-addresses.js';
-import { fetchSenatElections } from './sources/senat-elections.js';
+import {
+  fetchSenatElections,
+  fetchSenatorialElections,
+} from './sources/senat-elections.js';
 import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js';
+import { upsertSenatorialElections } from './upsert/senatorial-elections.js';
 import { upsertDeclarationSnapshots } from './upsert/declaration-snapshots.js';
 import { fetchSenatActivities } from './sources/senat-activite.js';
 import { upsertSenatParliamentaryActivity } from './upsert/senat-parliamentary-activity.js';
@@ -309,6 +317,12 @@ function setupHappyPath() {
     created: 0,
     updated: 0,
     skipped: 0,
+  });
+  vi.mocked(fetchSenatorialElections).mockResolvedValue([]);
+  vi.mocked(upsertSenatorialElections).mockResolvedValue({
+    elections: 0,
+    candidates: 0,
+    matched: 0,
   });
   vi.mocked(fetchSenatActivities).mockResolvedValue([]);
   vi.mocked(upsertSenatParliamentaryActivity).mockResolvedValue({
