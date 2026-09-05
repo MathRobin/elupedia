@@ -179,7 +179,14 @@ const deputySponsorships = await db
   .from(sponsorships)
   .where(eq(sponsorships.officialId, officialId));
 
-const municipalElectionRows = row.mandateType === 'maire' && row.communeCode
+// For maires: elections in their commune. For others: elections where they appear as candidate.
+const candidateElectionIds = await db
+  .select({ electionId: municipalCandidates.electionId })
+  .from(municipalCandidates)
+  .where(eq(municipalCandidates.officialId, officialId));
+const candidateElectionIdSet = new Set(candidateElectionIds.map((r) => r.electionId));
+
+const communeElectionRows = row.mandateType === 'maire' && row.communeCode
   ? await db
       .select({
         id: municipalElections.id,
@@ -198,6 +205,31 @@ const municipalElectionRows = row.mandateType === 'maire' && row.communeCode
       .where(eq(municipalElections.communeCode, row.communeCode))
       .orderBy(desc(municipalElections.electionDate))
   : [];
+
+// Merge: commune elections + elections where the official ran as candidate elsewhere
+const communeIds = new Set(communeElectionRows.map((e) => e.id));
+const extraElectionIds = [...candidateElectionIdSet].filter((id) => !communeIds.has(id));
+const extraElectionRows = extraElectionIds.length > 0
+  ? await db
+      .select({
+        id: municipalElections.id,
+        electionId: municipalElections.electionId,
+        communeName: municipalElections.communeName,
+        round: municipalElections.round,
+        electionDate: municipalElections.electionDate,
+        inscrits: municipalElections.inscrits,
+        abstentions: municipalElections.abstentions,
+        votants: municipalElections.votants,
+        blancs: municipalElections.blancs,
+        nuls: municipalElections.nuls,
+        exprimes: municipalElections.exprimes,
+      })
+      .from(municipalElections)
+      .where(inArray(municipalElections.id, extraElectionIds))
+  : [];
+
+const municipalElectionRows = [...communeElectionRows, ...extraElectionRows]
+  .sort((a, b) => b.electionDate.localeCompare(a.electionDate));
 
 const municipalElectionIds = municipalElectionRows.map((e) => e.id);
 const municipalCandidateRows = municipalElectionIds.length > 0
