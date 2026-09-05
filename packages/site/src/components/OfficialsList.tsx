@@ -287,7 +287,7 @@ function FilterPanel({
         </label>
       </fieldset>
 
-      <div className="space-y-2">
+      <div className="space-y-2" hidden>
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
