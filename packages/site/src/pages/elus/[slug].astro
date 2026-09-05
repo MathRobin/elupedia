@@ -216,9 +216,10 @@ const municipalCandidateRows = municipalElectionIds.length > 0
 const candidateOfficialIds = [...new Set(municipalCandidateRows.map((c) => c.officialId).filter(Boolean))] as string[];
 const candidateOfficials = candidateOfficialIds.length > 0
   ? await db
-      .select({ id: officials.id, slug: officials.slug })
+      .selectDistinct({ id: officials.id, slug: officials.slug })
       .from(officials)
-      .where(inArray(officials.id, candidateOfficialIds))
+      .innerJoin(mandates, eq(mandates.officialId, officials.id))
+      .where(and(inArray(officials.id, candidateOfficialIds), isNull(mandates.endDate)))
   : [];
 const candidateSlugMap = new Map(candidateOfficials.map((o) => [o.id, o.slug]));
 
