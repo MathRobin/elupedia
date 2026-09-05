@@ -21,7 +21,7 @@ const slugFilter = isUuid
   ? or(eq(officials.slug, slug!), eq(officials.id, slug!))
   : eq(officials.slug, slug!);
 
-const [row] = await db
+const mandateRows = await db
   .select({
     id: officials.id,
     slug: officials.slug,
@@ -34,14 +34,17 @@ const [row] = await db
     district: mandates.district,
     department: mandates.department,
     startDate: mandates.startDate,
+    endDate: mandates.endDate,
     politicalGroup: mandates.politicalGroup,
     mandateType: mandates.type,
     communeCode: mandates.communeCode,
   })
   .from(officials)
   .innerJoin(mandates, eq(mandates.officialId, officials.id))
-  .where(and(slugFilter, isNull(mandates.endDate)))
-  .limit(1);
+  .where(slugFilter)
+  .orderBy(mandates.endDate, desc(mandates.startDate));
+
+const row = mandateRows.find((r) => !r.endDate) ?? mandateRows[0] ?? null;
 
 if (!row) return Astro.redirect('/elus');
 
@@ -216,10 +219,9 @@ const municipalCandidateRows = municipalElectionIds.length > 0
 const candidateOfficialIds = [...new Set(municipalCandidateRows.map((c) => c.officialId).filter(Boolean))] as string[];
 const candidateOfficials = candidateOfficialIds.length > 0
   ? await db
-      .selectDistinct({ id: officials.id, slug: officials.slug })
+      .select({ id: officials.id, slug: officials.slug })
       .from(officials)
-      .innerJoin(mandates, eq(mandates.officialId, officials.id))
-      .where(and(inArray(officials.id, candidateOfficialIds), isNull(mandates.endDate)))
+      .where(inArray(officials.id, candidateOfficialIds))
   : [];
 const candidateSlugMap = new Map(candidateOfficials.map((o) => [o.id, o.slug]));
 
@@ -412,6 +414,7 @@ const worksForName = deputy.mandateType === 'depute'
 
 const isMaire = deputy.mandateType === 'maire';
 const isParliamentary = deputy.mandateType === 'depute' || deputy.mandateType === 'senateur';
+const hasActiveMandate = !deputy.endDate;
 
 const constituencyAddress = deputyAddresses.find((a) =>
   isMaire ? a.type === 'town_hall' : a.type === 'constituency_office',
@@ -758,7 +761,7 @@ for (const sp of deputySponsorships) {
 
     <section id="mandat" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
-        Mandat en cours
+        {hasActiveMandate ? 'Mandat en cours' : 'Dernier mandat'}
       </h2>
       <div class={`mt-4 ${jurisdictionCoords || senatDeptCode ? 'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start' : ''}`}>
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">

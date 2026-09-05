@@ -12,6 +12,7 @@ type Official = {
   politicalGroup: string | null;
   mandateType: string;
   isFemale: boolean;
+  hasActiveMandate: boolean;
 };
 
 type Filters = {
@@ -19,6 +20,7 @@ type Filters = {
   depute: boolean;
   senateur: boolean;
   maire: boolean;
+  mandatActif: boolean;
   photoFilter: '' | 'with' | 'without';
   department: string;
   group: string;
@@ -42,6 +44,7 @@ function readFiltersFromUrl(): { filters: Partial<Filters>; page?: number } {
     f.senateur = types.has('senateur');
     f.maire = types.has('maire');
   }
+  if (p.has('actif')) f.mandatActif = p.get('actif') !== '0';
   if (p.has('photo')) {
     const v = p.get('photo');
     if (v === 'with' || v === 'without') f.photoFilter = v;
@@ -70,6 +73,7 @@ function writeFiltersToUrl(filters: Filters, page: number) {
   if (activeTypes.length > 0 && activeTypes.length < allTypes) {
     p.set('type', activeTypes.join(','));
   }
+  if (!filters.mandatActif) p.set('actif', '0');
   if (filters.photoFilter) p.set('photo', filters.photoFilter);
   if (filters.department) p.set('dep', filters.department);
   if (filters.group) p.set('groupe', filters.group);
@@ -195,6 +199,7 @@ function FilterPanel({
   const activeCount =
     (filters.search ? 1 : 0) +
     (!filters.depute || !filters.senateur || !filters.maire ? 1 : 0) +
+    (!filters.mandatActif ? 1 : 0) +
     (filters.photoFilter ? 1 : 0) +
     (filters.department ? 1 : 0) +
     (filters.group ? 1 : 0);
@@ -261,6 +266,25 @@ function FilterPanel({
             </span>
           </label>
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          Statut
+        </legend>
+        <label className="mt-3 flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filters.mandatActif}
+            onChange={(e) =>
+              onChange({ ...filters, mandatActif: e.target.checked })
+            }
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">
+            Mandat en cours uniquement
+          </span>
+        </label>
       </fieldset>
 
       <div className="space-y-2">
@@ -357,6 +381,7 @@ export default function OfficialsList({
     depute: true,
     senateur: true,
     maire: true,
+    mandatActif: true,
     photoFilter: '',
     department: '',
     group: '',
@@ -424,6 +449,7 @@ export default function OfficialsList({
   const filtered = useMemo(() => {
     const q = normalize(filters.search);
     let list = officials.filter((o) => {
+      if (filters.mandatActif && !o.hasActiveMandate) return false;
       if (o.mandateType === 'depute' && !filters.depute) return false;
       if (o.mandateType === 'senateur' && !filters.senateur) return false;
       if (o.mandateType === 'maire' && !filters.maire) return false;
@@ -460,6 +486,7 @@ export default function OfficialsList({
   const activeCount =
     (filters.search ? 1 : 0) +
     (!filters.depute || !filters.senateur || !filters.maire ? 1 : 0) +
+    (!filters.mandatActif ? 1 : 0) +
     (filters.photoFilter ? 1 : 0) +
     (filters.department ? 1 : 0) +
     (filters.group ? 1 : 0);

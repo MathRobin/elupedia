@@ -3,7 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import OfficialsList from '../../components/OfficialsList';
 import { getDb } from '../../lib/db.js';
 import { officials, mandates } from '@elupedia/shared';
-import { eq, isNull, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 type Official = {
   id: string;
@@ -16,6 +16,7 @@ type Official = {
   politicalGroup: string | null;
   mandateType: string;
   isFemale: boolean;
+  hasActiveMandate: boolean;
 };
 
 let officialsList: Official[] = [];
@@ -34,11 +35,11 @@ try {
       department: mandates.department,
       politicalGroup: mandates.politicalGroup,
       mandateType: mandates.type,
+      endDate: mandates.endDate,
       civ: sql<string>`COALESCE("officials"."full"->'acteur'->'etatCivil'->'ident'->>'civ', "officials"."full"->>'Qualite')`,
     })
     .from(officials)
     .innerJoin(mandates, eq(mandates.officialId, officials.id))
-    .where(isNull(mandates.endDate))
     .orderBy(officials.lastName);
 
   const seen = new Set<string>();
@@ -54,6 +55,7 @@ try {
       politicalGroup: r.politicalGroup,
       mandateType: r.mandateType,
       isFemale: r.civ === 'Mme',
+      hasActiveMandate: !r.endDate,
     }))
     .filter((o) => {
       const key = `${o.id}-${o.mandateType}`;
@@ -78,7 +80,7 @@ const itemListJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ItemList',
   name: 'Annuaire des élus français',
-  description: 'Députés, sénateurs et maires en exercice',
+  description: 'Députés, sénateurs et maires français',
   numberOfItems: officialsList.length,
   itemListElement: officialsList.slice(0, 50).map((o, i) => ({
     '@type': 'ListItem',
@@ -91,7 +93,7 @@ const itemListJsonLd = {
 
 <BaseLayout
   title="Annuaire des élus"
-  description="Annuaire complet des députés et sénateurs français en exercice — recherche par nom, département, groupe politique."
+  description="Annuaire complet des députés, sénateurs et maires français — recherche par nom, département, groupe politique."
   jsonLd={breadcrumbJsonLd}
 >
   <Fragment slot="head">
@@ -101,7 +103,7 @@ const itemListJsonLd = {
     <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
       Annuaire des élus
     </h1>
-    <p class="mt-2 text-slate-500 dark:text-slate-400">Députés, sénateurs et maires en exercice</p>
+    <p class="mt-2 text-slate-500 dark:text-slate-400">Députés, sénateurs et maires français</p>
   </div>
 
   {error && (

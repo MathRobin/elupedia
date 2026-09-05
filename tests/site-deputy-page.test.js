@@ -16,11 +16,10 @@ describe('Fiche élu (#53)', () => {
     expect(content).toContain('export const prerender = false');
   });
 
-  it('queries officials with active mandates', () => {
+  it('queries officials with mandates', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain('officials');
     expect(content).toContain('mandates');
-    expect(content).toContain('isNull(mandates.endDate)');
   });
 
   it('displays identity (name, photo, birth date)', () => {
