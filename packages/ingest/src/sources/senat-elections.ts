@@ -104,7 +104,10 @@ function parseCandidatesFromRow(
     candidates.push({
       nom: nom.trim(),
       prenom: prenom.trim(),
-      sexe: typeof sexe === 'string' && sexe.trim() ? sexe.trim() : null,
+      sexe:
+        typeof sexe === 'string' && sexe.trim()
+          ? sexe.trim().charAt(0).toUpperCase()
+          : null,
       nuance:
         typeof nuance === 'string' && nuance.trim() ? nuance.trim() : null,
       voix,
