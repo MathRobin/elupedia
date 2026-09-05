@@ -56,12 +56,29 @@ async function streamCsv(
     headers: { 'Accept-Encoding': 'gzip, deflate' },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-  const text = await res.text();
-  const lines = text.split('\n');
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.includes(filter)) continue;
-    onLine(line.split(';'));
+  if (!res.body) throw new Error(`No body in response from ${url}`);
+
+  const decoder = new TextDecoder();
+  let remainder = '';
+  let headerSkipped = false;
+
+  for await (const chunk of res.body) {
+    const text = remainder + decoder.decode(chunk, { stream: true });
+    const lines = text.split('\n');
+    remainder = lines.pop()!;
+
+    for (const line of lines) {
+      if (!headerSkipped) {
+        headerSkipped = true;
+        continue;
+      }
+      if (!line.includes(filter)) continue;
+      onLine(line.split(';'));
+    }
+  }
+
+  if (headerSkipped && remainder && remainder.includes(filter)) {
+    onLine(remainder.split(';'));
   }
 }
 
