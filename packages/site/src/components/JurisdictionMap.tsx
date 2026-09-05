@@ -7,9 +7,10 @@ type Props = {
 };
 
 function gpsToSvg(lat: number, lon: number): { x: number; y: number } {
+  const mercY = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
   return {
-    x: 40.5953 * lon + 2.6803 * lat + 75.9066,
-    y: 1.234 * lon + -53.6021 * lat + 2759.8521,
+    x: 52.4806 * lon + 1.4327 * lat + -0.2326 * lon * lat + 148.5829,
+    y: -17.884 * lon + -2417.0217 * mercY + 19.1592 * lon * mercY + 2509.0602,
   };
 }
 
