@@ -29,6 +29,7 @@ const mandateRows = await db
     lastName: officials.lastName,
     birthDate: officials.birthDate,
     photoUrl: officials.photoUrl,
+    s3PhotoUrl: officials.s3PhotoUrl,
     anId: officials.anId,
     senatId: officials.senatId,
     district: mandates.district,
@@ -398,6 +399,7 @@ if (ungroupedInterests.length > 0) {
 }
 
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
+const photo = deputy.s3PhotoUrl ?? deputy.photoUrl;
 const mandateLabel = mandateTypeLabels[deputy.mandateType] ?? deputy.mandateType;
 
 const sameAs = deputyLinks
@@ -435,7 +437,7 @@ const personJsonLd: Record<string, unknown> = {
   jobTitle: mandateLabel,
   url: `https://www.elupedia.fr/elus/${deputy.slug ?? deputy.id}`,
   nationality: { '@type': 'Country', name: 'France' },
-  ...(deputy.photoUrl && { image: deputy.photoUrl }),
+  ...(photo && { image: photo }),
   ...(deputy.birthDate && { birthDate: deputy.birthDate }),
   ...(sameAs.length > 0 && { sameAs }),
   ...(worksForName && {
@@ -610,9 +612,9 @@ for (const sp of deputySponsorships) {
 
 ---
 
-<BaseLayout title={fullName} description={metaDescription} image={deputy.photoUrl ?? undefined} jsonLd={personJsonLd} ogType="profile">
+<BaseLayout title={fullName} description={metaDescription} image={photo ?? undefined} jsonLd={personJsonLd} ogType="profile">
   <Fragment slot="head">
-    {deputy.photoUrl && <link rel="preload" as="image" href={deputy.photoUrl} fetchpriority="high" />}
+    {photo && <link rel="preload" as="image" href={photo} fetchpriority="high" />}
     <meta property="profile:first_name" content={deputy.firstName} />
     <meta property="profile:last_name" content={deputy.lastName} />
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
@@ -624,9 +626,9 @@ for (const sp of deputySponsorships) {
     </a>
 
     <div class="mt-6 grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-6 items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700">
-      {deputy.photoUrl ? (
+      {photo ? (
         <img
-          src={deputy.photoUrl}
+          src={photo}
           alt={fullName}
           class="h-28 w-28 shrink-0 rounded-2xl object-cover ring-2 ring-offset-2 ring-indigo-400 shadow-lg dark:ring-offset-slate-800"
           fetchpriority="high"

@@ -176,6 +176,13 @@
       "when": 1788594641945,
       "tag": "0024_senatorial-elections",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788607607446,
+      "tag": "0025_living_mongu",
+      "breakpoints": true
     }
   ]
 }

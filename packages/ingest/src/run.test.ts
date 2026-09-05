@@ -171,6 +171,9 @@ vi.mock('./upsert/geocode-addresses.js', () => ({
 vi.mock('./upsert/upload-maps.js', () => ({
   uploadMaps: vi.fn(),
 }));
+vi.mock('./upsert/upload-photos.js', () => ({
+  uploadPhotos: vi.fn(),
+}));
 vi.mock('./sources/cnccfp.js', () => ({
   fetchCnccfpAccounts: vi.fn(),
   CNCCFP_ELECTIONS: [
@@ -249,6 +252,7 @@ import { fetchLegislativeElections } from './sources/legislative-elections.js';
 import { upsertLegislativeElections } from './upsert/legislative-elections.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
+import { uploadPhotos } from './upsert/upload-photos.js';
 import { fetchCnccfpAccounts } from './sources/cnccfp.js';
 import { upsertCampaignAccounts } from './upsert/campaign-accounts.js';
 
@@ -388,6 +392,11 @@ function setupHappyPath() {
     skipped: 0,
     failed: 0,
   });
+  vi.mocked(uploadPhotos).mockResolvedValue({
+    uploaded: 0,
+    skipped: 0,
+    failed: 0,
+  });
   vi.mocked(fetchCnccfpAccounts).mockResolvedValue([]);
   vi.mocked(upsertCampaignAccounts).mockResolvedValue({
     created: 0,
@@ -409,7 +418,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(25);
+    expect(results).toHaveLength(26);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -438,7 +447,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(25);
+    expect(results).toHaveLength(26);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

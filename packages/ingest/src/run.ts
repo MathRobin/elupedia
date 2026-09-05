@@ -6,6 +6,7 @@ import { runMaires } from './run-maires.js';
 import { runInterests } from './run-interests.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
+import { uploadPhotos } from './upsert/upload-photos.js';
 import { fetchCnccfpAccounts, CNCCFP_ELECTIONS } from './sources/cnccfp.js';
 import { upsertCampaignAccounts } from './upsert/campaign-accounts.js';
 import { logger } from './logger.js';
@@ -82,6 +83,23 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     );
   }
 
+  const photosResults: StepResult[] = [];
+  if (enabled('photos')) {
+    logger.info('[Photos] Uploading official photos to S3...');
+    const photosDb = createDb();
+    photosResults.push(
+      await runStep('photos', async () => {
+        const r = await uploadPhotos(photosDb);
+        return {
+          source: 'photos',
+          created: r.uploaded,
+          updated: r.skipped,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
   return [
     ...anResults,
     ...senatResults,
@@ -90,5 +108,6 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     ...geocodeResults,
     ...mapsResults,
     ...campaignResults,
+    ...photosResults,
   ];
 }
