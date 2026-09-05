@@ -9,6 +9,7 @@ import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
 import TimelineDrawer from '../../components/TimelineDrawer.tsx';
 import MunicipalElectionSection from '../../components/MunicipalElectionDrawer.tsx';
+import JurisdictionMap from '../../components/JurisdictionMap.tsx';
 
 export const prerender = false;
 
@@ -490,6 +491,10 @@ const contactSource = deputy.mandateType === 'maire'
   ? { name: 'DILA', url: 'https://api-lannuaire.service-public.fr' }
   : parliamentSource;
 
+const jurisdictionCoords = constituencyAddress?.latitude != null && constituencyAddress?.longitude != null
+  ? { lat: Number(constituencyAddress.latitude), lon: Number(constituencyAddress.longitude) }
+  : null;
+
 function maxUpdatedAt(items: { updatedAt: Date }[]): Date | null {
   if (items.length === 0) return null;
   return items.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, items[0].updatedAt);
@@ -740,34 +745,45 @@ for (const sp of deputySponsorships) {
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Mandat en cours
       </h2>
-      <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <dt class="text-sm text-slate-500 dark:text-slate-400">Type</dt>
-          <dd class="font-medium dark:text-white">{mandateLabel}</dd>
-        </div>
-        {deputy.district && (
+      <div class={`mt-4 ${jurisdictionCoords ? 'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start' : ''}`}>
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <dt class="text-sm text-slate-500 dark:text-slate-400">Circonscription</dt>
-            <dd class="font-medium dark:text-white">{deputy.district}</dd>
+            <dt class="text-sm text-slate-500 dark:text-slate-400">Type</dt>
+            <dd class="font-medium dark:text-white">{mandateLabel}</dd>
+          </div>
+          {deputy.district && (
+            <div>
+              <dt class="text-sm text-slate-500 dark:text-slate-400">Circonscription</dt>
+              <dd class="font-medium dark:text-white">{deputy.district}</dd>
+            </div>
+          )}
+          {deputy.department && (
+            <div>
+              <dt class="text-sm text-slate-500 dark:text-slate-400">Département</dt>
+              <dd class="font-medium dark:text-white">{deputy.department}</dd>
+            </div>
+          )}
+          {deputy.politicalGroup && (
+            <div>
+              <dt class="text-sm text-slate-500 dark:text-slate-400">Groupe politique</dt>
+              <dd class="font-medium dark:text-white">{deputy.politicalGroup}</dd>
+            </div>
+          )}
+          <div>
+            <dt class="text-sm text-slate-500 dark:text-slate-400">Début de mandat</dt>
+            <dd class="font-medium dark:text-white">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
+          </div>
+        </dl>
+        {jurisdictionCoords && (
+          <div class="w-full md:w-48 shrink-0">
+            <JurisdictionMap
+              latitude={jurisdictionCoords.lat}
+              longitude={jurisdictionCoords.lon}
+              label={`Localisation : ${deputy.district ?? deputy.department ?? ''}`}
+            />
           </div>
         )}
-        {deputy.department && (
-          <div>
-            <dt class="text-sm text-slate-500 dark:text-slate-400">Département</dt>
-            <dd class="font-medium dark:text-white">{deputy.department}</dd>
-          </div>
-        )}
-        {deputy.politicalGroup && (
-          <div>
-            <dt class="text-sm text-slate-500 dark:text-slate-400">Groupe politique</dt>
-            <dd class="font-medium dark:text-white">{deputy.politicalGroup}</dd>
-          </div>
-        )}
-        <div>
-          <dt class="text-sm text-slate-500 dark:text-slate-400">Début de mandat</dt>
-          <dd class="font-medium dark:text-white">{new Date(deputy.startDate).toLocaleDateString('fr-FR')}</dd>
-        </div>
-      </dl>
+      </div>
       <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
     </section>
 
