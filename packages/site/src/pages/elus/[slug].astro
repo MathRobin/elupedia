@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, DEPARTMENT_CODES } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -499,6 +499,10 @@ const senatDeptCode = deputy.mandateType === 'senateur' && deputy.department
   ? DEPARTMENT_CODES[deputy.department] ?? null
   : null;
 
+const groupColor = deputy.politicalGroup
+  ? POLITICAL_GROUP_COLORS[deputy.politicalGroup] ?? null
+  : null;
+
 function maxUpdatedAt(items: { updatedAt: Date }[]): Date | null {
   if (items.length === 0) return null;
   return items.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, items[0].updatedAt);
@@ -639,7 +643,13 @@ for (const sp of deputySponsorships) {
           {deputy.district && deputy.department && ` — ${deputy.district} (${deputy.department})`}
         </p>
         {deputy.politicalGroup && (
-          <span class="mt-2 inline-block rounded-full bg-indigo-50 border border-indigo-200/50 px-3 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-500/30 dark:text-indigo-300">
+          <span
+            class="mt-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-medium"
+            style={groupColor
+              ? `background-color: ${groupColor}12; border-color: ${groupColor}30; color: ${groupColor}`
+              : 'background-color: #eef2ff; border-color: rgba(129,140,248,0.3); color: #4338ca'}
+          >
+            {groupColor && <span class="h-2 w-2 rounded-full shrink-0" style={`background-color: ${groupColor}`} />}
             {deputy.politicalGroup}
           </span>
         )}
@@ -784,6 +794,7 @@ for (const sp of deputySponsorships) {
               latitude={jurisdictionCoords.lat}
               longitude={jurisdictionCoords.lon}
               label={`Localisation : ${deputy.district ?? deputy.department ?? ''}`}
+              color={groupColor ?? undefined}
             />
           </div>
         )}
@@ -792,6 +803,7 @@ for (const sp of deputySponsorships) {
             <JurisdictionMap
               departmentCode={senatDeptCode}
               label={`Département : ${deputy.department ?? ''}`}
+              color={groupColor ?? undefined}
             />
           </div>
         )}

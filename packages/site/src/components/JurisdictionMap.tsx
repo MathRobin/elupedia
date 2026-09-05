@@ -4,11 +4,13 @@ type PinProps = {
   latitude: number;
   longitude: number;
   label: string;
+  color?: string;
 };
 
 type DeptProps = {
   departmentCode: string;
   label: string;
+  color?: string;
 };
 
 type Props = PinProps | DeptProps;
@@ -28,6 +30,7 @@ function isPin(props: Props): props is PinProps {
 export default function JurisdictionMap(props: Props) {
   const pin = isPin(props) ? gpsToSvg(props.latitude, props.longitude) : null;
   const highlightId = !isPin(props) ? props.departmentCode : null;
+  const accent = props.color ?? '#6366f1';
 
   return (
     <div className="relative">
@@ -38,13 +41,12 @@ export default function JurisdictionMap(props: Props) {
             <path
               key={dept.id}
               d={dept.path}
-              fill={highlighted ? '#818cf8' : '#f1f5f9'}
-              stroke={highlighted ? '#4f46e5' : '#cbd5e1'}
+              fill={highlighted ? accent : '#f1f5f9'}
+              stroke={highlighted ? accent : '#cbd5e1'}
               strokeWidth={highlighted ? 1.5 : 0.5}
+              fillOpacity={highlighted ? 0.6 : 1}
               className={
-                highlighted
-                  ? 'dark:fill-indigo-500 dark:stroke-indigo-400'
-                  : 'dark:fill-slate-700 dark:stroke-slate-600'
+                highlighted ? '' : 'dark:fill-slate-700 dark:stroke-slate-600'
               }
             />
           );
@@ -55,7 +57,7 @@ export default function JurisdictionMap(props: Props) {
               cx={pin.x}
               cy={pin.y}
               r={16}
-              fill="#6366f1"
+              fill={accent}
               fillOpacity={0.15}
               stroke="none"
             />
@@ -63,7 +65,7 @@ export default function JurisdictionMap(props: Props) {
               cx={pin.x}
               cy={pin.y}
               r={8}
-              fill="#6366f1"
+              fill={accent}
               stroke="#fff"
               strokeWidth={3}
               className="dark:stroke-slate-800"
