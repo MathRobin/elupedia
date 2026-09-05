@@ -15,6 +15,7 @@
     "ingest:parrainages": "tsx src/main-parrainages.ts",
     "ingest:rip": "tsx src/main-rip-signatures.ts",
     "ingest:photos": "tsx src/main-photos.ts",
+    "ingest:press:maires": "tsx src/main-press-maires.ts",
     "test": "vitest run"
   },
   "dependencies": {
