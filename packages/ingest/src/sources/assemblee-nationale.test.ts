@@ -311,7 +311,7 @@ describe('Assemblée nationale client', () => {
 
     const deputes = await fetchDeputes(mockFetch(zipBuffer));
     expect(deputes[0].photo_url).toBe(
-      'https://www2.assemblee-nationale.fr/static/tribun/17/photos/607193.jpg',
+      'https://www.assemblee-nationale.fr/dyn/static/tribun/17/photos/carre/607193.jpg',
     );
   });
 

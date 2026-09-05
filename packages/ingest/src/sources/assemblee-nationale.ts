@@ -50,9 +50,9 @@ function slugify(prenom: string, nom: string): string {
     .replace(/^-|-$/g, '');
 }
 
-function photoUrl(anId: string): string {
+function photoUrl(anId: string, legislature: number | string): string {
   const numericId = anId.replace(/^PA/, '');
-  return `https://www2.assemblee-nationale.fr/static/tribun/17/photos/${numericId}.jpg`;
+  return `https://www.assemblee-nationale.fr/dyn/static/tribun/${legislature}/photos/carre/${numericId}.jpg`;
 }
 
 export async function fetchDeputes(
@@ -164,6 +164,11 @@ async function loadActeurs(
     )[0];
 
     const isSenat = latestMandat.typeOrgane === 'SENAT';
+
+    const latestAnMandat = parlMandats
+      .filter((m) => m.typeOrgane === 'ASSEMBLEE')
+      .sort((a, b) => b.dateDebut.localeCompare(a.dateDebut))[0];
+
     const gpTypes = isSenat ? ['GROUPESENAT'] : ['GP'];
 
     const latestGp = allMandats
@@ -217,7 +222,9 @@ async function loadActeurs(
       mandat_fin: latestMandat.dateFin ?? undefined,
       groupe_sigle: groupeSigle,
       slug: slugify(ec.ident.prenom, ec.ident.nom),
-      photo_url: isSenat ? undefined : photoUrl(anId),
+      photo_url: latestAnMandat?.legislature
+        ? photoUrl(anId, latestAnMandat.legislature)
+        : undefined,
       mandat_type: isSenat ? 'senateur' : 'depute',
       death_date: deathDate,
       full: rawJson,
