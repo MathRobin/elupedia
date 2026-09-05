@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, DEPARTMENT_CODES } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -495,6 +495,10 @@ const jurisdictionCoords = constituencyAddress?.latitude != null && constituency
   ? { lat: Number(constituencyAddress.latitude), lon: Number(constituencyAddress.longitude) }
   : null;
 
+const senatDeptCode = deputy.mandateType === 'senateur' && deputy.department
+  ? DEPARTMENT_CODES[deputy.department] ?? null
+  : null;
+
 function maxUpdatedAt(items: { updatedAt: Date }[]): Date | null {
   if (items.length === 0) return null;
   return items.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, items[0].updatedAt);
@@ -745,7 +749,7 @@ for (const sp of deputySponsorships) {
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Mandat en cours
       </h2>
-      <div class={`mt-4 ${jurisdictionCoords ? 'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start' : ''}`}>
+      <div class={`mt-4 ${jurisdictionCoords || senatDeptCode ? 'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start' : ''}`}>
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <dt class="text-sm text-slate-500 dark:text-slate-400">Type</dt>
@@ -780,6 +784,14 @@ for (const sp of deputySponsorships) {
               latitude={jurisdictionCoords.lat}
               longitude={jurisdictionCoords.lon}
               label={`Localisation : ${deputy.district ?? deputy.department ?? ''}`}
+            />
+          </div>
+        )}
+        {!jurisdictionCoords && senatDeptCode && (
+          <div class="w-full md:w-48 shrink-0">
+            <JurisdictionMap
+              departmentCode={senatDeptCode}
+              label={`Département : ${deputy.department ?? ''}`}
             />
           </div>
         )}
