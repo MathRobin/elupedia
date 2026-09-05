@@ -28,6 +28,7 @@ const mandateRows = await db
     firstName: officials.firstName,
     lastName: officials.lastName,
     birthDate: officials.birthDate,
+    deathDate: officials.deathDate,
     photoUrl: officials.photoUrl,
     s3PhotoUrl: officials.s3PhotoUrl,
     anId: officials.anId,
@@ -429,6 +430,48 @@ const metaDescription = [
   deputy.politicalGroup ? `groupe ${deputy.politicalGroup}` : null,
 ].filter(Boolean).join(' — ');
 
+const personUrl = `https://www.elupedia.fr/elus/${deputy.slug ?? deputy.id}`;
+
+const memberOfEntries: Record<string, unknown>[] = [];
+if (deputy.politicalGroup) {
+  memberOfEntries.push({
+    '@type': 'Organization',
+    name: deputy.politicalGroup,
+  });
+}
+for (const c of deputyCommittees.filter((c) => !c.endDate)) {
+  memberOfEntries.push({
+    '@type': 'Organization',
+    name: c.name,
+  });
+}
+
+const hasOccupation: Record<string, unknown>[] = deputyMandates.map((m) => ({
+  '@type': 'Role',
+  roleName: mandateTypeLabels[m.type] ?? m.type,
+  startDate: m.startDate,
+  ...(m.endDate && { endDate: m.endDate }),
+  ...(m.district && {
+    description: m.department ? `${m.district} (${m.department})` : m.district,
+  }),
+}));
+
+const addressEntries: Record<string, unknown>[] = deputyAddresses
+  .filter((a) => a.city)
+  .map((a) => ({
+    '@type': 'PostalAddress',
+    ...(a.street && { streetAddress: a.street }),
+    addressLocality: a.city,
+    ...(a.postalCode && { postalCode: a.postalCode }),
+    addressCountry: 'FR',
+  }));
+
+const affiliationEntries: Record<string, unknown>[] = deputyAffiliations
+  .map((a) => ({
+    '@type': 'Organization',
+    name: a.partyOrGroup,
+  }));
+
 const personJsonLd: Record<string, unknown> = {
   '@context': 'https://schema.org',
   '@type': 'Person',
@@ -436,10 +479,13 @@ const personJsonLd: Record<string, unknown> = {
   givenName: deputy.firstName,
   familyName: deputy.lastName,
   jobTitle: mandateLabel,
-  url: `https://www.elupedia.fr/elus/${deputy.slug ?? deputy.id}`,
+  description: metaDescription,
+  url: personUrl,
+  mainEntityOfPage: personUrl,
   nationality: { '@type': 'Country', name: 'France' },
   ...(photo && { image: photo }),
   ...(deputy.birthDate && { birthDate: deputy.birthDate }),
+  ...(deputy.deathDate && { deathDate: deputy.deathDate }),
   ...(sameAs.length > 0 && { sameAs }),
   ...(worksForName && {
     worksFor: {
@@ -447,20 +493,17 @@ const personJsonLd: Record<string, unknown> = {
       name: worksForName,
     },
   }),
-  ...(deputy.politicalGroup && {
-    memberOf: {
-      '@type': 'Organization',
-      name: deputy.politicalGroup,
-    },
+  ...(memberOfEntries.length > 0 && {
+    memberOf: memberOfEntries.length === 1 ? memberOfEntries[0] : memberOfEntries,
   }),
-  ...(constituencyAddress?.city && {
-    address: {
-      '@type': 'PostalAddress',
-      ...(constituencyAddress.street && { streetAddress: constituencyAddress.street }),
-      addressLocality: constituencyAddress.city,
-      ...(constituencyAddress.postalCode && { postalCode: constituencyAddress.postalCode }),
-      addressCountry: 'FR',
-    },
+  ...(affiliationEntries.length > 0 && {
+    affiliation: affiliationEntries.length === 1 ? affiliationEntries[0] : affiliationEntries,
+  }),
+  ...(hasOccupation.length > 0 && {
+    hasOccupation: hasOccupation.length === 1 ? hasOccupation[0] : hasOccupation,
+  }),
+  ...(addressEntries.length > 0 && {
+    address: addressEntries.length === 1 ? addressEntries[0] : addressEntries,
   }),
 };
 
