@@ -6,7 +6,7 @@ import { type StepResult, runStep, printSummary } from './run-helpers.js';
 import { fetchPressMentions } from './sources/google-news.js';
 import { upsertPressMentions } from './upsert/press-mentions.js';
 
-const BATCH_SIZE = 4000;
+const BATCH_SIZE = 1500;
 const DELAY_MS = 3000;
 
 function sleep(ms: number): Promise<void> {
