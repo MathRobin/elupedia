@@ -190,6 +190,13 @@
       "when": 1788629311512,
       "tag": "0026_exotic_james_howlett",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1788646639363,
+      "tag": "0027_decorations",
+      "breakpoints": true
     }
   ]
 }

@@ -45,3 +45,4 @@ export {
   senatorialElections,
   senatorialCandidates,
 } from './senatorial-elections.js';
+export { decorations } from './decorations.js';
