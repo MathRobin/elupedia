@@ -1,0 +1,1 @@
+ALTER TABLE "officials" ADD COLUMN IF NOT EXISTS "hatvp_status" varchar(20);

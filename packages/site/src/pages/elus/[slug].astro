@@ -32,6 +32,7 @@ const mandateRows = await db
     s3PhotoUrl: officials.s3PhotoUrl,
     anId: officials.anId,
     senatId: officials.senatId,
+    hatvpStatus: officials.hatvpStatus,
     district: mandates.district,
     department: mandates.department,
     startDate: mandates.startDate,
@@ -1393,7 +1394,15 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyInterests.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucun intérêt déclaré.</p>
+        deputy.hatvpStatus === 'pending' ? (
+          <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+            <p class="text-sm text-amber-800 dark:text-amber-200">
+              Déclaration d'intérêts déposée auprès de la <a href={`https://www.hatvp.fr/fiche-nominative/?declarant=${encodeURIComponent(deputy.lastName.toLowerCase() + '-' + deputy.firstName.toLowerCase())}`} target="_blank" rel="noopener noreferrer" class="underline font-medium hover:text-amber-600">HATVP</a>, publication à venir.
+            </p>
+          </div>
+        ) : (
+          <p class="mt-4 text-slate-500">Aucun intérêt déclaré.</p>
+        )
       ) : (
         <div class="mt-4 space-y-6">
           {interestGroups.map((group) => (

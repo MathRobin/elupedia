@@ -19,6 +19,7 @@ export const officials = pgTable('officials', {
   deathDate: date('death_date'),
   slug: varchar('slug', { length: 512 }).unique(),
   full: jsonb('full'),
+  hatvpStatus: varchar('hatvp_status', { length: 20 }),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

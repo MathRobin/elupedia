@@ -7,6 +7,7 @@ import { runInterests } from './run-interests.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
 import { uploadPhotos } from './upsert/upload-photos.js';
+import { upsertHatvpStatuses } from './upsert/hatvp-status.js';
 import { fetchCnccfpAccounts, CNCCFP_ELECTIONS } from './sources/cnccfp.js';
 import { upsertCampaignAccounts } from './upsert/campaign-accounts.js';
 import { logger } from './logger.js';
@@ -100,6 +101,23 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     );
   }
 
+  const hatvpStatusResults: StepResult[] = [];
+  if (enabled('hatvp-status')) {
+    logger.info('[HATVP] Checking declaration statuses...');
+    const hatvpDb = createDb();
+    hatvpStatusResults.push(
+      await runStep('hatvp-status', async () => {
+        const r = await upsertHatvpStatuses(hatvpDb);
+        return {
+          source: 'hatvp-status',
+          created: r.pending,
+          updated: r.checked,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
   return [
     ...anResults,
     ...senatResults,
@@ -109,5 +127,6 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     ...mapsResults,
     ...campaignResults,
     ...photosResults,
+    ...hatvpStatusResults,
   ];
 }

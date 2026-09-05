@@ -174,6 +174,9 @@ vi.mock('./upsert/upload-maps.js', () => ({
 vi.mock('./upsert/upload-photos.js', () => ({
   uploadPhotos: vi.fn(),
 }));
+vi.mock('./upsert/hatvp-status.js', () => ({
+  upsertHatvpStatuses: vi.fn(),
+}));
 vi.mock('./sources/cnccfp.js', () => ({
   fetchCnccfpAccounts: vi.fn(),
   CNCCFP_ELECTIONS: [
@@ -255,6 +258,7 @@ import { uploadMaps } from './upsert/upload-maps.js';
 import { uploadPhotos } from './upsert/upload-photos.js';
 import { fetchCnccfpAccounts } from './sources/cnccfp.js';
 import { upsertCampaignAccounts } from './upsert/campaign-accounts.js';
+import { upsertHatvpStatuses } from './upsert/hatvp-status.js';
 
 function setupHappyPath() {
   vi.mocked(fetchDeputes).mockResolvedValue([
@@ -403,6 +407,11 @@ function setupHappyPath() {
     updated: 0,
     skipped: 0,
   });
+  vi.mocked(upsertHatvpStatuses).mockResolvedValue({
+    checked: 0,
+    pending: 0,
+    skipped: 0,
+  });
 }
 
 beforeEach(() => {
@@ -418,7 +427,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(26);
+    expect(results).toHaveLength(27);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -447,7 +456,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(26);
+    expect(results).toHaveLength(27);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

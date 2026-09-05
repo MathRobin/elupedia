@@ -183,6 +183,13 @@
       "when": 1788607607446,
       "tag": "0025_living_mongu",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788629311512,
+      "tag": "0026_exotic_james_howlett",
+      "breakpoints": true
     }
   ]
 }
