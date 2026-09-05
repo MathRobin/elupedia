@@ -1,1 +1,1 @@
-ALTER TABLE "officials" ADD COLUMN "s3_photo_url" varchar(1024);
+ALTER TABLE "officials" ADD COLUMN IF NOT EXISTS "s3_photo_url" varchar(1024);
