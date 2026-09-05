@@ -155,6 +155,12 @@ vi.mock('./sources/municipal-elections.js', () => ({
 vi.mock('./upsert/municipal-elections.js', () => ({
   upsertMunicipalElections: vi.fn(),
 }));
+vi.mock('./sources/legislative-elections.js', () => ({
+  fetchLegislativeElections: vi.fn(),
+}));
+vi.mock('./upsert/legislative-elections.js', () => ({
+  upsertLegislativeElections: vi.fn(),
+}));
 vi.mock('./upsert/geocode-addresses.js', () => ({
   geocodeAllAddresses: vi.fn(),
 }));
@@ -231,6 +237,8 @@ import { fetchWikidataMayorPhotos } from './sources/wikidata-mayor-photos.js';
 import { upsertMayorPhotos } from './upsert/mayor-photos.js';
 import { fetchMunicipalElections } from './sources/municipal-elections.js';
 import { upsertMunicipalElections } from './upsert/municipal-elections.js';
+import { fetchLegislativeElections } from './sources/legislative-elections.js';
+import { upsertLegislativeElections } from './upsert/legislative-elections.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
 import { fetchCnccfpAccounts } from './sources/cnccfp.js';
@@ -351,6 +359,12 @@ function setupHappyPath() {
     candidates: 0,
     matched: 0,
   });
+  vi.mocked(fetchLegislativeElections).mockResolvedValue([]);
+  vi.mocked(upsertLegislativeElections).mockResolvedValue({
+    elections: 0,
+    candidates: 0,
+    matched: 0,
+  });
   vi.mocked(geocodeAllAddresses).mockResolvedValue({
     geocoded: 0,
     failed: 0,
@@ -381,7 +395,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(24);
+    expect(results).toHaveLength(25);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -410,7 +424,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(24);
+    expect(results).toHaveLength(25);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

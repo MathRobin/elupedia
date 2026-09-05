@@ -37,3 +37,7 @@ export {
   municipalElections,
   municipalCandidates,
 } from './municipal-elections.js';
+export {
+  legislativeElections,
+  legislativeCandidates,
+} from './legislative-elections.js';

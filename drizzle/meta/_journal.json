@@ -162,6 +162,13 @@
       "when": 1788453188215,
       "tag": "0022_nice_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788591795841,
+      "tag": "0023_legislative-elections",
+      "breakpoints": true
     }
   ]
 }

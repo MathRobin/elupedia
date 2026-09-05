@@ -8,6 +8,7 @@ export const AN_STEP_NAMES = [
   'activity',
   'committees',
   'votes',
+  'elections',
 ] as const;
 
 export type AnStepName = (typeof AN_STEP_NAMES)[number];
