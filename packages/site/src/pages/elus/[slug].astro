@@ -432,6 +432,25 @@ const metaDescription = [
 
 const personUrl = `https://www.elupedia.fr/elus/${deputy.slug ?? deputy.id}`;
 
+const [civilityRow] = await db
+  .select({ full: officials.full })
+  .from(officials)
+  .where(eq(officials.id, officialId))
+  .limit(1);
+const fullJson = civilityRow?.full as Record<string, unknown> | null;
+const civility = (
+  (fullJson?.acteur as Record<string, unknown>)?.etatCivil as Record<string, unknown>
+)?.ident as Record<string, unknown> | undefined;
+const honorificPrefix = (civility?.civ as string)
+  ?? (fullJson?.Qualite as string)
+  ?? null;
+const birthPlace = (
+  (fullJson?.acteur as Record<string, unknown>)?.etatCivil as Record<string, unknown>
+)?.infoNaissance as Record<string, unknown> | undefined;
+const gender = honorificPrefix === 'Mme' ? 'Female'
+  : honorificPrefix === 'M.' ? 'Male'
+  : undefined;
+
 const memberOfEntries: Record<string, unknown>[] = [];
 if (deputy.politicalGroup) {
   memberOfEntries.push({
@@ -466,31 +485,50 @@ const addressEntries: Record<string, unknown>[] = deputyAddresses
     addressCountry: 'FR',
   }));
 
-const affiliationEntries: Record<string, unknown>[] = deputyAffiliations
-  .map((a) => ({
+const affiliationNames = [...new Set(deputyAffiliations.map((a) => a.partyOrGroup))];
+const affiliationEntries: Record<string, unknown>[] = affiliationNames
+  .map((name) => ({
     '@type': 'Organization',
-    name: a.partyOrGroup,
+    name,
   }));
 
 const personJsonLd: Record<string, unknown> = {
   '@context': 'https://schema.org',
   '@type': 'Person',
+  '@id': personUrl,
   name: fullName,
   givenName: deputy.firstName,
   familyName: deputy.lastName,
+  ...(honorificPrefix && { honorificPrefix }),
+  ...(gender && { gender }),
   jobTitle: mandateLabel,
   description: metaDescription,
   url: personUrl,
-  mainEntityOfPage: personUrl,
+  mainEntityOfPage: { '@type': 'WebPage', '@id': personUrl },
   nationality: { '@type': 'Country', name: 'France' },
-  ...(photo && { image: photo }),
+  knowsLanguage: 'fr',
+  ...(photo && { image: { '@type': 'ImageObject', url: photo, contentUrl: photo } }),
   ...(deputy.birthDate && { birthDate: deputy.birthDate }),
+  ...(birthPlace?.villeNais && {
+    birthPlace: {
+      '@type': 'Place',
+      name: birthPlace.villeNais as string,
+      ...(birthPlace.depNais && {
+        address: {
+          '@type': 'PostalAddress',
+          addressRegion: birthPlace.depNais as string,
+          addressCountry: (birthPlace.paysNais as string) ?? 'France',
+        },
+      }),
+    },
+  }),
   ...(deputy.deathDate && { deathDate: deputy.deathDate }),
   ...(sameAs.length > 0 && { sameAs }),
   ...(worksForName && {
     worksFor: {
       '@type': 'GovernmentOrganization',
-      name: worksForName,
+      name: isMaire ? `Mairie de ${worksForName}` : worksForName,
+      ...(isMaire && { alternateName: worksForName }),
     },
   }),
   ...(memberOfEntries.length > 0 && {
