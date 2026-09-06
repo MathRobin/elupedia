@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -613,10 +613,11 @@ const parliamentSource = deputy.mandateType === 'depute'
     ? { name: 'Sénat', url: 'https://data.senat.fr' }
     : { name: 'RNE', url: 'https://www.data.gouv.fr/fr/datasets/repertoire-national-des-elus-1/' };
 
+const senatSlug = deputy.photoUrl?.match(/senimg\/(.+)_carre\.jpg/)?.[1];
 const nominativeUrl = deputy.mandateType === 'depute' && deputy.anId
   ? `https://www.assemblee-nationale.fr/dyn/deputes/${deputy.anId}`
-  : deputy.mandateType === 'senateur' && deputy.senatId
-    ? `https://www.senat.fr/senateur/${deputy.senatId}/index.html`
+  : deputy.mandateType === 'senateur' && senatSlug
+    ? `https://www.senat.fr/senateur/${senatSlug}.html`
     : null;
 
 const contactSource = deputy.mandateType === 'maire'
@@ -1572,7 +1573,7 @@ for (const sp of deputySponsorships) {
         deputy.hatvpStatus === 'pending' ? (
           <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
             <p class="text-sm text-amber-800 dark:text-amber-200">
-              Déclaration d'intérêts déposée auprès de la <a href={`https://www.hatvp.fr/fiche-nominative/?declarant=${encodeURIComponent(deputy.lastName.toLowerCase() + '-' + deputy.firstName.toLowerCase())}`} target="_blank" rel="noopener noreferrer" class="underline font-medium hover:text-amber-600">HATVP</a>, publication à venir.
+              Déclaration d'intérêts déposée auprès de la <a href={buildHatvpUrl(deputy.firstName, deputy.lastName)} target="_blank" rel="noopener noreferrer" class="underline font-medium hover:text-amber-600">HATVP</a>, publication à venir.
             </p>
           </div>
         ) : (
@@ -1629,7 +1630,7 @@ for (const sp of deputySponsorships) {
           ))}
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={`https://www.hatvp.fr/fiche-nominative/?declarant=${encodeURIComponent(deputy.lastName + ' ' + deputy.firstName)}`} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche HATVP</a>{' · '}<a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">HATVP (open data)</a>{fmtRetrieval(sectionDates.interests)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : <a href={buildHatvpUrl(deputy.firstName, deputy.lastName)} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche HATVP</a>{' · '}<a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">HATVP (open data)</a>{fmtRetrieval(sectionDates.interests)}</p>
     </section>
 
     {isParliamentary && <section id="votes" class="mt-8 scroll-mt-12">

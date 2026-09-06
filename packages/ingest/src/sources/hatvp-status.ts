@@ -1,23 +1,15 @@
+import { buildHatvpSlug } from '@elupedia/shared';
+
 import { logger } from '../logger.js';
 
 export type HatvpDeclarationStatus = 'pending' | 'none' | null;
-
-function buildSlug(firstName: string, lastName: string): string {
-  return `${lastName}-${firstName}`
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 export async function checkHatvpStatus(
   firstName: string,
   lastName: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<HatvpDeclarationStatus> {
-  const slug = buildSlug(firstName, lastName);
+  const slug = buildHatvpSlug(firstName, lastName);
   const url = `https://www.hatvp.fr/fiche-nominative/?declarant=${slug}`;
 
   const response = await fetchFn(url, {
