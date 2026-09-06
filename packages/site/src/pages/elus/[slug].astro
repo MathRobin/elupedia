@@ -613,6 +613,12 @@ const parliamentSource = deputy.mandateType === 'depute'
     ? { name: 'Sénat', url: 'https://data.senat.fr' }
     : { name: 'RNE', url: 'https://www.data.gouv.fr/fr/datasets/repertoire-national-des-elus-1/' };
 
+const nominativeUrl = deputy.mandateType === 'depute' && deputy.anId
+  ? `https://www.assemblee-nationale.fr/dyn/deputes/${deputy.anId}`
+  : deputy.mandateType === 'senateur' && deputy.senatId
+    ? `https://www.senat.fr/senateur/${deputy.senatId}/index.html`
+    : null;
+
 const contactSource = deputy.mandateType === 'maire'
   ? { name: 'DILA', url: 'https://api-lannuaire.service-public.fr' }
   : parliamentSource;
@@ -960,7 +966,7 @@ for (const sp of deputySponsorships) {
           </div>
         )}
       </div>
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
     </section>
 
     <section id="tous-mandats" class="mt-8 scroll-mt-12">
@@ -991,7 +997,7 @@ for (const sp of deputySponsorships) {
           ))}
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
     </section>
 
     {officialDecorations.length > 0 && (
@@ -1114,7 +1120,7 @@ for (const sp of deputySponsorships) {
           })}
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={contactSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{contactSource.name}</a>{fmtRetrieval(sectionDates.addresses)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={contactSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{contactSource.name}</a>{fmtRetrieval(sectionDates.addresses)}</p>
     </section>
 
     {isParliamentary && <section id="affiliations" class="mt-8 scroll-mt-12">
@@ -1143,7 +1149,7 @@ for (const sp of deputySponsorships) {
           ))}
         </ul>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.affiliations)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.affiliations)}</p>
     </section>}
 
     {isParliamentary && <section id="collaborateurs" class="mt-8 scroll-mt-12">
@@ -1178,7 +1184,7 @@ for (const sp of deputySponsorships) {
           ))}
         </ul>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.staffers)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.staffers)}</p>
     </section>}
 
     {isParliamentary && <section id="activite" class="mt-8 scroll-mt-12">
@@ -1318,7 +1324,7 @@ for (const sp of deputySponsorships) {
           </div>
         </>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.activities)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.activities)}</p>
     </section>}
 
     {isParliamentary && <section id="commissions" class="mt-8 scroll-mt-12">
@@ -1394,7 +1400,7 @@ for (const sp of deputySponsorships) {
           </div>
         </>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.committees)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.committees)}</p>
     </section>}
 
     {isParliamentary && <section id="electoral" class="mt-8 scroll-mt-12">
@@ -1439,7 +1445,7 @@ for (const sp of deputySponsorships) {
           </table>
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.electoral)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.electoral)}</p>
     </section>}
 
     {municipalElectionsData.length > 0 && (
@@ -1449,7 +1455,7 @@ for (const sp of deputySponsorships) {
           <span class="ml-2 text-sm font-normal text-slate-500">({municipalElectionsData.length} tours)</span>
         </h2>
         <MunicipalElectionSection elections={municipalElectionsData} client:load />
-        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/datasets/elections-municipales-2020-resultats/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0</p>
+        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/datasets/elections-municipales-2020-resultats/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Municipales 2020</a>{' · '}<a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0</p>
       </section>
     )}
 
@@ -1518,7 +1524,7 @@ for (const sp of deputySponsorships) {
           })}
         </div>
 
-        <p class="mt-3 text-xs text-slate-400">Source : CNCCFP via data.gouv.fr — Licence Ouverte 2.0{fmtRetrieval(sectionDates.campaigns)}</p>
+        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/organizations/commission-nationale-des-comptes-de-campagne-et-des-financements-politiques-cnccfp/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">CNCCFP</a> via <a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0{fmtRetrieval(sectionDates.campaigns)}</p>
       </section>
     )}
 
@@ -1550,7 +1556,7 @@ for (const sp of deputySponsorships) {
           </table>
         </div>
 
-        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.conseil-constitutionnel.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Conseil constitutionnel</a> — Domaine public{fmtRetrieval(sectionDates.sponsorships)}</p>
+        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.conseil-constitutionnel.fr/les-parrainages" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Conseil constitutionnel (parrainages)</a> via <a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Domaine public{fmtRetrieval(sectionDates.sponsorships)}</p>
       </section>
     )}
 
@@ -1623,7 +1629,7 @@ for (const sp of deputySponsorships) {
           ))}
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">HATVP</a>{fmtRetrieval(sectionDates.interests)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : <a href={`https://www.hatvp.fr/fiche-nominative/?declarant=${encodeURIComponent(deputy.lastName + ' ' + deputy.firstName)}`} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche HATVP</a>{' · '}<a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">HATVP (open data)</a>{fmtRetrieval(sectionDates.interests)}</p>
     </section>
 
     {isParliamentary && <section id="votes" class="mt-8 scroll-mt-12">
@@ -1666,7 +1672,7 @@ for (const sp of deputySponsorships) {
           </table>
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.votes)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.votes)}</p>
     </section>}
 
     <section id="presse" class="mt-8 scroll-mt-12">
@@ -1729,7 +1735,7 @@ for (const sp of deputySponsorships) {
           )}
         </>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href="https://news.google.com" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Google Actualités</a> (flux RSS){fmtRetrieval(sectionDates.press)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : <a href={`https://news.google.com/search?q=${encodeURIComponent(deputy.firstName + ' ' + deputy.lastName)}&hl=fr&gl=FR&ceid=FR:fr`} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Recherche Google Actualités</a>{' · '}<a href="https://news.google.com" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Google Actualités</a> (flux RSS){fmtRetrieval(sectionDates.press)}</p>
     </section>
 
     <section id="liens" class="mt-8 scroll-mt-12">
@@ -1877,7 +1883,7 @@ for (const sp of deputySponsorships) {
           </>
         );
       })()}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.links)}</p>
+      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.links)}</p>
     </section>
   </div>
 
