@@ -12,7 +12,7 @@ type TimelineEvent = {
     | 'sponsorship';
   label: string;
   detail?: string;
-  startDate: string;
+  startDate: string | null;
   endDate?: string | null;
   active?: boolean;
 };
@@ -87,7 +87,7 @@ type Lane = { event: TimelineEvent; col: number };
 
 function assignLanes(ranges: TimelineEvent[]): Lane[] {
   const sorted = [...ranges].sort((a, b) =>
-    a.startDate.localeCompare(b.startDate),
+    (a.startDate ?? '').localeCompare(b.startDate ?? ''),
   );
   const cols: (string | null)[] = [];
   const result: Lane[] = [];
@@ -96,7 +96,7 @@ function assignLanes(ranges: TimelineEvent[]): Lane[] {
     const end = ev.endDate ?? '9999-12-31';
     let assigned = -1;
     for (let i = 0; i < cols.length; i++) {
-      if (!cols[i] || cols[i]! <= ev.startDate) {
+      if (!cols[i] || cols[i]! <= (ev.startDate ?? '')) {
         cols[i] = end;
         assigned = i;
         break;
@@ -139,7 +139,7 @@ export default function TimelineDrawer({ events, officialName }: Props) {
             e.type === 'election' ||
             e.type === 'sponsorship',
         )
-        .sort((a, b) => a.startDate.localeCompare(b.startDate)),
+        .sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? '')),
     [filtered],
   );
 
@@ -174,7 +174,7 @@ export default function TimelineDrawer({ events, officialName }: Props) {
     >();
 
     for (const pe of pointEvents) {
-      const d = pe.startDate.slice(0, 10);
+      const d = pe.startDate?.slice(0, 10) ?? '';
       if (!dateMap.has(d))
         dateMap.set(d, { isPoint: true, pointEvent: pe, lanes: [] });
       else {
@@ -185,7 +185,7 @@ export default function TimelineDrawer({ events, officialName }: Props) {
     }
 
     for (const lane of lanes) {
-      const startD = lane.event.startDate.slice(0, 10);
+      const startD = lane.event.startDate?.slice(0, 10) ?? '';
       if (!dateMap.has(startD))
         dateMap.set(startD, { isPoint: false, lanes: [lane] });
       else dateMap.get(startD)!.lanes.push(lane);
@@ -206,8 +206,12 @@ export default function TimelineDrawer({ events, officialName }: Props) {
 
   const years = useMemo(() => {
     const ySet = new Set<number>();
-    for (const d of allDates) ySet.add(yearFromDate(d.date));
-    return [...ySet].sort((a, b) => b - a);
+    for (const d of allDates) {
+      if (d.date) ySet.add(yearFromDate(d.date));
+    }
+    const sorted = [...ySet].sort((a, b) => b - a);
+    if (allDates.some((d) => !d.date)) sorted.push(0);
+    return sorted;
   }, [allDates]);
 
   function toggleFilter(type: TimelineEvent['type']) {
@@ -306,14 +310,16 @@ export default function TimelineDrawer({ events, officialName }: Props) {
 
             <div className="flex-1 overflow-y-auto px-6 py-6">
               {years.map((year) => {
-                const yearDates = allDates.filter(
-                  (d) => yearFromDate(d.date) === year,
+                const yearDates = allDates.filter((d) =>
+                  year === 0
+                    ? !d.date
+                    : d.date && yearFromDate(d.date) === year,
                 );
                 return (
                   <div key={year} className="mb-6">
                     <div className="sticky top-0 z-10 mb-3">
                       <span className="inline-block rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white dark:bg-slate-100 dark:text-slate-900">
-                        {year}
+                        {year === 0 ? 'Date inconnue' : year}
                       </span>
                     </div>
 
@@ -323,14 +329,15 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                       {yearDates.map((dateEntry) => {
                         const startingLanes = lanes.filter(
                           (l) =>
-                            l.event.startDate.slice(0, 10) === dateEntry.date,
+                            (l.event.startDate?.slice(0, 10) ?? '') ===
+                            dateEntry.date,
                         );
                         const endingLanes = lanes.filter(
                           (l) =>
                             l.event.endDate?.slice(0, 10) === dateEntry.date,
                         );
                         const activeLanes = lanes.filter((l) => {
-                          const s = l.event.startDate.slice(0, 10);
+                          const s = l.event.startDate?.slice(0, 10) ?? '';
                           const e =
                             l.event.endDate?.slice(0, 10) ?? '9999-12-31';
                           return s <= dateEntry.date && e >= dateEntry.date;
@@ -343,9 +350,11 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                           >
                             <div className="absolute left-[9px] top-2 h-2.5 w-2.5 rounded-full bg-slate-300 ring-2 ring-white dark:bg-slate-600 dark:ring-slate-900" />
 
-                            <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-1.5">
-                              {fmtDate(dateEntry.date)}
-                            </p>
+                            {dateEntry.date && (
+                              <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-1.5">
+                                {fmtDate(dateEntry.date)}
+                              </p>
+                            )}
 
                             {dateEntry.isPoint && dateEntry.pointEvent && (
                               <div
