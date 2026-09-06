@@ -30,7 +30,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
 - Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (4 étapes Maires) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Intérêts + Photos + HATVP status pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-press-maires.ts` (`ingest:press:maires`, 1500 élus aléatoires), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main-photos.ts` (`ingest:photos`, sauvegarde S3), `main-hatvp-status.ts` (`ingest:hatvp-status`, vérification statuts HATVP), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-press-maires.ts` (`ingest:press:maires`, 1500 élus aléatoires), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main-photos.ts` (`ingest:photos`, sauvegarde S3), `main-hatvp-status.ts` (`ingest:hatvp-status`, vérification statuts HATVP), `main-decorations.ts` (`ingest:decorations`, décorations Légion d'honneur), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -62,6 +62,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Élections sénatoriales     | `sources/senatorial-elections.ts`  | data.gouv.fr                | CSV streaming | ✅ actif |
 | Comptes de campagne CNCCFP | `sources/cnccfp.ts`                | data.gouv.fr                | CSV           | ✅ actif |
 | Statut HATVP (fiches)      | `sources/hatvp-status.ts`          | hatvp.fr                    | HTML scraping | ✅ actif |
+| Décorations (Légion d'h.)  | `sources/legion-honneur.ts`        | archives.legiondhonneur.fr  | JSON API      | ✅ actif |
 
 #### Upsert / Diff
 
@@ -96,6 +97,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Élections législatives     | `upsert/legislative-elections.ts`   | Upsert sur circo + date + tour         |
 | Élections sénatoriales     | `upsert/senatorial-elections.ts`    | Upsert sur département + date + tour   |
 | Comptes de campagne        | `upsert/campaign-accounts.ts`       | Upsert sur official + election         |
+| Décorations                | `upsert/decorations.ts`             | Upsert sur arko_ref + order_name       |
 
 ### 2. Base de données (PostgreSQL / Neon)
 
@@ -132,6 +134,7 @@ Base PostgreSQL hébergée sur Neon (serverless). Le schéma est géré par Driz
 | `legislative_candidates` | panneau, nom, prenom, sexe, nuance, voix, ratio_inscrits, ratio_exprimes, elu                                                                                      | legislative_elections, officials |
 | `senatorial_elections`   | department_code, department, election_date, round, inscrits, votants, blancs, nuls, exprimes, scrutin_type                                                         | —                                |
 | `senatorial_candidates`  | nom, prenom, sexe, nuance, liste, voix, ratio_exprimes, elu                                                                                                        | senatorial_elections, officials  |
+| `decorations`            | order_name, grade, decree_date, journal_officiel_date, ministry, quality, arko_ref                                                                                 | officials                        |
 
 ### 3. Build du site (`packages/site`)
 

@@ -139,6 +139,17 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - **Législatives 2022 et 2024** : CSV des résultats par circonscription, tour et candidat
   - **Sénatoriales 2023** : CSV des résultats par département, tour et candidat/liste
 
+### Grande Chancellerie de la Légion d'honneur (décorations)
+
+- **Éditeur** : Grande Chancellerie de la Légion d'honneur
+- **Licence** : Données publiques accessibles via l'interface Arkotheque (pas de licence open data formelle)
+- **Obligations** :
+  - Attribution obligatoire : mentionner la Grande Chancellerie comme source
+  - Les données sont issues de la base LUD (Liste Unique des Décorés), consultable publiquement
+- **URL** : https://archives.legiondhonneur.fr
+- **Données collectées** :
+  - Décorations officielles (Légion d'honneur, Ordre national du Mérite, Médaille militaire) : ordre, grade, date du décret, date JO, ministère proposant, qualité du décoré
+
 ## Sources prévues (non encore actives)
 
 ### data.gouv.fr (résultats électoraux AN)
@@ -166,6 +177,7 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | Conseil constit.    | Domaine Public      | Non         | Autorisé         | ✅ active |
 | INSEE               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | data.gouv.fr (élec) | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
+| Légion d'honneur    | Données publiques   | Oui         | Non précisé      | ✅ active |
 
 ## Licence du code source
 

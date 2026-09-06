@@ -25,15 +25,15 @@ describe('Config déploiement Vercel (#77)', () => {
     expect(config.buildCommand).toContain('astro build');
   });
 
-  it('vercel.json runs migrations before build', () => {
+  it('vercel.json runs schema push before build', () => {
     const config = JSON.parse(
       readFileSync(resolve(root, 'vercel.json'), 'utf-8'),
     );
     const cmd = config.buildCommand;
-    expect(cmd).toContain('db:migrate');
-    const migrateIdx = cmd.indexOf('db:migrate');
+    expect(cmd).toContain('db:push');
+    const pushIdx = cmd.indexOf('db:push');
     const buildIdx = cmd.indexOf('astro build');
-    expect(migrateIdx).toBeLessThan(buildIdx);
+    expect(pushIdx).toBeLessThan(buildIdx);
   });
 
   it('vercel.json outputs from packages/site/dist', () => {

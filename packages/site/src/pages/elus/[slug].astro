@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -178,6 +178,12 @@ const deputySponsorships = await db
   .select({ officialId: sponsorships.officialId, type: sponsorships.type, electionYear: sponsorships.electionYear, candidateName: sponsorships.candidateName, publicationDate: sponsorships.publicationDate, updatedAt: sponsorships.updatedAt })
   .from(sponsorships)
   .where(eq(sponsorships.officialId, officialId));
+
+const officialDecorations = await db
+  .select({ orderName: decorations.orderName, grade: decorations.grade, decreeDate: decorations.decreeDate, journalOfficielDate: decorations.journalOfficielDate, ministry: decorations.ministry, quality: decorations.quality })
+  .from(decorations)
+  .where(eq(decorations.officialId, officialId))
+  .orderBy(desc(decorations.decreeDate));
 
 // For maires: elections in their commune. For others: elections where they appear as candidate.
 const candidateElectionIds = await db
@@ -816,6 +822,7 @@ for (const sp of deputySponsorships) {
       <ul class="columns-2 gap-x-6 text-sm space-y-1">
         <li><a href="#mandat" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandat en cours</a></li>
         <li><a href="#tous-mandats" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Tous les mandats</a></li>
+        {officialDecorations.length > 0 && <li><a href="#decorations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Décorations</a></li>}
         <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
         {isParliamentary && <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations politiques</a></li>}
         {isParliamentary && <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
@@ -859,6 +866,7 @@ for (const sp of deputySponsorships) {
         <ul class="flex items-center gap-4 text-xs font-medium whitespace-nowrap">
           <li><a href="#mandat" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandat</a></li>
           <li><a href="#tous-mandats" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandats</a></li>
+          {officialDecorations.length > 0 && <li><a href="#decorations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Décorations</a></li>}
           <li><a href="#coordonnees" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
           {isParliamentary && <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations</a></li>}
           {isParliamentary && <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
@@ -967,6 +975,34 @@ for (const sp of deputySponsorships) {
       )}
       <p class="mt-3 text-xs text-slate-400">Source : <a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
     </section>
+
+    {officialDecorations.length > 0 && (
+    <section id="decorations" class="mt-8 scroll-mt-12">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">Décorations</h2>
+      <div class="mt-4 space-y-3">
+        {officialDecorations.map((d) => (
+          <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
+            <div class="flex-shrink-0 mt-0.5 text-lg">
+              {d.orderName.includes('Légion') ? '🏅' : d.orderName.includes('Mérite') ? '🎖️' : '🥇'}
+            </div>
+            <div class="min-w-0">
+              <p class="font-medium text-sm dark:text-white">{d.orderName}</p>
+              <p class="text-sm text-slate-600 dark:text-slate-400">{d.grade}</p>
+              {d.decreeDate && (
+                <p class="text-xs text-slate-400 dark:text-slate-500">
+                  Décret du {new Date(d.decreeDate).toLocaleDateString('fr-FR')}
+                  {d.journalOfficielDate && ` · JO du ${new Date(d.journalOfficielDate).toLocaleDateString('fr-FR')}`}
+                </p>
+              )}
+              {d.ministry && <p class="text-xs text-slate-400 dark:text-slate-500">{d.ministry}</p>}
+              {d.quality && <p class="text-xs text-slate-400 dark:text-slate-500">{d.quality}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p class="mt-3 text-xs text-slate-400">Source : <a href="https://archives.legiondhonneur.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Grande Chancellerie de la Légion d'honneur</a></p>
+    </section>
+    )}
 
     <section id="coordonnees" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
