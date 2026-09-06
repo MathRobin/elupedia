@@ -10,11 +10,13 @@ import { fetchActivities } from './sources/an-activite.js';
 import { fetchCommittees } from './sources/an-commissions.js';
 import { fetchScrutins } from './sources/an-scrutins.js';
 import { upsertOfficials } from './upsert/officials.js';
+import { diffAffiliations } from './upsert/affiliations-diff.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
 import { upsertCommittees } from './upsert/committees.js';
 import { upsertAnVotes } from './upsert/an-votes.js';
+import { type Depute } from './sources/assemblee-nationale.js';
 import { fetchLegislativeElections } from './sources/legislative-elections.js';
 import { upsertLegislativeElections } from './upsert/legislative-elections.js';
 export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
@@ -24,14 +26,19 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
 
   logger.info('=== Ingestion AN started ===\n');
 
+  let deputes: Depute[] | undefined;
+
+  if (enabled('deputes') || enabled('affiliations')) {
+    deputes = await withRetry(() => fetchDeputes(), {
+      source: 'assemblee-nationale',
+    });
+  }
+
   if (enabled('deputes')) {
-    logger.info('[1/7] Députés & mandats...');
+    logger.info('[1/8] Députés & mandats...');
     results.push(
       await runStep('deputes', async () => {
-        const deputes = await withRetry(() => fetchDeputes(), {
-          source: 'assemblee-nationale',
-        });
-        const officialResults = await upsertOfficials(db, deputes);
+        const officialResults = await upsertOfficials(db, deputes!);
         return {
           source: 'deputes',
           created: officialResults.length,
@@ -42,8 +49,23 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
     );
   }
 
+  if (enabled('affiliations')) {
+    logger.info('[2/8] Affiliations politiques...');
+    results.push(
+      await runStep('affiliations', async () => {
+        const r = await diffAffiliations(db, deputes!);
+        return {
+          source: 'affiliations',
+          created: r.created,
+          updated: r.ended,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
   if (enabled('collaborateurs')) {
-    logger.info('[2/7] Collaborateurs...');
+    logger.info('[3/8] Collaborateurs...');
     results.push(
       await runStep('collaborateurs', async () => {
         const collabs = await withRetry(() => fetchCollaborateurs(), {
@@ -61,7 +83,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('addresses')) {
-    logger.info('[3/7] Addresses...');
+    logger.info('[4/8] Addresses...');
     results.push(
       await runStep('addresses', async () => {
         const addr = await withRetry(() => fetchAddresses(), {
@@ -79,7 +101,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('activity')) {
-    logger.info('[4/7] Parliamentary activity...');
+    logger.info('[5/8] Parliamentary activity...');
     results.push(
       await runStep('parliamentary-activity', async () => {
         const activities = await withRetry(() => fetchActivities(), {
@@ -97,7 +119,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('committees')) {
-    logger.info('[5/7] Committees...');
+    logger.info('[6/8] Committees...');
     results.push(
       await runStep('committees', async () => {
         const comm = await withRetry(() => fetchCommittees(), {
@@ -115,7 +137,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('votes')) {
-    logger.info('[6/7] Votes (scrutins)...');
+    logger.info('[7/8] Votes (scrutins)...');
     results.push(
       await runStep('votes', async () => {
         const scrutins = await withRetry(() => fetchScrutins(), {
@@ -133,7 +155,7 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
   }
 
   if (enabled('elections')) {
-    logger.info('[7/7] Legislative election results...');
+    logger.info('[8/8] Legislative election results...');
     results.push(
       await runStep('elections', async () => {
         const elections = await withRetry(() => fetchLegislativeElections(), {

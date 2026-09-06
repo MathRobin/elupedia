@@ -3,6 +3,7 @@ import { logger } from './logger.js';
 
 export const AN_STEP_NAMES = [
   'deputes',
+  'affiliations',
   'collaborateurs',
   'addresses',
   'activity',

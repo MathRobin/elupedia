@@ -49,6 +49,9 @@ vi.mock('./sources/an-scrutins.js', () => ({
 vi.mock('./upsert/officials.js', () => ({
   upsertOfficials: vi.fn(),
 }));
+vi.mock('./upsert/affiliations-diff.js', () => ({
+  diffAffiliations: vi.fn(),
+}));
 vi.mock('./upsert/staffers-diff.js', () => ({
   diffStaffers: vi.fn(),
 }));
@@ -210,6 +213,7 @@ import { fetchCollaborateurs } from './sources/an-collaborateurs.js';
 import { fetchAddresses } from './sources/an-adresses.js';
 import { fetchActivities } from './sources/an-activite.js';
 import { upsertOfficials } from './upsert/officials.js';
+import { diffAffiliations } from './upsert/affiliations-diff.js';
 import { diffStaffers } from './upsert/staffers-diff.js';
 import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
@@ -280,6 +284,11 @@ function setupHappyPath() {
   vi.mocked(upsertOfficials).mockResolvedValue([
     { officialId: 'uuid-1', anId: 'PA100001' },
   ]);
+  vi.mocked(diffAffiliations).mockResolvedValue({
+    created: 1,
+    ended: 0,
+    unchanged: 0,
+  });
   vi.mocked(fetchCollaborateurs).mockResolvedValue([]);
   vi.mocked(diffStaffers).mockResolvedValue({
     created: 1,
@@ -427,7 +436,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(27);
+    expect(results).toHaveLength(28);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -456,7 +465,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(27);
+    expect(results).toHaveLength(28);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 
