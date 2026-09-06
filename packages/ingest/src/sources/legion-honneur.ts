@@ -33,24 +33,45 @@ function buildFilterParams(name: string): URLSearchParams {
   return params;
 }
 
+const PAGE_SIZE = 25;
+const MAX_RESULTS = 500;
+
 export async function searchDecorations(name: string): Promise<{
   total: number;
   results: { intitule: string; refUnique: string }[];
 }> {
   const params = buildFilterParams(name);
-  const url = `${BASE_URL}/_recherche-api/search/${SEARCH_ENGINE_ID}?${params.toString()}`;
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-  });
-  if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-  const data = (await res.json()) as {
-    total: number;
-    results: { intitule: string; refUnique: string }[];
-  };
-  return { total: data.total, results: data.results };
+  const allResults: { intitule: string; refUnique: string }[] = [];
+  let from = 0;
+  let total = 0;
+
+  while (allResults.length < MAX_RESULTS) {
+    const p = new URLSearchParams(params);
+    if (from > 0) p.set(`${MOTEUR_REF}--from`, String(from));
+
+    const url = `${BASE_URL}/_recherche-api/search/${SEARCH_ENGINE_ID}?${p.toString()}`;
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+    if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+
+    const data = (await res.json()) as {
+      total: number;
+      count: number;
+      results: { intitule: string; refUnique: string }[];
+    };
+
+    total = data.total;
+    allResults.push(...data.results);
+
+    if (data.count < PAGE_SIZE || allResults.length >= total) break;
+    from += PAGE_SIZE;
+  }
+
+  return { total, results: allResults };
 }
 
 function parseFrenchDate(s: string): string | null {
