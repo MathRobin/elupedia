@@ -1,7 +1,13 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { ballots, votes, officials } from '@elupedia/shared';
+import {
+  ballots,
+  votes,
+  officials,
+  ballotGroupPositions,
+} from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import { type Scrutin } from '../sources/an-scrutins.js';
+import { GP_FALLBACK } from '../sources/assemblee-nationale.js';
 import { logger } from '../logger.js';
 
 const POSITION_MAP: Record<string, 'for' | 'against' | 'abstain' | 'absent'> = {
@@ -86,6 +92,42 @@ export async function upsertAnVotes(
           .where(eq(votes.id, existing[0].id));
         updated++;
       }
+    }
+
+    for (const gp of scrutin.groupPositions) {
+      const groupName = GP_FALLBACK[gp.organeRef] ?? gp.organeRef;
+      const position =
+        POSITION_MAP[gp.positionMajoritaire] ?? gp.positionMajoritaire;
+
+      await db
+        .insert(ballotGroupPositions)
+        .values({
+          ballotId,
+          organeRef: gp.organeRef,
+          groupName,
+          position,
+          memberCount: gp.memberCount || null,
+          votesFor: gp.votesFor,
+          votesAgainst: gp.votesAgainst,
+          votesAbstain: gp.votesAbstain,
+          votesAbsent: gp.votesAbsent,
+        })
+        .onConflictDoUpdate({
+          target: [
+            ballotGroupPositions.ballotId,
+            ballotGroupPositions.organeRef,
+          ],
+          set: {
+            groupName,
+            position,
+            memberCount: gp.memberCount || null,
+            votesFor: gp.votesFor,
+            votesAgainst: gp.votesAgainst,
+            votesAbstain: gp.votesAbstain,
+            votesAbsent: gp.votesAbsent,
+            updatedAt: new Date(),
+          },
+        });
     }
   }
 

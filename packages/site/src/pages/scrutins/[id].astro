@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { ballots, votes, officials, mandates } from '@elupedia/shared';
+import { ballots, votes, officials, mandates, ballotGroupPositions } from '@elupedia/shared';
 import { eq, isNull, and, inArray } from 'drizzle-orm';
 import { DEPARTMENT_CODES } from '../../lib/department-codes.js';
 import DepartmentMapWrapper from '../../components/DepartmentMapWrapper';
@@ -53,6 +53,19 @@ const ballotVotes = ballotVotesRaw
       department: m?.department ?? null,
     };
   });
+
+const groupPositions = await db
+  .select({
+    groupName: ballotGroupPositions.groupName,
+    position: ballotGroupPositions.position,
+    memberCount: ballotGroupPositions.memberCount,
+    votesFor: ballotGroupPositions.votesFor,
+    votesAgainst: ballotGroupPositions.votesAgainst,
+    votesAbstain: ballotGroupPositions.votesAbstain,
+    votesAbsent: ballotGroupPositions.votesAbsent,
+  })
+  .from(ballotGroupPositions)
+  .where(eq(ballotGroupPositions.ballotId, ballot.id));
 
 Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 
@@ -207,6 +220,53 @@ const sourceUrl = ballot.anId
         {counts.abstain > 0 && <div class="bg-amber-400" style={`width:${(counts.abstain / ballotVotes.length) * 100}%`}></div>}
         {counts.absent > 0 && <div class="bg-slate-300 dark:bg-slate-600" style={`width:${(counts.absent / ballotVotes.length) * 100}%`}></div>}
       </div>
+    )}
+
+    {groupPositions.length > 0 && (
+      <section class="mt-8">
+        <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+          Consignes de vote par groupe
+        </h2>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {groupPositions
+            .sort((a, b) => (b.memberCount ?? 0) - (a.memberCount ?? 0))
+            .map((gp) => {
+              const total = gp.votesFor + gp.votesAgainst + gp.votesAbstain + gp.votesAbsent;
+              const shortName = gp.groupName.match(/\(([^)]+)\)$/)?.[1] ?? gp.groupName;
+              return (
+                <div class="rounded-xl border border-slate-200/80 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-sm font-semibold text-slate-800 dark:text-white truncate" title={gp.groupName}>
+                      {shortName}
+                    </span>
+                    <span class={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${positionBadge[gp.position] ?? positionBadge.absent}`}>
+                      {positionLabels[gp.position] ?? gp.position}
+                    </span>
+                  </div>
+                  {total > 0 && (
+                    <>
+                      <div class="mt-2 h-2 flex rounded-full overflow-hidden">
+                        {gp.votesFor > 0 && <div class="bg-emerald-500" style={`width:${(gp.votesFor / total) * 100}%`}></div>}
+                        {gp.votesAgainst > 0 && <div class="bg-red-500" style={`width:${(gp.votesAgainst / total) * 100}%`}></div>}
+                        {gp.votesAbstain > 0 && <div class="bg-amber-400" style={`width:${(gp.votesAbstain / total) * 100}%`}></div>}
+                        {gp.votesAbsent > 0 && <div class="bg-slate-300 dark:bg-slate-600" style={`width:${(gp.votesAbsent / total) * 100}%`}></div>}
+                      </div>
+                      <div class="mt-1.5 flex gap-3 text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                        {gp.votesFor > 0 && <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{gp.votesFor}</span>}
+                        {gp.votesAgainst > 0 && <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>{gp.votesAgainst}</span>}
+                        {gp.votesAbstain > 0 && <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>{gp.votesAbstain}</span>}
+                        {gp.votesAbsent > 0 && <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-slate-300"></span>{gp.votesAbsent}</span>}
+                      </div>
+                    </>
+                  )}
+                  {gp.memberCount && (
+                    <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">{gp.memberCount} membres</p>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+      </section>
     )}
 
     <section class="mt-8">

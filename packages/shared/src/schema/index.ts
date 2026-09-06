@@ -46,3 +46,4 @@ export {
   senatorialCandidates,
 } from './senatorial-elections.js';
 export { decorations } from './decorations.js';
+export { ballotGroupPositions } from './ballot-group-positions.js';

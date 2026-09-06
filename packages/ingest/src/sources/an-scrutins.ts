@@ -13,6 +13,16 @@ export interface ScrutinVotant {
   position: 'pour' | 'contre' | 'abstention' | 'non-votant';
 }
 
+export interface ScrutinGroupPosition {
+  organeRef: string;
+  positionMajoritaire: string;
+  memberCount: number;
+  votesFor: number;
+  votesAgainst: number;
+  votesAbstain: number;
+  votesAbsent: number;
+}
+
 export interface Scrutin {
   uid: string;
   numero: string;
@@ -21,6 +31,7 @@ export interface Scrutin {
   type: string;
   sort: string;
   votants: ScrutinVotant[];
+  groupPositions: ScrutinGroupPosition[];
 }
 
 function extractVotants(
@@ -122,6 +133,7 @@ export async function fetchScrutins(
           : [];
 
       const votants: ScrutinVotant[] = [];
+      const groupPositions: ScrutinGroupPosition[] = [];
 
       for (const groupe of groupeArr) {
         const g = groupe as Record<string, unknown>;
@@ -135,6 +147,23 @@ export async function fetchScrutins(
           ...extractVotants(decompte, 'abstention'),
           ...extractVotants(decompte, 'non-votant'),
         );
+
+        const organeRef = g.organeRef as string | undefined;
+        const positionMajoritaire = vote?.positionMajoritaire as
+          string | undefined;
+        if (organeRef && positionMajoritaire) {
+          const decompteVoix = vote?.decompteVoix as
+            Record<string, string> | undefined;
+          groupPositions.push({
+            organeRef,
+            positionMajoritaire,
+            memberCount: parseInt((g.nombreMembresGroupe as string) ?? '0', 10),
+            votesFor: parseInt(decompteVoix?.pour ?? '0', 10),
+            votesAgainst: parseInt(decompteVoix?.contre ?? '0', 10),
+            votesAbstain: parseInt(decompteVoix?.abstentions ?? '0', 10),
+            votesAbsent: parseInt(decompteVoix?.nonVotants ?? '0', 10),
+          });
+        }
       }
 
       results.push({
@@ -145,6 +174,7 @@ export async function fetchScrutins(
         type: typeVote?.libelleTypeVote ?? 'ordinaire',
         sort: sort?.code ?? '',
         votants,
+        groupPositions,
       });
     }
 

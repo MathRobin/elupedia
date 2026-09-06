@@ -87,13 +87,20 @@ export async function fetchDeputes(
 }
 
 // The AN open data ZIP is missing some GP organes (notably 17th legislature groups).
-const GP_FALLBACK: Record<string, string> = {
+export const GP_FALLBACK: Record<string, string> = {
+  PO840056: 'Non inscrit (NI)',
+  PO845401: 'Rassemblement National (RN)',
   PO845407: 'Ensemble pour la République (EPR)',
   PO845413: 'La France insoumise - Nouveau Front Populaire (LFI-NFP)',
+  PO845419: 'Socialistes et apparentés (SOC)',
+  PO845425: 'Droite Républicaine (DR)',
   PO845439: 'Écologiste et Social (EcoS)',
+  PO845454: 'Les Démocrates (Dem)',
   PO845470: 'Horizons & Indépendants (HOR)',
+  PO845485: 'Libertés, Indépendants, Outre-mer et Territoires (LIOT)',
+  PO845514: 'Gauche Démocrate et Républicaine (GDR)',
+  PO847173: 'UDR (UDR)',
   PO872880: 'À Droite ! (AD)',
-  PO840056: 'Non inscrits (NI)',
 };
 
 async function loadOrganes(extractDir: string): Promise<Map<string, string>> {
