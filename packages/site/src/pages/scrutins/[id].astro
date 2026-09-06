@@ -225,19 +225,18 @@ const sourceUrl = ballot.anId
     {groupPositions.length > 0 && (
       <section class="mt-8">
         <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
-          Consignes de vote par groupe
+          Panorama de vote par groupe
         </h2>
         <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {groupPositions
             .sort((a, b) => (b.memberCount ?? 0) - (a.memberCount ?? 0))
             .map((gp) => {
               const total = gp.votesFor + gp.votesAgainst + gp.votesAbstain + gp.votesAbsent;
-              const shortName = gp.groupName.match(/\(([^)]+)\)$/)?.[1] ?? gp.groupName;
               return (
                 <div class="rounded-xl border border-slate-200/80 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
                   <div class="flex items-center justify-between gap-2">
                     <span class="text-sm font-semibold text-slate-800 dark:text-white truncate" title={gp.groupName}>
-                      {shortName}
+                      {gp.groupName}
                     </span>
                     <span class={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${positionBadge[gp.position] ?? positionBadge.absent}`}>
                       {positionLabels[gp.position] ?? gp.position}
