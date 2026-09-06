@@ -725,6 +725,7 @@ for (const s of deputyStaffers) {
 }
 
 for (const sp of deputySponsorships) {
+  if (!sp.publicationDate) continue;
   timelineEvents.push({
     type: 'sponsorship',
     label: `Parrainage : ${sp.candidateName}`,
