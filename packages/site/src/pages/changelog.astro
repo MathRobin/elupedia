@@ -237,16 +237,16 @@ const dates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
       {dates.map((date) => (
         <div class="relative mb-10">
-          <div class="flex items-start gap-6 sm:gap-8">
+          <div class="absolute left-[0.5625rem] top-2 h-3.5 w-3.5 rounded-full border-2 border-white bg-indigo-500 dark:border-slate-900 sm:left-[7.0625rem]" aria-hidden="true"></div>
+
+          <div class="flex items-start gap-6 sm:gap-8 pl-10 sm:pl-0">
             <div class="hidden sm:block w-24 shrink-0 pt-1 text-right">
               <time datetime={date} class="text-sm font-medium text-slate-500 dark:text-slate-400">
                 {formatDate(date)}
               </time>
             </div>
 
-            <div class="relative flex-1">
-              <div class="absolute -left-[0.4375rem] top-2 h-3.5 w-3.5 rounded-full border-2 border-white bg-indigo-500 dark:border-slate-900 sm:-left-[2.9375rem]" aria-hidden="true"></div>
-
+            <div class="flex-1">
               <time datetime={date} class="mb-2 block text-sm font-medium text-slate-500 dark:text-slate-400 sm:hidden">
                 {formatDate(date)}
               </time>
