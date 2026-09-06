@@ -13,6 +13,102 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: '2026-09-06',
+    title: 'Décorations officielles',
+    description: "Ingestion des décorations (Légion d'honneur, Ordre national du Mérite, Médaille militaire) depuis les archives de la Grande Chancellerie. Affichage sur les fiches d'élus.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-05',
+    title: 'Résultats électoraux législatifs et sénatoriaux',
+    description: "Ingestion des résultats des élections législatives et sénatoriales depuis les données OVH. Affichage détaillé sur les fiches d'élus avec scores, nuances et statut élu/non-élu.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-05',
+    title: 'Résultats municipaux pour tous les élus',
+    description: "Les résultats municipaux sont maintenant visibles sur les fiches de tous les élus candidats, pas uniquement les maires.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-05',
+    title: 'Réconciliation candidats–élus',
+    description: "Nouveau script de réconciliation qui rattache automatiquement les candidats aux élections à leur fiche d'élu via la normalisation des noms.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-04',
+    title: 'Enrichissement Schema.org',
+    description: "JSON-LD enrichi sur les fiches d'élus : genre, lieu de naissance, titre honorifique, affiliations politiques.",
+    tag: 'perf',
+  },
+  {
+    date: '2026-09-04',
+    title: 'Statut déclaration HATVP',
+    description: "Bandeau signalant les élus ayant déposé leur déclaration HATVP mais dont les données ne sont pas encore publiées.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-04',
+    title: 'Photos AN au format legislature',
+    description: "Les photos de députés utilisent le nouveau format d'URL de l'AN basé sur la législature, corrigeant les liens cassés.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-03',
+    title: 'Photos S3 et presse maires',
+    description: "Synchronisation des photos d'élus sur S3 (servies via CDN). Ingestion de la presse pour les maires en complément des parlementaires.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-03',
+    title: "Affichage de tous les élus et fin de mandat",
+    description: "La liste des élus inclut désormais les anciens mandataires. Les fiches affichent la date de fin du dernier mandat.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-03',
+    title: 'Carte de juridiction sur les fiches',
+    description: "Carte SVG de la France sur les fiches de parlementaires, avec le département de la circonscription coloré aux couleurs du groupe politique.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-03',
+    title: 'Résultats municipaux',
+    description: "Ingestion des résultats des élections municipales depuis les CSV du pipeline OVH (34 000+ communes). Affichage sur les fiches maires.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-03',
+    title: 'Chronologie complète',
+    description: "Nouvelle vue chronologique type git-tree sur les fiches d'élus, regroupant mandats, votes clés et événements en ordre anti-chronologique.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-02',
+    title: 'Photos maires Wikidata et filtres avancés',
+    description: "Récupération des photos de maires via Wikidata. Filtres multi-sélection par type de scrutin et présence de photo sur la page votes.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-02',
+    title: 'Carte départementale interactive sur les scrutins',
+    description: "Carte SVG interactive de la France sur les pages de scrutin, montrant les résultats par département.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-02',
+    title: 'Signatures de parrainages et RIP',
+    description: "Ingestion des parrainages présidentiels (Conseil constitutionnel) et des signatures de référendums d'initiative partagée. Affichage sur les fiches.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-02',
+    title: 'Rendu hybride Astro',
+    description: "Passage en rendu statique avec requêtes serveur à la demande pour les pages lourdes, réduisant les temps de build et évitant les limites mémoire Neon.",
+    tag: 'perf',
+  },
+  {
     date: '2026-09-02',
     title: 'QR code de partage',
     description: "Le bouton Partager propose désormais un QR code avec le logo Elupedia, à scanner ou télécharger.",
