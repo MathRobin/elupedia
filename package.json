@@ -18,6 +18,7 @@
     "typecheck": "tsc --build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push --force",
     "db:seed": "tsx packages/shared/src/seed.ts",
     "smoke-test": "bash scripts/smoke-test.sh",
     "commit": "cz",

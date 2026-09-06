@@ -36,56 +36,72 @@ async function main() {
 
   logger.info(`${allOfficials.length} officials to look up`);
 
+  const byLastName = new Map<string, typeof allOfficials>();
+  for (const o of allOfficials) {
+    const key = normalize(o.lastName);
+    const list = byLastName.get(key) ?? [];
+    list.push(o);
+    byLastName.set(key, list);
+  }
+
+  logger.info(`${byLastName.size} unique last names`);
+
+  const officialByName = new Map<string, string>();
+  for (const o of allOfficials) {
+    const key = `${normalize(o.lastName)}|${normalize(o.firstName)}`;
+    officialByName.set(key, o.id);
+  }
+
   let searched = 0;
   let found = 0;
   let totalDecorations = 0;
-  const allRecords: Parameters<typeof upsertDecorations>[1] = [];
 
-  for (const official of allOfficials) {
-    const { results } = await searchDecorations(official.lastName);
+  for (const [normalLast, group] of byLastName) {
+    const { results } = await searchDecorations(group[0].lastName);
 
-    const normalLast = normalize(official.lastName);
-    const normalFirst = normalize(official.firstName);
+    const firstNames = new Set(group.map((o) => normalize(o.firstName)));
+
+    const batch: Parameters<typeof upsertDecorations>[1] = [];
 
     for (const r of results) {
+      const resultName = normalize(r.intitule);
+      if (!resultName.startsWith(normalLast)) continue;
+
       const detail = await fetchFicheDetail(r.refUnique);
       if (!detail || detail.decorations.length === 0) continue;
 
       const detailLast = normalize(detail.lastName);
-      const detailFirst = normalize(detail.firstName ?? '');
-
       if (detailLast !== normalLast) continue;
-      if (
-        normalFirst &&
-        detailFirst &&
-        !detailFirst.startsWith(normalFirst.split(' ')[0])
-      )
-        continue;
 
-      allRecords.push(detail);
+      const detailFirst = normalize(detail.firstName ?? '');
+      const matched = [...firstNames].some((f) => {
+        if (!f || !detailFirst) return !f && !detailFirst;
+        return detailFirst.startsWith(f.split(' ')[0]);
+      });
+      if (!matched) continue;
+
+      batch.push(detail);
       found++;
       totalDecorations += detail.decorations.length;
     }
 
+    if (batch.length > 0) {
+      await upsertDecorations(db, batch, officialByName);
+    }
+
     searched++;
-    if (searched % 100 === 0) {
+    if (searched % 200 === 0) {
       logger.info(
-        `  Progress: ${searched}/${allOfficials.length} officials searched, ${found} matched, ${totalDecorations} decorations`,
+        `  Progress: ${searched}/${byLastName.size} names, ${found} matched, ${totalDecorations} decorations`,
       );
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
   logger.info(
-    `Search complete: ${found} officials matched, ${totalDecorations} decorations found`,
+    `Done: ${found} officials matched, ${totalDecorations} decorations`,
   );
-
-  if (allRecords.length > 0) {
-    await upsertDecorations(db, allRecords);
-  }
-
-  logger.info('Done');
 }
 
 main()

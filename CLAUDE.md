@@ -42,6 +42,9 @@ yarn test             # Lancer les tests (Vitest)
 
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
+
+# Ingestion décorations (Légion d'honneur, ONM, Médaille militaire)
+yarn --cwd packages/ingest ingest:decorations
 ```
 
 ## Documentation

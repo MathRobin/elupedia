@@ -59,11 +59,22 @@ function parseFrenchDate(s: string): string | null {
   return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"');
+}
+
 function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return decodeEntities(
+    html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim(),
+  );
 }
 
 export async function fetchFicheDetail(
@@ -80,14 +91,7 @@ export async function fetchFicheDetail(
   const field = (name: string): string | null => {
     const re = new RegExp(`data-champ="${name}"[^>]*>([^<]*)`, 'i');
     const m = html.match(re);
-    return m
-      ? m[1]
-          .replace(/&amp;/g, '&')
-          .replace(/&#039;/g, "'")
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .trim() || null
-      : null;
+    return m ? decodeEntities(m[1]).trim() || null : null;
   };
 
   const lastName = field('nom');
@@ -122,8 +126,8 @@ export async function fetchFicheDetail(
     /<tr>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<\/tr>/gs,
   );
   for (const row of rows) {
-    const orderName = stripHtml(row[1]).replace(/&#039;/g, "'");
-    const grade = stripHtml(row[2]).replace(/&#039;/g, "'");
+    const orderName = stripHtml(row[1]);
+    const grade = stripHtml(row[2]);
     if (!orderName || !grade) continue;
     const decreeDateRaw = stripHtml(row[3]);
     const joDateRaw = stripHtml(row[4]);

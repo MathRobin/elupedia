@@ -1,5 +1,5 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { officials, decorations } from '@elupedia/shared';
+import { decorations } from '@elupedia/shared';
 import type { DecorationRecord } from '../sources/legion-honneur.js';
 import { logger } from '../logger.js';
 
@@ -15,24 +15,9 @@ function normalize(s: string): string {
 export async function upsertDecorations(
   db: NeonHttpDatabase,
   records: DecorationRecord[],
+  officialByName: Map<string, string>,
 ) {
   const summary = { records: 0, decorations: 0, matched: 0 };
-
-  const allOfficials = await db
-    .select({
-      id: officials.id,
-      firstName: officials.firstName,
-      lastName: officials.lastName,
-    })
-    .from(officials);
-
-  const officialByName = new Map<string, string>();
-  for (const o of allOfficials) {
-    const key = `${normalize(o.lastName)}|${normalize(o.firstName)}`;
-    officialByName.set(key, o.id);
-  }
-
-  logger.info(`  ${officialByName.size} officials loaded for matching`);
 
   for (const record of records) {
     const officialKey = `${normalize(record.lastName)}|${normalize(record.firstName ?? '')}`;

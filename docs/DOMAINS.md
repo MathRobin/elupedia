@@ -194,6 +194,17 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Bucket** : `elus/pp/{officialId}.jpg`
 - **Description** : Les photos des élus sont sauvegardées sur S3 pour éviter la dépendance aux URLs sources. Le site utilise `s3_photo_url` en priorité, avec fallback sur `photo_url`.
 
+## Décorations
+
+- **Table** : `decorations`
+- **Source** : Archives de la Grande Chancellerie de la Légion d'honneur — API Arkotheque (`archives.legiondhonneur.fr`)
+- **Client** : `sources/legion-honneur.ts` → `upsert/decorations.ts`
+- **Commande** : `yarn --cwd packages/ingest ingest:decorations`
+- **Description** : Décorations officielles (Légion d'honneur, Ordre national du Mérite, Médaille militaire) extraites de la base LUD (Liste Unique des Décorés, ~1.4M entrées). Pour chaque official en base, le script cherche par nom de famille dans l'API, puis filtre par prénom et récupère le détail de chaque fiche.
+- **Champs** : nom, prénom, sexe, dates naissance/décès, lieu de naissance, ordre, grade, date décret, date JO, ministère, qualité
+- **Matching** : par nom/prénom normalisé vers `officials.id`
+- **API** : Arkotheque CMS (Symfony/Elasticsearch). Filtrage via query params `{moteur}--filtreGroupes[groupes][0][{field}][q][0]=VALUE`. Détail via `/_recherche-api/render-fiche/{moteur}/{fiche}/{restit}/detail/json`.
+
 ## Statut déclaration HATVP
 
 - **Champ** : `officials.hatvp_status`
