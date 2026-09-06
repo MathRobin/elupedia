@@ -83,12 +83,14 @@ export async function upsertAnVotes(
         .limit(1);
 
       if (existing.length === 0) {
-        await db.insert(votes).values({ ballotId, officialId, position });
+        await db
+          .insert(votes)
+          .values({ ballotId, officialId, position, seatNumber: v.seatNumber });
         created++;
       } else if (existing.length > 0) {
         await db
           .update(votes)
-          .set({ position, updatedAt: new Date() })
+          .set({ position, seatNumber: v.seatNumber, updatedAt: new Date() })
           .where(eq(votes.id, existing[0].id));
         updated++;
       }

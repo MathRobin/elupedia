@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import seatPositions from '../lib/hemicycle-seats.json';
 
 type VotePosition = 'for' | 'against' | 'abstain' | 'absent';
 
@@ -9,27 +10,12 @@ interface Seat {
   position: VotePosition;
   politicalGroup: string | null;
   slug: string | null;
+  seatNumber: number | null;
 }
 
 interface Props {
   seats: Seat[];
 }
-
-const GROUP_ORDER: string[] = [
-  'La France insoumise - Nouveau Front Populaire (LFI-NFP)',
-  'Gauche Démocrate et Républicaine (GDR)',
-  'Socialistes et apparentés (SOC)',
-  'Écologiste et Social (EcoS)',
-  'Libertés, Indépendants, Outre-mer et Territoires (LIOT)',
-  'Les Démocrates (Dem)',
-  'Ensemble pour la République (EPR)',
-  'Horizons & Indépendants (HOR)',
-  'Droite Républicaine (DR)',
-  'UDR (UDR)',
-  'À Droite ! (AD)',
-  'Rassemblement National (RN)',
-  'Non inscrit (NI)',
-];
 
 const POSITION_COLORS: Record<VotePosition, string> = {
   for: '#10b981',
@@ -45,76 +31,20 @@ const POSITION_LABELS: Record<VotePosition, string> = {
   absent: 'Absent',
 };
 
-function computeLayout(total: number) {
-  if (total === 0) return { positions: [], outerRadius: 10, dotRadius: 0.5 };
+const seatMap = seatPositions as Record<string, [number, number]>;
 
-  const dotDiameter = 1.0;
-  const gap = 0.25;
-  const step = dotDiameter + gap;
-  const arcPad = 0.12;
-  const arcSpan = Math.PI - 2 * arcPad;
+const allCoords = Object.values(seatMap);
+const VIEW_MIN_X = Math.min(...allCoords.map((c) => c[0]));
+const VIEW_MAX_X = Math.max(...allCoords.map((c) => c[0]));
+const VIEW_MIN_Y = Math.min(...allCoords.map((c) => c[1]));
+const VIEW_MAX_Y = Math.max(...allCoords.map((c) => c[1]));
+const VIEW_CX = (VIEW_MIN_X + VIEW_MAX_X) / 2;
 
-  let bestRows = 1;
-  let bestInner = 5;
-
-  for (let rows = 2; rows <= 25; rows++) {
-    const inner = rows * step * 1.1;
-    let capacity = 0;
-    for (let r = 0; r < rows; r++) {
-      const radius = inner + r * step;
-      const arcLen = arcSpan * radius;
-      capacity += Math.floor(arcLen / step);
-    }
-    if (capacity >= total) {
-      bestRows = rows;
-      bestInner = inner;
-      break;
-    }
-  }
-
-  const rowRadii: number[] = [];
-  const rawCaps: number[] = [];
-  for (let r = 0; r < bestRows; r++) {
-    const radius = bestInner + r * step;
-    rowRadii.push(radius);
-    rawCaps.push(Math.floor((arcSpan * radius) / step));
-  }
-
-  const rawTotal = rawCaps.reduce((a, b) => a + b, 0);
-  const seatsPerRow = rawCaps.map((c) => Math.round((c / rawTotal) * total));
-
-  let diff = total - seatsPerRow.reduce((a, b) => a + b, 0);
-  let idx = seatsPerRow.length - 1;
-  while (diff !== 0) {
-    const d = diff > 0 ? 1 : -1;
-    if (seatsPerRow[idx] + d >= 1) {
-      seatsPerRow[idx] += d;
-      diff -= d;
-    }
-    idx = (idx - 1 + seatsPerRow.length) % seatsPerRow.length;
-  }
-
-  const positions: { x: number; y: number }[] = [];
-
-  for (let row = 0; row < bestRows; row++) {
-    const radius = rowRadii[row];
-    const n = seatsPerRow[row];
-    if (n <= 0) continue;
-    for (let col = 0; col < n; col++) {
-      const t = n === 1 ? 0.5 : col / (n - 1);
-      const angle = Math.PI - arcPad - arcSpan * t;
-      positions.push({
-        x: radius * Math.cos(angle),
-        y: -radius * Math.sin(angle),
-      });
-    }
-  }
-
-  const outerRadius = rowRadii[bestRows - 1] + step;
-  const dotRadius = dotDiameter / 2;
-
-  return { positions, outerRadius, dotRadius };
-}
+const MARGIN = 6;
+const VB_X = VIEW_MIN_X - MARGIN;
+const VB_Y = VIEW_MIN_Y - MARGIN;
+const VB_W = VIEW_MAX_X - VIEW_MIN_X + MARGIN * 2;
+const VB_H = VIEW_MAX_Y - VIEW_MIN_Y + MARGIN * 2;
 
 export default function HemicycleChart({ seats }: Props) {
   const [tooltip, setTooltip] = useState<{
@@ -123,69 +53,129 @@ export default function HemicycleChart({ seats }: Props) {
     y: number;
   } | null>(null);
 
-  const sortedSeats = useMemo(() => {
-    const groupIndex = (g: string | null) => {
-      if (!g) return GROUP_ORDER.length;
-      const idx = GROUP_ORDER.indexOf(g);
-      return idx >= 0 ? idx : GROUP_ORDER.length - 0.5;
-    };
-    return [...seats].sort(
-      (a, b) => groupIndex(a.politicalGroup) - groupIndex(b.politicalGroup),
-    );
-  }, [seats]);
-
-  const { positions, outerRadius, dotRadius } = useMemo(
-    () => computeLayout(sortedSeats.length),
-    [sortedSeats.length],
+  const hasSeatData = seats.some(
+    (s) => s.seatNumber != null && seatMap[String(s.seatNumber)],
   );
 
-  const margin = 1.5;
-  const viewBoxX = -(outerRadius + margin);
-  const viewBoxY = -(outerRadius + margin);
-  const viewBoxW = (outerRadius + margin) * 2;
-  const viewBoxH = outerRadius + margin + dotRadius + 0.5;
+  const positioned = useMemo(() => {
+    if (hasSeatData) {
+      const placed: { seat: Seat; x: number; y: number }[] = [];
+      const unplaced: Seat[] = [];
+
+      for (const seat of seats) {
+        const coords =
+          seat.seatNumber != null
+            ? seatMap[String(seat.seatNumber)]
+            : undefined;
+        if (coords) {
+          placed.push({ seat, x: coords[0], y: coords[1] });
+        } else {
+          unplaced.push(seat);
+        }
+      }
+
+      if (unplaced.length > 0) {
+        const usedPositions = new Set(placed.map((p) => `${p.x},${p.y}`));
+        const available = Object.values(seatMap).filter(
+          (c) => !usedPositions.has(`${c[0]},${c[1]}`),
+        );
+        for (let i = 0; i < unplaced.length && i < available.length; i++) {
+          placed.push({
+            seat: unplaced[i],
+            x: available[i][0],
+            y: available[i][1],
+          });
+        }
+      }
+
+      return placed;
+    }
+
+    return seats.map((seat, i) => ({
+      seat,
+      x: allCoords[i % allCoords.length][0],
+      y: allCoords[i % allCoords.length][1],
+    }));
+  }, [seats, hasSeatData]);
+
+  const dotRadius = 2.8;
 
   const handleMouseEnter = useCallback(
-    (seat: Seat, pos: { x: number; y: number }, e: React.MouseEvent) => {
+    (seat: Seat, sx: number, sy: number, e: React.MouseEvent) => {
       const svg = (e.target as SVGElement).closest('svg')!;
       const rect = svg.getBoundingClientRect();
-      const pxX = ((pos.x - viewBoxX) / viewBoxW) * rect.width;
-      const pxY = ((pos.y - viewBoxY) / viewBoxH) * rect.height;
+      const pxX = ((sx - VB_X) / VB_W) * rect.width;
+      const pxY = ((sy - VB_Y) / VB_H) * rect.height;
       setTooltip({ seat, x: pxX, y: pxY });
     },
-    [viewBoxX, viewBoxY, viewBoxW, viewBoxH],
+    [],
   );
 
   const handleMouseLeave = useCallback(() => setTooltip(null), []);
 
-  if (sortedSeats.length === 0) return null;
+  if (positioned.length === 0) return null;
+
+  const emptySeats = hasSeatData
+    ? Object.entries(seatMap)
+        .filter(
+          ([id]) => !positioned.some((p) => p.seat.seatNumber === Number(id)),
+        )
+        .map(([, coords]) => coords)
+    : [];
 
   return (
     <div className="relative">
       <svg
-        viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxW} ${viewBoxH}`}
+        viewBox={`${VB_X} ${VB_Y} ${VB_W} ${VB_H}`}
         className="w-full"
         role="img"
         aria-label="Hémicycle des votes"
       >
-        {sortedSeats.map((seat, i) => {
-          const pos = positions[i];
-          if (!pos) return null;
-          return (
-            <circle
-              key={seat.officialId}
-              cx={pos.x}
-              cy={pos.y}
-              r={dotRadius}
-              fill={POSITION_COLORS[seat.position]}
-              stroke="white"
-              strokeWidth={0.12}
-              className="cursor-pointer"
-              onMouseEnter={(e) => handleMouseEnter(seat, pos, e)}
-              onMouseLeave={handleMouseLeave}
-            />
-          );
-        })}
+        {emptySeats.map(([x, y], i) => (
+          <circle
+            key={`empty-${i}`}
+            cx={x}
+            cy={y}
+            r={dotRadius}
+            fill="none"
+            stroke="#e2e8f0"
+            strokeWidth={0.4}
+          />
+        ))}
+
+        {/* President podium */}
+        <circle
+          cx={VIEW_CX}
+          cy={VIEW_MAX_Y + 2}
+          r={3}
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth={0.5}
+        />
+        <text
+          x={VIEW_CX}
+          y={VIEW_MAX_Y + 3.2}
+          textAnchor="middle"
+          fontSize="2.5"
+          fill="#94a3b8"
+        >
+          P
+        </text>
+
+        {positioned.map(({ seat, x, y }) => (
+          <circle
+            key={seat.officialId}
+            cx={x}
+            cy={y}
+            r={dotRadius}
+            fill={POSITION_COLORS[seat.position]}
+            stroke="white"
+            strokeWidth={0.4}
+            className="cursor-pointer"
+            onMouseEnter={(e) => handleMouseEnter(seat, x, y, e)}
+            onMouseLeave={handleMouseLeave}
+          />
+        ))}
       </svg>
 
       {tooltip && (

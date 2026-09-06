@@ -11,6 +11,7 @@ export const SCRUTINS_URL =
 export interface ScrutinVotant {
   acteurRef: string;
   position: 'pour' | 'contre' | 'abstention' | 'non-votant';
+  seatNumber: number | null;
 }
 
 export interface ScrutinGroupPosition {
@@ -59,11 +60,15 @@ function extractVotants(
     : [container.votant];
 
   return votants
-    .filter((v: unknown): v is { acteurRef: string } => {
+    .filter((v: unknown): v is { acteurRef: string; numPlace?: string } => {
       const obj = v as Record<string, unknown>;
       return typeof obj?.acteurRef === 'string';
     })
-    .map((v) => ({ acteurRef: v.acteurRef, position }));
+    .map((v) => ({
+      acteurRef: v.acteurRef,
+      position,
+      seatNumber: v.numPlace ? parseInt(v.numPlace, 10) : null,
+    }));
 }
 
 export async function fetchScrutins(

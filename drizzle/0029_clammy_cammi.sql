@@ -1,0 +1,1 @@
+ALTER TABLE "votes" ADD COLUMN "seat_number" integer;

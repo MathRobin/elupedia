@@ -21,7 +21,7 @@ const [ballot] = await db
 if (!ballot) return Astro.redirect('/votes');
 
 const ballotVotesRaw = await db
-  .select({ position: votes.position, officialId: votes.officialId })
+  .select({ position: votes.position, officialId: votes.officialId, seatNumber: votes.seatNumber })
   .from(votes)
   .where(eq(votes.ballotId, ballot.id));
 
@@ -52,6 +52,7 @@ const ballotVotes = ballotVotesRaw
       photoUrl: o.photoUrl,
       politicalGroup: m?.politicalGroup ?? null,
       department: m?.department ?? null,
+      seatNumber: v.seatNumber ?? null,
     };
   });
 
@@ -238,6 +239,7 @@ const sourceUrl = ballot.anId
               position: v.position as 'for' | 'against' | 'abstain' | 'absent',
               politicalGroup: v.politicalGroup,
               slug: v.slug,
+              seatNumber: v.seatNumber,
             }))}
           />
         </div>
