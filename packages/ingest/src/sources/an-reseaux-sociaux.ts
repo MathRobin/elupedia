@@ -4,7 +4,8 @@ const SOCIAL_URL =
 const WEBSITE_URL =
   'https://www2.assemblee-nationale.fr/deputes/liste/site-internet';
 
-export type AnLinkPlatform = 'facebook' | 'twitter' | 'personal_website';
+export type AnLinkPlatform =
+  'facebook' | 'twitter' | 'instagram' | 'personal_website';
 
 export interface SocialLinkData {
   anId: string;
