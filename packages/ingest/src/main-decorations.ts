@@ -56,37 +56,44 @@ async function main() {
   let found = 0;
   let totalDecorations = 0;
 
+  let errors = 0;
+
   for (const [normalLast, group] of byLastName) {
-    const { results } = await searchDecorations(group[0].lastName);
+    try {
+      const { results } = await searchDecorations(group[0].lastName);
 
-    const firstNames = new Set(group.map((o) => normalize(o.firstName)));
+      const firstNames = new Set(group.map((o) => normalize(o.firstName)));
 
-    const batch: Parameters<typeof upsertDecorations>[1] = [];
+      const batch: Parameters<typeof upsertDecorations>[1] = [];
 
-    for (const r of results) {
-      const resultName = normalize(r.intitule);
-      if (!resultName.startsWith(normalLast)) continue;
+      for (const r of results) {
+        const resultName = normalize(r.intitule);
+        if (!resultName.startsWith(normalLast)) continue;
 
-      const detail = await fetchFicheDetail(r.refUnique);
-      if (!detail || detail.decorations.length === 0) continue;
+        const detail = await fetchFicheDetail(r.refUnique);
+        if (!detail || detail.decorations.length === 0) continue;
 
-      const detailLast = normalize(detail.lastName);
-      if (detailLast !== normalLast) continue;
+        const detailLast = normalize(detail.lastName);
+        if (detailLast !== normalLast) continue;
 
-      const detailFirst = normalize(detail.firstName ?? '');
-      const matched = [...firstNames].some((f) => {
-        if (!f || !detailFirst) return !f && !detailFirst;
-        return detailFirst.startsWith(f.split(' ')[0]);
-      });
-      if (!matched) continue;
+        const detailFirst = normalize(detail.firstName ?? '');
+        const matched = [...firstNames].some((f) => {
+          if (!f || !detailFirst) return !f && !detailFirst;
+          return detailFirst.startsWith(f.split(' ')[0]);
+        });
+        if (!matched) continue;
 
-      batch.push(detail);
-      found++;
-      totalDecorations += detail.decorations.length;
-    }
+        batch.push(detail);
+        found++;
+        totalDecorations += detail.decorations.length;
+      }
 
-    if (batch.length > 0) {
-      await upsertDecorations(db, batch, officialByName);
+      if (batch.length > 0) {
+        await upsertDecorations(db, batch, officialByName);
+      }
+    } catch (e) {
+      errors++;
+      logger.warn(`  Error for "${group[0].lastName}": ${e}`);
     }
 
     searched++;
@@ -100,7 +107,7 @@ async function main() {
   }
 
   logger.info(
-    `Done: ${found} officials matched, ${totalDecorations} decorations`,
+    `Done: ${found} officials matched, ${totalDecorations} decorations, ${errors} errors`,
   );
 }
 

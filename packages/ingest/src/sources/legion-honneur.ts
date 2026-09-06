@@ -4,6 +4,26 @@ const MOTEUR_REF = 'arko_default_684af021cfb1c';
 const MODE_RESTIT = 'arko_default_684af11bcc698';
 const SEARCH_FIELD = 'arko_default_684af0837f315';
 
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  retries = 3,
+): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok || res.status < 500) return res;
+    } catch {
+      if (i === retries - 1)
+        throw new Error(
+          `Fetch failed after ${retries} retries: ${url.slice(0, 120)}`,
+        );
+    }
+    await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+  }
+  throw new Error('unreachable');
+}
+
 export interface DecorationRecord {
   arkoRef: string;
   lastName: string;
@@ -50,7 +70,7 @@ export async function searchDecorations(name: string): Promise<{
     if (from > 0) p.set(`${MOTEUR_REF}--from`, String(from));
 
     const url = `${BASE_URL}/_recherche-api/search/${SEARCH_ENGINE_ID}?${p.toString()}`;
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       headers: {
         Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
@@ -102,7 +122,7 @@ export async function fetchFicheDetail(
   arkoRef: string,
 ): Promise<DecorationRecord | null> {
   const url = `${BASE_URL}/_recherche-api/render-fiche/${MOTEUR_REF}/${arkoRef}/${MODE_RESTIT}/detail/json`;
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers: { Accept: 'application/json' },
   });
   if (!res.ok) return null;
