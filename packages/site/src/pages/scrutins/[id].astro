@@ -5,6 +5,7 @@ import { ballots, votes, officials, mandates, ballotGroupPositions } from '@elup
 import { eq, isNull, and, inArray } from 'drizzle-orm';
 import { DEPARTMENT_CODES } from '../../lib/department-codes.js';
 import DepartmentMapWrapper from '../../components/DepartmentMapWrapper';
+import HemicycleChart from '../../components/HemicycleChart';
 
 export const prerender = false;
 
@@ -220,6 +221,27 @@ const sourceUrl = ballot.anId
         {counts.abstain > 0 && <div class="bg-amber-400" style={`width:${(counts.abstain / ballotVotes.length) * 100}%`}></div>}
         {counts.absent > 0 && <div class="bg-slate-300 dark:bg-slate-600" style={`width:${(counts.absent / ballotVotes.length) * 100}%`}></div>}
       </div>
+    )}
+
+    {ballotVotes.length > 0 && (
+      <section class="mt-8">
+        <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+          Hémicycle
+        </h2>
+        <div class="mt-4 max-w-2xl mx-auto">
+          <HemicycleChart
+            client:load
+            seats={ballotVotes.map((v) => ({
+              officialId: v.officialId,
+              firstName: v.firstName,
+              lastName: v.lastName,
+              position: v.position as 'for' | 'against' | 'abstain' | 'absent',
+              politicalGroup: v.politicalGroup,
+              slug: v.slug,
+            }))}
+          />
+        </div>
+      </section>
     )}
 
     {groupPositions.length > 0 && (
