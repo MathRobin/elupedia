@@ -98,7 +98,7 @@ export default function HemicycleChart({ seats }: Props) {
     }));
   }, [seats, hasSeatData]);
 
-  const dotRadius = 2.8;
+  const dotRadius = 1.5;
 
   const handleMouseEnter = useCallback(
     (seat: Seat, sx: number, sy: number, e: React.MouseEvent) => {
@@ -139,7 +139,7 @@ export default function HemicycleChart({ seats }: Props) {
             r={dotRadius}
             fill="none"
             stroke="#e2e8f0"
-            strokeWidth={0.4}
+            strokeWidth={0.3}
           />
         ))}
 
@@ -147,16 +147,16 @@ export default function HemicycleChart({ seats }: Props) {
         <circle
           cx={VIEW_CX}
           cy={VIEW_MAX_Y + 2}
-          r={3}
+          r={2.5}
           fill="none"
           stroke="#94a3b8"
-          strokeWidth={0.5}
+          strokeWidth={0.4}
         />
         <text
           x={VIEW_CX}
-          y={VIEW_MAX_Y + 3.2}
+          y={VIEW_MAX_Y + 3}
           textAnchor="middle"
-          fontSize="2.5"
+          fontSize="2"
           fill="#94a3b8"
         >
           P
@@ -170,7 +170,7 @@ export default function HemicycleChart({ seats }: Props) {
             r={dotRadius}
             fill={POSITION_COLORS[seat.position]}
             stroke="white"
-            strokeWidth={0.4}
+            strokeWidth={0.3}
             className="cursor-pointer"
             onMouseEnter={(e) => handleMouseEnter(seat, x, y, e)}
             onMouseLeave={handleMouseLeave}
