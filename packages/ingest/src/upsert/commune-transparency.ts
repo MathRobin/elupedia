@@ -4,7 +4,7 @@ import { communeTransparency } from '@elupedia/shared';
 import { type MadadaBody } from '../sources/madada.js';
 import { logger } from '../logger.js';
 
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 100;
 
 export async function upsertCommuneTransparency(
   db: NeonHttpDatabase,
