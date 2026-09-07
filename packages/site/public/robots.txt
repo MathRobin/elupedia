@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://www.elupedia.fr/sitemap-index.xml
+LLMs: https://www.elupedia.fr/llms.txt

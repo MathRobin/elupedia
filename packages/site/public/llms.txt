@@ -1,0 +1,70 @@
+# Elupedia
+
+> Encyclopédie ouverte des élus français. Annuaire indépendant, neutre et open source de la vie publique.
+
+Elupedia agrège exclusivement des données publiques officielles sur les élus français : députés, sénateurs et maires. Le site ne note pas les élus, ne les classe pas et n'émet aucun jugement de valeur. Les données sont restituées de manière brute et impartiale.
+
+## Pages principales
+
+- [Accueil](https://www.elupedia.fr/): Page d'accueil avec recherche d'élus
+- [Annuaire des élus](https://www.elupedia.fr/elus): Liste complète des élus avec filtres
+- [Scrutins](https://www.elupedia.fr/votes): Liste des scrutins publics de l'Assemblée nationale et du Sénat
+- [À propos](https://www.elupedia.fr/a-propos): Présentation du projet, sources de données et méthodologie
+- [Mentions légales](https://www.elupedia.fr/mentions-legales): Informations légales
+- [Données personnelles](https://www.elupedia.fr/donnees-personnelles): Politique de protection des données
+- [Changelog](https://www.elupedia.fr/changelog): Historique des modifications
+
+## Structure des fiches d'élus
+
+Chaque élu dispose d'une fiche accessible à `/elus/{slug}` contenant les sections suivantes, chacune sourcée vers l'organisme d'origine :
+
+- **Identité et mandat** : nom, prénom, date de naissance, photo, circonscription, département, groupe politique
+- **Chronologie** : frise des événements (mandats, nominations, votes marquants, parrainages)
+- **Décorations** : Légion d'honneur, Ordre national du Mérite, Médaille militaire
+- **Mandats** : historique des mandats avec dates et circonscriptions
+- **Adresses et contacts** : permanences, bureaux, téléphones, emails
+- **Affiliations politiques** : groupes parlementaires et partis avec historique
+- **Collaborateurs parlementaires** : collaborateurs déclarés avec dates d'arrivée/départ
+- **Activité parlementaire** : questions écrites, questions orales, amendements, rapports
+- **Commissions et délégations** : commissions permanentes, spéciales, groupes d'études et d'amitié
+- **Résultats électoraux** : résultats par tour et par élection
+- **Élections municipales** : résultats municipaux avec détail par liste et candidat
+- **Comptes de campagne** : dépenses, recettes, dons, remboursements, décision CNCCFP
+- **Parrainages présidentiels** : parrainages pour les élections présidentielles
+- **Intérêts et patrimoine** : déclarations HATVP (activités professionnelles, participations, mandats électifs)
+- **Historique des votes** : votes sur les scrutins publics (pour, contre, abstention, absent)
+- **Mentions presse** : articles de presse récents via Google Actualités (source non officielle)
+- **Réseaux sociaux** : liens vers Twitter/X, Facebook, Instagram, YouTube, site personnel
+
+## Scrutins
+
+Chaque scrutin est accessible à `/scrutins/{id}` et contient :
+
+- Titre, date et résultat du scrutin
+- Panorama par groupe politique (pour, contre, abstention, non-votant)
+- Détail du vote de chaque député/sénateur
+
+## Sources de données
+
+Toutes les données proviennent de sources officielles publiques :
+
+- [data.assemblee-nationale.fr](https://data.assemblee-nationale.fr) : open data de l'Assemblée nationale
+- [data.senat.fr](https://data.senat.fr) : API du Sénat
+- [HATVP](https://www.hatvp.fr/open-data/) : déclarations d'intérêts et de patrimoine
+- [data.gouv.fr](https://www.data.gouv.fr) : Répertoire national des élus, comptes de campagne (CNCCFP), résultats électoraux, parrainages
+- [Conseil constitutionnel](https://www.conseil-constitutionnel.fr/les-parrainages) : parrainages présidentiels
+- [API Annuaire (DILA)](https://api-lannuaire.service-public.fr) : adresses des mairies
+- [Archives de la Légion d'honneur](https://archives.legiondhonneur.fr) : décorations
+- [Google Actualités](https://news.google.com) : mentions presse (source non officielle)
+
+## Principes
+
+- **Transparence** : chaque donnée affichée pointe vers sa source officielle avec la date de dernière récupération
+- **Neutralité** : aucun classement, notation ou commentaire éditorial
+- **Open source** : code source public sur [GitHub](https://github.com/MathRobin/elupedia)
+- **Gratuité** : accès libre, sans publicité, sans revente de données
+- **Indépendance** : autofinancé, aucun financement public ou privé
+
+## Contact
+
+- GitHub : [github.com/MathRobin/elupedia](https://github.com/MathRobin/elupedia)
