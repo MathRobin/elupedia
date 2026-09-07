@@ -18,6 +18,8 @@
     "ingest:press:maires": "tsx src/main-press-maires.ts",
     "ingest:hatvp-status": "tsx src/main-hatvp-status.ts",
     "ingest:decorations": "tsx src/main-decorations.ts",
+    "ingest:factchecks": "tsx src/main-factchecks.ts",
+    "ingest:madada": "tsx src/main-madada.ts",
     "reconcile": "tsx src/main-reconcile.ts",
     "test": "vitest run"
   },
