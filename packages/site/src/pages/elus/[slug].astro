@@ -52,6 +52,7 @@ const row = mandateRows.find((r) => !r.endDate) ?? mandateRows[0] ?? null;
 if (!row) return Astro.redirect('/elus');
 
 const officialId = row.id;
+const isMaire = row.mandateType === 'maire';
 
 const deputyMandates = await db
   .select({
@@ -482,7 +483,6 @@ const worksForName = deputy.mandateType === 'depute'
       ? deputy.district ?? undefined
       : undefined;
 
-const isMaire = deputy.mandateType === 'maire';
 const isParliamentary = deputy.mandateType === 'depute' || deputy.mandateType === 'senateur';
 const hasActiveMandate = !deputy.endDate;
 
