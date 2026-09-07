@@ -49,12 +49,12 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 
 ## Votes et scrutins
 
-- **Tables** : `votes`, `ballots`
+- **Tables** : `votes`, `ballots`, `ballot_group_positions`
 - **Sources** :
-  - Assemblée nationale : `an-scrutins.ts` (ZIP/JSON, ~8 400 scrutins) → `upsert/an-votes.ts`
+  - Assemblée nationale : `an-scrutins.ts` (ZIP/JSON, ~5 300 scrutins) → `upsert/an-votes.ts`
   - Sénat : `senat-scrutins.ts` → `upsert/senat-votes.ts` (API JSON, scrutins publics)
-- **Description** : Scrutins publics et position de chaque élu (pour, contre, abstention, absent). Mapping FR→EN des positions.
-- **Pages** : fiche élu (section historique des votes), page détail scrutin (liste des votes par élu)
+- **Description** : Scrutins publics et position de chaque élu (pour, contre, abstention, absent). Mapping FR→EN des positions. Numéro de siège (`numPlace`) extrait pour la visualisation hémicycle. Position majoritaire de chaque groupe politique (`positionMajoritaire`) et décompte détaillé des voix par groupe.
+- **Pages** : fiche élu (section historique des votes), page détail scrutin (hémicycle interactif, panorama de vote par groupe, liste des votes par élu)
 
 ## Affiliations politiques
 

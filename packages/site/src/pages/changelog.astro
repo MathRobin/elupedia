@@ -14,6 +14,42 @@ interface ChangelogEntry {
 const changelog: ChangelogEntry[] = [
   {
     date: '2026-09-06',
+    title: 'Affiliations politiques des députés',
+    description: "L'ingestion AN extrait désormais le groupe politique de chaque député. La section « Affiliations politiques » sur les fiches de députés est maintenant renseignée.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-06',
+    title: 'Sources nominatives par élu',
+    description: "Les liens « Source » en bas de chaque section pointent maintenant vers la fiche individuelle de l'élu (AN, Sénat, HATVP) au lieu d'un lien générique.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-06',
+    title: 'Scraping Instagram des députés',
+    description: "Extraction des liens Instagram depuis les pages individuelles des députés sur le site de l'Assemblée nationale.",
+    tag: 'data',
+  },
+  {
+    date: '2026-09-06',
+    title: 'Hémicycle interactif sur les scrutins',
+    description: "Visualisation de l'hémicycle avec les positions réelles des sièges de l'Assemblée nationale. Chaque siège est coloré selon le vote (pour, contre, abstention, absent) avec tooltip au survol.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-06',
+    title: 'Consignes de vote par groupe',
+    description: "Extraction et affichage de la position majoritaire de chaque groupe politique sur chaque scrutin, avec la répartition détaillée des votes.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-06',
+    title: 'Liens vers les groupes parlementaires',
+    description: "Chaque nom de groupe politique est désormais un lien vers le site officiel du groupe à l'Assemblée nationale ou au Sénat.",
+    tag: 'feature',
+  },
+  {
+    date: '2026-09-06',
     title: 'Décorations officielles',
     description: "Ingestion des décorations (Légion d'honneur, Ordre national du Mérite, Médaille militaire) depuis les archives de la Grande Chancellerie. Affichage sur les fiches d'élus.",
     tag: 'data',
