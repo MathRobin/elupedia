@@ -213,3 +213,13 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Cible** : députés, sénateurs, et maires de communes >20 000 habitants (obligation de déclaration loi 2013) n'ayant pas de déclaration publiée dans le XML HATVP
 - **Description** : Détecte les déclarations déposées mais pas encore publiées (statut `pending`). Utilise les données de population INSEE pour identifier les communes >20k. Un bandeau amber est affiché sur la fiche élu avec lien vers la fiche HATVP.
 - **Pages** : fiche élu (bandeau dans la section intérêts quand `hatvp_status = 'pending'`)
+
+## Transparence communale (MaDada.fr)
+
+- **Table** : `commune_transparency`
+- **Source** : madada.fr — API JSON Alaveteli (`/body/<url_name>.json`)
+- **Client** : `sources/madada.ts` → `upsert/commune-transparency.ts`
+- **Description** : Statistiques de transparence des mairies basées sur les demandes d'accès aux documents administratifs (CADA) via la plateforme MaDada.fr. Stocke le nombre total de demandes, demandes abouties, en retard et non détenues, par commune (clé primaire : code INSEE).
+- **Matching** : Le nom de la commune est normalisé (minuscules, suppression des accents, remplacement espaces/tirets par underscores) pour construire le slug `mairie_<nom_normalisé>`. Fallback avec suffixe code commune si le premier essai échoue. Taux de matching ~94 %.
+- **Ingestion** : `yarn --cwd packages/ingest ingest:madada` — itère les ~34 800 communes avec maires, rate-limité (200 ms de pause toutes les 50 requêtes). Seules les communes avec au moins une demande sont stockées.
+- **Pages** : fiche élu maire (section Transparence avec compteurs, barre de progression et lien vers la page MaDada)
