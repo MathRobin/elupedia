@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import ThemeToggle from '../components/ThemeToggle';
 import ShareButton from '../components/ShareButton';
+import {ColorSchemeScript} from "@mantine/core";
 
 interface Props {
   title?: string;
@@ -59,6 +60,7 @@ const websiteJsonLd = {
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
+    <meta name="google-site-verification" content="CSF4EmDM8HnJnmP-8vMaNdusi8hHe1kwzY0UpdkvQCo" />
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
