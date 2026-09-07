@@ -496,7 +496,8 @@ if (deputy.politicalGroup) {
     name: deputy.politicalGroup,
   });
 }
-for (const c of deputyCommittees.filter((c) => !c.endDate)) {
+const jsonLdCommitteeTypes = new Set(['standing_committee', 'special_committee', 'delegation']);
+for (const c of deputyCommittees.filter((c) => !c.endDate && jsonLdCommitteeTypes.has(c.type))) {
   memberOfEntries.push({
     '@type': 'Organization',
     name: c.name,
@@ -547,15 +548,15 @@ const personJsonLd: Record<string, unknown> = {
   knowsLanguage: 'fr',
   ...(photo && { image: { '@type': 'ImageObject', url: photo, contentUrl: photo } }),
   ...(deputy.birthDate && { birthDate: deputy.birthDate }),
-  ...(birthPlace?.villeNais && {
+  ...(typeof birthPlace?.villeNais === 'string' && birthPlace.villeNais && {
     birthPlace: {
       '@type': 'Place',
-      name: birthPlace.villeNais as string,
-      ...(birthPlace.depNais && {
+      name: birthPlace.villeNais,
+      ...(typeof birthPlace.depNais === 'string' && birthPlace.depNais && {
         address: {
           '@type': 'PostalAddress',
-          addressRegion: birthPlace.depNais as string,
-          addressCountry: (birthPlace.paysNais as string) ?? 'France',
+          addressRegion: birthPlace.depNais,
+          addressCountry: typeof birthPlace.paysNais === 'string' && birthPlace.paysNais ? birthPlace.paysNais : 'France',
         },
       }),
     },
