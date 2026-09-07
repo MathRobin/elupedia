@@ -1,6 +1,5 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
-import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
 import { config as loadDotenv } from 'dotenv';
@@ -12,7 +11,7 @@ loadDotenv({ path: path.resolve(__dirname, '../../.env') });
 
 export default defineConfig({
   site: 'https://www.elupedia.fr',
-  integrations: [react(), sitemap()],
+  integrations: [react()],
   vite: {
     envDir: '../../',
     define: {

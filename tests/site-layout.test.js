@@ -108,15 +108,17 @@ describe('SEO de base (#47)', () => {
   );
   const configPath = resolve(root, 'packages/site/astro.config.ts');
 
-  it('astro config has sitemap integration', () => {
-    const content = readFileSync(configPath, 'utf-8');
-    expect(content).toContain("import sitemap from '@astrojs/sitemap'");
-    expect(content).toContain('sitemap()');
-  });
-
-  it('astro config has site URL for sitemap generation', () => {
+  it('astro config has site URL', () => {
     const content = readFileSync(configPath, 'utf-8');
     expect(content).toContain("site: 'https://www.elupedia.fr'");
+  });
+
+  it('has dynamic sitemap endpoints', () => {
+    const pagesDir = resolve(root, 'packages/site/src/pages');
+    expect(existsSync(resolve(pagesDir, 'sitemap-index.xml.ts'))).toBe(true);
+    expect(existsSync(resolve(pagesDir, 'sitemap-elus.xml.ts'))).toBe(true);
+    expect(existsSync(resolve(pagesDir, 'sitemap-scrutins.xml.ts'))).toBe(true);
+    expect(existsSync(resolve(pagesDir, 'sitemap-static.xml.ts'))).toBe(true);
   });
 
   it('has Open Graph meta tags', () => {
