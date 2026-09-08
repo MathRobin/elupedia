@@ -2073,6 +2073,7 @@ for (const sp of deputySponsorships) {
     <MadadaRequestsDrawer
       requests={madadaRequestRows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))}
       madadaUrlName={madadaMeta.madadaUrlName}
+      aggregateCount={transparencyRow?.requestsCount ?? 0}
       client:idle
     />
   )}

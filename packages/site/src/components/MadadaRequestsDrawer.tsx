@@ -104,9 +104,11 @@ function StatusBadge({ status }: { status: string }) {
 export default function MadadaRequestsDrawer({
   requests,
   madadaUrlName,
+  aggregateCount,
 }: {
   requests: MadadaRequestItem[];
   madadaUrlName: string;
+  aggregateCount: number;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -145,7 +147,8 @@ export default function MadadaRequestsDrawer({
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
             <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-              Demandes CADA ({requests.length})
+              Demandes CADA (
+              {requests.length > 0 ? requests.length : aggregateCount})
             </h3>
             <button
               onClick={close}
@@ -170,9 +173,35 @@ export default function MadadaRequestsDrawer({
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             {requests.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Aucune demande individuelle enregistrée pour ce mandat.
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {aggregateCount} demande{aggregateCount > 1 ? 's' : ''}{' '}
+                  enregistrée{aggregateCount > 1 ? 's' : ''} pour cette commune.
+                  Le détail individuel sera disponible après la prochaine
+                  synchronisation.
+                </p>
+                <a
+                  href={`https://madada.fr/body/${madadaUrlName}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 transition-colors dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                  Consulter les demandes sur MaDada.fr
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                    />
+                  </svg>
+                </a>
+              </div>
             ) : (
               <ul className="space-y-3">
                 {requests.map((req) => (
