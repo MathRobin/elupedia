@@ -33,6 +33,8 @@ Chaque élu dispose d'une fiche accessible à `/elus/{slug}` contenant les secti
 - **Parrainages présidentiels** : parrainages pour les élections présidentielles
 - **Intérêts et patrimoine** : déclarations HATVP (activités professionnelles, participations, mandats électifs)
 - **Historique des votes** : votes sur les scrutins publics (pour, contre, abstention, absent)
+- **Transparence communale** : demandes CADA via MaDada.fr (maires uniquement), filtrées par période de mandat
+- **Vérification des faits** : fact-checks via Google Fact Check Tools API (AFP, Le Monde, etc.)
 - **Mentions presse** : articles de presse récents via Google Actualités (source non officielle)
 - **Réseaux sociaux** : liens vers Twitter/X, Facebook, Instagram, YouTube, site personnel
 
@@ -55,6 +57,8 @@ Toutes les données proviennent de sources officielles publiques :
 - [Conseil constitutionnel](https://www.conseil-constitutionnel.fr/les-parrainages) : parrainages présidentiels
 - [API Annuaire (DILA)](https://api-lannuaire.service-public.fr) : adresses des mairies
 - [Archives de la Légion d'honneur](https://archives.legiondhonneur.fr) : décorations
+- [MaDada.fr](https://madada.fr) : demandes CADA aux mairies (transparence communale)
+- [Google Fact Check Tools API](https://developers.google.com/fact-check/tools/api) : vérifications des faits (ClaimReview indexés)
 - [Google Actualités](https://news.google.com) : mentions presse (source non officielle)
 
 ## Principes

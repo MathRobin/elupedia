@@ -9,6 +9,7 @@ import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
 import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
 import TimelineDrawer from '../../components/TimelineDrawer.tsx';
 import MunicipalElectionSection from '../../components/MunicipalElectionDrawer.tsx';
+import MadadaRequestsDrawer from '../../components/MadadaRequestsDrawer.tsx';
 import JurisdictionMap from '../../components/JurisdictionMap.tsx';
 
 export const prerender = false;
@@ -230,6 +231,20 @@ const madadaStats = mandateFilters.length > 0
       .from(madadaRequests)
       .where(and(...mandateFilters)))[0] ?? null
   : null;
+
+const madadaRequestRows = mandateFilters.length > 0
+  ? await db
+      .select({
+        madadaId: madadaRequests.madadaId,
+        urlTitle: madadaRequests.urlTitle,
+        title: madadaRequests.title,
+        status: madadaRequests.status,
+        createdAt: madadaRequests.createdAt,
+      })
+      .from(madadaRequests)
+      .where(and(...mandateFilters))
+      .orderBy(desc(madadaRequests.createdAt))
+  : [];
 
 const transparencyRow = madadaStats && madadaStats.requestsCount > 0 && madadaMeta
   ? { ...madadaStats, madadaUrlName: madadaMeta.madadaUrlName, updatedAt: madadaMeta.updatedAt }
@@ -1098,9 +1113,17 @@ for (const sp of deputySponsorships) {
     {transparencyRow && (
     <section id="transparence" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">Transparence</h2>
-      <div class="mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700">
+      <div
+        class:list={[
+          "mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700",
+          madadaRequestRows.length > 0 && "cursor-pointer hover:ring-indigo-300 hover:shadow-md transition-all dark:hover:ring-indigo-600",
+        ]}
+        onclick={madadaRequestRows.length > 0 ? "window.dispatchEvent(new CustomEvent('open-madada-drawer'))" : undefined}
+        role={madadaRequestRows.length > 0 ? "button" : undefined}
+        tabindex={madadaRequestRows.length > 0 ? "0" : undefined}
+      >
         <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
-          Demandes d'accès aux documents administratifs (CADA) envoyées à la mairie via <a href={`https://madada.fr/body/${transparencyRow.madadaUrlName}`} target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline dark:text-indigo-400">MaDada.fr</a>.
+          Demandes d'accès aux documents administratifs (CADA) envoyées à la mairie via <a href={`https://madada.fr/body/${transparencyRow.madadaUrlName}`} target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline dark:text-indigo-400" onclick="event.stopPropagation()">MaDada.fr</a>.
         </p>
         <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div class="text-center">
@@ -1136,6 +1159,9 @@ for (const sp of deputySponsorships) {
             </div>
           );
         })()}
+        {madadaRequestRows.length > 0 && (
+          <p class="mt-3 text-xs text-indigo-500 dark:text-indigo-400">Cliquer pour voir le détail des demandes</p>
+        )}
       </div>
       <p class="mt-3 text-xs text-slate-400">Source : <a href={`https://madada.fr/body/${transparencyRow.madadaUrlName}`} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">MaDada.fr</a> — dernière récupération le {transparencyRow.updatedAt.toLocaleDateString('fr-FR')}</p>
     </section>
@@ -2045,6 +2071,13 @@ for (const sp of deputySponsorships) {
 
   <QuestionDetailDrawer client:idle />
   <InterestDetailDrawer client:idle />
+  {madadaRequestRows.length > 0 && madadaMeta && (
+    <MadadaRequestsDrawer
+      requests={madadaRequestRows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))}
+      madadaUrlName={madadaMeta.madadaUrlName}
+      client:idle
+    />
+  )}
 
   <script>
     const tocInline = document.getElementById('toc-inline');

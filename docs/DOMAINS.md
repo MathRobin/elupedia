@@ -216,10 +216,24 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 
 ## Transparence communale (MaDada.fr)
 
-- **Table** : `commune_transparency`
-- **Source** : madada.fr — API JSON Alaveteli (`/body/<url_name>.json`)
-- **Client** : `sources/madada.ts` → `upsert/commune-transparency.ts`
-- **Description** : Statistiques de transparence des mairies basées sur les demandes d'accès aux documents administratifs (CADA) via la plateforme MaDada.fr. Stocke le nombre total de demandes, demandes abouties, en retard et non détenues, par commune (clé primaire : code INSEE).
+- **Tables** : `commune_transparency`, `madada_requests`
+- **Sources** :
+  - madada.fr — API JSON Alaveteli (`/body/<url_name>.json`) pour les agrégats par commune
+  - madada.fr — scraping des pages body HTML paginées + API JSON par demande (`/request/<slug>.json`) pour les demandes individuelles avec `created_at`
+- **Clients** :
+  - `sources/madada.ts` → `upsert/commune-transparency.ts` (agrégats)
+  - `sources/madada-requests.ts` → `upsert/madada-requests.ts` (demandes individuelles)
+- **Description** : Statistiques de transparence des mairies basées sur les demandes d'accès aux documents administratifs (CADA) via la plateforme MaDada.fr. La table `commune_transparency` stocke les compteurs agrégés par commune. La table `madada_requests` stocke chaque demande avec son `created_at`, permettant de filtrer par période de mandat du maire.
 - **Matching** : Le nom de la commune est normalisé (minuscules, suppression des accents, remplacement espaces/tirets par underscores) pour construire le slug `mairie_<nom_normalisé>`. Fallback avec suffixe code commune si le premier essai échoue. Taux de matching ~94 %.
-- **Ingestion** : `yarn --cwd packages/ingest ingest:madada` — itère les ~34 800 communes avec maires, rate-limité (200 ms de pause toutes les 50 requêtes). Seules les communes avec au moins une demande sont stockées.
-- **Pages** : fiche élu maire (section Transparence avec compteurs, barre de progression et lien vers la page MaDada)
+- **Ingestion** : `yarn --cwd packages/ingest ingest:madada` — étape 1 : itère les ~34 800 communes avec maires pour les agrégats (rate-limité 200 ms / 50 req). Étape 2 : pour chaque commune ayant des données MaDaDa, scrape les pages body HTML paginées pour lister les slugs de demandes, puis fetch le JSON de chaque demande pour récupérer `created_at` et `described_state`.
+- **Pages** : fiche élu maire (section Transparence avec compteurs filtrés par période de mandat, barre de progression, lien vers MaDada, et drawer au clic listant les demandes individuelles avec statut et date)
+
+## Vérification des faits (Google Fact Check API)
+
+- **Table** : `fact_checks`
+- **Source** : Google Fact Check Tools API (`factchecktools.googleapis.com/v1alpha1/claims:search`) — indexe les ClaimReview de vérificateurs (AFP, Le Monde, etc.)
+- **Client** : `sources/google-factcheck.ts` → `upsert/fact-checks.ts`
+- **Commande** : `yarn --cwd packages/ingest ingest:factchecks`
+- **Prérequis** : `GOOGLE_FACTCHECK_API_KEY` dans `.env` (clé API Google Cloud, Fact Check Tools API activée)
+- **Description** : Recherche par nom d'élu dans l'index Google Fact Check. Stocke les ClaimReview trouvés : affirmation vérifiée, URL de la vérification, nom du vérificateur, note, date de publication. Quota gratuit 10 000 req/jour, délai 200 ms entre requêtes.
+- **Pages** : fiche élu (section « Vérification des faits » avec cards rose, affichée uniquement si des fact-checks existent)

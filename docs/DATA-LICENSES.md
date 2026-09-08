@@ -150,6 +150,29 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 - **Données collectées** :
   - Décorations officielles (Légion d'honneur, Ordre national du Mérite, Médaille militaire) : ordre, grade, date du décret, date JO, ministère proposant, qualité du décoré
 
+### MaDada.fr (transparence communale)
+
+- **Éditeur** : Association MaDada (plateforme citoyenne basée sur Alaveteli)
+- **Licence** : Données publiques — les demandes CADA sont des documents publics par nature
+- **Obligations** :
+  - Attribution obligatoire : mentionner MaDada.fr comme source
+  - Les demandes et réponses publiées sur la plateforme sont publiques
+- **URL** : https://madada.fr
+- **Données collectées** :
+  - Statistiques agrégées par mairie (nombre de demandes, abouties, en retard, non détenues) via l'API JSON (`/body/<slug>.json`)
+  - Demandes individuelles (titre, statut, date de création) via les pages HTML paginées et l'API JSON par demande (`/request/<slug>.json`)
+
+### Google Fact Check Tools API (vérification des faits)
+
+- **Éditeur** : Google
+- **Licence** : Google APIs Terms of Service — utilisation gratuite avec clé API, quota 10 000 requêtes/jour
+- **Obligations** :
+  - Les données indexées (ClaimReview) proviennent de vérificateurs tiers (AFP, Le Monde, etc.) — Elupedia renvoie vers l'article de vérification original
+  - Pas de redistribution du contenu des articles, uniquement les métadonnées (affirmation, note, lien)
+- **URL** : https://developers.google.com/fact-check/tools/api
+- **Données collectées** :
+  - Affirmation vérifiée, URL de la vérification, nom du vérificateur, note/verdict, date de publication
+
 ## Sources prévues (non encore actives)
 
 ### data.gouv.fr (résultats électoraux AN)
@@ -178,6 +201,8 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 | INSEE               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | data.gouv.fr (élec) | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
 | Légion d'honneur    | Données publiques   | Oui         | Non précisé      | ✅ active |
+| MaDada.fr           | Données publiques   | Oui         | Non précisé      | ✅ active |
+| Google Fact Check   | Google APIs ToS     | N/A         | Métadonnées only | ✅ active |
 
 ## Licence du code source
 

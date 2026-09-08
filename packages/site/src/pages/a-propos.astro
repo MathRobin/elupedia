@@ -52,18 +52,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       synchronisation suivante.
     </p>
 
-    <h3>Cas particulier&nbsp;: la section «&nbsp;Dans la presse&nbsp;»</h3>
+    <h3>Cas particuliers&nbsp;: sources non institutionnelles</h3>
 
     <p>
-      La section presse des fiches d'élus constitue la seule exception à la
-      règle des sources officielles. Les articles affichés sont collectés
-      automatiquement via les flux RSS de Google&nbsp;Actualités à partir du nom
-      de l'élu. Ce ne sont donc pas des données institutionnelles mais des
-      résultats de recherche&nbsp;: ils peuvent contenir du bruit (homonymes,
-      mentions indirectes) et ne prétendent pas à l'exhaustivité. Cette section
-      est proposée à titre informatif pour donner un aperçu de la couverture
-      médiatique récente d'un élu.
+      Trois sections des fiches d'élus font exception à la règle des sources
+      officielles&nbsp;:
     </p>
+    <ul>
+      <li><strong>Dans la presse</strong>&nbsp;: les articles sont collectés
+      automatiquement via les flux RSS de Google&nbsp;Actualités à partir du nom
+      de l'élu. Ce ne sont pas des données institutionnelles mais des résultats
+      de recherche&nbsp;: ils peuvent contenir du bruit (homonymes, mentions
+      indirectes) et ne prétendent pas à l'exhaustivité.</li>
+      <li><strong>Vérification des faits</strong>&nbsp;: les fact-checks sont
+      indexés par l'API Google Fact Check Tools et proviennent de vérificateurs
+      tiers (AFP, Le Monde, etc.). Chaque entrée renvoie vers l'article de
+      vérification original.</li>
+      <li><strong>Transparence communale</strong>&nbsp;: les demandes CADA
+      proviennent de la plateforme citoyenne MaDada.fr et reflètent les
+      demandes formulées par des citoyens, pas des données institutionnelles.</li>
+    </ul>
 
     <h3>Une neutralité absolue</h3>
 
@@ -201,6 +209,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </p>
     <ul>
       <li><a href="https://www.data.gouv.fr/organizations/commission-nationale-des-comptes-de-campagne-et-des-financements-politiques-cnccfp" target="_blank" rel="noopener noreferrer">CNCCFP (data.gouv.fr)</a> — législatives 2022 et 2024, sénatoriales 2023</li>
+    </ul>
+
+    <h3>Transparence communale</h3>
+    <p>
+      Demandes d'accès aux documents administratifs (CADA) envoyées aux
+      mairies, avec statistiques par commune et détail individuel des
+      demandes. Données filtrées par période de mandat du maire.
+    </p>
+    <ul>
+      <li><a href="https://madada.fr" target="_blank" rel="noopener noreferrer">MaDada.fr</a> — plateforme citoyenne de demandes CADA (Alaveteli)</li>
+    </ul>
+
+    <h3>Vérification des faits</h3>
+    <p>
+      Fact-checks publiés par des vérificateurs reconnus (AFP, Le Monde, etc.)
+      et indexés par Google. <strong>Ce n'est pas une source officielle</strong>&nbsp;:
+      les vérifications proviennent de médias tiers et redirigent vers l'article
+      de vérification original.
+    </p>
+    <ul>
+      <li><a href="https://developers.google.com/fact-check/tools/api" target="_blank" rel="noopener noreferrer">Google Fact Check Tools API</a> — index ClaimReview</li>
     </ul>
 
     <h3>Mentions presse</h3>
