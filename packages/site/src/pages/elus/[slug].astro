@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl } from '@elupedia/shared';
-import { eq, isNull, desc, and, isNotNull, or, inArray } from 'drizzle-orm';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl } from '@elupedia/shared';
+import { eq, isNull, desc, and, isNotNull, or, inArray, gte, lte, sql, count } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
 import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
@@ -199,20 +199,54 @@ const deputyFactChecks = await db
   .where(eq(factChecks.officialId, officialId))
   .orderBy(desc(factChecks.datePublished));
 
-const transparencyRow = isMaire && row.communeCode
+const madadaMeta = isMaire && row.communeCode
   ? (await db
-      .select({
-        madadaUrlName: communeTransparency.madadaUrlName,
-        requestsCount: communeTransparency.requestsCount,
-        requestsSuccessful: communeTransparency.requestsSuccessful,
-        requestsOverdue: communeTransparency.requestsOverdue,
-        requestsNotHeld: communeTransparency.requestsNotHeld,
-        updatedAt: communeTransparency.updatedAt,
-      })
+      .select({ madadaUrlName: communeTransparency.madadaUrlName, updatedAt: communeTransparency.updatedAt })
       .from(communeTransparency)
       .where(eq(communeTransparency.communeCode, row.communeCode))
       .limit(1))[0] ?? null
   : null;
+
+const maireMandate = isMaire
+  ? deputyMandates.find((m) => m.type === 'maire' && !m.endDate) ?? deputyMandates.find((m) => m.type === 'maire')
+  : null;
+
+const mandateFilters = isMaire && row.communeCode
+  ? [
+      eq(madadaRequests.communeCode, row.communeCode),
+      ...(maireMandate?.startDate ? [gte(madadaRequests.createdAt, new Date(maireMandate.startDate))] : []),
+      ...(maireMandate?.endDate ? [lte(madadaRequests.createdAt, new Date(maireMandate.endDate))] : []),
+    ]
+  : [];
+
+const madadaStats = mandateFilters.length > 0
+  ? (await db
+      .select({
+        requestsCount: count(),
+        requestsSuccessful: count(sql`CASE WHEN ${madadaRequests.status} = 'successful' THEN 1 END`),
+        requestsOverdue: count(sql`CASE WHEN ${madadaRequests.status} IN ('waiting_response_overdue', 'overdue') THEN 1 END`),
+        requestsNotHeld: count(sql`CASE WHEN ${madadaRequests.status} = 'not_held' THEN 1 END`),
+      })
+      .from(madadaRequests)
+      .where(and(...mandateFilters)))[0] ?? null
+  : null;
+
+const transparencyRow = madadaStats && madadaStats.requestsCount > 0 && madadaMeta
+  ? { ...madadaStats, madadaUrlName: madadaMeta.madadaUrlName, updatedAt: madadaMeta.updatedAt }
+  : madadaMeta
+    ? (await db
+        .select({
+          madadaUrlName: communeTransparency.madadaUrlName,
+          requestsCount: communeTransparency.requestsCount,
+          requestsSuccessful: communeTransparency.requestsSuccessful,
+          requestsOverdue: communeTransparency.requestsOverdue,
+          requestsNotHeld: communeTransparency.requestsNotHeld,
+          updatedAt: communeTransparency.updatedAt,
+        })
+        .from(communeTransparency)
+        .where(eq(communeTransparency.communeCode, row.communeCode!))
+        .limit(1))[0] ?? null
+    : null;
 
 // For maires: elections in their commune. For others: elections where they appear as candidate.
 const candidateElectionIds = await db

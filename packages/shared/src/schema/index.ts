@@ -48,4 +48,5 @@ export {
 export { decorations } from './decorations.js';
 export { ballotGroupPositions } from './ballot-group-positions.js';
 export { communeTransparency } from './commune-transparency.js';
+export { madadaRequests } from './madada-requests.js';
 export { factChecks } from './fact-checks.js';
