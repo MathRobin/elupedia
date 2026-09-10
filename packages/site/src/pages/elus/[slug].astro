@@ -313,6 +313,7 @@ const extraElectionRows = extraElectionIds.length > 0
   : [];
 
 const municipalElectionRows = [...communeElectionRows, ...extraElectionRows]
+  .filter((e) => candidateElectionIdSet.has(e.id))
   .sort((a, b) => b.electionDate.localeCompare(a.electionDate));
 
 const municipalElectionIds = municipalElectionRows.map((e) => e.id);
