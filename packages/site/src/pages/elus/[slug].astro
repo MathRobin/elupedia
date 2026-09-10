@@ -458,9 +458,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  adopted: 'text-green-700 bg-green-50',
-  rejected: 'text-red-700 bg-red-50',
-  withdrawn: 'text-yellow-700 bg-yellow-50',
+  adopted: 'text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-900/20',
+  rejected: 'text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-900/20',
+  withdrawn: 'text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20',
 };
 
 const interestCategoryLabels: Record<string, string> = {
@@ -482,12 +482,12 @@ const interestCategoryOrder = [
 ];
 
 const interestCategoryColors: Record<string, string> = {
-  professional_activity: 'text-blue-700 bg-blue-50',
-  consulting_activity: 'text-cyan-700 bg-cyan-50',
-  governing_body_membership: 'text-purple-700 bg-purple-50',
-  voluntary_activity: 'text-teal-700 bg-teal-50',
-  elected_function: 'text-amber-700 bg-amber-50',
-  financial_participation: 'text-rose-700 bg-rose-50',
+  professional_activity: 'text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20',
+  consulting_activity: 'text-cyan-700 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-900/20',
+  governing_body_membership: 'text-purple-700 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20',
+  voluntary_activity: 'text-teal-700 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/20',
+  elected_function: 'text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20',
+  financial_participation: 'text-rose-700 bg-rose-50 dark:text-rose-400 dark:bg-rose-900/20',
 };
 const mandateTypeLabels: Record<string, string> = {
   depute: 'Député',
@@ -679,10 +679,10 @@ const positionLabels: Record<string, string> = {
 };
 
 const positionColors: Record<string, string> = {
-  for: 'text-green-700 bg-green-50',
-  against: 'text-red-700 bg-red-50',
-  abstain: 'text-yellow-700 bg-yellow-50',
-  absent: 'text-slate-500 bg-slate-50',
+  for: 'text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-900/20',
+  against: 'text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-900/20',
+  abstain: 'text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20',
+  absent: 'text-slate-500 bg-slate-50 dark:text-slate-400 dark:bg-slate-700',
 };
 
 const parliamentSource = deputy.mandateType === 'depute'
@@ -1171,7 +1171,7 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyAddresses.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune adresse enregistrée/trouvée.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucune adresse enregistrée/trouvée.</p>
       ) : (
         <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {deputyAddresses.map((addr) => {
@@ -1219,21 +1219,21 @@ for (const sp of deputySponsorships) {
                 )}
                 <div class="p-4">
                   {!imgSrc && (
-                    <p class="text-sm font-semibold text-slate-700">
+                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">
                       {addressTypeLabels[addr.type] ?? addr.type}
                     </p>
                   )}
                   {addressParts.length > 0 && (
-                    <p class={`text-sm text-slate-600 ${imgSrc ? '' : 'mt-2'}`}>
+                    <p class={`text-sm text-slate-600 dark:text-slate-400 ${imgSrc ? '' : 'mt-2'}`}>
                       {addr.street && <span>{addr.street}<br /></span>}
                       {addr.postalCode && <span>{addr.postalCode} </span>}
                       {addr.city}
                     </p>
                   )}
                   {(addr.phone || addr.email) && (
-                    <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3">
+                    <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 dark:border-slate-700">
                       {addr.phone && (
-                        <a href={`tel:${addr.phone}`} class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-indigo-600 transition-colors">
+                        <a href={`tel:${addr.phone}`} class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-indigo-600 transition-colors dark:text-slate-400 dark:hover:text-indigo-400">
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                           </svg>
@@ -1241,7 +1241,7 @@ for (const sp of deputySponsorships) {
                         </a>
                       )}
                       {addr.email && (
-                        <a href={`mailto:${addr.email}`} class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-indigo-600 transition-colors truncate">
+                        <a href={`mailto:${addr.email}`} class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-indigo-600 transition-colors truncate dark:text-slate-400 dark:hover:text-indigo-400">
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                             <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
@@ -1269,7 +1269,7 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyAffiliations.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune affiliation enregistrée/trouvée.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucune affiliation enregistrée/trouvée.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {deputyAffiliations.map((a) => (
@@ -1298,7 +1298,7 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyStaffers.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucun collaborateur enregistré.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucun collaborateur enregistré.</p>
       ) : (
         <ul class="mt-4 space-y-3">
           {deputyStaffers.map((s) => (
@@ -1306,13 +1306,13 @@ for (const sp of deputySponsorships) {
               <div>
                 <span class="font-medium dark:text-white">{s.firstName} {s.lastName}</span>
                 {!s.endDate && (
-                  <span class="ml-2 inline-block rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">actif</span>
+                  <span class="ml-2 inline-block rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">actif</span>
                 )}
                 {s.endDate && (
-                  <span class="ml-2 inline-block rounded bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">inactif</span>
+                  <span class="ml-2 inline-block rounded bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-700 dark:text-slate-400">inactif</span>
                 )}
               </div>
-              <span class="text-sm text-slate-500">
+              <span class="text-sm text-slate-500 dark:text-slate-400">
                 {new Date(s.startDate).toLocaleDateString('fr-FR')}
                 {' — '}
                 {s.endDate ? new Date(s.endDate).toLocaleDateString('fr-FR') : "aujourd'hui"}
@@ -1333,7 +1333,7 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyActivities.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune activité parlementaire enregistrée/trouvée.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucune activité parlementaire enregistrée/trouvée.</p>
       ) : (
         <>
           <div id="activity-type-filter" class="mt-4 flex flex-wrap gap-3">
@@ -1352,7 +1352,7 @@ for (const sp of deputySponsorships) {
             if (rubriques.length === 0) return null;
             return (
               <details id="activity-rubrique-filter" class="mt-3">
-                <summary class="cursor-pointer text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors select-none">
+                <summary class="cursor-pointer text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors select-none dark:text-slate-400 dark:hover:text-indigo-400">
                   Rubriques <span class="text-slate-400">({rubriques.length})</span>
                 </summary>
                 <div class="mt-2 flex flex-wrap gap-2">
@@ -1374,7 +1374,7 @@ for (const sp of deputySponsorships) {
             if (ministries.length === 0) return null;
             return (
               <details id="activity-ministry-filter" class="mt-3">
-                <summary class="cursor-pointer text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors select-none">
+                <summary class="cursor-pointer text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors select-none dark:text-slate-400 dark:hover:text-indigo-400">
                   Ministère attributaire <span class="text-slate-400">({ministries.length})</span>
                 </summary>
                 <div class="mt-2 flex flex-wrap gap-2">
@@ -1431,7 +1431,7 @@ for (const sp of deputySponsorships) {
                         responseDate: act.responseDate,
                         governmentComments: act.governmentComments,
                       }) } : {})}
-                      class={`border-b border-slate-100 hover:bg-slate-50 ${isQuestion ? 'cursor-pointer group' : ''}`}
+                      class={`border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50 ${isQuestion ? 'cursor-pointer group' : ''}`}
                     >
                       <td class="py-2 pr-4 whitespace-nowrap">{new Date(act.date).toLocaleDateString('fr-FR')}</td>
                       <td class="py-2 pr-4 whitespace-nowrap">{activityTypeLabels[act.type] ?? act.type}</td>
@@ -1473,7 +1473,7 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyCommittees.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune commission enregistrée/trouvée.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucune commission enregistrée/trouvée.</p>
       ) : (
         <>
           <div id="committees-filter" class="mt-4 flex flex-wrap gap-3">
@@ -1493,11 +1493,11 @@ for (const sp of deputySponsorships) {
               const endedCount = deputyCommittees.filter((c) => c.endDate).length;
               return (
                 <>
-                  <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-green-50 has-[:checked]:ring-green-400/40">
+                  <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-green-50 has-[:checked]:ring-green-400/40 dark:bg-slate-800 dark:ring-slate-700 dark:text-slate-300 dark:has-[:checked]:bg-green-900/30 dark:has-[:checked]:ring-green-500/40">
                     <input type="checkbox" value="active" checked class="accent-green-600 h-3.5 w-3.5" data-committee-status-filter />
                     <span>En cours <span class="text-slate-400">({activeCount})</span></span>
                   </label>
-                  <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-slate-100 has-[:checked]:ring-slate-400/40">
+                  <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm ring-1 ring-slate-900/5 select-none transition-all has-[:checked]:bg-slate-100 has-[:checked]:ring-slate-400/40 dark:bg-slate-800 dark:ring-slate-700 dark:text-slate-300 dark:has-[:checked]:bg-slate-700 dark:has-[:checked]:ring-slate-500/40">
                     <input type="checkbox" value="ended" checked class="accent-slate-500 h-3.5 w-3.5" data-committee-status-filter />
                     <span>Terminé <span class="text-slate-400">({endedCount})</span></span>
                   </label>
@@ -1520,14 +1520,14 @@ for (const sp of deputySponsorships) {
                   <tr data-committee-type={c.type} data-committee-status={c.endDate ? 'ended' : 'active'} class="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
                     <td class="py-2 pr-4 font-medium">{c.name}</td>
                     <td class="py-2 pr-4">
-                      <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                      <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
                         {committeeTypeLabels[c.type] ?? c.type}
                       </span>
                     </td>
                     <td class="py-2 pr-4 whitespace-nowrap">{new Date(c.startDate).toLocaleDateString('fr-FR')}</td>
                     <td class="py-2 whitespace-nowrap">
                       {c.endDate ? new Date(c.endDate).toLocaleDateString('fr-FR') : (
-                        <span class="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">en cours</span>
+                        <span class="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">en cours</span>
                       )}
                     </td>
                   </tr>
@@ -1549,22 +1549,22 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyElectoralResults.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucun résultat électoral enregistré.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucun résultat électoral enregistré.</p>
       ) : (
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-slate-200 text-left text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                <th class="pb-2 pr-4 font-medium">Date</th>
-                <th class="pb-2 pr-4 font-medium">Élection</th>
-                <th class="pb-2 pr-4 font-medium">Tour</th>
-                <th class="pb-2 pr-4 font-medium">Score</th>
-                <th class="pb-2 font-medium">Candidats</th>
+              <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-slate-700">
+                <th class="py-2 pr-4">Date</th>
+                <th class="py-2 pr-4">Élection</th>
+                <th class="py-2 pr-4">Tour</th>
+                <th class="py-2 pr-4">Score</th>
+                <th class="py-2">Candidats</th>
               </tr>
             </thead>
             <tbody>
               {deputyElectoralResults.map((er) => (
-                <tr class="border-b border-slate-100 dark:border-slate-700">
+                <tr class="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
                   <td class="py-2 pr-4 whitespace-nowrap">
                     {new Date(er.electionDate).toLocaleDateString('fr-FR')}
                   </td>
@@ -1675,15 +1675,15 @@ for (const sp of deputySponsorships) {
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-slate-200 text-left text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                <th class="pb-2 pr-4 font-medium">Année</th>
-                <th class="pb-2 pr-4 font-medium">Type</th>
-                <th class="pb-2 font-medium">Objet</th>
+              <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-slate-700">
+                <th class="py-2 pr-4">Année</th>
+                <th class="py-2 pr-4">Type</th>
+                <th class="py-2">Objet</th>
               </tr>
             </thead>
             <tbody>
               {deputySponsorships.map((s) => (
-                <tr class="border-b border-slate-100 dark:border-slate-700">
+                <tr class="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
                   <td class="py-2 pr-4 whitespace-nowrap font-medium">{s.electionYear}</td>
                   <td class="py-2 pr-4 whitespace-nowrap">{s.type === 'parrainage_presidentiel' ? 'Parrainage présidentiel' : s.type === 'rip_signature' ? 'Signature RIP' : s.type}</td>
                   <td class="py-2">{s.candidateName}</td>
@@ -1713,13 +1713,13 @@ for (const sp of deputySponsorships) {
             </p>
           </div>
         ) : (
-          <p class="mt-4 text-slate-500">Aucun intérêt déclaré.</p>
+          <p class="mt-4 text-slate-500 dark:text-slate-400">Aucun intérêt déclaré.</p>
         )
       ) : (
         <div class="mt-4 space-y-6">
           {interestGroups.map((group) => (
             <div>
-              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                 <span class={`inline-block rounded px-2 py-0.5 text-xs font-medium ${interestCategoryColors[group.category] ?? ''}`}>
                   {group.label}
                 </span>
@@ -1728,7 +1728,7 @@ for (const sp of deputySponsorships) {
               <ul class="mt-2 space-y-2">
                 {group.items.map((i) => (
                   <li
-                    class="flex items-baseline justify-between border-b border-slate-100 pb-2 cursor-pointer group/interest hover:bg-slate-50 rounded px-1 -mx-1 transition-colors"
+                    class="flex items-baseline justify-between border-b border-slate-100 pb-2 cursor-pointer group/interest hover:bg-slate-50 rounded px-1 -mx-1 transition-colors dark:border-slate-700 dark:hover:bg-slate-800/50"
                     data-interest-detail={JSON.stringify({
                       entityName: i.entityName,
                       type: i.type,
@@ -1778,20 +1778,20 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyVotes.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucun vote enregistré.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucun vote enregistré.</p>
       ) : (
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-slate-200 text-left text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                <th class="pb-2 pr-4 font-medium">Date</th>
-                <th class="pb-2 pr-4 font-medium">Scrutin</th>
-                <th class="pb-2 font-medium">Position</th>
+              <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-slate-700">
+                <th class="py-2 pr-4">Date</th>
+                <th class="py-2 pr-4">Scrutin</th>
+                <th class="py-2">Position</th>
               </tr>
             </thead>
             <tbody>
               {deputyVotes.map((v) => (
-                <tr class="border-b border-slate-100 dark:border-slate-700">
+                <tr class="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
                   <td class="py-2 pr-4 whitespace-nowrap">
                     {new Date(v.ballotDate).toLocaleDateString('fr-FR')}
                   </td>
@@ -1821,7 +1821,7 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyPress.length === 0 ? (
-        <p class="mt-4 text-slate-500">Aucune mention presse enregistrée/trouvée.</p>
+        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucune mention presse enregistrée/trouvée.</p>
       ) : (
         <>
           <div id="press-grid" class="mt-4 grid gap-4 sm:grid-cols-2">
@@ -2029,7 +2029,7 @@ for (const sp of deputySponsorships) {
                         <Fragment set:html={cfg.icon} />
                       </div>
                       <div class="min-w-0">
-                        <p class={`text-sm font-semibold text-slate-800 ${cfg.hoverColor} transition-colors`}>
+                        <p class={`text-sm font-semibold text-slate-800 ${cfg.hoverColor} transition-colors dark:text-slate-100`}>
                           {cfg.label}
                         </p>
                         <p class="text-xs text-slate-500 truncate dark:text-slate-400" set:html={`${displayUrl}${externalLinkIcon}`} />
@@ -2058,7 +2058,7 @@ for (const sp of deputySponsorships) {
             )}
 
             {hasNothing && (
-              <p class="mt-4 text-slate-500">Aucun lien externe enregistré.</p>
+              <p class="mt-4 text-slate-500 dark:text-slate-400">Aucun lien externe enregistré.</p>
             )}
           </>
         );
