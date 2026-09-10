@@ -1843,6 +1843,28 @@ for (const sp of deputySponsorships) {
         <p class="mt-4 text-slate-500 dark:text-slate-400">Aucune mention presse enregistrée/trouvée.</p>
       ) : (
         <>
+          {(() => {
+            const sources = [...new Set(deputyPress.map((p) => p.sourceName))].sort((a, b) => {
+              const countA = deputyPress.filter((p) => p.sourceName === a).length;
+              const countB = deputyPress.filter((p) => p.sourceName === b).length;
+              return countB - countA;
+            });
+            return sources.length > 1 ? (
+              <div id="press-filters" class="mt-4 flex flex-wrap gap-2">
+                <button type="button" data-source="all" class="press-filter rounded-full border border-orange-300 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700 transition-colors dark:border-orange-500/40 dark:bg-orange-900/30 dark:text-orange-300">
+                  Tous ({deputyPress.length})
+                </button>
+                {sources.map((s) => {
+                  const count = deputyPress.filter((p) => p.sourceName === s).length;
+                  return (
+                    <button type="button" data-source={s} class="press-filter rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-orange-300 hover:text-orange-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-orange-500/40 dark:hover:text-orange-400">
+                      {s} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null;
+          })()}
           <div id="press-grid" class="mt-4 grid gap-4 sm:grid-cols-2">
             {deputyPress.map((p, i) => {
               const d = new Date(p.publishedDate);
@@ -1858,6 +1880,7 @@ for (const sp of deputySponsorships) {
                   href={p.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-source={p.sourceName}
                   class:list={[
                     'press-card group relative flex flex-col rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/50 p-5 shadow-sm transition-all duration-200 hover:border-orange-300/60 hover:shadow-lg hover:-translate-y-0.5 no-underline dark:border-slate-700 dark:from-slate-800 dark:to-slate-800/80 dark:hover:border-orange-500/40',
                     { 'hidden': i >= 10 },
@@ -2288,10 +2311,44 @@ for (const sp of deputySponsorships) {
     const pressBtn = document.getElementById('press-show-more');
     if (pressBtn) {
       pressBtn.addEventListener('click', () => {
-        document.querySelectorAll('#press-grid .press-card.hidden').forEach((c) => c.classList.remove('hidden'));
-        pressBtn.remove();
+        pressBtn.dataset.expanded = 'true';
+        document.querySelectorAll<HTMLElement>('#press-grid .press-card').forEach((c) => c.hidden = false);
+        pressBtn.hidden = true;
       });
     }
+
+    document.querySelectorAll<HTMLButtonElement>('#press-filters .press-filter').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const source = btn.dataset.source!;
+        const active = 'rounded-full border border-orange-300 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700 transition-colors dark:border-orange-500/40 dark:bg-orange-900/30 dark:text-orange-300';
+        const inactive = 'rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-orange-300 hover:text-orange-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-orange-500/40 dark:hover:text-orange-400';
+        document.querySelectorAll<HTMLButtonElement>('#press-filters .press-filter').forEach((b) => b.className = inactive);
+        btn.className = active;
+
+        const cards = document.querySelectorAll<HTMLElement>('#press-grid .press-card');
+        const expanded = pressBtn?.dataset.expanded === 'true';
+        let shown = 0;
+        cards.forEach((c) => {
+          const match = source === 'all' || c.dataset.source === source;
+          if (match) {
+            c.hidden = !expanded && shown >= 10;
+            shown++;
+          } else {
+            c.hidden = true;
+          }
+        });
+
+        if (pressBtn) {
+          const remaining = shown - 10;
+          if (expanded || remaining <= 0) {
+            pressBtn.hidden = true;
+          } else {
+            pressBtn.hidden = false;
+            pressBtn.textContent = `Voir les ${remaining} autres articles`;
+          }
+        }
+      });
+    });
 
   </script>
 </BaseLayout>
