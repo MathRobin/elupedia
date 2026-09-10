@@ -1,11 +1,6 @@
-import { config as loadDotenv } from 'dotenv';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-loadDotenv({ path: path.resolve(__dirname, '../../../.env') });
-
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createDb, mandates, communeTransparency } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import { logger } from './logger.js';
@@ -14,6 +9,7 @@ import { upsertCommuneTransparency } from './upsert/commune-transparency.js';
 import { fetchMadadaRequests } from './sources/madada-requests.js';
 import { upsertMadadaRequests } from './upsert/madada-requests.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_PATH = path.resolve(__dirname, '../madada-cache.json');
 
 async function main() {

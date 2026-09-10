@@ -1,11 +1,4 @@
-import { config as loadDotenv } from 'dotenv';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { withRetry } from './utils/retry.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-loadDotenv({ path: path.resolve(__dirname, '../../../.env') });
 
 export interface StepResult {
   source: string;

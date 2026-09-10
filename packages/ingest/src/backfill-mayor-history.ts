@@ -2,21 +2,15 @@
  * Script temporaire — backfill des mandats historiques de maires
  * via les snapshots Wayback Machine du RNE.
  *
- * Usage: npx tsx packages/ingest/src/backfill-mayor-history.ts [--apply]
+ * Usage: npx tsx --env-file=../../.env src/backfill-mayor-history.ts [--apply]
  *
  * Par défaut, le script tourne en dry-run (affiche ce qu'il ferait).
  * Passer --apply pour écrire en base.
  */
-import { config as loadDotenv } from 'dotenv';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createDb, officials, mandates } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import { parseCsvRow, type RneMaire } from './sources/rne-maires.js';
 import { logger } from './logger.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-loadDotenv({ path: path.resolve(__dirname, '../../../.env') });
 
 const RNE_RESOURCE_URL =
   'https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503';

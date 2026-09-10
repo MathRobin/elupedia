@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
 import {
