@@ -20,7 +20,11 @@ export const linkStatusEnum = [
   'rejected',
 ] as const;
 
-export const linkSourceEnum = ['official', 'scraped_personal_website'] as const;
+export const linkSourceEnum = [
+  'official',
+  'scraped_personal_website',
+  'wikipedia_api',
+] as const;
 
 export const externalLinks = pgTable('external_links', {
   id: uuid('id').defaultRandom().primaryKey(),

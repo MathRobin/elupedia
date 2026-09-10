@@ -717,6 +717,8 @@ const groupUrl = deputy.politicalGroup
   ? POLITICAL_GROUP_URLS[deputy.politicalGroup] ?? null
   : null;
 
+const wikipediaLink = deputyLinks.find((l) => l.platform === 'wikipedia_fr');
+
 function maxUpdatedAt(items: { updatedAt: Date }[]): Date | null {
   if (items.length === 0) return null;
   return items.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, items[0].updatedAt);
@@ -909,6 +911,18 @@ for (const sp of deputySponsorships) {
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
             Sénat
+          </a>
+        )}
+        {wikipediaLink && (
+          <a
+            href={wikipediaLink.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors no-underline dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+            title="Voir la fiche Wikipédia"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12.09 13.119c-.14 1.064-.496 2.641-1.109 3.938-.199.422-.426.782-.655 1.058a2.7 2.7 0 0 1-.227.24 2.7 2.7 0 0 1-.227-.24c-.229-.276-.456-.636-.655-1.058-.613-1.297-.968-2.874-1.109-3.938h3.982Zm.49-.863H8.42c.036-.465.087-.932.16-1.4.278-1.775.86-3.394 1.685-4.523.225-.309.463-.566.701-.762a2.2 2.2 0 0 1 .523-.346c.09.06.227.166.404.291.238.196.476.453.701.762.826 1.129 1.407 2.748 1.685 4.523.073.468.124.935.16 1.4ZM6.854 11.8a16 16 0 0 0-.114 1.319 16 16 0 0 0 .114 1.319H4.37a8.4 8.4 0 0 1-.255-1.319A8.4 8.4 0 0 1 4.37 11.8h2.484Zm12.016 1.32a8.4 8.4 0 0 0 .255-1.32h-2.483c.06.437.098.876.114 1.319s-.054.882-.114 1.319h2.483a8.4 8.4 0 0 0-.255-1.319Zm-2.428 3.501a8.32 8.32 0 0 0 2.36-3.501h-2.156c-.149 1.25-.532 3.076-1.252 4.594.397-.3.76-.67 1.048-1.093Zm-9.725 1.093c-.72-1.518-1.103-3.344-1.252-4.594H3.309a8.32 8.32 0 0 0 2.36 3.501c.289.423.651.794 1.048 1.093Zm9.725-7.406A8.32 8.32 0 0 0 14.082 6.8c.397.3.76.67 1.048 1.093.72 1.518 1.103 3.344 1.252 4.594h2.156Zm-9.725-1.093c-.289-.424-.651-.794-1.048-1.093.72 1.518 1.103 3.344 1.252 4.594H5.465a8.32 8.32 0 0 1 2.36-3.501ZM12 2.25C6.615 2.25 2.25 6.615 2.25 12S6.615 21.75 12 21.75 21.75 17.385 21.75 12 17.385 2.25 12 2.25Z"/></svg>
+            Wikipédia
           </a>
         )}
         <TimelineDrawer events={timelineEvents} officialName={fullName} client:load />
