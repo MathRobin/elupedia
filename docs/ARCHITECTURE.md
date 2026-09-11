@@ -167,11 +167,13 @@ Site Astro avec composants React et Tailwind CSS. Mode hybrid : pages statiques 
   - `src/pages/docs/index.astro` — index de la documentation développeur
   - `src/pages/docs/oembed.astro` — documentation de l'endpoint oEmbed
   - `src/pages/docs/og-images.astro` — documentation des images Open Graph dynamiques
+  - `src/pages/docs/commune-api.astro` — documentation de l'API Commune (élus par code INSEE)
 - API endpoints :
   - `src/pages/api/oembed.ts` — endpoint oEmbed 1.0 (JSON + XML, CORS)
   - `src/pages/api/og/official/[slug].png.ts` — image OG dynamique pour un élu
   - `src/pages/api/og/scrutin/[id].png.ts` — image OG dynamique pour un scrutin
   - `src/pages/api/og/default.png.ts` — image OG par défaut
+  - `src/pages/api/commune/[code].ts` — élus en exercice d'une commune par code INSEE (JSON)
 
 ### 4. Déploiement (Vercel)
 

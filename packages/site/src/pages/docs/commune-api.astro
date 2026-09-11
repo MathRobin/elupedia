@@ -1,0 +1,140 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="API Commune" description="Documentation de l'API Commune — retrouvez les élus d'une commune à partir de son code INSEE." hideShare>
+  <div class="max-w-3xl prose prose-slate dark:prose-invert prose-headings:font-bold prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
+    <a href="/docs" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      Documentation
+    </a>
+
+    <h1>API Commune</h1>
+
+    <p>
+      Cet endpoint renvoie la liste des responsables politiques en exercice pour une commune donnée, à partir de son code INSEE.
+    </p>
+
+    <h2>Endpoint</h2>
+
+    <pre><code>GET https://www.elupedia.fr/api/commune/{'{code}'}</code></pre>
+
+    <h3>Paramètres</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Paramètre</th>
+          <th>Requis</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>code</code></td>
+          <td>Oui</td>
+          <td>Code INSEE de la commune (5 chiffres), dans l'URL</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Exemple de requête</h2>
+
+    <pre><code>curl https://www.elupedia.fr/api/commune/13055</code></pre>
+
+    <h3>Réponse JSON</h3>
+
+    <pre><code>{`[
+  {
+    "url": "https://www.elupedia.fr/elus/benoit-payan",
+    "firstName": "Benoît",
+    "lastName": "Payan",
+    "mandateType": "maire",
+    "politicalGroup": "Parti socialiste"
+  },
+  {
+    "url": "https://www.elupedia.fr/elus/samia-ghali",
+    "firstName": "Samia",
+    "lastName": "Ghali",
+    "mandateType": "adjoint au maire",
+    "politicalGroup": null
+  }
+]`}</code></pre>
+
+    <p class="text-sm text-slate-500 dark:text-slate-400"><em>Les données ci-dessus sont fictives et servent uniquement d'illustration du format de réponse.</em></p>
+
+    <h2>Champs de la réponse</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Champ</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>url</code></td>
+          <td>string</td>
+          <td>URL de la fiche de l'élu sur Elupedia</td>
+        </tr>
+        <tr>
+          <td><code>firstName</code></td>
+          <td>string</td>
+          <td>Prénom</td>
+        </tr>
+        <tr>
+          <td><code>lastName</code></td>
+          <td>string</td>
+          <td>Nom de famille</td>
+        </tr>
+        <tr>
+          <td><code>mandateType</code></td>
+          <td>string</td>
+          <td>Type de mandat (ex : <code>maire</code>, <code>adjoint au maire</code>, <code>conseiller municipal</code>)</td>
+        </tr>
+        <tr>
+          <td><code>politicalGroup</code></td>
+          <td>string | null</td>
+          <td>Groupe politique, si connu</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Codes de retour</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Signification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>200</code></td>
+          <td>Liste des élus (peut être vide si aucun mandat actif trouvé)</td>
+        </tr>
+        <tr>
+          <td><code>400</code></td>
+          <td>Code INSEE invalide (doit être 5 chiffres)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Notes</h2>
+
+    <ul>
+      <li>Seuls les mandats <strong>en cours</strong> (sans date de fin) sont retournés.</li>
+      <li>La recherche porte sur le <code>commune_code</code> et le <code>parent_commune_code</code> des mandats, couvrant ainsi les communes déléguées et les communes nouvelles.</li>
+      <li>La réponse est mise en cache 24 heures côté CDN.</li>
+    </ul>
+
+    <h2>CORS</h2>
+
+    <p>
+      L'endpoint est accessible en cross-origin sans restriction.
+    </p>
+  </div>
+</BaseLayout>
