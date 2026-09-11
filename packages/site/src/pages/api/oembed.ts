@@ -183,9 +183,9 @@ export const GET: APIRoute = async ({ url }) => {
         thumbnail_url: ogUrl,
         thumbnail_width: 1200,
         thumbnail_height: 630,
-        html: `<iframe src="${SITE}/elus/${slug2}" width="600" height="400" frameborder="0" allowfullscreen></iframe>`,
-        width: 600,
-        height: 400,
+        html: `<iframe src="${SITE}/elus/${slug2}/embed" width="500" height="140" frameborder="0" style="border:0;border-radius:12px;overflow:hidden" scrolling="no"></iframe>`,
+        width: 500,
+        height: 140,
       },
       format,
     );

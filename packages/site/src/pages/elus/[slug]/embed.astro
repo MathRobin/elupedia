@@ -1,0 +1,148 @@
+---
+import { getDb } from '../../../lib/db.js';
+import { officials, mandates } from '@elupedia/shared';
+import { eq, or, desc } from 'drizzle-orm';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const db = getDb();
+
+const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(slug!);
+const slugFilter = isUuid
+  ? or(eq(officials.slug, slug!), eq(officials.id, slug!))
+  : eq(officials.slug, slug!);
+
+const rows = await db
+  .select({
+    id: officials.id,
+    slug: officials.slug,
+    firstName: officials.firstName,
+    lastName: officials.lastName,
+    photoUrl: officials.photoUrl,
+    s3PhotoUrl: officials.s3PhotoUrl,
+    mandateType: mandates.type,
+    district: mandates.district,
+    department: mandates.department,
+    startDate: mandates.startDate,
+    endDate: mandates.endDate,
+  })
+  .from(officials)
+  .innerJoin(mandates, eq(mandates.officialId, officials.id))
+  .where(slugFilter)
+  .orderBy(mandates.endDate, desc(mandates.startDate));
+
+const row = rows.find((r) => !r.endDate) ?? rows[0] ?? null;
+if (!row) return new Response(null, { status: 404 });
+
+const fullName = `${row.firstName} ${row.lastName}`;
+const photo = row.s3PhotoUrl ?? row.photoUrl;
+const officialSlug = row.slug ?? row.id;
+const profileUrl = `https://www.elupedia.fr/elus/${officialSlug}`;
+
+const mandateLabels: Record<string, string> = {
+  depute: 'Député',
+  senateur: 'Sénateur',
+  maire: 'Maire',
+  president: 'Président',
+};
+const mandateLabel = mandateLabels[row.mandateType] ?? row.mandateType;
+
+const location = [row.district, row.department].filter(Boolean).join(' — ');
+
+const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+---
+
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{fullName} — {mandateLabel}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #fff;
+      color: #1e293b;
+    }
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      max-width: 480px;
+    }
+    .photo {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #f1f5f9;
+    }
+    .info { min-width: 0; }
+    .name {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .role {
+      font-size: 14px;
+      color: #475569;
+      margin-top: 2px;
+    }
+    .since {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #4f46e5;
+      text-decoration: none;
+    }
+    .link:hover { text-decoration: underline; }
+    .link svg { width: 14px; height: 14px; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f172a; color: #e2e8f0; }
+      .card { border-color: #334155; }
+      .photo { background: #1e293b; }
+      .role { color: #94a3b8; }
+      .since { color: #64748b; }
+      .link { color: #818cf8; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    {photo ? (
+      <img class="photo" src={photo} alt={fullName} loading="lazy" />
+    ) : (
+      <div class="photo" />
+    )}
+    <div class="info">
+      <div class="name">{fullName}</div>
+      <div class="role">{mandateLabel}{location ? ` — ${location}` : ''}</div>
+      <div class="since">Depuis le {startFormatted}</div>
+      <a class="link" href={profileUrl} target="_blank" rel="noopener noreferrer">
+        Voir la fiche sur Elupedia
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-4.5-6H18m0 0v4.5m0-4.5-7.5 7.5" /></svg>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,16 +1,16 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getDb } from '../../lib/db.js';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getDb } from '../../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray, gte, lte, sql, count } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
-import QuestionDetailDrawer from '../../components/QuestionDetailDrawer.tsx';
-import InterestDetailDrawer from '../../components/InterestDetailDrawer.tsx';
-import TimelineDrawer from '../../components/TimelineDrawer.tsx';
-import MunicipalElectionSection from '../../components/MunicipalElectionDrawer.tsx';
-import MadadaRequestsDrawer from '../../components/MadadaRequestsDrawer.tsx';
-import JurisdictionMap from '../../components/JurisdictionMap.tsx';
+import QuestionDetailDrawer from '../../../components/QuestionDetailDrawer.tsx';
+import InterestDetailDrawer from '../../../components/InterestDetailDrawer.tsx';
+import TimelineDrawer from '../../../components/TimelineDrawer.tsx';
+import MunicipalElectionSection from '../../../components/MunicipalElectionDrawer.tsx';
+import MadadaRequestsDrawer from '../../../components/MadadaRequestsDrawer.tsx';
+import JurisdictionMap from '../../../components/JurisdictionMap.tsx';
 
 export const prerender = false;
 
