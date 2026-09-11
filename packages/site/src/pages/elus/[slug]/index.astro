@@ -880,6 +880,13 @@ for (const sp of deputySponsorships) {
           {mandateLabel}
           {deputy.district && deputy.department && ` — ${deputy.district} (${deputy.department})`}
         </p>
+        {isMaire && (constituencyAddress?.postalCode || deputy.communeCode) && (
+          <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            {constituencyAddress?.postalCode && <span>Code postal : {constituencyAddress.postalCode}</span>}
+            {constituencyAddress?.postalCode && deputy.communeCode && <span>{' · '}</span>}
+            {deputy.communeCode && <span>Code INSEE : {deputy.communeCode}</span>}
+          </p>
+        )}
         {deputy.politicalGroup && groupUrl ? (
           <a
             href={groupUrl}
