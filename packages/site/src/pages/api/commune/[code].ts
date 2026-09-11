@@ -1,7 +1,12 @@
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../lib/db.js';
-import { officials, mandates } from '@elupedia/shared';
-import { eq, or, and, isNull } from 'drizzle-orm';
+import {
+  officials,
+  mandates,
+  legislativeElections,
+  legislativeCandidates,
+} from '@elupedia/shared';
+import { eq, or, and, isNull, isNotNull, desc, inArray } from 'drizzle-orm';
 
 export const prerender = false;
 
@@ -17,7 +22,7 @@ export const GET: APIRoute = async ({ params }) => {
 
   const db = getDb();
 
-  const rows = await db
+  const communeRows = await db
     .selectDistinctOn([officials.id], {
       slug: officials.slug,
       id: officials.id,
@@ -38,9 +43,64 @@ export const GET: APIRoute = async ({ params }) => {
       ),
     );
 
+  const [lastElection] = await db
+    .select({ id: legislativeElections.id })
+    .from(legislativeElections)
+    .where(eq(legislativeElections.communeCode, code))
+    .orderBy(desc(legislativeElections.electionDate))
+    .limit(1);
+
+  let deputeRows: typeof communeRows = [];
+
+  if (lastElection) {
+    const candidateOfficialIds = await db
+      .select({ officialId: legislativeCandidates.officialId })
+      .from(legislativeCandidates)
+      .where(
+        and(
+          eq(legislativeCandidates.electionId, lastElection.id),
+          isNotNull(legislativeCandidates.officialId),
+        ),
+      );
+
+    const ids = candidateOfficialIds
+      .map((c) => c.officialId)
+      .filter((id): id is string => id !== null);
+
+    if (ids.length > 0) {
+      deputeRows = await db
+        .selectDistinctOn([officials.id], {
+          slug: officials.slug,
+          id: officials.id,
+          firstName: officials.firstName,
+          lastName: officials.lastName,
+          mandateType: mandates.type,
+          politicalGroup: mandates.politicalGroup,
+        })
+        .from(mandates)
+        .innerJoin(officials, eq(mandates.officialId, officials.id))
+        .where(
+          and(
+            inArray(mandates.officialId, ids),
+            eq(mandates.type, 'depute'),
+            isNull(mandates.endDate),
+          ),
+        );
+    }
+  }
+
+  const seenIds = new Set(communeRows.map((r) => r.id));
+  const allRows = [...communeRows];
+  for (const r of deputeRows) {
+    if (!seenIds.has(r.id)) {
+      allRows.push(r);
+      seenIds.add(r.id);
+    }
+  }
+
   const baseUrl = 'https://www.elupedia.fr';
 
-  const result = rows.map((r) => ({
+  const result = allRows.map((r) => ({
     url: `${baseUrl}/elus/${r.slug ?? r.id}`,
     firstName: r.firstName,
     lastName: r.lastName,

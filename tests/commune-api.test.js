@@ -50,6 +50,19 @@ describe('API Commune — /api/commune/[code]', () => {
     expect(content).toContain('Cache-Control');
     expect(content).toContain('86400');
   });
+
+  it('includes deputies via legislative elections lookup', () => {
+    expect(content).toContain('legislativeElections');
+    expect(content).toContain('legislativeCandidates');
+  });
+
+  it('filters deputies by active depute mandate', () => {
+    expect(content).toContain("eq(mandates.type, 'depute')");
+  });
+
+  it('deduplicates officials across commune and deputy results', () => {
+    expect(content).toContain('seenIds');
+  });
 });
 
 describe('API Commune — documentation page', () => {

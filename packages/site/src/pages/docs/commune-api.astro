@@ -58,6 +58,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     "lastName": "Ghali",
     "mandateType": "adjoint au maire",
     "politicalGroup": null
+  },
+  {
+    "url": "https://www.elupedia.fr/elus/sébastien-delogu",
+    "firstName": "Sébastien",
+    "lastName": "Delogu",
+    "mandateType": "depute",
+    "politicalGroup": "La France insoumise - Nouveau Front Populaire"
   }
 ]`}</code></pre>
 
@@ -92,7 +99,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <tr>
           <td><code>mandateType</code></td>
           <td>string</td>
-          <td>Type de mandat (ex : <code>maire</code>, <code>adjoint au maire</code>, <code>conseiller municipal</code>)</td>
+          <td>Type de mandat (ex : <code>maire</code>, <code>adjoint au maire</code>, <code>conseiller municipal</code>, <code>depute</code>)</td>
         </tr>
         <tr>
           <td><code>politicalGroup</code></td>
@@ -128,6 +135,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <ul>
       <li>Seuls les mandats <strong>en cours</strong> (sans date de fin) sont retournés.</li>
       <li>La recherche porte sur le <code>commune_code</code> et le <code>parent_commune_code</code> des mandats, couvrant ainsi les communes déléguées et les communes nouvelles.</li>
+      <li>Le ou les députés de la circonscription sont inclus, identifiés via les résultats des dernières élections législatives de la commune.</li>
       <li>La réponse est mise en cache 24 heures côté CDN.</li>
     </ul>
 
