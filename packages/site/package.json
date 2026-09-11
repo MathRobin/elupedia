@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "node --env-file-if-exists=../../.env ./node_modules/.bin/astro dev",
     "build": "astro build",
-    "preview": "astro preview",
+    "preview": "node --env-file-if-exists=../../.env ./node_modules/.bin/astro preview",
     "test": "vitest run"
   },
   "dependencies": {
