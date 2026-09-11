@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 export interface InterestDetail {
   entityName: string;
@@ -57,6 +58,7 @@ function formatAmount(amount: string, isNet: boolean | null): string {
 export default function InterestDetailDrawer() {
   const [interest, setInterest] = useState<InterestDetail | null>(null);
   const [open, setOpen] = useState(false);
+  const trapRef = useFocusTrap(open);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -90,6 +92,7 @@ export default function InterestDetailDrawer() {
         onClick={close}
       />
       <div
+        ref={trapRef}
         className={`fixed inset-y-0 right-0 z-50 w-full max-w-lg transform bg-white shadow-xl transition-transform duration-300 dark:bg-slate-900 ${open ? 'translate-x-0' : 'translate-x-full'}`}
         role="dialog"
         aria-modal="true"
@@ -107,7 +110,10 @@ export default function InterestDetailDrawer() {
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-300"
               aria-label="Fermer"
             >
-              <i className="fa-solid fa-xmark h-5 w-5 flex items-center justify-center" />
+              <i
+                className="fa-solid fa-xmark h-5 w-5 flex items-center justify-center"
+                aria-hidden="true"
+              />
             </button>
           </div>
 
@@ -186,7 +192,10 @@ export default function InterestDetailDrawer() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
                   >
-                    <i className="fa-solid fa-arrow-up-right-from-square text-sm" />
+                    <i
+                      className="fa-solid fa-arrow-up-right-from-square text-sm"
+                      aria-hidden="true"
+                    />
                     Voir la déclaration sur hatvp.fr
                   </a>
                 </div>

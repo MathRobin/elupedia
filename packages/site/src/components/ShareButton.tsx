@@ -84,45 +84,58 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-white"
         aria-label="Partager cette page"
         aria-expanded={open}
+        aria-haspopup="true"
       >
-        <i className="fa-solid fa-share-nodes text-sm" />
+        <i className="fa-solid fa-share-nodes text-sm" aria-hidden="true" />
         Partager
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+        <div
+          role="menu"
+          aria-label="Options de partage"
+          className="absolute right-0 z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-800"
+        >
           {items.map((item) => (
             <a
               key={item.key}
               href={item.href}
               target={item.external ? '_blank' : undefined}
               rel={item.external ? 'noopener noreferrer' : undefined}
+              role="menuitem"
               className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 no-underline transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
               onClick={() => setOpen(false)}
             >
               <i
                 className={`${item.faClass} shrink-0 text-slate-400 text-sm`}
+                aria-hidden="true"
               />
               {item.label}
             </a>
           ))}
           <button
+            role="menuitem"
             onClick={copyLink}
             className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
           >
             <i
               className={`fa-solid ${copied ? 'fa-check' : 'fa-link'} shrink-0 text-slate-400 text-sm`}
+              aria-hidden="true"
             />
             {copied ? 'Lien copié !' : 'Copier le lien'}
           </button>
           <button
+            role="menuitem"
             onClick={() => {
               setOpen(false);
               setShowQr(true);
             }}
             className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
           >
-            <i className="fa-solid fa-qrcode shrink-0 text-slate-400 text-sm" />
+            <i
+              className="fa-solid fa-qrcode shrink-0 text-slate-400 text-sm"
+              aria-hidden="true"
+            />
             QR Code
           </button>
         </div>

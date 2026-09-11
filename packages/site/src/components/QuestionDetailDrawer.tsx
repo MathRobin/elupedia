@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 export interface QuestionDetail {
   officialId: string;
@@ -56,6 +57,7 @@ function stripHtml(html: string): string {
 export default function QuestionDetailDrawer() {
   const [question, setQuestion] = useState<QuestionDetail | null>(null);
   const [open, setOpen] = useState(false);
+  const trapRef = useFocusTrap(open);
   const [loading, setLoading] = useState(false);
 
   const close = useCallback(() => {
@@ -133,6 +135,7 @@ export default function QuestionDetailDrawer() {
         onClick={close}
       />
       <div
+        ref={trapRef}
         className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-lg transform bg-white shadow-xl transition-transform duration-300 dark:bg-slate-900 ${open ? 'translate-x-0' : 'translate-x-full'}`}
         role="dialog"
         aria-modal="true"
@@ -165,7 +168,10 @@ export default function QuestionDetailDrawer() {
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-300"
               aria-label="Fermer"
             >
-              <i className="fa-solid fa-xmark h-5 w-5 flex items-center justify-center" />
+              <i
+                className="fa-solid fa-xmark h-5 w-5 flex items-center justify-center"
+                aria-hidden="true"
+              />
             </button>
           </div>
 
@@ -189,7 +195,10 @@ export default function QuestionDetailDrawer() {
                       rel="noopener noreferrer"
                       className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                     >
-                      <i className="fa-solid fa-arrow-up-right-from-square text-sm" />
+                      <i
+                        className="fa-solid fa-arrow-up-right-from-square text-sm"
+                        aria-hidden="true"
+                      />
                       Consulter sur assemblee-nationale.fr
                     </a>
                   ) : (
@@ -197,7 +206,10 @@ export default function QuestionDetailDrawer() {
                       className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-400"
                       title="Le lien officiel n'a pas été trouvé pour cette question"
                     >
-                      <i className="fa-solid fa-arrow-up-right-from-square text-sm" />
+                      <i
+                        className="fa-solid fa-arrow-up-right-from-square text-sm"
+                        aria-hidden="true"
+                      />
                       Consulter sur assemblee-nationale.fr
                     </span>
                   )}
@@ -206,7 +218,10 @@ export default function QuestionDetailDrawer() {
 
               {question.governmentComments && (
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-4 py-3 dark:bg-slate-800">
-                  <i className="fa-solid fa-landmark text-sm shrink-0 text-slate-400" />
+                  <i
+                    className="fa-solid fa-landmark text-sm shrink-0 text-slate-400"
+                    aria-hidden="true"
+                  />
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                     {question.governmentComments}
                   </p>

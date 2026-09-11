@@ -853,7 +853,7 @@ for (const sp of deputySponsorships) {
   </Fragment>
   <div class="max-w-3xl">
     <a href="/elus" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">
-      <i class="fa-solid fa-chevron-left h-4 w-4"></i>
+      <i class="fa-solid fa-chevron-left h-4 w-4" aria-hidden="true"></i>
       Retour à l'annuaire
     </a>
 
@@ -919,7 +919,7 @@ for (const sp of deputySponsorships) {
             rel="noopener noreferrer"
             class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors no-underline dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
           >
-            <i class="fa-solid fa-arrow-up-right-from-square h-3.5 w-3.5"></i>
+            <i class="fa-solid fa-arrow-up-right-from-square h-3.5 w-3.5" aria-hidden="true"></i>
             Assemblée nationale
           </a>
         )}
@@ -930,7 +930,7 @@ for (const sp of deputySponsorships) {
             rel="noopener noreferrer"
             class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors no-underline dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
           >
-            <i class="fa-solid fa-arrow-up-right-from-square h-3.5 w-3.5"></i>
+            <i class="fa-solid fa-arrow-up-right-from-square h-3.5 w-3.5" aria-hidden="true"></i>
             Sénat
           </a>
         )}
@@ -942,7 +942,7 @@ for (const sp of deputySponsorships) {
             class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors no-underline dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
             title="Voir la fiche Wikipédia"
           >
-            <i class="fa-brands fa-wikipedia-w h-3.5 w-3.5"></i>
+            <i class="fa-brands fa-wikipedia-w h-3.5 w-3.5" aria-hidden="true"></i>
             Wikipédia
           </a>
         )}
@@ -1167,6 +1167,7 @@ for (const sp of deputySponsorships) {
           "cursor-pointer hover:ring-indigo-300 hover:shadow-md transition-all dark:hover:ring-indigo-600",
         ]}
         onclick="window.dispatchEvent(new CustomEvent('open-madada-drawer'))"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"
         role="button"
         tabindex="0"
       >
@@ -1255,7 +1256,7 @@ for (const sp of deputySponsorships) {
                         class="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-indigo-600 hover:text-white"
                         title="Voir sur OpenStreetMap"
                       >
-                        <i class="fa-solid fa-location-dot h-4 w-4"></i>
+                        <i class="fa-solid fa-location-dot h-4 w-4" aria-hidden="true"></i>
                       </a>
                     )}
                     <span class="absolute bottom-1 right-2 text-[9px] text-white/70">
@@ -1280,13 +1281,13 @@ for (const sp of deputySponsorships) {
                     <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 dark:border-slate-700">
                       {addr.phone && (
                         <a href={`tel:${addr.phone}`} class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-indigo-600 transition-colors dark:text-slate-400 dark:hover:text-indigo-400">
-                          <i class="fa-solid fa-phone h-3.5 w-3.5"></i>
+                          <i class="fa-solid fa-phone h-3.5 w-3.5" aria-hidden="true"></i>
                           {addr.phone}
                         </a>
                       )}
                       {addr.email && (
                         <a href={`mailto:${addr.email}`} class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-indigo-600 transition-colors truncate dark:text-slate-400 dark:hover:text-indigo-400">
-                          <i class="fa-solid fa-envelope h-3.5 w-3.5 shrink-0"></i>
+                          <i class="fa-solid fa-envelope h-3.5 w-3.5 shrink-0" aria-hidden="true"></i>
                           {addr.email}
                         </a>
                       )}
@@ -1475,13 +1476,14 @@ for (const sp of deputySponsorships) {
                         governmentComments: act.governmentComments,
                       }) } : {})}
                       class={`border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50 ${isQuestion ? 'cursor-pointer group' : ''}`}
+                      {...(isQuestion ? { role: 'button', tabindex: '0' } : {})}
                     >
                       <td class="py-2 pr-4 whitespace-nowrap">{new Date(act.date).toLocaleDateString('fr-FR')}</td>
                       <td class="py-2 pr-4 whitespace-nowrap">{activityTypeLabels[act.type] ?? act.type}</td>
                       <td class="py-2 pr-4">
                         <span class={isQuestion ? 'group-hover:text-indigo-600 transition-colors' : ''}>{act.title}</span>
                         {isQuestion && (
-                          <i class="fa-solid fa-chevron-right ml-1.5 inline-block h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-400 transition-colors"></i>
+                          <i class="fa-solid fa-chevron-right ml-1.5 inline-block h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-400 transition-colors" aria-hidden="true"></i>
                         )}
                         {act.governmentComments && (
                           <span class="mt-0.5 block text-xs text-amber-600">{act.governmentComments}</span>
@@ -1780,6 +1782,8 @@ for (const sp of deputySponsorships) {
               <ul class="mt-2 space-y-2">
                 {group.items.map((i) => (
                   <li
+                    role="button"
+                    tabindex="0"
                     class="flex items-baseline justify-between border-b border-slate-100 pb-2 cursor-pointer group/interest hover:bg-slate-50 rounded px-1 -mx-1 transition-colors dark:border-slate-700 dark:hover:bg-slate-800/50"
                     data-interest-detail={JSON.stringify({
                       entityName: i.entityName,
@@ -1809,7 +1813,7 @@ for (const sp of deputySponsorships) {
                       <span class="text-xs text-slate-400 whitespace-nowrap">
                         {new Date(i.declaredDate).toLocaleDateString('fr-FR')}
                       </span>
-                      <i class="fa-solid fa-chevron-right h-3.5 w-3.5 text-slate-300 group-hover/interest:text-indigo-400 transition-colors"></i>
+                      <i class="fa-solid fa-chevron-right h-3.5 w-3.5 text-slate-300 group-hover/interest:text-indigo-400 transition-colors" aria-hidden="true"></i>
                     </div>
                   </li>
                 ))}
@@ -1923,7 +1927,7 @@ for (const sp of deputySponsorships) {
                 >
                   <div class="flex items-start gap-3">
                     <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-                      <i class="fa-solid fa-newspaper h-4 w-4"></i>
+                      <i class="fa-solid fa-newspaper h-4 w-4" aria-hidden="true"></i>
                     </span>
                     <span class="font-medium leading-snug text-slate-800 group-hover:text-orange-700 transition-colors line-clamp-2 dark:text-slate-100 dark:group-hover:text-orange-400">
                       {p.title}
@@ -1932,7 +1936,7 @@ for (const sp of deputySponsorships) {
                   <div class="mt-auto flex items-center gap-2 pt-4 pl-11">
                     <span class="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-inset ring-orange-600/10 dark:bg-orange-900/20 dark:text-orange-300 dark:ring-orange-400/20">{p.sourceName}</span>
                     <span class="text-xs text-slate-400 dark:text-slate-500">{dateLabel}</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square ml-auto h-4 w-4 text-slate-300 opacity-0 transition-all group-hover:opacity-100 group-hover:text-orange-500 dark:text-slate-600"></i>
+                    <i class="fa-solid fa-arrow-up-right-from-square ml-auto h-4 w-4 text-slate-300 opacity-0 transition-all group-hover:opacity-100 group-hover:text-orange-500 dark:text-slate-600" aria-hidden="true"></i>
                   </div>
                 </a>
               );
@@ -1967,7 +1971,7 @@ for (const sp of deputySponsorships) {
             class="group flex items-start gap-3 rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/50 p-4 shadow-sm transition-all hover:border-rose-300/60 hover:shadow-md no-underline dark:border-slate-700 dark:from-slate-800 dark:to-slate-800/80 dark:hover:border-rose-500/40"
           >
             <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
-              <i class="fa-solid fa-circle-check h-4 w-4"></i>
+              <i class="fa-solid fa-circle-check h-4 w-4" aria-hidden="true"></i>
             </span>
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-slate-800 group-hover:text-rose-700 transition-colors line-clamp-2 dark:text-slate-100 dark:group-hover:text-rose-400">
@@ -1987,7 +1991,7 @@ for (const sp of deputySponsorships) {
                 )}
               </div>
             </div>
-            <i class="fa-solid fa-arrow-up-right-from-square mt-1 h-4 w-4 shrink-0 text-slate-300 opacity-0 transition-all group-hover:opacity-100 group-hover:text-rose-500 dark:text-slate-600"></i>
+            <i class="fa-solid fa-arrow-up-right-from-square mt-1 h-4 w-4 shrink-0 text-slate-300 opacity-0 transition-all group-hover:opacity-100 group-hover:text-rose-500 dark:text-slate-600" aria-hidden="true"></i>
           </a>
         ))}
       </div>
@@ -2012,26 +2016,26 @@ for (const sp of deputySponsorships) {
 
         const linkCardConfigs: Record<string, { icon: string; color: string; hoverColor: string; label: string }> = {
           facebook: {
-            icon: '<i class="fa-brands fa-facebook h-5 w-5"></i>',
+            icon: '<i class="fa-brands fa-facebook h-5 w-5" aria-hidden="true"></i>',
             color: 'text-[#1877F2]',
             hoverColor: 'group-hover:text-[#1565C0]',
             label: 'Facebook',
           },
           twitter: {
-            icon: '<i class="fa-brands fa-x-twitter h-5 w-5"></i>',
+            icon: '<i class="fa-brands fa-x-twitter h-5 w-5" aria-hidden="true"></i>',
             color: 'text-slate-900',
             hoverColor: 'group-hover:text-slate-700',
             label: 'X (Twitter)',
           },
           personal_website: {
-            icon: '<i class="fa-solid fa-globe h-5 w-5"></i>',
+            icon: '<i class="fa-solid fa-globe h-5 w-5" aria-hidden="true"></i>',
             color: 'text-emerald-600',
             hoverColor: 'group-hover:text-emerald-700',
             label: 'Site personnel',
           },
         };
 
-        const externalLinkIcon = '<i class="fa-solid fa-arrow-up-right-from-square ml-1 inline-block h-3 w-3 align-baseline"></i>';
+        const externalLinkIcon = '<i class="fa-solid fa-arrow-up-right-from-square ml-1 inline-block h-3 w-3 align-baseline" aria-hidden="true"></i>';
 
         return (
           <>
@@ -2045,7 +2049,7 @@ for (const sp of deputySponsorships) {
                     class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 transition-shadow hover:shadow-md no-underline dark:bg-slate-800 dark:ring-slate-700"
                   >
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-                      <i class="fa-solid fa-building-columns h-5 w-5"></i>
+                      <i class="fa-solid fa-building-columns h-5 w-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0">
                       <p class="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
@@ -2063,7 +2067,7 @@ for (const sp of deputySponsorships) {
                     class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 transition-shadow hover:shadow-md no-underline dark:bg-slate-800 dark:ring-slate-700"
                   >
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-                      <i class="fa-solid fa-building-columns h-5 w-5"></i>
+                      <i class="fa-solid fa-building-columns h-5 w-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0">
                       <p class="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
@@ -2081,7 +2085,7 @@ for (const sp of deputySponsorships) {
                     class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 transition-shadow hover:shadow-md no-underline dark:bg-slate-800 dark:ring-slate-700"
                   >
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-                      <i class="fa-solid fa-building-columns h-5 w-5"></i>
+                      <i class="fa-solid fa-building-columns h-5 w-5" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0">
                       <p class="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
@@ -2330,16 +2334,24 @@ for (const sp of deputySponsorships) {
     }
 
     document.querySelectorAll<HTMLElement>('[data-interest-detail]').forEach((el) => {
-      el.addEventListener('click', () => {
+      function openDetail() {
         const detail = JSON.parse(el.dataset.interestDetail!);
         window.dispatchEvent(new CustomEvent('open-interest-detail', { detail }));
+      }
+      el.addEventListener('click', openDetail);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(); }
       });
     });
 
     document.querySelectorAll<HTMLTableRowElement>('[data-activity-detail]').forEach((row) => {
-      row.addEventListener('click', () => {
+      function openDetail() {
         const detail = JSON.parse(row.dataset.activityDetail!);
         window.dispatchEvent(new CustomEvent('open-question-detail', { detail }));
+      }
+      row.addEventListener('click', openDetail);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(); }
       });
     });
 

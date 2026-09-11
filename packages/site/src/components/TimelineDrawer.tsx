@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 type TimelineEvent = {
   type:
@@ -115,6 +116,16 @@ function assignLanes(ranges: TimelineEvent[]): Lane[] {
 export default function TimelineDrawer({ events, officialName }: Props) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<Set<TimelineEvent['type']>>(new Set());
+  const trapRef = useFocusTrap(open);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
 
   const allTypes = useMemo(() => {
     const types = new Set<TimelineEvent['type']>();
@@ -231,7 +242,10 @@ export default function TimelineDrawer({ events, officialName }: Props) {
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors no-underline dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
       >
-        <i className="fa-solid fa-clock-rotate-left text-xs" />
+        <i
+          className="fa-solid fa-clock-rotate-left text-xs"
+          aria-hidden="true"
+        />
         Chronologie complète
       </button>
 
@@ -241,7 +255,13 @@ export default function TimelineDrawer({ events, officialName }: Props) {
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <div className="relative w-full max-w-4xl bg-white shadow-2xl flex flex-col dark:bg-slate-900">
+          <div
+            ref={trapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Chronologie complète — ${officialName}`}
+            className="relative w-full max-w-4xl bg-white shadow-2xl flex flex-col dark:bg-slate-900"
+          >
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -256,18 +276,23 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                 className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-300"
                 aria-label="Fermer"
               >
-                <i className="fa-solid fa-xmark text-lg" />
+                <i className="fa-solid fa-xmark text-lg" aria-hidden="true" />
               </button>
             </div>
 
             <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex flex-wrap gap-2">
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Filtrer par type"
+              >
                 {allTypes.map((type) => {
                   const active = filter.size === 0 || filter.has(type);
                   return (
                     <button
                       key={type}
                       onClick={() => toggleFilter(type)}
+                      aria-pressed={filter.has(type)}
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
                         active
                           ? `${typeBgColors[type]} ${typeBorderColors[type]} border`

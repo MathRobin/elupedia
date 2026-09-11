@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 type Ballot = {
   id: string;
@@ -206,6 +207,16 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
   });
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const filterTrapRef = useFocusTrap(drawerOpen);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
 
   useEffect(() => {
     writeFiltersToUrl(filters);
@@ -271,7 +282,11 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
 
       <div className="flex-1 min-w-0">
         <div className="lg:hidden mb-4 flex items-center gap-3">
+          <label htmlFor="ballots-mobile-search" className="sr-only">
+            Rechercher un scrutin
+          </label>
           <input
+            id="ballots-mobile-search"
             type="search"
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -291,7 +306,11 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
             {filtered.length} scrutin{filtered.length !== 1 ? 's' : ''} trouvé
             {filtered.length !== 1 ? 's' : ''}
           </p>
+          <label htmlFor="ballots-sort" className="sr-only">
+            Trier par
+          </label>
           <select
+            id="ballots-sort"
             value={filters.sort}
             onChange={(e) =>
               setFilters({
@@ -428,7 +447,13 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
             className="absolute inset-0 bg-black/30"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="relative w-full max-w-sm bg-white shadow-xl flex flex-col dark:bg-slate-900">
+          <div
+            ref={filterTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filtres"
+            className="relative w-full max-w-sm bg-white shadow-xl flex flex-col dark:bg-slate-900"
+          >
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Filtres
@@ -438,7 +463,7 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
                 className="rounded-lg p-1 text-slate-400 hover:text-slate-600 transition-colors"
                 aria-label="Fermer"
               >
-                <i className="fa-solid fa-xmark text-lg" />
+                <i className="fa-solid fa-xmark text-lg" aria-hidden="true" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-5">

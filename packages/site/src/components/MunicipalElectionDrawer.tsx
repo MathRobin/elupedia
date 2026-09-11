@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 type Candidate = {
   panneau: number;
@@ -74,6 +75,16 @@ function DrawerContent({
   election: Election;
   onClose: () => void;
 }) {
+  const trapRef = useFocusTrap(true);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const participationRate =
     election.inscrits > 0
       ? ((election.votants / election.inscrits) * 100).toFixed(2)
@@ -85,7 +96,13 @@ function DrawerContent({
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-2xl bg-white shadow-2xl flex flex-col dark:bg-slate-900">
+      <div
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${electionLabel(election.electionId)} — Tour ${election.round}`}
+        className="relative w-full max-w-2xl bg-white shadow-2xl flex flex-col dark:bg-slate-900"
+      >
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -101,7 +118,10 @@ function DrawerContent({
             className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-300"
             aria-label="Fermer"
           >
-            <i className="fa-solid fa-xmark h-5 w-5 flex items-center justify-center" />
+            <i
+              className="fa-solid fa-xmark h-5 w-5 flex items-center justify-center"
+              aria-hidden="true"
+            />
           </button>
         </div>
 
@@ -196,7 +216,10 @@ function DrawerContent({
                             className="shrink-0 text-indigo-500 hover:text-indigo-700 transition-colors"
                             title="Voir la fiche"
                           >
-                            <i className="fa-solid fa-arrow-up-right-from-square text-sm" />
+                            <i
+                              className="fa-solid fa-arrow-up-right-from-square text-sm"
+                              aria-hidden="true"
+                            />
                           </a>
                         )}
                       </div>

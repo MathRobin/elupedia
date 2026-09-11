@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import qrcode from 'qrcode-generator';
+import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 type QrCodeModalProps = {
   url: string;
@@ -12,6 +13,7 @@ const LOGO_RATIO = 0.22;
 export default function QrCodeModal({ url, onClose }: QrCodeModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const trapRef = useFocusTrap(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -85,13 +87,19 @@ export default function QrCodeModal({ url, onClose }: QrCodeModalProps) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative mx-4 w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+      <div
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="QR Code de la page"
+        className="relative mx-4 w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800"
+      >
         <button
           onClick={onClose}
           className="absolute right-3 top-3 rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
           aria-label="Fermer"
         >
-          <i className="fa-solid fa-xmark text-lg" />
+          <i className="fa-solid fa-xmark text-lg" aria-hidden="true" />
         </button>
 
         <h3 className="mb-4 text-center text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -101,6 +109,8 @@ export default function QrCodeModal({ url, onClose }: QrCodeModalProps) {
         <div className="flex justify-center">
           <canvas
             ref={canvasRef}
+            role="img"
+            aria-label={`QR Code pour ${url}`}
             className="rounded-xl"
             style={{
               width: CANVAS_SIZE,
@@ -124,7 +134,7 @@ export default function QrCodeModal({ url, onClose }: QrCodeModalProps) {
             }}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-white"
           >
-            <i className="fa-solid fa-download text-sm" />
+            <i className="fa-solid fa-download text-sm" aria-hidden="true" />
             Télécharger
           </button>
         )}

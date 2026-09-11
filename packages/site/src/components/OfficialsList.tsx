@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { DEPARTMENT_CODES } from '../lib/department-codes.js';
+import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 type Official = {
   id: string;
@@ -128,7 +129,7 @@ function Pagination({
         className={`${btn} px-2 ${page <= 1 ? disabled : inactive}`}
         aria-label="Page précédente"
       >
-        <i className="fa-solid fa-chevron-left text-sm" />
+        <i className="fa-solid fa-chevron-left text-sm" aria-hidden="true" />
       </button>
       {pageRange(page, totalPages).map((p, i) =>
         p === '…' ? (
@@ -151,7 +152,7 @@ function Pagination({
         className={`${btn} px-2 ${page >= totalPages ? disabled : inactive}`}
         aria-label="Page suivante"
       >
-        <i className="fa-solid fa-chevron-right text-sm" />
+        <i className="fa-solid fa-chevron-right text-sm" aria-hidden="true" />
       </button>
     </nav>
   );
@@ -371,7 +372,17 @@ export default function OfficialsList({
   });
   const [page, setPage] = useState(initial.page ?? 1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const filterTrapRef = useFocusTrap(drawerOpen);
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
 
   useEffect(() => {
     writeFiltersToUrl(filters, page);
@@ -492,7 +503,11 @@ export default function OfficialsList({
       <div className="flex-1 min-w-0">
         {/* Barre mobile */}
         <div className="lg:hidden mb-4 flex items-center gap-3">
+          <label htmlFor="officials-mobile-search" className="sr-only">
+            Rechercher un élu
+          </label>
           <input
+            id="officials-mobile-search"
             type="search"
             value={filters.search}
             onChange={(e) =>
@@ -505,7 +520,7 @@ export default function OfficialsList({
             onClick={() => setDrawerOpen(true)}
             className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
           >
-            <i className="fa-solid fa-sliders text-sm" />
+            <i className="fa-solid fa-sliders text-sm" aria-hidden="true" />
             Filtres{activeCount > 0 && ` (${activeCount})`}
           </button>
         </div>
@@ -517,7 +532,11 @@ export default function OfficialsList({
               ? `${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, filtered.length)} sur ${filtered.length.toLocaleString('fr-FR')} élus`
               : `${filtered.length} élu${filtered.length !== 1 ? 's' : ''} trouvé${filtered.length !== 1 ? 's' : ''}`}
           </p>
+          <label htmlFor="officials-sort" className="sr-only">
+            Trier par
+          </label>
           <select
+            id="officials-sort"
             value={filters.sort}
             onChange={(e) =>
               updateFilters({
@@ -626,7 +645,13 @@ export default function OfficialsList({
             className="absolute inset-0 bg-black/30"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="relative w-full max-w-sm bg-white shadow-xl flex flex-col dark:bg-slate-900">
+          <div
+            ref={filterTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filtres"
+            className="relative w-full max-w-sm bg-white shadow-xl flex flex-col dark:bg-slate-900"
+          >
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Filtres
@@ -636,7 +661,7 @@ export default function OfficialsList({
                 className="rounded-lg p-1 text-slate-400 hover:text-slate-600 transition-colors"
                 aria-label="Fermer"
               >
-                <i className="fa-solid fa-xmark text-lg" />
+                <i className="fa-solid fa-xmark text-lg" aria-hidden="true" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-5">
