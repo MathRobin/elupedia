@@ -128,19 +128,7 @@ function Pagination({
         className={`${btn} px-2 ${page <= 1 ? disabled : inactive}`}
         aria-label="Page précédente"
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M15.75 19.5 8.25 12l7.5-7.5"
-          />
-        </svg>
+        <i className="fa-solid fa-chevron-left text-sm" />
       </button>
       {pageRange(page, totalPages).map((p, i) =>
         p === '…' ? (
@@ -163,19 +151,7 @@ function Pagination({
         className={`${btn} px-2 ${page >= totalPages ? disabled : inactive}`}
         aria-label="Page suivante"
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="m8.25 4.5 7.5 7.5-7.5 7.5"
-          />
-        </svg>
+        <i className="fa-solid fa-chevron-right text-sm" />
       </button>
     </nav>
   );
@@ -529,19 +505,7 @@ export default function OfficialsList({
             onClick={() => setDrawerOpen(true)}
             className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
-              />
-            </svg>
+            <i className="fa-solid fa-sliders text-sm" />
             Filtres{activeCount > 0 && ` (${activeCount})`}
           </button>
         </div>
@@ -672,19 +636,7 @@ export default function OfficialsList({
                 className="rounded-lg p-1 text-slate-400 hover:text-slate-600 transition-colors"
                 aria-label="Fermer"
               >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18 18 6M6 6l12 12"
-                  />
-                </svg>
+                <i className="fa-solid fa-xmark text-lg" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-5">

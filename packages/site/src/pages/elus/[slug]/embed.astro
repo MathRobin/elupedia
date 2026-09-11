@@ -62,6 +62,7 @@ const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{fullName} — {mandateLabel}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -116,7 +117,7 @@ const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
       text-decoration: none;
     }
     .link:hover { text-decoration: underline; }
-    .link svg { width: 14px; height: 14px; }
+    .link i { font-size: 13px; }
     @media (prefers-color-scheme: dark) {
       body { background: #0f172a; color: #e2e8f0; }
       .card { border-color: #334155; }
@@ -140,7 +141,7 @@ const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
       <div class="since">Depuis le {startFormatted}</div>
       <a class="link" href={profileUrl} target="_blank" rel="noopener noreferrer">
         Voir la fiche sur Elupedia
-        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-4.5-6H18m0 0v4.5m0-4.5-7.5 7.5" /></svg>
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
       </a>
     </div>
   </div>

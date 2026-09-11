@@ -57,21 +57,21 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
     {
       key: 'email',
       label: 'Email',
-      icon: 'M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75',
+      faClass: 'fa-solid fa-envelope',
       href: buildShareUrl('email', url, shareText),
       external: false,
     },
     {
       key: 'facebook',
       label: 'Facebook',
-      icon: 'M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z',
+      faClass: 'fa-brands fa-facebook',
       href: buildShareUrl('facebook', url, shareText),
       external: true,
     },
     {
       key: 'x',
       label: 'X (Twitter)',
-      icon: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231z',
+      faClass: 'fa-brands fa-x-twitter',
       href: buildShareUrl('x', url, shareText),
       external: true,
     },
@@ -85,19 +85,7 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
         aria-label="Partager cette page"
         aria-expanded={open}
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0-12.814a2.25 2.25 0 1 0 3.935-2.186 2.25 2.25 0 0 0-3.935 2.186Zm0 12.814a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Z"
-          />
-        </svg>
+        <i className="fa-solid fa-share-nodes text-sm" />
         Partager
       </button>
 
@@ -112,19 +100,9 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
               className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 no-underline transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
               onClick={() => setOpen(false)}
             >
-              <svg
-                className="h-4 w-4 shrink-0 text-slate-400"
-                fill={item.key === 'x' ? 'currentColor' : 'none'}
-                viewBox="0 0 24 24"
-                strokeWidth={item.key === 'x' ? 0 : 1.5}
-                stroke={item.key === 'x' ? 'none' : 'currentColor'}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d={item.icon}
-                />
-              </svg>
+              <i
+                className={`${item.faClass} shrink-0 text-slate-400 text-sm`}
+              />
               {item.label}
             </a>
           ))}
@@ -132,27 +110,9 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
             onClick={copyLink}
             className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
           >
-            <svg
-              className="h-4 w-4 shrink-0 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              {copied ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="m4.5 12.75 6 6 9-13.5"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
-                />
-              )}
-            </svg>
+            <i
+              className={`fa-solid ${copied ? 'fa-check' : 'fa-link'} shrink-0 text-slate-400 text-sm`}
+            />
             {copied ? 'Lien copié !' : 'Copier le lien'}
           </button>
           <button
@@ -162,19 +122,7 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
             }}
             className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
           >
-            <svg
-              className="h-4 w-4 shrink-0 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5Zm0 9.75c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Zm9.75-9.75c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Zm1.5 9.75a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H15.75a.75.75 0 0 1-.75-.75v-.008Zm3 0a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H18.75a.75.75 0 0 1-.75-.75v-.008Zm-1.5 3a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H15.75a.75.75 0 0 1-.75-.75v-.008Zm3 0a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H18.75a.75.75 0 0 1-.75-.75v-.008Z"
-              />
-            </svg>
+            <i className="fa-solid fa-qrcode shrink-0 text-slate-400 text-sm" />
             QR Code
           </button>
         </div>

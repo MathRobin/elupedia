@@ -14,10 +14,7 @@ export const GET: APIRoute = async ({ params }) => {
   const { code } = params;
 
   if (!code || !/^\d{5}$/.test(code)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid INSEE code — expected 5 digits' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
-    );
+    return Response.redirect('https://www.elupedia.fr/docs/commune-api', 302);
   }
 
   const db = getDb();

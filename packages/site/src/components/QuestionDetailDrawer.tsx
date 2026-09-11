@@ -165,19 +165,7 @@ export default function QuestionDetailDrawer() {
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-300"
               aria-label="Fermer"
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <i className="fa-solid fa-xmark h-5 w-5 flex items-center justify-center" />
             </button>
           </div>
 
@@ -201,19 +189,7 @@ export default function QuestionDetailDrawer() {
                       rel="noopener noreferrer"
                       className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                     >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                        />
-                      </svg>
+                      <i className="fa-solid fa-arrow-up-right-from-square text-sm" />
                       Consulter sur assemblee-nationale.fr
                     </a>
                   ) : (
@@ -221,19 +197,7 @@ export default function QuestionDetailDrawer() {
                       className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-400"
                       title="Le lien officiel n'a pas été trouvé pour cette question"
                     >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                        />
-                      </svg>
+                      <i className="fa-solid fa-arrow-up-right-from-square text-sm" />
                       Consulter sur assemblee-nationale.fr
                     </span>
                   )}
@@ -242,19 +206,7 @@ export default function QuestionDetailDrawer() {
 
               {question.governmentComments && (
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-4 py-3 dark:bg-slate-800">
-                  <svg
-                    className="h-4 w-4 shrink-0 text-slate-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21"
-                    />
-                  </svg>
+                  <i className="fa-solid fa-landmark text-sm shrink-0 text-slate-400" />
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                     {question.governmentComments}
                   </p>
