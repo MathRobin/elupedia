@@ -24,7 +24,7 @@ const {
 
 const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
-const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
+const ogImage = image ?? new URL('/api/og/default.png', Astro.site).href;
 
 const websiteJsonLd = {
   '@context': 'https://schema.org',
@@ -125,6 +125,7 @@ const websiteJsonLd = {
             <li><a href="/elus" class="hover:text-white transition-colors no-underline">Élus</a></li>
             <li><a href="/votes" class="hover:text-white transition-colors no-underline">Votes</a></li>
             <li><a href="/a-propos" class="hover:text-white transition-colors no-underline">À propos</a></li>
+            <li><a href="/docs" class="hover:text-white transition-colors no-underline">Documentation</a></li>
             <li><a href="/changelog" class="hover:text-white transition-colors no-underline">Changelog</a></li>
             <li><a href="/mentions-legales" class="hover:text-white transition-colors no-underline">Mentions légales</a></li>
             <li><a href="/donnees-personnelles" class="hover:text-white transition-colors no-underline">Données personnelles</a></li>

@@ -1,0 +1,125 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="oEmbed" description="Documentation de l'endpoint oEmbed d'Elupedia — intégrez les fiches d'élus et scrutins dans vos articles." hideShare>
+  <div class="max-w-3xl prose prose-slate dark:prose-invert prose-headings:font-bold prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
+    <a href="/docs" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      Documentation
+    </a>
+
+    <h1>oEmbed</h1>
+
+    <p>
+      Elupedia expose un endpoint <a href="https://oembed.com/" target="_blank" rel="noopener noreferrer">oEmbed 1.0</a> permettant aux CMS (WordPress, Ghost, Notion…) de transformer automatiquement un lien collé en carte riche.
+    </p>
+
+    <h2>Endpoint</h2>
+
+    <pre><code>GET https://www.elupedia.fr/api/oembed?url=URL&format=json</code></pre>
+
+    <h3>Paramètres</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Paramètre</th>
+          <th>Requis</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>url</code></td>
+          <td>Oui</td>
+          <td>URL de la page Elupedia à intégrer</td>
+        </tr>
+        <tr>
+          <td><code>format</code></td>
+          <td>Non</td>
+          <td><code>json</code> (défaut) ou <code>xml</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>URLs supportées</h3>
+
+    <ul>
+      <li><code>https://www.elupedia.fr/elus/{'{slug}'}</code> — Fiche d'un élu</li>
+      <li><code>https://www.elupedia.fr/scrutins/{'{id}'}</code> — Fiche d'un scrutin</li>
+    </ul>
+
+    <h2>Exemple de requête</h2>
+
+    <pre><code>curl "https://www.elupedia.fr/api/oembed?url=https%3A%2F%2Fwww.elupedia.fr%2Felus%2Fmanuel-bompard&format=json"</code></pre>
+
+    <h3>Réponse JSON</h3>
+
+    <pre><code>{`{
+  "type": "rich",
+  "version": "1.0",
+  "title": "Manuel Bompard — Député — 4e circ. Bouches-du-Rhône",
+  "author_name": "Manuel Bompard",
+  "provider_name": "Elupedia",
+  "provider_url": "https://www.elupedia.fr",
+  "thumbnail_url": "https://www.elupedia.fr/api/og/official/manuel-bompard.png",
+  "thumbnail_width": 1200,
+  "thumbnail_height": 630,
+  "html": "<iframe src=\\"https://www.elupedia.fr/elus/manuel-bompard\\" width=\\"600\\" height=\\"400\\" frameborder=\\"0\\" allowfullscreen></iframe>",
+  "width": 600,
+  "height": 400
+}`}</code></pre>
+
+    <h2>Découverte automatique</h2>
+
+    <p>
+      Les pages de fiches d'élus et de scrutins incluent une balise <code>&lt;link&gt;</code> de découverte oEmbed dans leur <code>&lt;head&gt;</code> :
+    </p>
+
+    <pre><code>{`<link
+  rel="alternate"
+  type="application/json+oembed"
+  href="https://www.elupedia.fr/api/oembed?url=...&format=json"
+  title="..." />`}</code></pre>
+
+    <p>
+      Les CMS compatibles (WordPress, Ghost, etc.) détectent automatiquement cette balise et génèrent un aperçu riche lorsqu'un utilisateur colle un lien Elupedia.
+    </p>
+
+    <h2>CORS</h2>
+
+    <p>
+      L'endpoint autorise les requêtes cross-origin depuis n'importe quel domaine (<code>Access-Control-Allow-Origin: *</code>).
+    </p>
+
+    <h2>Codes de retour</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Signification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>200</code></td>
+          <td>Réponse oEmbed réussie</td>
+        </tr>
+        <tr>
+          <td><code>400</code></td>
+          <td>Paramètre <code>url</code> manquant</td>
+        </tr>
+        <tr>
+          <td><code>404</code></td>
+          <td>URL non supportée ou ressource introuvable</td>
+        </tr>
+        <tr>
+          <td><code>501</code></td>
+          <td>Format non supporté</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</BaseLayout>

@@ -1104,6 +1104,7 @@ __metadata:
     "@astrojs/sitemap": "npm:^3.7.4"
     "@astrojs/vercel": "npm:^11.0.9"
     "@elupedia/shared": "npm:*"
+    "@resvg/resvg-js": "npm:^2.6.2"
     "@tailwindcss/typography": "npm:^0.5.20"
     "@tailwindcss/vite": "npm:^4.3.3"
     "@types/react": "npm:^19.2.18"
@@ -1114,6 +1115,7 @@ __metadata:
     qrcode-generator: "npm:^2.0.4"
     react: "npm:^19.2.8"
     react-dom: "npm:^19.2.8"
+    satori: "npm:^0.33.4"
     tailwindcss: "npm:^4.3.3"
     tarteaucitronjs: "npm:^1.34.0"
   languageName: unknown

@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Documentation" description="Documentation technique pour les développeurs souhaitant intégrer Elupedia." hideShare>
+  <div class="max-w-3xl">
+    <h1 class="text-3xl font-extrabold tracking-tight dark:text-white">Documentation</h1>
+    <p class="mt-4 text-lg text-slate-600 dark:text-slate-400">
+      Ressources techniques pour intégrer Elupedia dans vos projets.
+    </p>
+
+    <div class="mt-10 space-y-6">
+      <a href="/docs/oembed" class="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md no-underline dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500">
+        <div class="flex items-start gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" /></svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors dark:text-white dark:group-hover:text-indigo-400">oEmbed</h2>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Intégrez les fiches d'élus et les scrutins dans vos articles via oEmbed. Compatible WordPress, Ghost, Notion et tout CMS supportant la découverte oEmbed.
+            </p>
+          </div>
+        </div>
+      </a>
+
+      <a href="/docs/og-images" class="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md no-underline dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500">
+        <div class="flex items-start gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" /></svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors dark:text-white dark:group-hover:text-indigo-400">Images Open Graph</h2>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Cartes de prévisualisation générées dynamiquement pour chaque élu et chaque scrutin, utilisées par les réseaux sociaux et les messageries.
+            </p>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</BaseLayout>

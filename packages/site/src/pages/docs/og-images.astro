@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Images Open Graph" description="Images de prévisualisation générées dynamiquement pour les élus et scrutins d'Elupedia." hideShare>
+  <div class="max-w-3xl prose prose-slate dark:prose-invert prose-headings:font-bold prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
+    <a href="/docs" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      Documentation
+    </a>
+
+    <h1>Images Open Graph</h1>
+
+    <p>
+      Elupedia génère dynamiquement des images de prévisualisation (1200×630 px) pour chaque fiche d'élu et chaque scrutin. Ces images sont utilisées par les réseaux sociaux (Facebook, Twitter/X, LinkedIn) et les messageries pour afficher un aperçu riche lorsqu'un lien est partagé.
+    </p>
+
+    <h2>Endpoints</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>URL</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>/api/og/official/{'{slug}'}.png</code></td>
+          <td>Image OG pour un élu (photo, nom, mandat, groupe)</td>
+        </tr>
+        <tr>
+          <td><code>/api/og/scrutin/{'{id}'}.png</code></td>
+          <td>Image OG pour un scrutin (titre, résultat, barre de votes)</td>
+        </tr>
+        <tr>
+          <td><code>/api/og/default.png</code></td>
+          <td>Image OG par défaut (logo Elupedia)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Exemples</h2>
+
+    <h3>Fiche élu</h3>
+    <pre><code>https://www.elupedia.fr/api/og/official/manuel-bompard.png</code></pre>
+    <p>Affiche la photo de l'élu, son nom, son type de mandat, sa circonscription et son groupe politique.</p>
+
+    <h3>Fiche scrutin</h3>
+    <pre><code>https://www.elupedia.fr/api/og/scrutin/abc123.png</code></pre>
+    <p>Affiche le titre du scrutin, sa date, son résultat (adopté/rejeté), et une barre de répartition des votes.</p>
+
+    <h2>Spécifications techniques</h2>
+
+    <ul>
+      <li><strong>Format :</strong> PNG, 1200×630 px</li>
+      <li><strong>Police :</strong> Inter (Regular 400, Bold 700)</li>
+      <li><strong>Moteur :</strong> <a href="https://github.com/vercel/satori" target="_blank" rel="noopener noreferrer">Satori</a> (JSX → SVG) + <a href="https://github.com/nicolo-ribaudo/resvg-js" target="_blank" rel="noopener noreferrer">resvg-js</a> (SVG → PNG)</li>
+      <li><strong>Cache :</strong> CDN Vercel, TTL 24h (élus/scrutins), 7 jours (défaut)</li>
+    </ul>
+
+    <h2>Intégration</h2>
+
+    <p>
+      Les pages du site incluent automatiquement les meta tags <code>og:image</code> et <code>twitter:image</code> pointant vers ces endpoints. Aucune action supplémentaire n'est nécessaire pour bénéficier des cartes riches sur les réseaux sociaux.
+    </p>
+  </div>
+</BaseLayout>

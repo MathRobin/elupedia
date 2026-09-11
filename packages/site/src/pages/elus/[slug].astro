@@ -824,11 +824,12 @@ for (const sp of deputySponsorships) {
 
 ---
 
-<BaseLayout title={fullName} description={metaDescription} image={photo ?? undefined} jsonLd={personJsonLd} ogType="profile">
+<BaseLayout title={fullName} description={metaDescription} image={new URL(`/api/og/official/${deputy.slug ?? deputy.id}.png`, Astro.site).href} jsonLd={personJsonLd} ogType="profile">
   <Fragment slot="head">
     {photo && <link rel="preload" as="image" href={photo} fetchpriority="high" />}
     <meta property="profile:first_name" content={deputy.firstName} />
     <meta property="profile:last_name" content={deputy.lastName} />
+    <link rel="alternate" type="application/json+oembed" href={`https://www.elupedia.fr/api/oembed?url=${encodeURIComponent(personUrl)}&format=json`} title={fullName} />
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
   </Fragment>
   <div class="max-w-3xl">

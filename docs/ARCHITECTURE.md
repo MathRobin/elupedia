@@ -149,7 +149,9 @@ Site Astro avec composants React et Tailwind CSS. Mode hybrid : pages statiques 
 - Styling : Tailwind CSS 4 (via `@tailwindcss/vite`)
 - Utilitaires date : date-fns (calcul d'âge sur la fiche élu)
 - Layout de base : `src/layouts/BaseLayout.astro` (header, footer, meta description, titre dynamique)
-- SEO : sitemap XML généré au build (`@astrojs/sitemap`), meta tags Open Graph (title, description, image, url, type, locale, site_name), URL canonique. JSON-LD schema.org enrichi sur toutes les pages : WebSite+Organization (BaseLayout), BreadcrumbList (annuaire, votes, fiche élu, fiche scrutin), ItemList (annuaire élus, listing votes), Person enrichi (fiche élu : `@id`, `honorificPrefix`, `gender`, `birthPlace`, `hasOccupation` avec tous les mandats, `memberOf` avec groupe politique + commissions actives, `affiliation` dédupliqué, `worksFor` GovernmentOrganization, `address` multiples, `sameAs`, `image` ImageObject, `knowsLanguage`, `deathDate`), VoteAction (fiche scrutin)
+- SEO : sitemap XML généré au build (`@astrojs/sitemap`), meta tags Open Graph (title, description, image, url, type, locale, site_name) avec images OG dynamiques (satori + resvg-js), URL canonique. JSON-LD schema.org enrichi sur toutes les pages : WebSite+Organization (BaseLayout), BreadcrumbList (annuaire, votes, fiche élu, fiche scrutin), ItemList (annuaire élus, listing votes), Person enrichi (fiche élu : `@id`, `honorificPrefix`, `gender`, `birthPlace`, `hasOccupation` avec tous les mandats, `memberOf` avec groupe politique + commissions actives, `affiliation` dédupliqué, `worksFor` GovernmentOrganization, `address` multiples, `sameAs`, `image` ImageObject, `knowsLanguage`, `deathDate`), VoteAction (fiche scrutin)
+- oEmbed : endpoint `/api/oembed` conforme oEmbed 1.0 (JSON + XML), type `rich`, balises de découverte `<link rel="alternate">` sur fiches élus et scrutins, CORS ouvert. Permet aux CMS (WordPress, Ghost, Notion) d'afficher des cartes riches automatiquement
+- Images OG dynamiques : endpoints `/api/og/official/[slug].png`, `/api/og/scrutin/[id].png`, `/api/og/default.png`. Rendus via satori (JSX→SVG) + @resvg/resvg-js (SVG→PNG), police Inter, 1200×630 px, cache CDN 24h
 - Site URL : `https://www.elupedia.fr`
 - Consentement cookies : tarteaucitron.js vendorisé dans `public/tarteaucitron/`, conforme CNIL (highPrivacy, DenyAllCta, AcceptAllCta)
 - Composants React : `src/components/OfficialsList.tsx` (grille d'accueil avec filtres : type de mandat, département, mandat actif), `src/components/QuestionDetailDrawer.tsx` (tiroir de détail d'une question), `src/components/InterestDetailDrawer.tsx` (tiroir de détail d'un intérêt), `src/components/TimelineDrawer.tsx` (chronologie complète), `src/components/MunicipalElectionDrawer.tsx` (résultats municipales), `src/components/JurisdictionMap.tsx` (carte de circonscription SVG), `src/components/HemicycleChart.tsx` (hémicycle interactif avec positions réelles AN, données dans `src/lib/hemicycle-seats.json`)
@@ -162,6 +164,14 @@ Site Astro avec composants React et Tailwind CSS. Mode hybrid : pages statiques 
   - `src/pages/a-propos.astro` — page À propos (présentation, feuille de route, piliers, indépendance, contribution)
   - `src/pages/donnees-personnelles.astro` — page droits RGPD (données publiées, base légale, droits, contact, CNIL, cookies)
   - `src/pages/mentions-legales.astro` — mentions légales (sources de données, licences, hébergeur, licence code AGPL-3.0)
+  - `src/pages/docs/index.astro` — index de la documentation développeur
+  - `src/pages/docs/oembed.astro` — documentation de l'endpoint oEmbed
+  - `src/pages/docs/og-images.astro` — documentation des images Open Graph dynamiques
+- API endpoints :
+  - `src/pages/api/oembed.ts` — endpoint oEmbed 1.0 (JSON + XML, CORS)
+  - `src/pages/api/og/official/[slug].png.ts` — image OG dynamique pour un élu
+  - `src/pages/api/og/scrutin/[id].png.ts` — image OG dynamique pour un scrutin
+  - `src/pages/api/og/default.png.ts` — image OG par défaut
 
 ### 4. Déploiement (Vercel)
 
