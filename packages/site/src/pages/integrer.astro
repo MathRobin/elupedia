@@ -1,0 +1,120 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const exampleUrl = 'https://www.elupedia.fr/elus/manuel-bompard';
+const encodedUrl = encodeURIComponent(exampleUrl);
+const oembedEndpoint = `https://www.elupedia.fr/api/oembed?url=${encodedUrl}&format=json`;
+---
+
+<BaseLayout title="Intégrer Élupedia" description="Intégrez les fiches d'élus Élupedia dans vos articles grâce à oEmbed, Open Graph et Twitter Card.">
+  <div class="max-w-3xl prose prose-slate dark:prose-invert prose-headings:font-bold prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
+    <h1>Intégrer Élupedia dans vos contenus</h1>
+
+    <p>
+      Vous êtes journaliste, éditeur ou blogueur&nbsp;? Intégrez les fiches d'élus et de scrutins d'Élupedia directement dans vos articles. Trois méthodes selon votre outil.
+    </p>
+
+    <h2>1. Coller un lien (oEmbed)</h2>
+
+    <p>
+      La méthode la plus simple. <strong>Collez un lien Élupedia</strong> dans l'éditeur de votre CMS et il génère automatiquement une carte riche.
+    </p>
+
+    <div class="not-prose my-6">
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+        <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Exemple d'URL à coller :</p>
+        <code class="block rounded-lg bg-white px-4 py-3 text-sm text-slate-800 border border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700 break-all">{exampleUrl}</code>
+      </div>
+    </div>
+
+    <p><strong>CMS compatibles :</strong></p>
+    <ul>
+      <li><strong>WordPress</strong> — Collez l'URL dans l'éditeur Gutenberg ou l'éditeur classique. Le bloc Embed se crée automatiquement.</li>
+      <li><strong>Ghost</strong> — Collez l'URL sur une ligne vide. Ghost détecte le provider oEmbed et affiche la carte.</li>
+      <li><strong>Notion</strong> — Collez l'URL et choisissez « Créer un signet » ou « Intégrer ».</li>
+    </ul>
+
+    <h3>Rendu</h3>
+
+    <p>Voici ce que produit une intégration oEmbed :</p>
+
+    <div class="not-prose my-6">
+      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <iframe
+          src="/elus/manuel-bompard/embed"
+          width="500"
+          height="140"
+          style="border:0;border-radius:12px;overflow:hidden;max-width:100%"
+          loading="lazy"
+          title="Carte riche oEmbed — Manuel Bompard"
+        ></iframe>
+      </div>
+    </div>
+
+    <h2>2. Carte Open Graph & Twitter Card</h2>
+
+    <p>
+      Chaque fiche d'élu et chaque scrutin inclut les balises <a href="https://ogp.me/" target="_blank" rel="noopener noreferrer">Open Graph</a> et <a href="https://developer.x.com/en/docs/twitter-for-websites/cards" target="_blank" rel="noopener noreferrer">Twitter Card</a>. Quand vous partagez un lien Élupedia sur les réseaux sociaux, Slack, Discord ou par email, une carte avec image, titre et description apparaît automatiquement.
+    </p>
+
+    <div class="not-prose my-6">
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800">
+        <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Aperçu du partage sur les réseaux sociaux :</p>
+        <div class="rounded-lg border border-slate-200 bg-white overflow-hidden max-w-sm dark:border-slate-600 dark:bg-slate-900">
+          <img
+            src="/api/og/official/manuel-bompard.png"
+            alt="Aperçu Open Graph pour Manuel Bompard"
+            class="w-full"
+            loading="lazy"
+          />
+          <div class="px-3 py-2">
+            <p class="text-xs text-slate-400 dark:text-slate-500">elupedia.fr</p>
+            <p class="text-sm font-semibold text-slate-900 dark:text-white">Manuel Bompard — Elupedia</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">Député — 4e circ. Bouches-du-Rhône</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>3. Intégration manuelle (iframe)</h2>
+
+    <p>
+      Si votre plateforme ne supporte pas oEmbed, vous pouvez intégrer la carte riche via une iframe.
+    </p>
+
+    <pre><code>{`<iframe
+  src="https://www.elupedia.fr/elus/manuel-bompard/embed"
+  width="500"
+  height="140"
+  frameborder="0"
+  style="border:0;border-radius:12px;overflow:hidden"
+  scrolling="no"
+></iframe>`}</code></pre>
+
+    <p>
+      Remplacez <code>manuel-bompard</code> par le slug de l'élu souhaité.
+    </p>
+
+    <h2>4. Appel direct à l'API oEmbed</h2>
+
+    <p>
+      Pour un contrôle total, appelez directement l'endpoint oEmbed :
+    </p>
+
+    <pre><code>{`GET ${oembedEndpoint}`}</code></pre>
+
+    <p>
+      La <a href="/docs/oembed">documentation technique complète</a> détaille les paramètres, les formats supportés et les codes de retour.
+    </p>
+
+    <h2>Licence & attribution</h2>
+
+    <p>
+      Les données d'Élupedia sont issues de sources ouvertes (Assemblée nationale, Sénat, HATVP, data.gouv.fr) et publiées sous <strong>Licence Ouverte 2.0</strong>. Le code source est sous licence AGPL-3.0.
+    </p>
+
+    <p>
+      L'intégration via oEmbed ou iframe inclut automatiquement un lien retour vers Élupedia — aucune attribution supplémentaire n'est requise.
+    </p>
+  </div>
+</BaseLayout>
