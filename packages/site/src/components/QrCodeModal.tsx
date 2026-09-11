@@ -67,7 +67,7 @@ export default function QrCodeModal({ url, onClose }: QrCodeModalProps) {
       ctx.drawImage(logo, logoOffset, logoOffset, logoSize, logoSize);
       setDataUrl(canvas.toDataURL('image/png'));
     };
-    logo.src = '/img/logo-256x256.png';
+    logo.src = '/img/favicon-256x256.png';
   }, [url]);
 
   useEffect(() => {

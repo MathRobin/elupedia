@@ -39,7 +39,7 @@ const websiteJsonLd = {
     url: Astro.site?.href,
     logo: {
       '@type': 'ImageObject',
-      url: new URL('/img/logo-32x32.png', Astro.site).href,
+      url: new URL('/img/favicon-256x256.png', Astro.site).href,
     },
   },
 };
@@ -50,7 +50,10 @@ const websiteJsonLd = {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <link rel="icon" type="image/x-icon" href="/img/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/img/favicon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon-180x180.png" />
     <title>{fullTitle}</title>
     <link rel="canonical" href={canonicalUrl.href} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -93,7 +96,7 @@ const websiteJsonLd = {
     <header class="bg-slate-900 shadow-lg dark:bg-slate-950 dark:shadow-slate-950/50">
       <nav class="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between" aria-label="Navigation principale">
         <a href="/" class="flex items-center gap-2.5 text-xl font-bold text-white no-underline tracking-tight">
-          <img src="/img/logo-32x32.png" alt="" width="32" height="32" class="w-8 h-8 rounded-lg" />
+          <img src="/img/favicon-256x256.png" alt="" width="32" height="32" class="w-8 h-8 rounded-lg" />
           Elupedia
         </a>
         <div class="flex items-center gap-4">
