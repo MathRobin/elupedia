@@ -34,72 +34,72 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 
 #### Clients de données
 
-| Client                     | Fichier                            | Source                      | Format        | Statut   |
-| -------------------------- | ---------------------------------- | --------------------------- | ------------- | -------- |
-| Députés (tous)             | `sources/assemblee-nationale.ts`   | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Collaborateurs AN          | `sources/an-collaborateurs.ts`     | data.assemblee-nationale.fr | CSV           | ✅ actif |
-| Adresses/contacts AN       | `sources/an-adresses.ts`           | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Activité parlementaire     | `sources/an-activite.ts`           | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Commissions/délégations    | `sources/an-commissions.ts`        | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Intérêts (HATVP)           | `sources/hatvp.ts`                 | hatvp.fr                    | XML streaming | ✅ actif |
-| Sénateurs                  | `sources/senat.ts`                 | data.senat.fr               | JSON API      | ✅ actif |
-| Scrutins Sénat             | `sources/senat-scrutins.ts`        | data.senat.fr               | JSON API      | ✅ actif |
-| Groupes Sénat              | `sources/senat-groupes.ts`         | data.senat.fr               | JSON API      | ✅ actif |
-| Collaborateurs Sénat       | `sources/senat-collaborateurs.ts`  | data.senat.fr               | JSON API      | ✅ actif |
-| Adresses Sénat             | `sources/senat-adresses.ts`        | data.senat.fr               | JSON API      | ✅ actif |
-| Historique électoral Sénat | `sources/senat-elections.ts`       | data.senat.fr               | JSON API      | ✅ actif |
-| Commissions Sénat          | `sources/senat-commissions.ts`     | data.senat.fr               | JSON API      | ✅ actif |
-| Réseaux sociaux Sénat      | `sources/senat-reseaux-sociaux.ts` | senat.fr                    | JSON + HTML   | ✅ actif |
-| Scrutins AN                | `sources/an-scrutins.ts`           | data.assemblee-nationale.fr | ZIP/JSON      | ✅ actif |
-| Presse (Google News)       | `sources/google-news.ts`           | news.google.com             | RSS/XML       | ✅ actif |
-| Maires (RNE)               | `sources/rne-maires.ts`            | data.gouv.fr                | CSV           | ✅ actif |
-| Mairies (DILA)             | `sources/dila-mairies.ts`          | service-public.fr           | JSON API      | ✅ actif |
-| Parrainages présidentiels  | `sources/parrainages.ts`           | data.gouv.fr                | CSV           | ✅ actif |
-| Signatures RIP             | `sources/rip-signatures.ts`        | AN / Sénat                  | HTML          | ✅ actif |
-| Photos maires (Wikidata)   | `sources/wikidata-mayor-photos.ts` | query.wikidata.org          | SPARQL/JSON   | ✅ actif |
-| Élections municipales      | `sources/municipal-elections.ts`   | data.gouv.fr                | CSV streaming | ✅ actif |
-| Élections législatives     | `sources/legislative-elections.ts` | data.gouv.fr                | CSV streaming | ✅ actif |
-| Élections sénatoriales     | `sources/senatorial-elections.ts`  | data.gouv.fr                | CSV streaming | ✅ actif |
-| Comptes de campagne CNCCFP | `sources/cnccfp.ts`                | data.gouv.fr                | CSV           | ✅ actif |
-| Statut HATVP (fiches)      | `sources/hatvp-status.ts`          | hatvp.fr                    | HTML scraping | ✅ actif |
-| Décorations (Légion d'h.)  | `sources/legion-honneur.ts`        | archives.legiondhonneur.fr  | JSON API      | ✅ actif |
-| Transparence (MaDada.fr)   | `sources/madada.ts`                | madada.fr                   | JSON API      | ✅ actif |
+| Client                     | Fichier                            | Source                                     | Format        | Statut   |
+| -------------------------- | ---------------------------------- | ------------------------------------------ | ------------- | -------- |
+| Députés (tous)             | `sources/assemblee-nationale.ts`   | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
+| Collaborateurs AN          | `sources/an-collaborateurs.ts`     | data.assemblee-nationale.fr                | CSV           | ✅ actif |
+| Adresses/contacts AN       | `sources/an-adresses.ts`           | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
+| Activité parlementaire     | `sources/an-activite.ts`           | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
+| Commissions/délégations    | `sources/an-commissions.ts`        | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
+| Intérêts (HATVP)           | `sources/hatvp.ts`                 | hatvp.fr                                   | XML streaming | ✅ actif |
+| Sénateurs                  | `sources/senat.ts`                 | data.senat.fr                              | JSON API      | ✅ actif |
+| Scrutins Sénat             | `sources/senat-scrutins.ts`        | data.senat.fr                              | JSON API      | ✅ actif |
+| Groupes Sénat              | `sources/senat-groupes.ts`         | data.senat.fr                              | JSON API      | ✅ actif |
+| Collaborateurs Sénat       | `sources/senat-collaborateurs.ts`  | data.senat.fr                              | JSON API      | ✅ actif |
+| Adresses Sénat             | `sources/senat-adresses.ts`        | data.senat.fr                              | JSON API      | ✅ actif |
+| Historique électoral Sénat | `sources/senat-elections.ts`       | data.senat.fr                              | JSON API      | ✅ actif |
+| Commissions Sénat          | `sources/senat-commissions.ts`     | data.senat.fr                              | JSON API      | ✅ actif |
+| Réseaux sociaux Sénat      | `sources/senat-reseaux-sociaux.ts` | senat.fr                                   | JSON + HTML   | ✅ actif |
+| Scrutins AN                | `sources/an-scrutins.ts`           | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
+| Presse (Google News)       | `sources/google-news.ts`           | news.google.com                            | RSS/XML       | ✅ actif |
+| Maires (RNE)               | `sources/rne-maires.ts`            | data.gouv.fr                               | CSV           | ✅ actif |
+| Mairies (DILA)             | `sources/dila-mairies.ts`          | service-public.fr                          | JSON API      | ✅ actif |
+| Parrainages présidentiels  | `sources/parrainages.ts`           | data.gouv.fr                               | CSV           | ✅ actif |
+| Signatures RIP             | `sources/rip-signatures.ts`        | AN / Sénat                                 | HTML          | ✅ actif |
+| Photos maires (Wikidata)   | `sources/wikidata-mayor-photos.ts` | query.wikidata.org + commons.wikimedia.org | SPARQL/JSON   | ✅ actif |
+| Élections municipales      | `sources/municipal-elections.ts`   | data.gouv.fr                               | CSV streaming | ✅ actif |
+| Élections législatives     | `sources/legislative-elections.ts` | data.gouv.fr                               | CSV streaming | ✅ actif |
+| Élections sénatoriales     | `sources/senatorial-elections.ts`  | data.gouv.fr                               | CSV streaming | ✅ actif |
+| Comptes de campagne CNCCFP | `sources/cnccfp.ts`                | data.gouv.fr                               | CSV           | ✅ actif |
+| Statut HATVP (fiches)      | `sources/hatvp-status.ts`          | hatvp.fr                                   | HTML scraping | ✅ actif |
+| Décorations (Légion d'h.)  | `sources/legion-honneur.ts`        | archives.legiondhonneur.fr                 | JSON API      | ✅ actif |
+| Transparence (MaDada.fr)   | `sources/madada.ts`                | madada.fr                                  | JSON API      | ✅ actif |
 
 #### Upsert / Diff
 
-| Upsert                     | Fichier                             | Stratégie                              |
-| -------------------------- | ----------------------------------- | -------------------------------------- |
-| Officials + mandates (AN)  | `upsert/officials.ts`               | Upsert sur an_id                       |
-| Sénateurs + mandats        | `upsert/senators.ts`                | Upsert sur an_id (source Sénat)        |
-| Votes + ballots (AN)       | `upsert/an-votes.ts`                | Upsert sur ballot_id + official        |
-| Votes Sénat                | `upsert/senat-votes.ts`             | Upsert sur ballot_id + official        |
-| Collaborateurs AN          | `upsert/staffers-diff.ts`           | Diff (set end_date si parti)           |
-| Collaborateurs Sénat       | `upsert/senat-staffers-diff.ts`     | Diff (set end_date si parti)           |
-| Affiliations AN            | `upsert/affiliations-diff.ts`       | Diff (set end_date si changé)          |
-| Affiliations Sénat         | `upsert/senat-affiliations.ts`      | Upsert sur official + groupe           |
-| Intérêts                   | `upsert/interests.ts`               | Upsert sur official + entity           |
-| Adresses AN                | `upsert/addresses.ts`               | Upsert sur official + type             |
-| Adresses Sénat             | `upsert/senat-addresses.ts`         | Upsert sur official + type             |
-| Activité parlementaire     | `upsert/parliamentary-activity.ts`  | Upsert sur official + title + date     |
-| Commissions                | `upsert/committees.ts`              | Upsert sur official + name + type      |
-| Résultats électoraux AN    | `upsert/electoral-results.ts`       | Upsert sur official + election + round |
-| Résultats électoraux Sénat | `upsert/senat-electoral-results.ts` | Upsert sur official + election + round |
-| Commissions Sénat          | `upsert/senat-committees.ts`        | Upsert sur official + name + type      |
-| Liens sociaux Sénat        | `upsert/senat-social-links.ts`      | Upsert sur official + platform         |
-| Maires                     | `upsert/mayors.ts`                  | Upsert sur nom + prénom + naissance    |
-| Photos maires              | `upsert/mayor-photos.ts`            | Match nom + naissance, skip si photo   |
-| Adresses mairies           | `upsert/mayor-addresses.ts`         | Upsert sur official + town_hall        |
-| Scrape réseaux maires      | `upsert/mayor-social-scrape.ts`     | Scrape sites officiels communes        |
-| Mentions presse            | `upsert/press-mentions.ts`          | Insert dédupliqué sur official + URL   |
-| Parrainages                | `upsert/sponsorships.ts`            | Batch insert, skip si existant         |
-| Photos S3                  | `upsert/upload-photos.ts`           | Download + upload S3, skip si existant |
-| Statuts HATVP              | `upsert/hatvp-status.ts`            | Scrape fiches HATVP, set pending/null  |
-| Élections municipales      | `upsert/municipal-elections.ts`     | Upsert sur commune + date + tour       |
-| Élections législatives     | `upsert/legislative-elections.ts`   | Upsert sur circo + date + tour         |
-| Élections sénatoriales     | `upsert/senatorial-elections.ts`    | Upsert sur département + date + tour   |
-| Comptes de campagne        | `upsert/campaign-accounts.ts`       | Upsert sur official + election         |
-| Décorations                | `upsert/decorations.ts`             | Upsert sur arko_ref + order_name       |
-| Transparence commune       | `upsert/commune-transparency.ts`    | Upsert sur commune_code                |
+| Upsert                     | Fichier                             | Stratégie                                                                    |
+| -------------------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
+| Officials + mandates (AN)  | `upsert/officials.ts`               | Upsert sur an_id                                                             |
+| Sénateurs + mandats        | `upsert/senators.ts`                | Upsert sur an_id (source Sénat)                                              |
+| Votes + ballots (AN)       | `upsert/an-votes.ts`                | Upsert sur ballot_id + official                                              |
+| Votes Sénat                | `upsert/senat-votes.ts`             | Upsert sur ballot_id + official                                              |
+| Collaborateurs AN          | `upsert/staffers-diff.ts`           | Diff (set end_date si parti)                                                 |
+| Collaborateurs Sénat       | `upsert/senat-staffers-diff.ts`     | Diff (set end_date si parti)                                                 |
+| Affiliations AN            | `upsert/affiliations-diff.ts`       | Diff (set end_date si changé)                                                |
+| Affiliations Sénat         | `upsert/senat-affiliations.ts`      | Upsert sur official + groupe                                                 |
+| Intérêts                   | `upsert/interests.ts`               | Upsert sur official + entity                                                 |
+| Adresses AN                | `upsert/addresses.ts`               | Upsert sur official + type                                                   |
+| Adresses Sénat             | `upsert/senat-addresses.ts`         | Upsert sur official + type                                                   |
+| Activité parlementaire     | `upsert/parliamentary-activity.ts`  | Upsert sur official + title + date                                           |
+| Commissions                | `upsert/committees.ts`              | Upsert sur official + name + type                                            |
+| Résultats électoraux AN    | `upsert/electoral-results.ts`       | Upsert sur official + election + round                                       |
+| Résultats électoraux Sénat | `upsert/senat-electoral-results.ts` | Upsert sur official + election + round                                       |
+| Commissions Sénat          | `upsert/senat-committees.ts`        | Upsert sur official + name + type                                            |
+| Liens sociaux Sénat        | `upsert/senat-social-links.ts`      | Upsert sur official + platform                                               |
+| Maires                     | `upsert/mayors.ts`                  | Upsert sur nom + prénom + naissance                                          |
+| Photos maires              | `upsert/mayor-photos.ts`            | Match nom + commune (fallback naissance), skip si photo, rapport de synthèse |
+| Adresses mairies           | `upsert/mayor-addresses.ts`         | Upsert sur official + town_hall                                              |
+| Scrape réseaux maires      | `upsert/mayor-social-scrape.ts`     | Scrape sites officiels communes                                              |
+| Mentions presse            | `upsert/press-mentions.ts`          | Insert dédupliqué sur official + URL                                         |
+| Parrainages                | `upsert/sponsorships.ts`            | Batch insert, skip si existant                                               |
+| Photos S3                  | `upsert/upload-photos.ts`           | Download + upload S3, skip si existant                                       |
+| Statuts HATVP              | `upsert/hatvp-status.ts`            | Scrape fiches HATVP, set pending/null                                        |
+| Élections municipales      | `upsert/municipal-elections.ts`     | Upsert sur commune + date + tour                                             |
+| Élections législatives     | `upsert/legislative-elections.ts`   | Upsert sur circo + date + tour                                               |
+| Élections sénatoriales     | `upsert/senatorial-elections.ts`    | Upsert sur département + date + tour                                         |
+| Comptes de campagne        | `upsert/campaign-accounts.ts`       | Upsert sur official + election                                               |
+| Décorations                | `upsert/decorations.ts`             | Upsert sur arko_ref + order_name                                             |
+| Transparence commune       | `upsert/commune-transparency.ts`    | Upsert sur commune_code                                                      |
 
 ### 2. Base de données (PostgreSQL / Neon)
 
