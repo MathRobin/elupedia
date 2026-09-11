@@ -1026,7 +1026,7 @@ for (const sp of deputySponsorships) {
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         {hasActiveMandate ? 'Mandat en cours' : 'Dernier mandat'}
       </h2>
-      <div class={`mt-4 ${jurisdictionCoords || senatDeptCode ? 'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start' : ''}`}>
+      <div class={`mt-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700 ${jurisdictionCoords || senatDeptCode ? 'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start' : ''}`}>
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <dt class="text-sm text-slate-500 dark:text-slate-400">Type</dt>
