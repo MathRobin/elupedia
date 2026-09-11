@@ -9,8 +9,8 @@ SELECT DISTINCT ?person ?personLabel ?birthDate ?image ?commune ?communeLabel ?c
           wdt:P569 ?birthDate ;
           wdt:P27 wd:Q142 .
   ?person p:P39 ?stmt .
-  ?stmt ps:P39/wdt:P279* wd:Q382617 ;
-        pq:P642 ?commune .
+  ?stmt ps:P39 wd:Q382617 .
+  { ?stmt pq:P1001 ?commune } UNION { ?stmt pq:P768 ?commune }
   ?commune wdt:P374 ?communeCode .
   FILTER NOT EXISTS { ?stmt pq:P582 ?endDate }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "fr" . }
