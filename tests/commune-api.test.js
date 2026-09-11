@@ -22,7 +22,11 @@ describe('API Commune — /api/commune/[code]', () => {
 
   it('validates INSEE code format (5 digits)', () => {
     expect(content).toContain('/^\\d{5}$/');
-    expect(content).toContain('400');
+  });
+
+  it('redirects to documentation on invalid code', () => {
+    expect(content).toContain('Response.redirect');
+    expect(content).toContain('/docs/commune-api');
   });
 
   it('queries mandates and officials', () => {
@@ -62,6 +66,25 @@ describe('API Commune — /api/commune/[code]', () => {
 
   it('deduplicates officials across commune and deputy results', () => {
     expect(content).toContain('seenIds');
+  });
+});
+
+describe('API Commune — /api/commune (sans code)', () => {
+  const indexPath = resolve(
+    root,
+    'packages/site/src/pages/api/commune/index.ts',
+  );
+
+  it('file exists', () => {
+    expect(existsSync(indexPath)).toBe(true);
+  });
+
+  const src = readFileSync(indexPath, 'utf-8');
+
+  it('redirects to documentation', () => {
+    expect(src).toContain('Response.redirect');
+    expect(src).toContain('/docs/commune-api');
+    expect(src).toContain('302');
   });
 });
 
