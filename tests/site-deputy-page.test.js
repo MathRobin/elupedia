@@ -5,7 +5,10 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 
 describe('Fiche élu (#53)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('[slug].astro exists', () => {
     expect(existsSync(pagePath)).toBe(true);
@@ -61,7 +64,10 @@ describe('Fiche élu (#53)', () => {
 });
 
 describe('Fiche élu — section votes (#54)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries votes and ballots', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -110,7 +116,10 @@ describe('Fiche élu — section votes (#54)', () => {
 });
 
 describe('Fiche élu — section affiliations (#55)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries affiliations table', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -142,7 +151,10 @@ describe('Fiche élu — section affiliations (#55)', () => {
 });
 
 describe('Fiche élu — section collaborateurs (#56)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries staffers table', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -170,7 +182,10 @@ describe('Fiche élu — section collaborateurs (#56)', () => {
 });
 
 describe('Fiche élu — section participations (#57)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries interests table', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -202,7 +217,10 @@ describe('Fiche élu — section participations (#57)', () => {
 });
 
 describe('Fiche élu — section presse (#58)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries press_mentions table', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -231,7 +249,10 @@ describe('Fiche élu — section presse (#58)', () => {
 });
 
 describe('Fiche élu — section adresses (#59)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries addresses table', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -267,7 +288,10 @@ describe('Fiche élu — section adresses (#59)', () => {
 });
 
 describe('Fiche élu — section liens extérieurs (#60)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries external_links table filtered by published status', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -306,7 +330,10 @@ describe('Fiche élu — section liens extérieurs (#60)', () => {
 });
 
 describe('Fiche élu — activité parlementaire (#62)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries parliamentary_activity table', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -346,7 +373,10 @@ describe('Fiche élu — activité parlementaire (#62)', () => {
 });
 
 describe('Fiche élu — commissions & groupes (#63)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries committees table', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -384,7 +414,10 @@ describe('Fiche élu — commissions & groupes (#63)', () => {
 });
 
 describe('Fiche élu — historique électoral (#64)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('queries electoral_results table', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -420,7 +453,10 @@ describe('Fiche élu — historique électoral (#64)', () => {
 });
 
 describe('Fiche élu — InterestDetailDrawer integration (#181)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('imports InterestDetailDrawer component', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -465,7 +501,10 @@ describe('Fiche élu — InterestDetailDrawer integration (#181)', () => {
 });
 
 describe('Fiche élu — attribution des sources inline', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('shows source attribution with retrieval date per section', () => {
     const content = readFileSync(pagePath, 'utf-8');
@@ -482,7 +521,10 @@ describe('Fiche élu — attribution des sources inline', () => {
 });
 
 describe('Fiche élu — indicateur dernière mise à jour (#67)', () => {
-  const pagePath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
 
   it('computes lastUpdated from updatedAt timestamps', () => {
     const content = readFileSync(pagePath, 'utf-8');

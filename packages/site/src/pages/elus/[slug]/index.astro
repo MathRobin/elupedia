@@ -747,6 +747,25 @@ function fmtRetrieval(date: Date | null): string {
   return ` — dernière récupération le ${date.toLocaleDateString('fr-FR')}`;
 }
 
+const openDataNote = deputy.mandateType === 'depute'
+  ? 'L\'open data de l\'Assemblée nationale couvre la XIVe législature et les suivantes (depuis juin 2012). Les mandats antérieurs peuvent être incomplets.'
+  : deputy.mandateType === 'senateur'
+    ? 'L\'open data du Sénat est disponible depuis 2014 environ. Les mandats antérieurs peuvent être incomplets.'
+    : 'Les données du Répertoire national des élus (RNE) ne couvrent que les mandats en cours.';
+
+const openDataCollabNote = 'La publication des noms des collaborateurs parlementaires est obligatoire depuis la loi pour la confiance dans la vie politique (septembre 2017).';
+const openDataHatvpNote = 'La HATVP a été créée par la loi du 11 octobre 2013. Aucune déclaration n\'est disponible pour les périodes antérieures.';
+const openDataVotesNote = deputy.mandateType === 'depute'
+  ? 'Les données de scrutins de l\'Assemblée nationale sont disponibles depuis la XIVe législature (juin 2012).'
+  : 'Les données de scrutins du Sénat sont disponibles depuis 2014 environ.';
+const openDataElectoralNote = deputy.mandateType === 'depute'
+  ? 'L\'historique électoral couvre les élections législatives de 2022 et 2024 (données publiées sur data.gouv.fr).'
+  : deputy.mandateType === 'senateur'
+    ? 'L\'historique électoral couvre les élections sénatoriales de 2023 (données publiées sur data.gouv.fr).'
+    : null;
+const openDataMunicipalNote = 'Les résultats des élections municipales sont disponibles sur data.gouv.fr à partir du scrutin de 2020.';
+const openDataCnccfpNote = 'Les comptes de campagne sont publiés par la CNCCFP depuis les élections législatives de 2012.';
+
 type TimelineEvent = {
   type: 'birth' | 'death' | 'mandate' | 'affiliation' | 'committee' | 'election' | 'staffer' | 'sponsorship';
   label: string;
@@ -1095,7 +1114,8 @@ for (const sp of deputySponsorships) {
           ))}
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataNote}</p>
+      <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
     </section>
 
     {officialDecorations.length > 0 && (
@@ -1302,7 +1322,8 @@ for (const sp of deputySponsorships) {
           ))}
         </ul>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.affiliations)}</p>
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataNote}</p>
+      <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.affiliations)}</p>
     </section>}
 
     {isParliamentary && <section id="collaborateurs" class="mt-8 scroll-mt-12">
@@ -1337,7 +1358,8 @@ for (const sp of deputySponsorships) {
           ))}
         </ul>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.staffers)}</p>
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataCollabNote}</p>
+      <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.staffers)}</p>
     </section>}
 
     {isParliamentary && <section id="activite" class="mt-8 scroll-mt-12">
@@ -1477,7 +1499,8 @@ for (const sp of deputySponsorships) {
           </div>
         </>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.activities)}</p>
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataNote}</p>
+      <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.activities)}</p>
     </section>}
 
     {isParliamentary && <section id="commissions" class="mt-8 scroll-mt-12">
@@ -1553,7 +1576,8 @@ for (const sp of deputySponsorships) {
           </div>
         </>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.committees)}</p>
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataNote}</p>
+      <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.committees)}</p>
     </section>}
 
     {isParliamentary && <section id="electoral" class="mt-8 scroll-mt-12">
@@ -1598,7 +1622,8 @@ for (const sp of deputySponsorships) {
           </table>
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.electoral)}</p>
+      {openDataElectoralNote && <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataElectoralNote}</p>}
+      <p class={`${openDataElectoralNote ? 'mt-1' : 'mt-3'} text-xs text-slate-400`}>Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.electoral)}</p>
     </section>}
 
     {municipalElectionsData.length > 0 && (
@@ -1608,7 +1633,8 @@ for (const sp of deputySponsorships) {
           <span class="ml-2 text-sm font-normal text-slate-500">({municipalElectionsData.length} tours)</span>
         </h2>
         <MunicipalElectionSection elections={municipalElectionsData} client:load />
-        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/datasets/elections-municipales-2020-resultats/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Municipales 2020</a>{' · '}<a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0</p>
+        <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataMunicipalNote}</p>
+        <p class="mt-1 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/datasets/elections-municipales-2020-resultats/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Municipales 2020</a>{' · '}<a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0</p>
       </section>
     )}
 
@@ -1677,7 +1703,8 @@ for (const sp of deputySponsorships) {
           })}
         </div>
 
-        <p class="mt-3 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/organizations/commission-nationale-des-comptes-de-campagne-et-des-financements-politiques-cnccfp/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Commission nationale des comptes de campagne et des financements politiques">CNCCFP</a> via <a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0{fmtRetrieval(sectionDates.campaigns)}</p>
+        <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataCnccfpNote}</p>
+        <p class="mt-1 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/organizations/commission-nationale-des-comptes-de-campagne-et-des-financements-politiques-cnccfp/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Commission nationale des comptes de campagne et des financements politiques">CNCCFP</a> via <a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0{fmtRetrieval(sectionDates.campaigns)}</p>
       </section>
     )}
 
@@ -1786,7 +1813,8 @@ for (const sp of deputySponsorships) {
           ))}
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : <a href={buildHatvpUrl(deputy.firstName, deputy.lastName)} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Haute Autorité pour la transparence de la vie publique">Fiche HATVP</a>{' · '}<a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Haute Autorité pour la transparence de la vie publique — données ouvertes">HATVP (open data)</a>{fmtRetrieval(sectionDates.interests)}</p>
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataHatvpNote}</p>
+      <p class="mt-1 text-xs text-slate-400">Source : <a href={buildHatvpUrl(deputy.firstName, deputy.lastName)} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Haute Autorité pour la transparence de la vie publique">Fiche HATVP</a>{' · '}<a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Haute Autorité pour la transparence de la vie publique — données ouvertes">HATVP (open data)</a>{fmtRetrieval(sectionDates.interests)}</p>
     </section>
 
     {isParliamentary && <section id="votes" class="mt-8 scroll-mt-12">
@@ -1829,7 +1857,8 @@ for (const sp of deputySponsorships) {
           </table>
         </div>
       )}
-      <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.votes)}</p>
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataVotesNote}</p>
+      <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.votes)}</p>
     </section>}
 
     <section id="presse" class="mt-8 scroll-mt-12">

@@ -11,7 +11,10 @@ describe('Audit accessibilité de base (#74)', () => {
   );
   const globalCssPath = resolve(root, 'packages/site/src/styles/global.css');
   const indexPath = resolve(root, 'packages/site/src/pages/index.astro');
-  const deputyPath = resolve(root, 'packages/site/src/pages/elus/[slug].astro');
+  const deputyPath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
   const ballotPath = resolve(
     root,
     'packages/site/src/pages/scrutins/[id].astro',

@@ -99,7 +99,7 @@ describe('OG image generation (M20T1)', () => {
     });
 
     const eluPage = readFileSync(
-      resolve(siteDir, 'pages/elus/[slug].astro'),
+      resolve(siteDir, 'pages/elus/[slug]/index.astro'),
       'utf-8',
     );
     it('elus page uses dynamic OG image', () => {

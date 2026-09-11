@@ -71,6 +71,10 @@ describe('oEmbed endpoint (M20T2)', () => {
       expect(oembedSource).toContain('frameborder');
     });
 
+    it('official embed iframe points to /embed page', () => {
+      expect(oembedSource).toContain('/elus/${slug2}/embed');
+    });
+
     it('xml response properly escapes content', () => {
       expect(oembedSource).toContain('&amp;');
       expect(oembedSource).toContain('&lt;');
@@ -83,7 +87,7 @@ describe('oEmbed discovery tags', () => {
   const eluPage = readFileSync(
     resolve(
       import.meta.dirname,
-      '../packages/site/src/pages/elus/[slug].astro',
+      '../packages/site/src/pages/elus/[slug]/index.astro',
     ),
     'utf-8',
   );
