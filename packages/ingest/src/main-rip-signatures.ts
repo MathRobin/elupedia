@@ -12,7 +12,13 @@ async function main() {
   for (const proposition of RIP_PROPOSITIONS) {
     logger.info(`=== RIP ${proposition.year} — ${proposition.subject} ===`);
     const rows = await fetchRipSignatures(proposition);
-    await upsertRipSignatures(db, rows, proposition.year, proposition.subject);
+    await upsertRipSignatures(
+      db,
+      rows,
+      proposition.year,
+      proposition.subject,
+      proposition.decisionDate,
+    );
   }
 
   logger.info('Done.');

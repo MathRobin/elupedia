@@ -5,6 +5,7 @@ export interface RipProposition {
   subject: string;
   url: string;
   sourceDecision: string;
+  decisionDate: string;
 }
 
 export const RIP_PROPOSITIONS: RipProposition[] = [
@@ -14,6 +15,7 @@ export const RIP_PROPOSITIONS: RipProposition[] = [
     url: 'https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L15B1867.html',
     sourceDecision:
       'https://www.conseil-constitutionnel.fr/decision/2019/20191RIP.htm',
+    decisionDate: '2019-05-09',
   },
   {
     year: 2023,
@@ -21,6 +23,7 @@ export const RIP_PROPOSITIONS: RipProposition[] = [
     url: 'https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L16B0959.html',
     sourceDecision:
       'https://www.conseil-constitutionnel.fr/decision/2023/20234RIP.htm',
+    decisionDate: '2023-04-14',
   },
   {
     year: 2023,
@@ -28,6 +31,7 @@ export const RIP_PROPOSITIONS: RipProposition[] = [
     url: 'https://www.senat.fr/leg/ppl22-530.html',
     sourceDecision:
       'https://www.conseil-constitutionnel.fr/decision/2023/20235RIP.htm',
+    decisionDate: '2023-05-03',
   },
 ];
 

@@ -114,6 +114,7 @@ export async function upsertRipSignatures(
   rows: RipSignataireRow[],
   year: number,
   subject: string,
+  decisionDate?: string,
 ): Promise<{ created: number; skipped: number; matched: number }> {
   const type = 'rip_signature';
   const officialCache = await buildOfficialCache(db);
@@ -143,6 +144,7 @@ export async function upsertRipSignatures(
       candidateName: subject,
       rawElectedName: rawName,
       rawFunction: 'Parlementaire',
+      publicationDate: decisionDate ?? null,
       matched: !!officialId,
     });
   }
