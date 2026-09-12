@@ -1100,33 +1100,35 @@ for (const sp of deputySponsorships) {
 
     <section id="tous-mandats" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">Tous les mandats</h2>
-      {deputyMandates.length === 0 ? (
-        <p class="mt-4 text-slate-500 dark:text-slate-400">Aucun mandat enregistré.</p>
-      ) : (
-        <div class="mt-4 border-l-2 border-slate-200 ml-3 pl-4 space-y-6 dark:border-slate-700">
-          {deputyMandates.map((m) => (
-            <div class="relative">
-              <div class={`absolute -left-[calc(1rem+5px)] top-1 h-2.5 w-2.5 rounded-full ${m.endDate ? 'bg-slate-300 dark:bg-slate-600' : 'bg-indigo-500'}`}></div>
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-sm dark:text-white">{mandateTypeLabels[m.type] ?? m.type}</span>
-                {!m.endDate && (
-                  <span class="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/20 dark:text-green-400">En cours</span>
-                )}
+      <div class="mt-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700">
+        {deputyMandates.length === 0 ? (
+          <p class="text-slate-500 dark:text-slate-400">Aucun mandat enregistré.</p>
+        ) : (
+          <div class="border-l-2 border-slate-200 ml-3 pl-4 space-y-6 dark:border-slate-700">
+            {deputyMandates.map((m) => (
+              <div class="relative">
+                <div class={`absolute -left-[calc(1rem+5px)] top-1 h-2.5 w-2.5 rounded-full ${m.endDate ? 'bg-slate-300 dark:bg-slate-600' : 'bg-indigo-500'}`}></div>
+                <div class="flex items-center gap-2">
+                  <span class="font-medium text-sm dark:text-white">{mandateTypeLabels[m.type] ?? m.type}</span>
+                  {!m.endDate && (
+                    <span class="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/20 dark:text-green-400">En cours</span>
+                  )}
+                </div>
+                <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+                  {m.district && `${m.district} — `}{m.department ?? ''}
+                  {m.politicalGroup && ` · ${m.politicalGroup}`}
+                </p>
+                <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                  {new Date(m.startDate).toLocaleDateString('fr-FR')}
+                  {' → '}
+                  {m.endDate ? new Date(m.endDate).toLocaleDateString('fr-FR') : "aujourd'hui"}
+                </p>
               </div>
-              <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
-                {m.district && `${m.district} — `}{m.department ?? ''}
-                {m.politicalGroup && ` · ${m.politicalGroup}`}
-              </p>
-              <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                {new Date(m.startDate).toLocaleDateString('fr-FR')}
-                {' → '}
-                {m.endDate ? new Date(m.endDate).toLocaleDateString('fr-FR') : "aujourd'hui"}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataNote}</p>
+            ))}
+          </div>
+        )}
+        <p class="mt-4 text-xs italic text-slate-400 dark:text-slate-500">{openDataNote}</p>
+      </div>
       <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.mandates)}</p>
     </section>
 
