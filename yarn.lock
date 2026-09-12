@@ -1049,7 +1049,7 @@ __metadata:
     "@auth/drizzle-adapter": "npm:^1.11.3"
     "@elupedia/shared": "npm:*"
     "@mantine/core": "npm:8.3.18"
-    "@mantine/hooks": "npm:8.3.18"
+    "@mantine/hooks": "npm:9.6.1"
     "@neondatabase/serverless": "npm:^1.1.0"
     "@types/bcryptjs": "npm:^3.0.0"
     "@types/react": "npm:^19.1.8"
@@ -2619,12 +2619,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mantine/hooks@npm:8.3.18":
-  version: 8.3.18
-  resolution: "@mantine/hooks@npm:8.3.18"
+"@mantine/hooks@npm:9.6.1":
+  version: 9.6.1
+  resolution: "@mantine/hooks@npm:9.6.1"
   peerDependencies:
-    react: ^18.x || ^19.x
-  checksum: 10c0/3767cb33a3e1c4469f18f12536c4c6e42d714ebf5f6da032c8b38ebb24db9ad399978437c69e263c5689a61ea97f17f145719dfe2cdcfa1aa70270711d993b19
+    react: ^19.2.0
+  checksum: 10c0/74a2fa03d95fa825bd98afe4643372907619074599948c617b9bec018ad8a92523db77708a922f928e2a1326f2150bedd19f59011b56ec3c8d1d0631cb5c1b51
   languageName: node
   linkType: hard
 
