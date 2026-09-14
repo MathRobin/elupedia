@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { readFileSync } from 'node:fs';

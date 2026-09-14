@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { readFileSync } from 'node:fs';
 import type { OfficialData, VoteData } from './generate-social-image.js';
 

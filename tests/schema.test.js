@@ -194,7 +194,11 @@ describe('#14 — addresses, external_links', () => {
   it('linkSourceEnum has valid values', async () => {
     const { linkSourceEnum } =
       await import('../packages/shared/src/schema/external-links.js');
-    expect(linkSourceEnum).toEqual(['official', 'scraped_personal_website']);
+    expect(linkSourceEnum).toEqual([
+      'official',
+      'scraped_personal_website',
+      'wikipedia_api',
+    ]);
   });
 
   it('platformEnum includes all required platforms', async () => {
