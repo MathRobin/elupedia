@@ -13,6 +13,8 @@ Elupedia agrège exclusivement des données publiques officielles sur les élus 
 - [Mentions légales](https://www.elupedia.fr/mentions-legales): Informations légales
 - [Données personnelles](https://www.elupedia.fr/donnees-personnelles): Politique de protection des données
 - [Changelog](https://www.elupedia.fr/changelog): Historique des modifications
+- [Documentation](https://www.elupedia.fr/docs): Documentation technique pour les développeurs
+- [Intégrer Elupedia](https://www.elupedia.fr/integrer): Guide d'intégration des fiches d'élus dans un article
 
 ## Structure des fiches d'élus
 
@@ -38,6 +40,10 @@ Chaque élu dispose d'une fiche accessible à `/elus/{slug}` contenant les secti
 - **Mentions presse** : articles de presse récents via Google Actualités (source non officielle)
 - **Réseaux sociaux** : liens vers Twitter/X, Facebook, Instagram, YouTube, site personnel
 
+## Commissions et groupes
+
+Chaque commission, délégation, groupe d'études ou groupe d'amitié dispose d'une page à `/commissions/{slug}` listant ses membres actuels et ses anciens membres, avec la date d'entrée de chacun. Les groupes de l'Assemblée nationale pointent vers leur fiche d'instance officielle.
+
 ## Scrutins
 
 Chaque scrutin est accessible à `/scrutins/{id}` et contient :
@@ -45,6 +51,16 @@ Chaque scrutin est accessible à `/scrutins/{id}` et contient :
 - Titre, date et résultat du scrutin
 - Panorama par groupe politique (pour, contre, abstention, non-votant)
 - Détail du vote de chaque député/sénateur
+
+## API publiques
+
+Elupedia expose quelques points d'accès gratuits et sans authentification, documentés dans `/docs` :
+
+- [API Commune](https://www.elupedia.fr/docs/commune-api) : `GET /api/commune/{code INSEE}` renvoie en JSON les élus rattachés à une commune
+- [oEmbed](https://www.elupedia.fr/docs/oembed) : `GET /api/oembed?url={url}&format=json` renvoie une carte intégrable pour une fiche d'élu ou un scrutin
+- [Images Open Graph](https://www.elupedia.fr/docs/og-images) : `/api/og/official/{slug}.png` et `/api/og/scrutin/{id}.png` génèrent des images de prévisualisation
+- Version intégrable d'une fiche d'élu : `/elus/{slug}/embed`
+- Plan du site : [sitemap-index.xml](https://www.elupedia.fr/sitemap-index.xml)
 
 ## Sources de données
 
