@@ -88,6 +88,8 @@ export const CommitteeItemSchema = z.object({
   ]),
   start_date: z.string(),
   end_date: z.string().optional(),
+  // uid de l'organe AN (ex. PO854288), absent pour les commissions du Sénat
+  an_uid: z.string().optional(),
 });
 
 export type CommitteeItem = z.infer<typeof CommitteeItemSchema>;

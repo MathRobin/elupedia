@@ -37,6 +37,7 @@ export async function upsertCommittees(
           officialId: official.id,
           name: item.name,
           type: item.type,
+          anUid: item.an_uid ?? null,
           startDate: item.start_date,
           endDate: item.end_date ?? null,
         });
@@ -44,7 +45,11 @@ export async function upsertCommittees(
       } else {
         await db
           .update(committees)
-          .set({ endDate: item.end_date ?? null, updatedAt: new Date() })
+          .set({
+            endDate: item.end_date ?? null,
+            anUid: item.an_uid ?? existing[0].anUid,
+            updatedAt: new Date(),
+          })
           .where(eq(committees.id, existing[0].id));
         summary.updated++;
       }

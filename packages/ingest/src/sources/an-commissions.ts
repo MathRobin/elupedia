@@ -28,6 +28,7 @@ const CODE_TYPE_MAP: Record<string, CommitteeItem['type']> = {
 };
 
 interface OrganeInfo {
+  uid: string;
   name: string;
   type: CommitteeItem['type'];
 }
@@ -87,6 +88,7 @@ async function loadCommitteeOrganes(
     if (!committeeType) continue;
 
     map.set(o.uid, {
+      uid: o.uid,
       name:
         o.libelle && o.libelleAbrege
           ? `${o.libelle} (${o.libelleAbrege})`
@@ -141,6 +143,7 @@ async function loadMemberships(
         type: organe.type,
         start_date: m.dateDebut,
         end_date: m.dateFin ?? undefined,
+        an_uid: organe.uid,
       });
     }
 
