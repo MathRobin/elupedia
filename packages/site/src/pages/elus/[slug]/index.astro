@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getDb } from '../../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray, gte, lte, sql, count } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -1566,7 +1566,7 @@ for (const sp of deputySponsorships) {
               <tbody>
                 {deputyCommittees.map((c) => (
                   <tr data-committee-type={c.type} data-committee-status={c.endDate ? 'ended' : 'active'} class="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
-                    <td class="py-2 pr-4 font-medium">{c.name}</td>
+                    <td class="py-2 pr-4 font-medium"><a href={`/commissions/${slugifyText(c.name)}`} class="text-inherit hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{c.name}</a></td>
                     <td class="py-2 pr-4">
                       <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
                         {committeeTypeLabels[c.type] ?? c.type}

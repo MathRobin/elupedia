@@ -1,0 +1,171 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getDb } from '../../lib/db.js';
+import { committees, officials, slugifyText } from '@elupedia/shared';
+import { desc, inArray } from 'drizzle-orm';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const db = getDb();
+
+const allCommittees = await db
+  .select({
+    name: committees.name,
+    type: committees.type,
+    officialId: committees.officialId,
+    startDate: committees.startDate,
+    endDate: committees.endDate,
+  })
+  .from(committees)
+  .orderBy(desc(committees.startDate));
+
+const matching = allCommittees.filter((c) => slugifyText(c.name) === slug);
+
+if (matching.length === 0) return Astro.redirect('/elus');
+
+const committeeName = matching[0].name;
+const committeeType = matching[0].type;
+
+const officialIds = [...new Set(matching.map((c) => c.officialId))];
+
+const officialRows = officialIds.length > 0
+  ? await db
+      .select({
+        id: officials.id,
+        slug: officials.slug,
+        firstName: officials.firstName,
+        lastName: officials.lastName,
+        photoUrl: officials.photoUrl,
+        s3PhotoUrl: officials.s3PhotoUrl,
+      })
+      .from(officials)
+      .where(inArray(officials.id, officialIds))
+  : [];
+
+const officialMap = new Map(officialRows.map((o) => [o.id, o]));
+
+const members = matching
+  .map((c) => {
+    const official = officialMap.get(c.officialId);
+    if (!official) return null;
+    return {
+      ...official,
+      startDate: c.startDate,
+      endDate: c.endDate,
+      photo: official.s3PhotoUrl ?? official.photoUrl,
+    };
+  })
+  .filter(Boolean)
+  .sort((a, b) => {
+    if (!a!.endDate && b!.endDate) return -1;
+    if (a!.endDate && !b!.endDate) return 1;
+    return a!.lastName.localeCompare(b!.lastName, 'fr');
+  }) as {
+  id: string;
+  slug: string;
+  firstName: string;
+  lastName: string;
+  photo: string | null;
+  startDate: string;
+  endDate: string | null;
+}[];
+
+const activeMembers = members.filter((m) => !m.endDate);
+const pastMembers = members.filter((m) => m.endDate);
+
+const committeeTypeLabels: Record<string, string> = {
+  standing_committee: 'Commission permanente',
+  special_committee: 'Commission spéciale',
+  delegation: 'Délégation',
+  study_group: "Groupe d'études",
+  friendship_group: "Groupe d'amitié",
+};
+
+const typeLabel = committeeTypeLabels[committeeType] ?? committeeType;
+const metaDescription = `${typeLabel} : ${committeeName} — ${members.length} membre${members.length > 1 ? 's' : ''}`;
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+---
+
+<BaseLayout title={committeeName} description={metaDescription}>
+  <div class="max-w-3xl">
+    <a href="javascript:history.back()" class="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">
+      <i class="fa-solid fa-chevron-left h-4 w-4" aria-hidden="true"></i>
+      Retour
+    </a>
+
+    <div class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700">
+      <span class="inline-block rounded-full bg-indigo-50 px-3 py-0.5 text-xs font-medium text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
+        {typeLabel}
+      </span>
+      <h1 class="mt-3 text-2xl font-bold tracking-tight dark:text-white">{committeeName}</h1>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        {activeMembers.length} membre{activeMembers.length > 1 ? 's' : ''} actif{activeMembers.length > 1 ? 's' : ''}
+        {pastMembers.length > 0 && (
+          <span> · {pastMembers.length} ancien{pastMembers.length > 1 ? 's' : ''} membre{pastMembers.length > 1 ? 's' : ''}</span>
+        )}
+      </p>
+    </div>
+
+    {activeMembers.length > 0 && (
+      <section class="mt-8">
+        <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+          Membres actuels
+          <span class="ml-2 text-sm font-normal text-slate-500">({activeMembers.length})</span>
+        </h2>
+        <div class="mt-4 space-y-3">
+          {activeMembers.map((m) => (
+            <a href={`/elus/${m.slug}`} class="flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 hover:ring-indigo-300 hover:shadow-md transition-all no-underline dark:bg-slate-800 dark:ring-slate-700 dark:hover:ring-indigo-600">
+              {m.photo ? (
+                <img src={m.photo} alt={`${m.firstName} ${m.lastName}`} class="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-600" loading="lazy" width="48" height="48" />
+              ) : (
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-600 ring-1 ring-slate-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:ring-slate-600">
+                  {m.firstName[0]}{m.lastName[0]}
+                </div>
+              )}
+              <div class="min-w-0">
+                <p class="font-medium text-slate-900 dark:text-white">{m.firstName} {m.lastName}</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Depuis le {new Date(m.startDate).toLocaleDateString('fr-FR')}</p>
+              </div>
+              <i class="fa-solid fa-chevron-right ml-auto text-slate-300 dark:text-slate-600" aria-hidden="true"></i>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {pastMembers.length > 0 && (
+      <section class="mt-8">
+        <h2 class="text-lg font-semibold border-l-4 border-slate-300 pl-3 dark:text-white dark:border-slate-600">
+          Anciens membres
+          <span class="ml-2 text-sm font-normal text-slate-500">({pastMembers.length})</span>
+        </h2>
+        <div class="mt-4 space-y-3">
+          {pastMembers.map((m) => (
+            <a href={`/elus/${m.slug}`} class="flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 hover:ring-indigo-300 hover:shadow-md transition-all no-underline dark:bg-slate-800 dark:ring-slate-700 dark:hover:ring-indigo-600">
+              {m.photo ? (
+                <img src={m.photo} alt={`${m.firstName} ${m.lastName}`} class="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-600 opacity-70" loading="lazy" width="48" height="48" />
+              ) : (
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:ring-slate-600">
+                  {m.firstName[0]}{m.lastName[0]}
+                </div>
+              )}
+              <div class="min-w-0">
+                <p class="font-medium text-slate-900 dark:text-white">{m.firstName} {m.lastName}</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                  {new Date(m.startDate).toLocaleDateString('fr-FR')} → {new Date(m.endDate!).toLocaleDateString('fr-FR')}
+                </p>
+              </div>
+              <i class="fa-solid fa-chevron-right ml-auto text-slate-300 dark:text-slate-600" aria-hidden="true"></i>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <p class="mt-6 text-xs text-slate-400">
+      Source : <a href="https://data.assemblee-nationale.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Assemblée nationale</a> · <a href="https://data.senat.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Sénat</a>
+    </p>
+  </div>
+</BaseLayout>
