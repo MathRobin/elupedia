@@ -27,7 +27,32 @@ if (matching.length === 0) return Astro.redirect('/elus');
 const committeeName = matching[0].name;
 const committeeType = matching[0].type;
 
-const officialIds = [...new Set(matching.map((c) => c.officialId))];
+// Un élu peut avoir plusieurs périodes d'adhésion à la même commission :
+// on ne garde qu'une entrée par élu, avec la plus ancienne date d'adhésion.
+// Le membre est considéré actif dès qu'une de ses périodes est en cours ;
+// sinon on retient la date de fin la plus récente.
+const membershipByOfficial = new Map<string, (typeof matching)[number]>();
+for (const c of matching) {
+  const existing = membershipByOfficial.get(c.officialId);
+  if (!existing) {
+    membershipByOfficial.set(c.officialId, c);
+    continue;
+  }
+  membershipByOfficial.set(c.officialId, {
+    ...existing,
+    startDate: c.startDate < existing.startDate ? c.startDate : existing.startDate,
+    endDate:
+      !c.endDate || !existing.endDate
+        ? null
+        : c.endDate > existing.endDate
+          ? c.endDate
+          : existing.endDate,
+  });
+}
+
+const memberships = [...membershipByOfficial.values()];
+
+const officialIds = [...membershipByOfficial.keys()];
 
 const officialRows = officialIds.length > 0
   ? await db
@@ -45,7 +70,7 @@ const officialRows = officialIds.length > 0
 
 const officialMap = new Map(officialRows.map((o) => [o.id, o]));
 
-const members = matching
+const members = memberships
   .map((c) => {
     const official = officialMap.get(c.officialId);
     if (!official) return null;
