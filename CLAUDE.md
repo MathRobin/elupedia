@@ -45,6 +45,9 @@ yarn --cwd packages/ingest reconcile
 
 # Ingestion décorations (Légion d'honneur, ONM, Médaille militaire)
 yarn --cwd packages/ingest ingest:decorations
+
+# Dédoublonnage des commissions (fusionne « nom » et « nom (abrégé) »)
+yarn --cwd packages/ingest dedupe:committees --dry-run
 ```
 
 ## Documentation

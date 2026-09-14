@@ -22,6 +22,7 @@
     "ingest:madada": "tsx --env-file-if-exists=../../.env src/main-madada.ts",
     "ingest:wikipedia": "tsx --env-file-if-exists=../../.env src/main-wikipedia.ts",
     "reconcile": "tsx --env-file-if-exists=../../.env src/main-reconcile.ts",
+    "dedupe:committees": "tsx --env-file-if-exists=../../.env src/main-dedupe-committees.ts",
     "test": "vitest run"
   },
   "dependencies": {

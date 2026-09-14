@@ -104,11 +104,39 @@ describe('AN commissions client', () => {
     expect(result[0].id_an).toBe('PA100001');
     expect(result[0].committees).toHaveLength(1);
     expect(result[0].committees[0]).toEqual({
-      name: 'Commission des finances, de l’économie générale et du contrôle budgétaire (Finances)',
+      name: 'Commission des finances, de l’économie générale et du contrôle budgétaire',
       type: 'standing_committee',
       start_date: '2022-07-01',
       end_date: undefined,
+      an_uid: 'PO500001',
     });
+  });
+
+  it('ignores the abbreviated label to keep a single name per committee', async () => {
+    const organes = [
+      makeOrganeJson(
+        'PO1',
+        'GE',
+        'Attractivité économique et export',
+        'ATTRACTIVITÉ ÉCONOMIQUE ET EXPORT',
+      ),
+      makeOrganeJson('PO2', 'GA', 'France-Japon', 'Japon'),
+    ];
+    const acteur = makeActeurJson('PA100001', [
+      { typeOrgane: 'GE', dateDebut: '2022-07-01', organeRef: 'PO1' },
+      { typeOrgane: 'GA', dateDebut: '2022-07-01', organeRef: 'PO2' },
+    ]);
+    const zipBuffer = buildZipBuffer(
+      [{ uid: 'PA100001', data: acteur }],
+      organes.map((o) => ({ uid: o.organe.uid, data: o })),
+    );
+
+    const result = await fetchCommittees(mockFetch(zipBuffer));
+
+    expect(result[0].committees.map((c) => c.name)).toEqual([
+      'Attractivité économique et export',
+      'France-Japon',
+    ]);
   });
 
   it('maps all committee organe types', async () => {

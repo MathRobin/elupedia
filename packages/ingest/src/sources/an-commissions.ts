@@ -89,11 +89,10 @@ async function loadCommitteeOrganes(
 
     map.set(o.uid, {
       uid: o.uid,
-      name:
-        o.libelle && o.libelleAbrege
-          ? `${o.libelle} (${o.libelleAbrege})`
-          : (o.libelle ?? o.libelleAbrege ?? ''),
-
+      // Le libellé abrégé de l'open data AN est le plus souvent identique au
+      // libellé complet : on ne garde que ce dernier pour éviter des noms de
+      // commissions dupliqués sous deux formes.
+      name: o.libelle ?? o.libelleAbrege ?? '',
       type: committeeType,
     });
   }
