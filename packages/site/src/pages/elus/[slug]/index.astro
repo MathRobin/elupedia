@@ -1565,8 +1565,8 @@ for (const sp of deputySponsorships) {
               </thead>
               <tbody>
                 {deputyCommittees.map((c) => (
-                  <tr data-committee-type={c.type} data-committee-status={c.endDate ? 'ended' : 'active'} class="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
-                    <td class="py-2 pr-4 font-medium"><a href={`/commissions/${slugifyText(c.name)}`} class="text-inherit hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{c.name}</a></td>
+                  <tr data-committee-type={c.type} data-committee-status={c.endDate ? 'ended' : 'active'} class="group border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
+                    <td class="py-2 pr-4 font-medium"><a href={`/commissions/${slugifyText(c.name)}`} class="text-inherit hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{c.name}<i class="fa-solid fa-chevron-right ml-1.5 inline-block h-3.5 w-3.5 text-slate-300 group-hover:text-indigo-400 transition-colors" aria-hidden="true"></i></a></td>
                     <td class="py-2 pr-4">
                       <span class="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
                         {committeeTypeLabels[c.type] ?? c.type}
