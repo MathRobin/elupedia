@@ -173,6 +173,17 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 - **Données collectées** :
   - Affirmation vérifiée, URL de la vérification, nom du vérificateur, note/verdict, date de publication
 
+### Bursae (fiche budgétaire communale)
+
+- **Éditeur** : Bursae
+- **Licence** : intégration par oEmbed — aucune donnée n'est copiée ni stockée
+- **Obligations** :
+  - Le contenu reste servi et affiché par Bursae dans une iframe : Elupedia n'en est pas l'éditeur
+  - Attribution native via les champs `provider_name` et `provider_url` de la réponse oEmbed
+  - Dépendance externe : la disponibilité de la fiche dépend de celle de Bursae (voir M22T4)
+- **URL** : https://www.bursae.fr
+- **Données collectées** : aucune. Seule la réponse oEmbed (titre, HTML d'iframe, dimensions) est récupérée, et mise en cache côté Elupedia.
+
 ## Sources prévues (non encore actives)
 
 ### data.gouv.fr (résultats électoraux AN)

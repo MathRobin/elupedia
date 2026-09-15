@@ -237,3 +237,13 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Prérequis** : `GOOGLE_FACTCHECK_API_KEY` dans `.env` (clé API Google Cloud, Fact Check Tools API activée)
 - **Description** : Recherche par nom d'élu dans l'index Google Fact Check. Stocke les ClaimReview trouvés : affirmation vérifiée, URL de la vérification, nom du vérificateur, note, date de publication. Quota gratuit 10 000 req/jour, délai 200 ms entre requêtes.
 - **Pages** : fiche élu (section « Vérification des faits » avec cards rose, affichée uniquement si des fact-checks existent)
+
+## Fiche budgétaire communale (Bursae)
+
+- **Table** : aucune — la fiche est récupérée à la volée via oEmbed, pas ingérée
+- **Source** : Bursae — endpoint oEmbed `https://www.bursae.fr/api/oembed?url=<url>&format=json|xml` (l'apex `bursae.fr` redirige en 308 vers `www.bursae.fr`)
+- **Description** : Bursae publie les finances des collectivités locales (population, budget de fonctionnement, fiscalité). L'endpoint renvoie un objet oEmbed 1.0 de type `rich` contenant une iframe 600×400 vers `https://bursae.fr/collectivite/{slug}`, avec `title`, `author_name`, `provider_name`, `provider_url`. Les champs `thumbnail_*` sont systématiquement `null`. CORS ouvert (`Access-Control-Allow-Origin: *`). Aucun paramètre de thème, de taille ni de sélection de sections n'est supporté : `maxwidth` et `maxheight` sont ignorés.
+- **Auto-découverte** : les pages `/collectivite/{slug}` de Bursae exposent une balise `<link rel="alternate" type="application/json+oembed">`.
+- **Codes de retour** : 400 si le paramètre `url` est absent, 501 si le format demandé n'est ni `json` ni `xml`, 404 si l'URL ne correspond pas au motif `/collectivite/{slug}` ou si la commune est introuvable.
+- **Matching** : point bloquant. L'endpoint n'accepte pas le code INSEE, seul un slug construit à partir du **nom** de la commune. Sur les 46 416 communes de notre base, 1 702 slugs correspondent à plusieurs communes, soit 4 369 communes concernées (9,4 %) — `sainte-colombe` correspond par exemple à 14 codes INSEE. Bursae résout le slug en retournant la première correspondance trouvée, donc arbitrairement. La jointure par nom est en conséquence inexploitable telle quelle. Ticket ouvert côté Bursae pour accepter le code INSEE en entrée : MathRobin/bursae#115.
+- **Pages** : fiche élu maire (prévu, M22T3)
