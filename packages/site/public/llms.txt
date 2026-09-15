@@ -12,6 +12,7 @@ Elupedia agrège exclusivement des données publiques officielles sur les élus 
 - [À propos](https://www.elupedia.fr/a-propos): Présentation du projet, sources de données et méthodologie
 - [Mentions légales](https://www.elupedia.fr/mentions-legales): Informations légales
 - [Données personnelles](https://www.elupedia.fr/donnees-personnelles): Politique de protection des données
+- [Accessibilité](https://www.elupedia.fr/accessibilite): Déclaration d'accessibilité RGAA
 - [Changelog](https://www.elupedia.fr/changelog): Historique des modifications
 - [Documentation](https://www.elupedia.fr/docs): Documentation technique pour les développeurs
 - [Intégrer Elupedia](https://www.elupedia.fr/integrer): Guide d'intégration des fiches d'élus dans un article

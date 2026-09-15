@@ -165,6 +165,7 @@ Site Astro avec composants React et Tailwind CSS. Mode hybrid : pages statiques 
   - `src/pages/a-propos.astro` — page À propos (présentation, feuille de route, piliers, indépendance, contribution)
   - `src/pages/donnees-personnelles.astro` — page droits RGPD (données publiées, base légale, droits, contact, CNIL, cookies)
   - `src/pages/mentions-legales.astro` — mentions légales (sources de données, licences, hébergeur, licence code AGPL-3.0)
+  - `src/pages/accessibilite.astro` — déclaration d'accessibilité RGAA 4.1 (état de conformité, mesures en place, contenus non accessibles, voie de recours)
   - `src/pages/docs/index.astro` — index de la documentation développeur
   - `src/pages/docs/oembed.astro` — documentation de l'endpoint oEmbed
   - `src/pages/docs/og-images.astro` — documentation des images Open Graph dynamiques

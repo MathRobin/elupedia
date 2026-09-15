@@ -10,6 +10,7 @@ const STATIC_PAGES = [
   { loc: '/changelog', priority: '0.3', changefreq: 'weekly' },
   { loc: '/mentions-legales', priority: '0.2', changefreq: 'yearly' },
   { loc: '/donnees-personnelles', priority: '0.2', changefreq: 'yearly' },
+  { loc: '/accessibilite', priority: '0.2', changefreq: 'yearly' },
 ];
 
 export const prerender = false;

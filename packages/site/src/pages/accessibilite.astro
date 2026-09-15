@@ -1,0 +1,88 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Déclaration d'accessibilité"
+  description="Déclaration d'accessibilité d'Élupedia — conformité RGAA."
+>
+  <div class="prose prose-indigo dark:prose-invert max-w-3xl prose-headings:tracking-tight">
+    <h1>Déclaration d'accessibilité</h1>
+
+    <p>
+      Élupedia s'engage à rendre son site internet accessible conformément à
+      l'article 47 de la loi n°2005-102 du 11 février 2005.
+    </p>
+
+    <h2>État de conformité</h2>
+
+    <p>
+      Le site <strong>elupedia.fr</strong> est en
+      <strong>conformité partielle</strong> avec le Référentiel Général
+      d'Amélioration de l'Accessibilité (RGAA) version 4.1.
+    </p>
+
+    <h2>Résultats des tests</h2>
+
+    <p>
+      Un audit interne a été réalisé. Les mesures suivantes ont été mises en
+      place :
+    </p>
+
+    <ul>
+      <li>Structure sémantique HTML (header, nav, main, footer, sections)</li>
+      <li>Langue de la page déclarée (<code>lang="fr"</code>)</li>
+      <li>Lien d'accès rapide au contenu principal</li>
+      <li>Labels accessibles sur les champs de formulaire et de recherche</li>
+      <li>
+        Labels <code>aria-label</code> sur les zones de navigation et les boutons
+      </li>
+      <li>
+        Graphiques SVG (hémicycle, cartes) avec <code>role="img"</code> et
+        <code>aria-label</code>
+      </li>
+      <li>Icônes décoratives masquées aux lecteurs d'écran (<code>aria-hidden</code>)</li>
+      <li>Contrastes conformes en thème clair comme en thème sombre</li>
+      <li>Site responsive et utilisable sur mobile</li>
+    </ul>
+
+    <h2>Contenus non accessibles</h2>
+
+    <ul>
+      <li>
+        Les données des graphiques SVG (hémicycle, cartes départementales) ne
+        sont pas disponibles sous forme de tableau alternatif
+      </li>
+      <li>
+        Le bandeau de consentement cookies (tarteaucitron) est un composant tiers
+        dont l'accessibilité n'est pas entièrement maîtrisée
+      </li>
+      <li>
+        Les photos d'élus proviennent de sources institutionnelles et ne
+        disposent pas toujours d'une description détaillée
+      </li>
+    </ul>
+
+    <h2>Retour d'information et contact</h2>
+
+    <p>
+      Si vous rencontrez un défaut d'accessibilité vous empêchant d'accéder à un
+      contenu ou une fonctionnalité, vous pouvez ouvrir une issue sur
+      <a href="https://github.com/MathRobin/elupedia/issues" target="_blank" rel="noopener noreferrer">
+        le dépôt GitHub du projet</a>
+      pour obtenir une alternative accessible.
+    </p>
+
+    <h2>Voie de recours</h2>
+
+    <p>
+      Si vous constatez un défaut d'accessibilité et que nos services ne vous
+      apportent pas une réponse satisfaisante, vous pouvez saisir le
+      <strong>Défenseur des droits</strong>.
+    </p>
+
+    <p class="text-sm text-slate-500 dark:text-slate-400">
+      Dernière mise à jour de cette déclaration : septembre 2026.
+    </p>
+  </div>
+</BaseLayout>
