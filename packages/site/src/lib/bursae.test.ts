@@ -36,9 +36,11 @@ function errorResponse(status: number) {
 }
 
 describe('buildOembedUrl', () => {
-  it('targets the INSEE form on the www origin', () => {
+  it('asks for the INSEE form of the page, not the name slug', () => {
     const url = buildOembedUrl('33063');
-    expect(url).toContain('https://www.bursae.fr/api/oembed');
+    // L'origine appelée est surchargeable (BURSAE_ORIGIN) : on vérifie le
+    // chemin et la cible, pas l'hôte.
+    expect(url).toContain('/api/oembed');
     expect(url).toContain(
       encodeURIComponent('https://bursae.fr/collectivite/insee/33063'),
     );
@@ -149,6 +151,60 @@ describe('fetchBursaeEmbed', () => {
     await fetchBursaeEmbed('33063', fetchFn as typeof fetch);
     await fetchBursaeEmbed('33281', fetchFn as typeof fetch);
     expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('logs a contract break when Bursae answers 200 with an unreadable payload', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fetchFn = vi.fn().mockResolvedValue(okResponse({ type: 'link' }));
+
+    await fetchBursaeEmbed('33063', fetchFn as typeof fetch);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0]).toContain('contrat');
+    expect(spy.mock.calls[0][0]).toContain('33063');
+    spy.mockRestore();
+  });
+
+  it('logs an outage on a 5xx but stays silent on a 404', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await fetchBursaeEmbed(
+      '33063',
+      vi.fn().mockResolvedValue(errorResponse(503)) as typeof fetch,
+    );
+    expect(warn.mock.calls[0][0]).toContain('indisponible');
+
+    warn.mockClear();
+    await fetchBursaeEmbed(
+      '75056',
+      vi.fn().mockResolvedValue(errorResponse(404)) as typeof fetch,
+    );
+    expect(warn).not.toHaveBeenCalled();
+
+    warn.mockRestore();
+  });
+
+  it('tells a timeout apart from another network failure in the logs', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await fetchBursaeEmbed(
+      '33063',
+      vi
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error('timed out'), { name: 'TimeoutError' }),
+        ) as typeof fetch,
+    );
+    expect(warn.mock.calls[0][0]).toContain('timeout');
+
+    warn.mockClear();
+    await fetchBursaeEmbed(
+      '33281',
+      vi.fn().mockRejectedValue(new Error('ECONNREFUSED')) as typeof fetch,
+    );
+    expect(warn.mock.calls[0][0]).toContain('réseau');
+
+    warn.mockRestore();
   });
 
   it('treats the commune code case-insensitively for Corsican codes', async () => {

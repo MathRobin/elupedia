@@ -215,6 +215,41 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 - **GitHub Actions Social Daily Post** (`.github/workflows/social-daily-post.yml`) : deux publications quotidiennes sur les réseaux sociaux via Postiz — matin 08:30 Paris (élu aléatoire), soir 18:30 Paris (vote récent) ; déclenchement manuel avec choix du mode
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 
+## Dépendance externe : Bursae (fiche budgétaire communale)
+
+Seule brique du site alimentée en direct par un service tiers au moment du rendu, et non par une ingestion en base.
+
+- **Ce qui est consommé** : l'endpoint oEmbed de Bursae, `https://www.bursae.fr/api/oembed?url=<url>&format=json`. La réponse contient une iframe servie et rendue par Bursae. Aucune donnée budgétaire n'est copiée ni stockée chez nous.
+- **Client** : `packages/site/src/lib/bursae.ts`. Affiché par la section « Finances communales » de `/elus/[slug]`, pour les maires uniquement.
+- **Clé de correspondance** : le **code INSEE**, via `https://bursae.fr/collectivite/insee/{code}`. Ne jamais revenir au slug de nom : 4 369 communes sur 46 416 partagent leur slug avec une autre, et Bursae répond alors 409. La réponse porte `code_insee`, qui permet de vérifier la collectivité obtenue.
+- **Origine surchargeable** : la variable d'environnement `BURSAE_ORIGIN` remplace l'hôte appelé — utile pour tester une indisponibilité, ou pour couper la dépendance sans redéployer le code.
+
+### Comportement en cas de défaillance
+
+`fetchBursaeEmbed` ne lève jamais et renvoie `null` dans tous les cas dégradés. La section disparaît alors de la fiche ; rien d'autre n'est affecté.
+
+- **Temps de rendu** : plafonné par un timeout de 2 s (`AbortSignal.timeout`). Mesuré sur une adresse non routable : `null` rendu en 2 014 ms, puis mis en cache. Une fiche maire dont la commune est couverte se rend en ~1,5 s, soit le temps d'une fiche de député sans appel externe.
+- **Build** : aucun impact. Les fiches élu sont en `prerender = false` ; aucun appel à Bursae n'a lieu à la construction du site.
+- **Référencement** : la section est rendue côté serveur. Si Bursae ne répond pas, la page est servie complète sans cette section — jamais une page en erreur ni un bloc vide.
+- **Cache** : 24 h pour une fiche obtenue, 1 h pour une absence. Une panne de Bursae n'est donc retentée qu'une fois par heure et par commune.
+
+### Journalisation
+
+Les échecs sont écrits sur la sortie d'erreur, préfixés `[bursae]`, avec le code INSEE concerné :
+
+| Niveau  | Motif          | Signification                                                                                             |
+| ------- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| `error` | `contrat`      | Réponse 200 mais illisible : **rupture de contrat côté Bursae**, le seul cas qui demande une intervention |
+| `warn`  | `indisponible` | HTTP 5xx                                                                                                  |
+| `warn`  | `timeout`      | Pas de réponse en 2 s                                                                                     |
+| `warn`  | `réseau`       | DNS, connexion, JSON invalide                                                                             |
+
+Une commune absente du référentiel Bursae (404) ou un slug ambigu (409) ne sont **pas** journalisés : ce sont des réponses normales, et les confondre avec des incidents rendrait les journaux inexploitables.
+
+### Si le contrat change
+
+Un `[bursae] contrat` dans les journaux signale que la réponse n'est plus exploitable — champ `type` modifié, `html` disparu ou sans iframe. Marche à suivre : vérifier la réponse réelle de l'endpoint, adapter `parseOembed` dans `packages/site/src/lib/bursae.ts`, ouvrir un ticket sur MathRobin/bursae si le changement est involontaire. En attendant, la section reste simplement masquée. Pour couper la dépendance immédiatement, pointer `BURSAE_ORIGIN` vers une origine inexistante.
+
 ## Tests
 
 - **Framework** : Vitest (configuré à la racine et dans chaque package)

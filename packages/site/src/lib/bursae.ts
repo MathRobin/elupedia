@@ -7,7 +7,9 @@
  * et rendue par Bursae.
  */
 
-const BURSAE_ORIGIN = 'https://www.bursae.fr';
+// Surchargeable pour tester le comportement en cas d'indisponibilité, ou pour
+// couper la dépendance sans redéployer.
+const BURSAE_ORIGIN = import.meta.env?.BURSAE_ORIGIN ?? 'https://www.bursae.fr';
 // L'apex bursae.fr redirige en 308 vers www : on l'évite en appelant www
 // directement, mais les URLs de page restent en apex, forme canonique côté
 // Bursae et seule reconnue par son endpoint.
@@ -103,13 +105,30 @@ export async function fetchBursaeEmbed(
       headers: { Accept: 'application/json' },
     });
 
+    if (response.ok) {
+      const payload = await response.json();
+      value = parseOembed(payload);
+
+      // Une réponse acceptée mais illisible signale un changement de contrat
+      // côté Bursae, pas une commune absente : c'est le seul cas qui demande
+      // une intervention de notre part.
+      if (!value) {
+        logFailure('contrat', key, describePayload(payload));
+      }
+    } else if (response.status >= 500) {
+      logFailure('indisponible', key, `HTTP ${response.status}`);
+    }
     // 404 (hors couverture) et 409 (slug ambigu) sont des réponses normales,
     // pas des incidents : la fiche n'est simplement pas affichable.
-    if (response.ok) {
-      value = parseOembed(await response.json());
-    }
-  } catch {
-    // Timeout, DNS, réseau, JSON invalide : traités comme une absence de fiche.
+  } catch (err) {
+    // Timeout, DNS, réseau, JSON invalide : la fiche est absente, mais le
+    // motif est journalisé pour distinguer une panne d'une absence.
+    const name = err instanceof Error ? err.name : 'Error';
+    logFailure(
+      name === 'TimeoutError' ? 'timeout' : 'réseau',
+      key,
+      err instanceof Error ? err.message : String(err),
+    );
     value = null;
   }
 
@@ -119,6 +138,27 @@ export async function fetchBursaeEmbed(
   });
 
   return value;
+}
+
+type FailureKind = 'contrat' | 'indisponible' | 'timeout' | 'réseau';
+
+/**
+ * Journalise les appels en échec pour qu'une rupture de contrat côté Bursae se
+ * voie dans les journaux sans attendre un signalement. Une commune absente du
+ * référentiel n'est pas un échec et n'apparaît pas ici.
+ */
+function logFailure(kind: FailureKind, communeCode: string, detail: string) {
+  const level = kind === 'contrat' ? 'error' : 'warn';
+  console[level](`[bursae] ${kind} — commune ${communeCode} : ${detail}`);
+}
+
+/** Résume une charge utile inattendue sans déverser la réponse entière. */
+function describePayload(payload: unknown): string {
+  if (typeof payload !== 'object' || payload === null) {
+    return `charge utile ${typeof payload}`;
+  }
+  const raw = payload as Record<string, unknown>;
+  return `type=${JSON.stringify(raw.type)} html=${typeof raw.html}`;
 }
 
 /** Réservé aux tests : vide le cache mémoire. */
