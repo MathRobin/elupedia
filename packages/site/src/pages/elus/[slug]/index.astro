@@ -11,6 +11,7 @@ import TimelineDrawer from '../../../components/TimelineDrawer.tsx';
 import MunicipalElectionSection from '../../../components/MunicipalElectionDrawer.tsx';
 import MadadaRequestsDrawer from '../../../components/MadadaRequestsDrawer.tsx';
 import JurisdictionMap from '../../../components/JurisdictionMap.tsx';
+import { fetchBursaeEmbed } from '../../../lib/bursae.js';
 
 export const prerender = false;
 
@@ -207,6 +208,12 @@ const madadaMeta = isMaire && row.communeCode
       .where(eq(communeTransparency.communeCode, row.communeCode))
       .limit(1))[0] ?? null
   : null;
+
+// Fiche budgétaire de la commune administrée. Le client ne lève jamais et
+// renvoie null si Bursae ne couvre pas la commune ou ne répond pas : la section
+// est alors simplement absente.
+const bursaeEmbed =
+  isMaire && row.communeCode ? await fetchBursaeEmbed(row.communeCode) : null;
 
 const maireMandate = isMaire
   ? deputyMandates.find((m) => m.type === 'maire' && !m.endDate) ?? deputyMandates.find((m) => m.type === 'maire')
@@ -961,6 +968,7 @@ for (const sp of deputySponsorships) {
         <li><a href="#tous-mandats" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Tous les mandats</a></li>
         {officialDecorations.length > 0 && <li><a href="#decorations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Décorations</a></li>}
         {transparencyRow && <li><a href="#transparence" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Transparence</a></li>}
+        {bursaeEmbed && <li><a href="#budget" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Finances communales</a></li>}
         <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
         {isParliamentary && <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations politiques</a></li>}
         {isParliamentary && <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
@@ -1006,6 +1014,7 @@ for (const sp of deputySponsorships) {
           <li><a href="#tous-mandats" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Mandats</a></li>
           {officialDecorations.length > 0 && <li><a href="#decorations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Décorations</a></li>}
           {transparencyRow && <li><a href="#transparence" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Transparence</a></li>}
+          {bursaeEmbed && <li><a href="#budget" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Finances</a></li>}
           <li><a href="#coordonnees" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
           {isParliamentary && <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations</a></li>}
           {isParliamentary && <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
@@ -1213,6 +1222,53 @@ for (const sp of deputySponsorships) {
                 <p class="mt-3 text-xs text-indigo-500 dark:text-indigo-400">Cliquer pour voir le détail des demandes</p>
       </div>
       <p class="mt-3 text-xs text-slate-400">Source : <a href={`https://madada.fr/body/${transparencyRow.madadaUrlName}`} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">MaDada.fr</a> — dernière récupération le {transparencyRow.updatedAt.toLocaleDateString('fr-FR')}</p>
+    </section>
+    )}
+
+    {bursaeEmbed && (
+    <section id="budget" class="mt-8 scroll-mt-12">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+        Finances communales
+      </h2>
+
+      <div class="mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 dark:bg-slate-800 dark:ring-slate-700">
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          Budget de la commune{maireMandate?.district ? ` de ${maireMandate.district}` : ''}, publié par <a href={bursaeEmbed.providerUrl} target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline dark:text-indigo-400">{bursaeEmbed.providerName}</a> à partir des comptes de la <abbr title="Direction générale des finances publiques" class="no-underline">DGFiP</abbr>.
+        </p>
+
+        <div class="mt-4 overflow-hidden rounded-xl ring-1 ring-slate-200 dark:ring-slate-700">
+          <iframe
+            src={bursaeEmbed.pageUrl}
+            title={bursaeEmbed.title}
+            width={bursaeEmbed.width}
+            height={bursaeEmbed.height}
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            class="block w-full border-0"
+            style={`aspect-ratio:${bursaeEmbed.width}/${bursaeEmbed.height};height:auto`}
+          ></iframe>
+        </div>
+
+        <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          Les comptes publics sont publiés avec un décalage de 12 à 18 mois : l'exercice présenté n'est pas l'exercice en cours. L'exercice exact figure sur la fiche Bursae.
+        </p>
+        <a
+          href={bursaeEmbed.pageUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors no-underline dark:text-indigo-400"
+        >
+          <i class="fa-solid fa-arrow-up-right-from-square h-3.5 w-3.5" aria-hidden="true"></i>
+          Voir la fiche complète sur {bursaeEmbed.providerName}
+        </a>
+      </div>
+
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">
+        Source tierce : Bursae n'est pas un producteur officiel de données. Elupedia n'en copie aucune — la fiche ci-dessus est servie et mise à jour par Bursae, à partir des comptes publiés par la DGFiP.
+      </p>
+      <p class="mt-1 text-xs text-slate-400">
+        Source : <a href={bursaeEmbed.providerUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{bursaeEmbed.providerName}</a> — données <a href="https://www.data.gouv.fr/fr/organizations/direction-generale-des-finances-publiques/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">DGFiP</a> — récupérée à l'affichage
+      </p>
     </section>
     )}
 
