@@ -1,7 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getDocExample } from '../lib/doc-examples.js';
 
-const exampleUrl = 'https://www.elupedia.fr/elus/manuel-bompard';
+// Slug tiré de la base : figé en dur, l'exemple finit par pointer une fiche
+// disparue, et l'iframe comme l'image ci-dessous s'affichent en 404 (#268).
+const example = await getDocExample();
+const exampleUrl = `https://www.elupedia.fr/elus/${example.slug}`;
 const encodedUrl = encodeURIComponent(exampleUrl);
 const oembedEndpoint = `https://www.elupedia.fr/api/oembed?url=${encodedUrl}&format=json`;
 ---
@@ -41,7 +45,7 @@ const oembedEndpoint = `https://www.elupedia.fr/api/oembed?url=${encodedUrl}&for
     <div class="not-prose my-6">
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <iframe
-          src="/elus/manuel-bompard/embed"
+          src={`/elus/${example.slug}/embed`}
           width="500"
           height="140"
           style="border:0;border-radius:12px;overflow:hidden;max-width:100%"
@@ -62,7 +66,7 @@ const oembedEndpoint = `https://www.elupedia.fr/api/oembed?url=${encodedUrl}&for
         <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Aperçu du partage sur les réseaux sociaux :</p>
         <div class="rounded-lg border border-slate-200 bg-white overflow-hidden max-w-sm dark:border-slate-600 dark:bg-slate-900">
           <img
-            src="/api/og/official/manuel-bompard.png"
+            src={`/api/og/official/${example.slug}.png`}
             alt="Aperçu Open Graph pour Manuel Bompard"
             class="w-full"
             loading="lazy"
@@ -83,7 +87,7 @@ const oembedEndpoint = `https://www.elupedia.fr/api/oembed?url=${encodedUrl}&for
     </p>
 
     <pre><code>{`<iframe
-  src="https://www.elupedia.fr/elus/manuel-bompard/embed"
+  src="https://www.elupedia.fr/elus/{slug}/embed"
   width="500"
   height="140"
   frameborder="0"
@@ -92,7 +96,7 @@ const oembedEndpoint = `https://www.elupedia.fr/api/oembed?url=${encodedUrl}&for
 ></iframe>`}</code></pre>
 
     <p>
-      Remplacez <code>manuel-bompard</code> par le slug de l'élu souhaité.
+      Remplacez <code>{'{slug}'}</code> par le slug de l'élu souhaité, tel qu'il apparaît dans l'URL de sa fiche.
     </p>
 
     <h2>4. Appel direct à l'API oEmbed</h2>
