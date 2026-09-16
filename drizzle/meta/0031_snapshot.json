@@ -1,6 +1,6 @@
 {
-  "id": "540b5fea-d8bf-4931-9680-145b4d1cc749",
-  "prevId": "1949d2e1-7951-4ea3-aeeb-18fa4a15fc0a",
+  "id": "1949d2e1-7951-4ea3-aeeb-18fa4a15fc0a",
+  "prevId": "7af61320-8b67-4aa1-ac26-99b83f77b4b7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -527,12 +527,6 @@
           "type": "varchar(50)",
           "primaryKey": false,
           "notNull": true
-        },
-        "an_uid": {
-          "name": "an_uid",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false
         },
         "start_date": {
           "name": "start_date",
@@ -1604,83 +1598,6 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.madada_requests": {
-      "name": "madada_requests",
-      "schema": "",
-      "columns": {
-        "madada_id": {
-          "name": "madada_id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "commune_code": {
-          "name": "commune_code",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "url_title": {
-          "name": "url_title",
-          "type": "varchar(512)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "varchar(1024)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "madada_requests_commune_created_idx": {
-          "name": "madada_requests_commune_created_idx",
-          "columns": [
-            {
-              "expression": "commune_code",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2945,6 +2862,83 @@
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.madada_requests": {
+      "name": "madada_requests",
+      "schema": "",
+      "columns": {
+        "madada_id": {
+          "name": "madada_id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "commune_code": {
+          "name": "commune_code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url_title": {
+          "name": "url_title",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "madada_requests_commune_created_idx": {
+          "name": "madada_requests_commune_created_idx",
+          "columns": [
+            {
+              "expression": "commune_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
