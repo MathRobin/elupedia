@@ -47,6 +47,7 @@ jobs:
     # Pas de déploiement depuis un fork : les secrets n'y sont pas exposés.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
