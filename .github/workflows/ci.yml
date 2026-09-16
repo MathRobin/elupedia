@@ -6,6 +6,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -35,3 +39,36 @@ jobs:
 
       - name: Test
         run: yarn test
+
+  deploy:
+    name: Déploiement Vercel
+    needs: ci
+    runs-on: ubuntu-latest
+    # Pas de déploiement depuis un fork : les secrets n'y sont pas exposés.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      # main part en production, tout le reste en preview.
+      TARGET: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - run: npm install --global vercel@latest
+
+      - name: Récupérer la configuration du projet
+        run: vercel pull --yes --environment="$TARGET" --token="$VERCEL_TOKEN"
+
+      - name: Construire
+        run: vercel build ${{ env.TARGET == 'production' && '--prod' || '' }} --token="$VERCEL_TOKEN"
+
+      - name: Déployer
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt ${{ env.TARGET == 'production' && '--prod' || '' }} --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Déploiement $TARGET : $url" >> "$GITHUB_STEP_SUMMARY"
