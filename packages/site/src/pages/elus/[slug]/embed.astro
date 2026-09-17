@@ -71,6 +71,7 @@ const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
       color: #1e293b;
     }
     .card {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 16px;
@@ -78,6 +79,34 @@ const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
       border: 1px solid #e2e8f0;
       border-radius: 12px;
       max-width: 480px;
+      overflow: hidden;
+    }
+    .ribbon {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 56px;
+      height: 56px;
+      overflow: hidden;
+      line-height: 0;
+    }
+    .ribbon::before {
+      content: '';
+      position: absolute;
+      top: 11px;
+      right: -19px;
+      width: 80px;
+      height: 20px;
+      background: #4f46e5;
+      transform: rotate(45deg);
+    }
+    .ribbon img {
+      position: absolute;
+      top: 14px;
+      right: 9px;
+      width: 14px;
+      height: 14px;
+      transform: rotate(45deg);
     }
     .photo {
       width: 72px;
@@ -125,11 +154,15 @@ const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
       .role { color: #94a3b8; }
       .since { color: #64748b; }
       .link { color: #818cf8; }
+      .ribbon::before { background: #818cf8; }
     }
   </style>
 </head>
 <body>
   <div class="card">
+    <a class="ribbon" href="https://www.elupedia.fr" target="_blank" rel="noopener noreferrer" aria-label="Elupedia">
+      <img src="https://www.elupedia.fr/img/favicon-48x48.png" alt="" width="14" height="14" />
+    </a>
     {photo ? (
       <img class="photo" src={photo} alt={fullName} loading="lazy" />
     ) : (
