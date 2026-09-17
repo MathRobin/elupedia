@@ -14,5 +14,10 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   output: 'static',
-  adapter: vercel(),
+  adapter: vercel({
+    // satori (used to render OG images) loads harfbuzzjs' hb.wasm at
+    // runtime via fs, so Vercel's dependency tracer (@vercel/nft) misses
+    // it and the function 500s with ENOENT in production.
+    includeFiles: ['../../node_modules/harfbuzzjs/hb.wasm'],
+  }),
 });
