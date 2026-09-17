@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { renderOgImage } from '../../../lib/og.js';
+import { LOGO_DATA_URI } from '../../../lib/og-assets.js';
 import { createElement as h } from 'react';
 
 export const prerender = false;
@@ -12,13 +13,11 @@ export const GET: APIRoute = async () => {
         style: {
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
           width: '100%',
           height: '100%',
           background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
           fontFamily: 'Inter',
-          gap: '24px',
+          padding: '60px',
         },
       },
       h(
@@ -26,30 +25,70 @@ export const GET: APIRoute = async () => {
         {
           style: {
             display: 'flex',
-            fontSize: '72px',
-            fontWeight: 700,
-            color: '#6366f1',
+            alignItems: 'center',
+            gap: '56px',
+            flex: 1,
           },
         },
-        'Elupedia',
+        h('img', {
+          src: LOGO_DATA_URI,
+          width: 220,
+          height: 220,
+          style: {
+            borderRadius: '9999px',
+            border: '4px solid rgba(99, 102, 241, 0.5)',
+          },
+        }),
+        h(
+          'div',
+          {
+            style: {
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+            },
+          },
+          h(
+            'div',
+            {
+              style: {
+                display: 'flex',
+                fontSize: '96px',
+                fontWeight: 700,
+                color: '#ffffff',
+                lineHeight: 1,
+              },
+            },
+            'Elupedia',
+          ),
+          h(
+            'div',
+            {
+              style: {
+                display: 'flex',
+                fontSize: '32px',
+                color: '#818cf8',
+              },
+            },
+            'Encyclopédie ouverte des élus français',
+          ),
+          h('div', {
+            style: {
+              display: 'flex',
+              marginTop: '8px',
+              width: '120px',
+              height: '6px',
+              borderRadius: '9999px',
+              backgroundColor: '#6366f1',
+            },
+          }),
+        ),
       ),
       h(
         'div',
         {
           style: {
             display: 'flex',
-            fontSize: '32px',
-            color: '#94a3b8',
-          },
-        },
-        'Encyclopédie ouverte des élus français',
-      ),
-      h(
-        'div',
-        {
-          style: {
-            display: 'flex',
-            marginTop: '20px',
             gap: '20px',
           },
         },
