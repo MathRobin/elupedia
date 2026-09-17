@@ -85,28 +85,36 @@ const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
       position: absolute;
       top: 0;
       right: 0;
-      width: 56px;
-      height: 56px;
+      width: 84px;
+      height: 84px;
       overflow: hidden;
-      line-height: 0;
+      z-index: 1;
     }
-    .ribbon::before {
-      content: '';
+    .ribbon-band {
       position: absolute;
-      top: 11px;
-      right: -19px;
-      width: 80px;
+      top: 17px;
+      right: -27px;
+      width: 116px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: rotate(45deg);
+      background: linear-gradient(
+        90deg,
+        #0055a4 0%,
+        #0055a4 33%,
+        #fff 33%,
+        #fff 66%,
+        #ef4135 66%,
+        #ef4135 100%
+      );
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+    .ribbon-band img {
+      width: 20px;
       height: 20px;
-      background: #4f46e5;
-      transform: rotate(45deg);
-    }
-    .ribbon img {
-      position: absolute;
-      top: 14px;
-      right: 9px;
-      width: 14px;
-      height: 14px;
-      transform: rotate(45deg);
+      display: block;
     }
     .photo {
       width: 72px;
@@ -154,14 +162,15 @@ const startFormatted = new Date(row.startDate).toLocaleDateString('fr-FR', {
       .role { color: #94a3b8; }
       .since { color: #64748b; }
       .link { color: #818cf8; }
-      .ribbon::before { background: #818cf8; }
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <a class="ribbon" href="https://www.elupedia.fr" target="_blank" rel="noopener noreferrer" aria-label="Elupedia">
-      <img src="https://www.elupedia.fr/img/favicon-48x48.png" alt="" width="14" height="14" />
+    <a class="ribbon" href={profileUrl} target="_blank" rel="noopener noreferrer" aria-label="Voir la fiche sur Elupedia">
+      <span class="ribbon-band">
+        <img src="https://www.elupedia.fr/img/favicon-48x48.png" alt="" width="20" height="20" />
+      </span>
     </a>
     {photo ? (
       <img class="photo" src={photo} alt={fullName} loading="lazy" />
