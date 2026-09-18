@@ -62,7 +62,7 @@ const PeriodSchema = z.object({
 });
 
 const MembershipSchema = z.object({
-  organization: z.string(),
+  organization: z.string().optional(),
   role: z.string().optional(),
   membershipClassification: z.string().optional(),
   memberDuring: PeriodSchema.optional(),

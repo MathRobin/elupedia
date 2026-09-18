@@ -117,6 +117,33 @@ describe('fetchMepDetail', () => {
     expect(result.currentNationalPartyOrgId).toBeNull();
   });
 
+  it('tolerates a membership without an organization field', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      jsonResponse({
+        data: [
+          {
+            identifier: '256908',
+            bday: '1968-06-11',
+            hasMembership: [
+              { role: 'def/ep-roles/CHAIR_VICE' },
+              {
+                organization: 'org/ep-10',
+                role: 'def/ep-roles/MEMBER_PARLIAMENT',
+                memberDuring: { startDate: '2024-07-16' },
+              },
+            ],
+          },
+        ],
+      }),
+    ) as unknown as typeof fetch;
+
+    const result = await fetchMepDetail(fetchFn, '256908');
+    expect(result.currentParliamentaryMandate).toEqual({
+      startDate: '2024-07-16',
+      endDate: null,
+    });
+  });
+
   it('ignores a national party membership that has already ended', async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       jsonResponse({
