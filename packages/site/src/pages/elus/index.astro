@@ -41,7 +41,7 @@ try {
     })
     .from(officials)
     .innerJoin(mandates, eq(mandates.officialId, officials.id))
-    .orderBy(officials.lastName);
+    .orderBy(officials.lastName, sql`${mandates.endDate} nulls first`, sql`${mandates.startDate} desc`);
 
   const seen = new Set<string>();
   officialsList = rows
