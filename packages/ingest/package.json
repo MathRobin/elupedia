@@ -8,6 +8,7 @@
     "ingest:an": "tsx --env-file-if-exists=../../.env src/main-an.ts",
     "ingest:an:partial": "tsx --env-file-if-exists=../../.env src/main-an-partial.ts",
     "ingest:senat": "tsx --env-file-if-exists=../../.env src/main-senat.ts",
+    "ingest:europe": "tsx --env-file-if-exists=../../.env src/main-europe.ts",
     "ingest:social-links": "tsx --env-file-if-exists=../../.env src/main-social-links.ts",
     "ingest:press": "tsx --env-file-if-exists=../../.env src/main-press.ts",
     "ingest:interests": "tsx --env-file-if-exists=../../.env src/main-interests.ts",

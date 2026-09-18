@@ -38,6 +38,10 @@ export const MAIRES_STEP_NAMES = [
 
 export type MairesStepName = (typeof MAIRES_STEP_NAMES)[number];
 
+export const EUROPE_STEP_NAMES = ['eurodeputes'] as const;
+
+export type EuropeStepName = (typeof EUROPE_STEP_NAMES)[number];
+
 export const COMMON_STEP_NAMES = [
   'interests',
   'geocode',
@@ -48,12 +52,13 @@ export const COMMON_STEP_NAMES = [
 export type CommonStepName = (typeof COMMON_STEP_NAMES)[number];
 
 export type StepName =
-  AnStepName | SenatStepName | MairesStepName | CommonStepName;
+  AnStepName | SenatStepName | MairesStepName | EuropeStepName | CommonStepName;
 
 export const STEP_NAMES: readonly StepName[] = [
   ...AN_STEP_NAMES,
   ...SENAT_STEP_NAMES,
   ...MAIRES_STEP_NAMES,
+  ...EUROPE_STEP_NAMES,
   ...COMMON_STEP_NAMES,
 ];
 
