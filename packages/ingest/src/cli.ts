@@ -38,7 +38,7 @@ export const MAIRES_STEP_NAMES = [
 
 export type MairesStepName = (typeof MAIRES_STEP_NAMES)[number];
 
-export const EUROPE_STEP_NAMES = ['eurodeputes'] as const;
+export const EUROPE_STEP_NAMES = ['eurodeputes', 'eurodeputes-votes'] as const;
 
 export type EuropeStepName = (typeof EUROPE_STEP_NAMES)[number];
 

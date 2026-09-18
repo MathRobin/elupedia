@@ -8,6 +8,14 @@ import {
   fetchOrganizationLabel,
 } from './sources/parlement-europeen.js';
 import { upsertMeps, type MepUpsertInput } from './upsert/meps.js';
+import {
+  fetchPlenarySittings,
+  fetchRollcallDecisions,
+} from './sources/parlement-europeen-votes.js';
+import { upsertEuropeVotes } from './upsert/europe-votes.js';
+
+// Législature 10 : mandats à partir du 16/07/2024.
+const LEGISLATURE_10_START_YEAR = 2024;
 
 const RATE_LIMIT_DELAY_MS = 150;
 
@@ -77,6 +85,45 @@ export async function runEurope(
           updated: r.linked,
           durationMs: 0,
           error: r.errors > 0 ? `${r.errors} erreur(s)` : undefined,
+        };
+      }),
+    );
+  }
+
+  if (enabled('eurodeputes-votes')) {
+    logger.info('[1/1] Votes en plénière...');
+    results.push(
+      await runStep('eurodeputes-votes', async () => {
+        const currentYear = new Date().getFullYear();
+        const sittings = [];
+        for (
+          let year = LEGISLATURE_10_START_YEAR;
+          year <= currentYear;
+          year++
+        ) {
+          const yearSittings = await withRetry(
+            () => fetchPlenarySittings(fetch, year),
+            { source: `parlement-europeen-meetings-${year}` },
+          );
+          sittings.push(...yearSittings);
+          await sleep(RATE_LIMIT_DELAY_MS);
+        }
+        logger.info(`  ${sittings.length} séances plénières à vérifier`);
+
+        const r = await upsertEuropeVotes(db, sittings, async (sittingId) => {
+          const decisions = await withRetry(
+            () => fetchRollcallDecisions(fetch, sittingId),
+            { source: `parlement-europeen-decisions-${sittingId}` },
+          );
+          await sleep(RATE_LIMIT_DELAY_MS);
+          return decisions;
+        });
+
+        return {
+          source: 'eurodeputes-votes',
+          created: r.ballots,
+          updated: r.votes,
+          durationMs: 0,
         };
       }),
     );
