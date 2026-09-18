@@ -9,7 +9,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - data.assemblee-nationale.fr (open data AN) — `assemblee-nationale.ts` → `upsert/officials.ts`
   - data.senat.fr (API JSON Sénat) — `senat.ts` → `upsert/senators.ts`
 - **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés, sénateurs et maires. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
-- **Types de mandats** : `depute`, `senateur`, `maire`
+- **Types de mandats** : `depute`, `senateur`, `maire`, `eurodepute`
 - **Champs commune (mandats maires)** :
   - `commune_code` (varchar 10) — code INSEE de la commune (ex. `75056` pour Paris, `75101` pour le 1er arrondissement)
   - `parent_commune_code` (varchar 10) — code INSEE de la ville de rattachement pour les arrondissements PLM (ex. `75056` pour un arrondissement de Paris), null sinon
@@ -269,3 +269,9 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Fréquence de mise à jour** : résultats de vote nominatif disponibles au plus tard le lendemain de la séance (observé empiriquement, pas de SLA documenté)
 - **Rate limit** : 500 requêtes / 5 minutes par endpoint
 - **Statut** : source à câbler (M24T3 à T7)
+- **Schéma (M24T2)** :
+  - `officials.europarl_id` (varchar 50, unique) — identifiant du député européen sur l'API Open Data, sert de clé de rattachement/déduplication (M24T3)
+  - `mandates.type = 'eurodepute'` — pas d'enum Postgres sur `mandates.type` (varchar libre), cohérent avec `depute`/`senateur`/`maire`
+  - `mandates.legislature` (integer, nullable) — numéro de législature européenne (mandats de 5 ans, ex. 10 pour 2024-2029), non renseigné pour AN/Sénat où les dates suffisent
+  - `affiliations.kind` (varchar 50, défaut `'group'`) — distingue la nature de l'appartenance : `'group'` (comportement historique AN/Sénat, groupe parlementaire), `'national_party'` et `'european_group'` pour les eurodéputés, qui ont les deux simultanément sans que l'un écrase l'autre. Les diffs AN (`affiliations-diff.ts`) filtrent désormais sur `kind = 'group'` pour ne pas clôturer par erreur une ligne d'un autre type appartenant au même élu (cas d'un official cumulant mandat national et européen)
+  - Cumul de mandats national + européen : un seul `official`, plusieurs lignes `mandates` (une par type), pas de champ dédié — la frise des mandats (M15T5) doit gérer le tri par dates comme pour tout autre changement de mandat

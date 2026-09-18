@@ -42,6 +42,7 @@ export async function diffAffiliations(
       .where(
         and(
           eq(affiliations.officialId, official.id),
+          eq(affiliations.kind, 'group'),
           isNull(affiliations.endDate),
         ),
       );

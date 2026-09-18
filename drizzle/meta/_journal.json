@@ -232,6 +232,13 @@
       "when": 1789405303012,
       "tag": "0032_keen_mephistopheles",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1789756300124,
+      "tag": "0033_bumpy_amazoness",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,7 @@ export const officials = pgTable('officials', {
   lastName: varchar('last_name', { length: 255 }).notNull(),
   anId: varchar('an_id', { length: 50 }).unique(),
   senatId: varchar('senat_id', { length: 50 }).unique(),
+  europarlId: varchar('europarl_id', { length: 50 }).unique(),
   birthDate: date('birth_date'),
   photoUrl: varchar('photo_url', { length: 1024 }),
   s3PhotoUrl: varchar('s3_photo_url', { length: 1024 }),
