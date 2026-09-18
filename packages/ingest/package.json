@@ -27,7 +27,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1125.0",
+    "@aws-sdk/client-s3": "^3.1131.0",
     "@elupedia/shared": "*",
     "@neondatabase/serverless": "^1.1.0",
     "drizzle-orm": "^0.45.2",
@@ -36,14 +36,14 @@
     "unzipper": "^0.12.5",
     "winston": "^3.19.0",
     "xlsx": "^0.18.5",
-    "zod": "^4.5.4"
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",
     "@types/sax": "^1.2.7",
     "@types/staticmaps": "^1.12.5",
     "@types/unzipper": "^0",
-    "adm-zip": "^0.6.0",
+    "adm-zip": "^0.6.1",
     "tsx": "^4.23.13",
     "vitest": "^4.1.11"
   }
