@@ -250,3 +250,22 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Cache et robustesse** : cache mémoire de 24 h pour une fiche trouvée, 1 h pour une absence (la couverture de Bursae s'étend), timeout de 2 s. Toute erreur — Bursae injoignable, lent, commune non couverte, réponse inattendue — se traduit par `null` : la fiche élu se rend sans la section, jamais en erreur.
 - **Pages** : fiche élu maire, section « Finances communales » (`#budget`), affichée uniquement si Bursae couvre la commune du mandat en cours. L'iframe est chargée en `loading="lazy"` et rendue par Bursae, qui suit le thème clair/sombre du visiteur.
 - **Limite connue** : la réponse oEmbed ne porte pas l'exercice budgétaire présenté. Elupedia affiche donc une mention générique sur le décalage de 12 à 18 mois des comptes publics, et renvoie à la fiche Bursae pour l'exercice exact (MathRobin/bursae#118).
+
+## Eurodéputés (Parlement européen) — M24T1
+
+- **Source** : Parlement européen — API Open Data v2 (`https://data.europarl.europa.eu/api/v2`)
+- **Format retenu** : **JSON-LD** (`format=application/ld+json`, paramètre de requête — le header `Accept` est ignoré par l'API)
+- **Décision de format (investigation du 18/09/2026)** :
+  - L'API expose la même donnée en RDF/XML (par défaut), Turtle et JSON-LD via le paramètre `format` — JSON-LD est une sérialisation fidèle du même graphe, sans perte de contenu ni de multilinguisme (les champs multilingues restent des dictionnaires par langue dans les trois formats).
+  - CSV n'existe que pour les dumps de métadonnées du catalogue (sessions, réunions), pas pour le contenu métier (députés, votes, questions) — aplatirait les relations (listes de votants, mandats multiples) et perdrait le multilinguisme.
+  - JSON-LD évite d'introduire une dépendance RDF/Turtle/SPARQL dans `packages/ingest` (stack Node/TypeScript pur), sans aucune perte de jeu de données ou de relation par rapport à Turtle/RDF-XML.
+  - Pas d'endpoint SPARQL sur data.europarl.europa.eu (seul le portail générique data.europa.eu en propose un, limité aux métadonnées de catalogue DCAT-AP — inutile ici).
+- **Endpoints utiles** :
+  - `/meps/show-current` — députés en mandat (718 au total dont 81 français à la date de l'investigation)
+  - `/meps?parliamentary-term={n}` — historique par législature (depuis 1979, législature 1 = 551 entrées)
+  - `/meetings/{sitting-id}/vote-results` — votes en plénière, **nominatifs** pour les scrutins électroniques (`VOTE_ELECTRONIC_ROLLCALL` : `had_voter_for`/`had_voter_against`/`had_voter_abstention`) ; seuls les votes à main levée restent agrégés (limite du Parlement lui-même)
+  - `/parliamentary-questions` — questions parlementaires (écrites, orales, interpellations via le champ `work_type`) ; métadonnées structurées uniquement, le texte de la question/réponse est en pièce jointe DOCX/PDF liée (`is_embodied_by`), pas en JSON structuré
+- **Filtrage délégation française** : aucun filtre pays côté API — récupérer la liste complète et filtrer côté client sur `api:country-of-representation == "FR"` (volumétrie gérable en un seul appel)
+- **Fréquence de mise à jour** : résultats de vote nominatif disponibles au plus tard le lendemain de la séance (observé empiriquement, pas de SLA documenté)
+- **Rate limit** : 500 requêtes / 5 minutes par endpoint
+- **Statut** : source à câbler (M24T3 à T7)

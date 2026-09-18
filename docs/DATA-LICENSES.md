@@ -196,24 +196,37 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 - **URL** : https://www.data.gouv.fr
 - **Statut** : source API à câbler
 
+### Parlement européen (data.europarl.europa.eu)
+
+- **Éditeur** : Parlement européen
+- **Licence** : CC BY 4.0 (Attribution 4.0 International)
+- **Obligations** :
+  - Attribution obligatoire : mentionner le Parlement européen comme source
+  - Pas de restriction sur l'usage commercial
+- **URL** : https://data.europarl.europa.eu
+- **Jeux de données utilisés** : API Open Data v2, format JSON-LD (voir [DOMAINS.md](DOMAINS.md#eurodéputés-parlement-européen--m24t1) pour le détail des endpoints)
+- **Limite technique** : 500 requêtes / 5 minutes par endpoint
+- **Statut** : source à câbler (M24T3 à T7)
+
 ## Résumé des obligations
 
-| Source              | Licence             | Attribution | Usage commercial | Statut    |
-| ------------------- | ------------------- | ----------- | ---------------- | --------- |
-| Assemblée nationale | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
-| HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
-| Sénat               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
-| Google Actualités   | RSS public          | N/A         | Titres + liens   | ✅ active |
-| Wikidata/Commons    | CC0 / CC BY-SA      | Non / Oui   | Autorisé         | ✅ active |
-| OpenStreetMap       | ODbL / CC BY-SA 2.0 | Oui         | Autorisé         | ✅ active |
-| API Adresse         | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
-| CNCCFP              | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
-| Conseil constit.    | Domaine Public      | Non         | Autorisé         | ✅ active |
-| INSEE               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
-| data.gouv.fr (élec) | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active |
-| Légion d'honneur    | Données publiques   | Oui         | Non précisé      | ✅ active |
-| MaDada.fr           | Données publiques   | Oui         | Non précisé      | ✅ active |
-| Google Fact Check   | Google APIs ToS     | N/A         | Métadonnées only | ✅ active |
+| Source              | Licence             | Attribution | Usage commercial | Statut      |
+| ------------------- | ------------------- | ----------- | ---------------- | ----------- |
+| Assemblée nationale | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
+| HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
+| Sénat               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
+| Google Actualités   | RSS public          | N/A         | Titres + liens   | ✅ active   |
+| Wikidata/Commons    | CC0 / CC BY-SA      | Non / Oui   | Autorisé         | ✅ active   |
+| OpenStreetMap       | ODbL / CC BY-SA 2.0 | Oui         | Autorisé         | ✅ active   |
+| API Adresse         | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
+| CNCCFP              | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
+| Conseil constit.    | Domaine Public      | Non         | Autorisé         | ✅ active   |
+| INSEE               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
+| data.gouv.fr (élec) | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
+| Légion d'honneur    | Données publiques   | Oui         | Non précisé      | ✅ active   |
+| MaDada.fr           | Données publiques   | Oui         | Non précisé      | ✅ active   |
+| Google Fact Check   | Google APIs ToS     | N/A         | Métadonnées only | ✅ active   |
+| Parlement européen  | CC BY 4.0           | Oui         | Autorisé         | ⏳ à câbler |
 
 ## Licence du code source
 
