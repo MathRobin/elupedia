@@ -224,6 +224,32 @@ describe('upsertMep', () => {
     expect(store.affiliations).toHaveLength(1);
     expect(store.affiliations[0].kind).toBe('european_group');
   });
+
+  it('suffixes the slug when it is already taken by an unrelated homonym', async () => {
+    // Cas réel rencontré en ingestion (M24T3) : un "Philippe Olivier" déjà en
+    // base (né à une autre date, donc pas un candidat de rattachement) porte
+    // déjà le slug "philippe-olivier".
+    const { db, store } = createMockDb([
+      [], // officials by europarl_id
+      [], // candidates by birth date (l'homonyme n'a pas la bonne naissance, absent ici)
+      [{ id: 'homonym-id' }], // uniqueSlug: "marie-toussaint" déjà pris
+      [], // uniqueSlug: "marie-toussaint-1" libre
+      [], // mandates
+      [], // affiliations (european_group)
+      [], // affiliations (national_party)
+      [], // data_provenance
+    ]);
+    const { upsertMep } = await import('./meps.js');
+
+    await upsertMep(db as never, {
+      mep: marieToussaint,
+      detail: marieToussaintDetail,
+      nationalPartyLabel: 'Europe Écologie',
+    });
+
+    expect(store.officials).toHaveLength(1);
+    expect(store.officials[0].slug).toBe('marie-toussaint-1');
+  });
 });
 
 describe('upsertMeps', () => {

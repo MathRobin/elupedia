@@ -117,7 +117,10 @@ export async function fetchMepDetail(
 
   return {
     id: mep.identifier,
-    birthDate: mep.bday ?? null,
+    // L'API renvoie parfois "" plutôt que d'omettre le champ : normalisé en
+    // null dès la source pour ne jamais insérer une chaîne vide dans une
+    // colonne `date` (échec en base sinon).
+    birthDate: mep.bday || null,
     currentParliamentaryMandate: parliamentaryMandate?.memberDuring?.startDate
       ? {
           startDate: parliamentaryMandate.memberDuring.startDate,

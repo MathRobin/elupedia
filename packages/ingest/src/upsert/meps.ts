@@ -19,6 +19,22 @@ function slugify(firstName: string, lastName: string): string {
     .replace(/^-|-$/g, '');
 }
 
+/** Ajoute un suffixe `-1`, `-2`... si le slug de base est déjà pris (homonyme non rattaché, ex. deux "Philippe Olivier" nés à des dates différentes). */
+async function uniqueSlug(db: NeonHttpDatabase, base: string): Promise<string> {
+  let candidate = base;
+  let i = 1;
+  for (;;) {
+    const existing = await db
+      .select({ id: officials.id })
+      .from(officials)
+      .where(eq(officials.slug, candidate))
+      .limit(1);
+    if (existing.length === 0) return candidate;
+    candidate = `${base}-${i}`;
+    i++;
+  }
+}
+
 /** Normalise un nom pour le matching : minuscules, sans accents, espaces/tirets uniformisés. Ne suffit jamais seul (homonymes) — toujours combiné à la date de naissance. */
 export function normalizeName(s: string): string {
   return s
@@ -99,6 +115,7 @@ export async function upsertMep(
         .set({ europarlId: mep.id, updatedAt: new Date() })
         .where(eq(officials.id, officialId));
     } else {
+      const slug = await uniqueSlug(db, slugify(mep.givenName, mep.familyName));
       const [inserted] = await db
         .insert(officials)
         .values({
@@ -106,7 +123,7 @@ export async function upsertMep(
           lastName: mep.familyName,
           europarlId: mep.id,
           birthDate: detail.birthDate,
-          slug: slugify(mep.givenName, mep.familyName),
+          slug,
         })
         .returning();
       officialId = inserted!.id;
