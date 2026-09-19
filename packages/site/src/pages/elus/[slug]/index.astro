@@ -35,6 +35,7 @@ const mandateRows = await db
     s3PhotoUrl: officials.s3PhotoUrl,
     anId: officials.anId,
     senatId: officials.senatId,
+    europarlId: officials.europarlId,
     hatvpStatus: officials.hatvpStatus,
     district: mandates.district,
     department: mandates.department,
@@ -702,14 +703,18 @@ const parliamentSource = deputy.mandateType === 'depute'
   ? { name: 'Assemblée nationale', url: 'https://data.assemblee-nationale.fr' }
   : deputy.mandateType === 'senateur'
     ? { name: 'Sénat', url: 'https://data.senat.fr' }
-    : { name: 'RNE', url: 'https://www.data.gouv.fr/fr/datasets/repertoire-national-des-elus-1/' };
+    : deputy.mandateType === 'eurodepute'
+      ? { name: 'Parlement européen', url: 'https://data.europarl.europa.eu' }
+      : { name: 'RNE', url: 'https://www.data.gouv.fr/fr/datasets/repertoire-national-des-elus-1/' };
 
 const senatSlug = deputy.photoUrl?.match(/senimg\/(.+)_carre\.jpg/)?.[1];
 const nominativeUrl = deputy.mandateType === 'depute' && deputy.anId
   ? `https://www.assemblee-nationale.fr/dyn/deputes/${deputy.anId}`
   : deputy.mandateType === 'senateur' && senatSlug
     ? `https://www.senat.fr/senateur/${senatSlug}.html`
-    : null;
+    : deputy.mandateType === 'eurodepute' && deputy.europarlId
+      ? `https://www.europarl.europa.eu/meps/fr/${deputy.europarlId}`
+      : null;
 
 const contactSource = deputy.mandateType === 'maire'
   ? { name: 'DILA', url: 'https://api-lannuaire.service-public.fr' }
@@ -944,6 +949,17 @@ for (const sp of deputySponsorships) {
           >
             <i class="fa-solid fa-arrow-up-right-from-square h-3.5 w-3.5" aria-hidden="true"></i>
             Sénat
+          </a>
+        )}
+        {deputy.mandateType === 'eurodepute' && deputy.europarlId && (
+          <a
+            href={`https://www.europarl.europa.eu/meps/fr/${deputy.europarlId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors no-underline dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+          >
+            <i class="fa-solid fa-arrow-up-right-from-square h-3.5 w-3.5" aria-hidden="true"></i>
+            Parlement européen
           </a>
         )}
         {wikipediaLink && (
@@ -2072,7 +2088,7 @@ for (const sp of deputySponsorships) {
         const maireOfficialLink = isMaire ? deputyLinks.find((l) => l.platform === 'official_page') : null;
         const cardLinks = deputyLinks.filter((l) => cardPlatforms.has(l.platform));
         const pillLinks = deputyLinks.filter((l) => !cardPlatforms.has(l.platform) && !(maireOfficialLink && l.platform === 'official_page'));
-        const hasInstitutionCard = !!deputy.anId || (deputy.mandateType === 'senateur' && !!deputy.photoUrl) || !!maireOfficialLink;
+        const hasInstitutionCard = !!deputy.anId || (deputy.mandateType === 'senateur' && !!deputy.photoUrl) || (deputy.mandateType === 'eurodepute' && !!deputy.europarlId) || !!maireOfficialLink;
         const hasCards = hasInstitutionCard || cardLinks.length > 0;
         const hasPills = pillLinks.length > 0;
         const hasNothing = !hasCards && !hasPills;
@@ -2135,6 +2151,24 @@ for (const sp of deputySponsorships) {
                     <div class="min-w-0">
                       <p class="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
                         Sénat
+                      </p>
+                      <p class="text-xs text-slate-500 truncate dark:text-slate-400" set:html={`Fiche officielle${externalLinkIcon}`} />
+                    </div>
+                  </a>
+                )}
+                {deputy.mandateType === 'eurodepute' && deputy.europarlId && (
+                  <a
+                    href={`https://www.europarl.europa.eu/meps/fr/${deputy.europarlId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 transition-shadow hover:shadow-md no-underline dark:bg-slate-800 dark:ring-slate-700"
+                  >
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                      <i class="fa-solid fa-building-columns h-5 w-5" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
+                        Parlement européen
                       </p>
                       <p class="text-xs text-slate-500 truncate dark:text-slate-400" set:html={`Fiche officielle${externalLinkIcon}`} />
                     </div>
