@@ -1,0 +1,66 @@
+---
+import type { GlossaryExample } from '../lib/glossary.js';
+
+interface Props {
+  example: GlossaryExample;
+}
+
+const { example } = Astro.props;
+
+const rowColors = [
+  'bg-indigo-500',
+  'bg-rose-500',
+  'bg-amber-500',
+  'bg-emerald-500',
+  'bg-cyan-500',
+];
+---
+
+<div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+  <h3 class="text-base font-semibold text-slate-900 dark:text-white">{example.title}</h3>
+  <p class="text-sm text-slate-500 dark:text-slate-400">{example.subtitle}</p>
+
+  <div class="mt-4 grid grid-cols-3 gap-3">
+    {example.stats.map((s) => (
+      <div class="rounded-xl bg-slate-50 p-3 text-center dark:bg-slate-900/60">
+        <p class="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{s.label}</p>
+        <p class="text-lg font-bold text-slate-900 dark:text-white">{s.value}</p>
+      </div>
+    ))}
+  </div>
+
+  {example.rows && example.rows.length > 0 && (
+    <div class="mt-4 space-y-2.5">
+      {example.rows.map((row, idx) => (
+        <div>
+          <div class="flex items-start justify-between gap-3 text-sm">
+            <span class="flex flex-1 items-start gap-2 min-w-0 font-medium text-slate-800 dark:text-slate-200">
+              <span class={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${rowColors[idx % rowColors.length]}`} aria-hidden="true"></span>
+              <span>
+                {row.label}
+                {row.detail && <span class="block text-xs font-normal text-slate-400">{row.detail}</span>}
+              </span>
+            </span>
+            <span class="shrink-0 text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">{row.value}</span>
+          </div>
+          {typeof row.pct === 'number' && (
+            <div class="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-700">
+              <div class={`h-full rounded-full ${rowColors[idx % rowColors.length]}`} style={`width: ${Math.min(row.pct, 100)}%`}></div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+
+  {example.note && (
+    <p class="mt-4 text-xs italic text-slate-500 dark:text-slate-400">{example.note}</p>
+  )}
+
+  <p class="mt-4 text-xs text-slate-400 dark:text-slate-500">
+    Source :{' '}
+    <a href={example.sourceUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600 dark:hover:text-slate-300">
+      {example.sourceName}
+    </a>
+  </p>
+</div>

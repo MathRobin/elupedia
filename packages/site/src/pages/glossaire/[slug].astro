@@ -1,0 +1,109 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import GlossaryExampleCard from '../../components/GlossaryExampleCard.astro';
+import { glossaryEntries, getGlossaryEntry } from '../../lib/glossary.js';
+
+export function getStaticPaths() {
+  return glossaryEntries.map((e) => ({ params: { slug: e.slug } }));
+}
+
+const { slug } = Astro.params;
+const entry = getGlossaryEntry(slug!);
+
+if (!entry) {
+  return Astro.redirect('/glossaire', 404);
+}
+
+const relatedEntries = (entry.related ?? [])
+  .map((s) => getGlossaryEntry(s))
+  .filter((e): e is NonNullable<typeof e> => Boolean(e));
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://www.elupedia.fr/' },
+    { '@type': 'ListItem', position: 2, name: 'Glossaire', item: 'https://www.elupedia.fr/glossaire' },
+    { '@type': 'ListItem', position: 3, name: entry.term, item: `https://www.elupedia.fr/glossaire/${entry.slug}` },
+  ],
+};
+
+const definedTermJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'DefinedTerm',
+  name: entry.term,
+  description: entry.shortDefinition,
+  inDefinedTermSet: 'https://www.elupedia.fr/glossaire',
+  url: `https://www.elupedia.fr/glossaire/${entry.slug}`,
+};
+---
+
+<BaseLayout
+  title={entry.term}
+  description={entry.shortDefinition}
+  jsonLd={breadcrumbJsonLd}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(definedTermJsonLd)} />
+  </Fragment>
+
+  <nav aria-label="Fil d'Ariane" class="mb-6 text-sm text-slate-500 dark:text-slate-400">
+    <a href="/glossaire" class="hover:text-indigo-600 dark:hover:text-indigo-400 no-underline">Glossaire</a>
+    <span class="mx-1.5" aria-hidden="true">/</span>
+    <span class="text-slate-700 dark:text-slate-300">{entry.term}</span>
+  </nav>
+
+  <div class="max-w-3xl">
+    <span class="inline-block rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+      {entry.category}
+    </span>
+    <h1 class="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+      {entry.term}
+    </h1>
+    <p class="mt-4 text-lg text-slate-600 dark:text-slate-400">{entry.intro}</p>
+
+    {entry.sections.map((section) => (
+      <section class="mt-8">
+        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{section.heading}</h2>
+        <div class="mt-3 space-y-3">
+          {section.paragraphs.map((p) => (
+            <p class="text-slate-700 dark:text-slate-300 leading-relaxed">{p}</p>
+          ))}
+        </div>
+      </section>
+    ))}
+  </div>
+
+  <section class="mt-10 max-w-3xl">
+    <h2 class="text-xl font-semibold text-slate-900 dark:text-white">Exemples réels</h2>
+    <div class="mt-4 grid gap-5 sm:grid-cols-2">
+      <GlossaryExampleCard example={entry.examples[0]} />
+      <GlossaryExampleCard example={entry.examples[1]} />
+    </div>
+  </section>
+
+  {relatedEntries.length > 0 && (
+    <section class="mt-10 max-w-3xl border-t border-slate-200 pt-8 dark:border-slate-700">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        À voir aussi
+      </h2>
+      <div class="mt-3 flex flex-wrap gap-3">
+        {relatedEntries.map((r) => (
+          <a
+            href={`/glossaire/${r.slug}`}
+            class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 no-underline transition-colors hover:border-indigo-300 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+          >
+            {r.term}
+            <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <p class="mt-10 max-w-3xl text-sm text-slate-500 dark:text-slate-400">
+    <a href="/glossaire" class="text-indigo-600 hover:text-indigo-700 no-underline dark:text-indigo-400">
+      ← Retour au glossaire
+    </a>
+  </p>
+</BaseLayout>

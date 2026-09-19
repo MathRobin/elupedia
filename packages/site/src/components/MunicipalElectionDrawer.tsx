@@ -205,13 +205,26 @@ function DrawerContent({
               />
               <p>
                 Commune de moins de 1&nbsp;000 habitants : le scrutin est un{' '}
-                <strong>panachage</strong>, pas un vote de liste. Chaque
-                électeur choisit librement des candidats individuels, jusqu'à
-                autant de noms que de sièges à pourvoir, y compris en mélangeant
-                plusieurs listes. Les scores de chaque candidat sont donc
-                indépendants les uns des autres et ne s'additionnent pas à
-                100&nbsp;% — il est normal que plusieurs candidats affichent un
-                score élevé et proche les uns des autres.
+                <strong>panachage</strong>
+                <a
+                  href="/glossaire/panachage"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Voir la définition dans le glossaire"
+                  aria-label="Voir la définition de panachage dans le glossaire"
+                  className="mx-1 inline-flex align-middle text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                  <i
+                    className="fa-solid fa-circle-question"
+                    aria-hidden="true"
+                  />
+                </a>
+                , pas un vote de liste. Chaque électeur choisit librement des
+                candidats individuels, jusqu'à autant de noms que de sièges à
+                pourvoir, y compris en mélangeant plusieurs listes. Les scores
+                de chaque candidat sont donc indépendants les uns des autres et
+                ne s'additionnent pas à 100&nbsp;% — il est normal que plusieurs
+                candidats affichent un score élevé et proche les uns des autres.
               </p>
             </div>
           )}
