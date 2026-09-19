@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import seatPositions from '../lib/hemicycle-seats.json';
+import { generateHemicycleSeats } from '../lib/generate-hemicycle-seats.js';
 
 type VotePosition = 'for' | 'against' | 'abstain' | 'absent';
 
@@ -91,10 +92,11 @@ export default function HemicycleChart({ seats }: Props) {
       return placed;
     }
 
+    const generic = generateHemicycleSeats(seats.length);
     return seats.map((seat, i) => ({
       seat,
-      x: allCoords[i % allCoords.length][0],
-      y: allCoords[i % allCoords.length][1],
+      x: generic[i][0],
+      y: generic[i][1],
     }));
   }, [seats, hasSeatData]);
 
