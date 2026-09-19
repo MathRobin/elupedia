@@ -1,4 +1,5 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
+import { sql } from 'drizzle-orm';
 import {
   officials,
   municipalElections,
@@ -6,6 +7,16 @@ import {
 } from '@elupedia/shared';
 import type { MunicipalGeneralResult } from '../sources/municipal-elections.js';
 import { logger } from '../logger.js';
+
+const CANDIDATE_CHUNK_SIZE = 500;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
 
 function normalize(s: string): string {
   return s
@@ -48,10 +59,10 @@ export async function upsertMunicipalElections(
       logger.info(`  Processing batch ${batchNum}/${totalBatches}`);
     }
 
-    for (const r of batch) {
-      const [election] = await db
-        .insert(municipalElections)
-        .values({
+    const insertedElections = await db
+      .insert(municipalElections)
+      .values(
+        batch.map((r) => ({
           electionId: r.electionId,
           communeCode: r.communeCode,
           communeName: r.communeName,
@@ -63,70 +74,85 @@ export async function upsertMunicipalElections(
           blancs: r.blancs,
           nuls: r.nuls,
           exprimes: r.exprimes,
-        })
-        .onConflictDoUpdate({
-          target: [
-            municipalElections.electionId,
-            municipalElections.communeCode,
-          ],
-          set: {
-            communeName: r.communeName,
-            round: r.round,
-            electionDate: r.electionDate,
-            inscrits: r.inscrits,
-            abstentions: r.abstentions,
-            votants: r.votants,
-            blancs: r.blancs,
-            nuls: r.nuls,
-            exprimes: r.exprimes,
-            updatedAt: new Date(),
-          },
-        })
-        .returning({ id: municipalElections.id });
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [municipalElections.electionId, municipalElections.communeCode],
+        set: {
+          communeName: sql`excluded.commune_name`,
+          round: sql`excluded.round`,
+          electionDate: sql`excluded.election_date`,
+          inscrits: sql`excluded.inscrits`,
+          abstentions: sql`excluded.abstentions`,
+          votants: sql`excluded.votants`,
+          blancs: sql`excluded.blancs`,
+          nuls: sql`excluded.nuls`,
+          exprimes: sql`excluded.exprimes`,
+          updatedAt: new Date(),
+        },
+      })
+      .returning({
+        id: municipalElections.id,
+        electionId: municipalElections.electionId,
+        communeCode: municipalElections.communeCode,
+      });
 
-      summary.elections++;
+    summary.elections += insertedElections.length;
+
+    const electionIdByKey = new Map<string, string>();
+    for (const e of insertedElections) {
+      electionIdByKey.set(`${e.electionId}|${e.communeCode}`, e.id);
+    }
+
+    const candidateRows: (typeof municipalCandidates.$inferInsert)[] = [];
+    for (const r of batch) {
+      const electionId = electionIdByKey.get(
+        `${r.electionId}|${r.communeCode}`,
+      );
+      if (!electionId) continue;
 
       for (const c of r.candidates) {
         const officialKey = `${normalize(c.nom)}|${normalize(c.prenom)}`;
         const officialId = officialByName.get(officialKey) ?? null;
         if (officialId) summary.matched++;
 
-        await db
-          .insert(municipalCandidates)
-          .values({
-            electionId: election.id,
-            panneau: c.panneau,
-            nom: c.nom,
-            prenom: c.prenom,
-            sexe: c.sexe,
-            nuance: c.nuance,
-            liste: c.liste,
-            voix: c.voix,
-            ratioInscrits: c.ratioInscrits,
-            ratioExprimes: c.ratioExprimes,
-            officialId,
-          })
-          .onConflictDoUpdate({
-            target: [
-              municipalCandidates.electionId,
-              municipalCandidates.panneau,
-            ],
-            set: {
-              nom: c.nom,
-              prenom: c.prenom,
-              sexe: c.sexe,
-              nuance: c.nuance,
-              liste: c.liste,
-              voix: c.voix,
-              ratioInscrits: c.ratioInscrits,
-              ratioExprimes: c.ratioExprimes,
-              officialId,
-              updatedAt: new Date(),
-            },
-          });
-
-        summary.candidates++;
+        candidateRows.push({
+          electionId,
+          panneau: c.panneau,
+          nom: c.nom,
+          prenom: c.prenom,
+          sexe: c.sexe,
+          nuance: c.nuance,
+          liste: c.liste,
+          voix: c.voix,
+          ratioInscrits: c.ratioInscrits,
+          ratioExprimes: c.ratioExprimes,
+          officialId,
+        });
       }
+    }
+
+    for (const candidateChunk of chunk(candidateRows, CANDIDATE_CHUNK_SIZE)) {
+      if (candidateChunk.length === 0) continue;
+      await db
+        .insert(municipalCandidates)
+        .values(candidateChunk)
+        .onConflictDoUpdate({
+          target: [municipalCandidates.electionId, municipalCandidates.panneau],
+          set: {
+            nom: sql`excluded.nom`,
+            prenom: sql`excluded.prenom`,
+            sexe: sql`excluded.sexe`,
+            nuance: sql`excluded.nuance`,
+            liste: sql`excluded.liste`,
+            voix: sql`excluded.voix`,
+            ratioInscrits: sql`excluded.ratio_inscrits`,
+            ratioExprimes: sql`excluded.ratio_exprimes`,
+            officialId: sql`excluded.official_id`,
+            updatedAt: new Date(),
+          },
+        });
+      summary.candidates += candidateChunk.length;
     }
   }
 
