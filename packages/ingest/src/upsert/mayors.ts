@@ -12,6 +12,17 @@ import {
 const BATCH_SIZE = 200;
 const CHECKPOINT_NAME = 'upsert-mayors';
 
+function isUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  if ('code' in error && (error as { code?: unknown }).code === '23505') {
+    return true;
+  }
+  if ('cause' in error) {
+    return isUniqueViolation((error as { cause?: unknown }).cause);
+  }
+  return false;
+}
+
 function slugify(firstName: string, lastName: string): string {
   return `${firstName}-${lastName}`
     .normalize('NFD')
@@ -167,34 +178,58 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
         .limit(1);
 
       if (existingMandate.length === 0) {
-        const [inserted] = await db
-          .insert(mandates)
-          .values({
+        try {
+          const [inserted] = await db
+            .insert(mandates)
+            .values({
+              officialId: official.id,
+              type: 'maire',
+              district: maire.communeName,
+              department: maire.departmentName,
+              startDate: maire.mandateStartDate || maire.functionStartDate,
+              communeCode: maire.communeCode,
+            })
+            .returning({ id: mandates.id });
+          activeMandatesByCommune.set(maire.communeCode, {
+            id: inserted!.id,
             officialId: official.id,
-            type: 'maire',
-            district: maire.communeName,
-            department: maire.departmentName,
-            startDate: maire.mandateStartDate || maire.functionStartDate,
-            communeCode: maire.communeCode,
-          })
-          .returning({ id: mandates.id });
-        activeMandatesByCommune.set(maire.communeCode, {
-          id: inserted!.id,
-          officialId: official.id,
-        });
-        summary.mandates++;
+          });
+          summary.mandates++;
+        } catch (error) {
+          if (isUniqueViolation(error)) {
+            logger.warn(
+              `  Skipping mandate for ${maire.firstName} ${maire.lastName} (${maire.communeName}, ${maire.communeCode}): ` +
+                `official already has a "maire" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
+            );
+            summary.skipped++;
+          } else {
+            throw error;
+          }
+        }
       } else {
-        await db
-          .update(mandates)
-          .set({
-            district: maire.communeName,
-            department: maire.departmentName,
-            startDate: maire.mandateStartDate || maire.functionStartDate,
-            endDate: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(mandates.id, existingMandate[0].id));
-        summary.mandates++;
+        try {
+          await db
+            .update(mandates)
+            .set({
+              district: maire.communeName,
+              department: maire.departmentName,
+              startDate: maire.mandateStartDate || maire.functionStartDate,
+              endDate: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(mandates.id, existingMandate[0].id));
+          summary.mandates++;
+        } catch (error) {
+          if (isUniqueViolation(error)) {
+            logger.warn(
+              `  Skipping mandate update for ${maire.firstName} ${maire.lastName} (${maire.communeName}, ${maire.communeCode}): ` +
+                `official already has a "maire" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
+            );
+            summary.skipped++;
+          } else {
+            throw error;
+          }
+        }
       }
     }
 
