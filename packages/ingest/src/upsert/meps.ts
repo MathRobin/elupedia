@@ -9,6 +9,11 @@ import { logger } from '../logger.js';
 const SOURCE_NAME = 'Parlement européen - Open Data API';
 const LEGAL_BASIS = 'Licence CC BY 4.0 - data.europarl.europa.eu';
 
+/** Photo officielle : URL stable, pas d'authentification requise. */
+function mepPhotoUrl(europarlId: string): string {
+  return `https://www.europarl.europa.eu/mepphoto/${europarlId}.jpg`;
+}
+
 function slugify(firstName: string, lastName: string): string {
   return `${firstName}-${lastName}`
     .normalize('NFD')
@@ -86,6 +91,7 @@ export async function upsertMep(
       .update(officials)
       .set({
         birthDate: detail.birthDate ?? existingByEuroparlId[0].birthDate,
+        photoUrl: existingByEuroparlId[0].photoUrl ?? mepPhotoUrl(mep.id),
         updatedAt: new Date(),
       })
       .where(eq(officials.id, officialId));
@@ -112,7 +118,11 @@ export async function upsertMep(
       officialId = match.id;
       await db
         .update(officials)
-        .set({ europarlId: mep.id, updatedAt: new Date() })
+        .set({
+          europarlId: mep.id,
+          photoUrl: match.photoUrl ?? mepPhotoUrl(mep.id),
+          updatedAt: new Date(),
+        })
         .where(eq(officials.id, officialId));
     } else {
       const slug = await uniqueSlug(db, slugify(mep.givenName, mep.familyName));
@@ -123,6 +133,7 @@ export async function upsertMep(
           lastName: mep.familyName,
           europarlId: mep.id,
           birthDate: detail.birthDate,
+          photoUrl: mepPhotoUrl(mep.id),
           slug,
         })
         .returning();
