@@ -55,6 +55,18 @@ function electionLabel(electionId: string): string {
   return `Municipales ${year}`;
 }
 
+// En dessous de 1000 habitants, le scrutin municipal est plurinominal
+// majoritaire avec panachage : chaque électeur vote pour des candidats
+// individuels (pas pour une liste bloquée), jusqu'à concurrence du nombre
+// de sièges à pourvoir. Les scores par candidat sont donc indépendants les
+// uns des autres et ne s'additionnent pas à 100 % — l'absence de "liste"
+// dans les données officielles est le signal de ce mode de scrutin.
+function isPanachage(election: Election): boolean {
+  return (
+    election.candidates.length > 0 && election.candidates.every((c) => !c.liste)
+  );
+}
+
 const candidateColors = [
   'bg-indigo-500',
   'bg-rose-500',
@@ -184,6 +196,25 @@ function DrawerContent({
               </p>
             </div>
           </div>
+
+          {isPanachage(election) && (
+            <div className="flex gap-2.5 rounded-xl border border-indigo-200 bg-indigo-50 p-3.5 text-sm text-indigo-900 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200">
+              <i
+                className="fa-solid fa-circle-info mt-0.5 shrink-0 text-indigo-500 dark:text-indigo-400"
+                aria-hidden="true"
+              />
+              <p>
+                Commune de moins de 1&nbsp;000 habitants : le scrutin est un{' '}
+                <strong>panachage</strong>, pas un vote de liste. Chaque
+                électeur choisit librement des candidats individuels, jusqu'à
+                autant de noms que de sièges à pourvoir, y compris en mélangeant
+                plusieurs listes. Les scores de chaque candidat sont donc
+                indépendants les uns des autres et ne s'additionnent pas à
+                100&nbsp;% — il est normal que plusieurs candidats affichent un
+                score élevé et proche les uns des autres.
+              </p>
+            </div>
+          )}
 
           <div>
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
