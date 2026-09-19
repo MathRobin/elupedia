@@ -1,8 +1,33 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { officials, affiliations } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { officials, affiliations, mandates } from '@elupedia/shared';
+import { eq, and, sql } from 'drizzle-orm';
 import type { SenatAffiliation } from '../sources/senat-groupes.js';
 import { logger } from '../logger.js';
+
+/**
+ * Le mandat sénateur en cours ne porte aucun groupe politique à sa création
+ * (contrairement au mandat député, cf. upsert/officials.ts) : le Sénat expose
+ * le groupe séparément, via l'historique des appartenances (ODSEN_HISTOGROUPES).
+ * On recopie donc ici le groupe actif sur le mandat sénateur actif, pour que
+ * les pages qui lisent mandates.politicalGroup (fiche élu, scrutins, annuaire)
+ * l'affichent correctement.
+ */
+async function syncActiveMandatePoliticalGroups(
+  db: NeonHttpDatabase,
+): Promise<number> {
+  const result = await db.execute(sql`
+    UPDATE ${mandates} AS m
+    SET political_group = a.party_or_group, updated_at = now()
+    FROM ${affiliations} AS a
+    WHERE m.official_id = a.official_id
+      AND a.kind = 'group'
+      AND a.end_date IS NULL
+      AND m.type = 'senateur'
+      AND m.end_date IS NULL
+      AND m.political_group IS DISTINCT FROM a.party_or_group
+  `);
+  return result.rowCount ?? 0;
+}
 
 export async function upsertSenatAffiliations(
   db: NeonHttpDatabase,
@@ -55,8 +80,10 @@ export async function upsertSenatAffiliations(
     }
   }
 
+  const mandatesSynced = await syncActiveMandatePoliticalGroups(db);
+
   logger.info(
-    `Senate affiliations: ${summary.created} created, ${summary.updated} updated`,
+    `Senate affiliations: ${summary.created} created, ${summary.updated} updated, ${mandatesSynced} active mandate(s) synced with their group`,
   );
   return summary;
 }
