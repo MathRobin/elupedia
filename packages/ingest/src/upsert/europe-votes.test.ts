@@ -182,9 +182,13 @@ describe('upsertEuropeVotes', () => {
     const { upsertEuropeVotes } = await import('./europe-votes.js');
     const fetchDecisions = vi.fn().mockResolvedValue([]);
 
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
     const recentSitting: PlenarySitting = {
-      id: 'MTG-PL-2026-09-17',
-      date: '2026-09-17',
+      id: `MTG-PL-${yesterdayStr}`,
+      date: yesterdayStr,
     };
 
     await upsertEuropeVotes(db as never, [recentSitting], fetchDecisions);
