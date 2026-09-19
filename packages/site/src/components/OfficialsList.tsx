@@ -592,7 +592,9 @@ export default function OfficialsList({
                           ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                           : d.mandateType === 'senateur'
                             ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            : d.mandateType === 'eurodepute'
+                              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                       }`}
                     >
                       {d.mandateType === 'depute'
@@ -603,9 +605,13 @@ export default function OfficialsList({
                           ? d.isFemale
                             ? 'Sénatrice'
                             : 'Sénateur'
-                          : d.isFemale
-                            ? 'Mairesse'
-                            : 'Maire'}
+                          : d.mandateType === 'eurodepute'
+                            ? d.isFemale
+                              ? 'Députée européenne'
+                              : 'Député européen'
+                            : d.isFemale
+                              ? 'Mairesse'
+                              : 'Maire'}
                     </span>
                   </div>
                   <div className="min-w-0">

@@ -502,6 +502,7 @@ const mandateTypeLabels: Record<string, string> = {
   senateur: 'Sénateur',
   maire: 'Maire',
   president: 'Président',
+  eurodepute: 'Député·e européen·ne',
 };
 
 type InterestGroup = { category: string; label: string; items: Interest[] };
@@ -526,7 +527,7 @@ if (ungroupedInterests.length > 0) {
 
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
 const photo = deputy.s3PhotoUrl ?? deputy.photoUrl;
-const mandateLabel = mandateTypeLabels[deputy.mandateType] ?? deputy.mandateType;
+let mandateLabel = mandateTypeLabels[deputy.mandateType] ?? deputy.mandateType;
 
 const sameAs = deputyLinks
   .map((l) => l.url)
@@ -573,6 +574,10 @@ const birthPlace = (
 const gender = honorificPrefix === 'Mme' ? 'Female'
   : honorificPrefix === 'M.' ? 'Male'
   : undefined;
+
+if (deputy.mandateType === 'eurodepute' && gender) {
+  mandateLabel = gender === 'Female' ? 'Députée européenne' : 'Député européen';
+}
 
 const memberOfEntries: Record<string, unknown>[] = [];
 if (deputy.politicalGroup) {
