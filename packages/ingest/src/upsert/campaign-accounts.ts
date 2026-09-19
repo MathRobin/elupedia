@@ -1,8 +1,18 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
+import { sql, inArray, eq } from 'drizzle-orm';
 import { officials, mandates, campaignAccounts } from '@elupedia/shared';
-import { eq } from 'drizzle-orm';
 import type { CnccfpRow, CnccfpElection } from '../sources/cnccfp.js';
 import { logger } from '../logger.js';
+
+const BATCH_SIZE = 200;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
 
 function normalize(s: string): string {
   return s
@@ -110,17 +120,17 @@ export async function upsertCampaignAccounts(
   let updated = 0;
   const skipped = 0;
 
-  for (const row of rows) {
-    const officialId = matchOfficial(row, lookup);
-
-    const existing = await db
-      .select({ id: campaignAccounts.id })
+  for (const batch of chunk(rows, BATCH_SIZE)) {
+    const batchIds = batch.map((r) => r.cnccfpId);
+    const preExisting = await db
+      .select({ cnccfpId: campaignAccounts.cnccfpId })
       .from(campaignAccounts)
-      .where(eq(campaignAccounts.cnccfpId, row.cnccfpId))
-      .limit(1);
+      .where(inArray(campaignAccounts.cnccfpId, batchIds));
+    const preExistingIds = new Set(preExisting.map((r) => r.cnccfpId));
 
-    const values = {
-      officialId,
+    const values = batch.map((row) => ({
+      cnccfpId: row.cnccfpId,
+      officialId: matchOfficial(row, lookup),
       candidateName: row.candidateName,
       electionType: election.id,
       electionDate: election.date,
@@ -140,21 +150,44 @@ export async function upsertCampaignAccounts(
       partyContributionsRetained: row.partyContributionsRetained,
       reimbursement: row.reimbursement,
       decision: row.decision,
-      updatedAt: new Date(),
-    };
+    }));
 
-    if (existing.length > 0) {
-      await db
-        .update(campaignAccounts)
-        .set(values)
-        .where(eq(campaignAccounts.id, existing[0].id));
-      updated++;
-    } else {
-      await db.insert(campaignAccounts).values({
-        cnccfpId: row.cnccfpId,
-        ...values,
+    await db
+      .insert(campaignAccounts)
+      .values(values)
+      .onConflictDoUpdate({
+        target: campaignAccounts.cnccfpId,
+        set: {
+          officialId: sql`excluded.official_id`,
+          candidateName: sql`excluded.candidate_name`,
+          electionType: sql`excluded.election_type`,
+          electionDate: sql`excluded.election_date`,
+          constituency: sql`excluded.constituency`,
+          department: sql`excluded.department`,
+          departmentCode: sql`excluded.department_code`,
+          politicalLabel: sql`excluded.political_label`,
+          expensesDeclared: sql`excluded.expenses_declared`,
+          expensesRetained: sql`excluded.expenses_retained`,
+          revenueDeclared: sql`excluded.revenue_declared`,
+          revenueRetained: sql`excluded.revenue_retained`,
+          donationsDeclared: sql`excluded.donations_declared`,
+          donationsRetained: sql`excluded.donations_retained`,
+          personalContributionDeclared: sql`excluded.personal_contribution_declared`,
+          personalContributionRetained: sql`excluded.personal_contribution_retained`,
+          partyContributionsDeclared: sql`excluded.party_contributions_declared`,
+          partyContributionsRetained: sql`excluded.party_contributions_retained`,
+          reimbursement: sql`excluded.reimbursement`,
+          decision: sql`excluded.decision`,
+          updatedAt: new Date(),
+        },
       });
-      created++;
+
+    for (const row of batch) {
+      if (preExistingIds.has(row.cnccfpId)) {
+        updated++;
+      } else {
+        created++;
+      }
     }
   }
 

@@ -3,11 +3,19 @@ import { officials, interests } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { Declaration } from '../sources/hatvp.js';
 import { logger } from '../logger.js';
-import { writeProvenance } from './provenance.js';
+import { writeProvenanceBatch } from './provenance.js';
 
 const SOURCE_NAME = "HATVP - Déclarations d'intérêts";
 const LEGAL_BASIS =
   "Déclaration d'intérêts et d'activités (loi n°2013-907 du 11 octobre 2013 relative à la transparence de la vie publique)";
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
 
 async function buildOfficialCache(
   db: NeonHttpDatabase,
@@ -30,20 +38,13 @@ async function buildOfficialCache(
 
 async function buildExistingInterestsCache(
   db: NeonHttpDatabase,
-): Promise<Map<string, string>> {
-  const rows = await db
-    .select({
-      id: interests.id,
-      officialId: interests.officialId,
-      entityName: interests.entityName,
-      type: interests.type,
-    })
-    .from(interests);
+): Promise<Map<string, typeof interests.$inferSelect>> {
+  const rows = await db.select().from(interests);
 
-  const cache = new Map<string, string>();
+  const cache = new Map<string, typeof interests.$inferSelect>();
   for (const row of rows) {
     const key = `${row.officialId}|${row.entityName}|${row.type}`;
-    cache.set(key, row.id);
+    cache.set(key, row);
   }
   return cache;
 }
@@ -68,6 +69,9 @@ export async function upsertInterests(
 
   const t2 = Date.now();
 
+  const newInterestRows: (typeof interests.$inferInsert)[] = [];
+  const provenanceItems: Parameters<typeof writeProvenanceBatch>[1] = [];
+
   for (const decl of declarations) {
     const cacheKey = `${decl.nom.toUpperCase()}|${decl.prenom.toUpperCase()}`;
     const officialId = officialCache.get(cacheKey);
@@ -75,10 +79,10 @@ export async function upsertInterests(
 
     for (const item of decl.interests) {
       const interestKey = `${officialId}|${item.entity_name}|${item.type}`;
-      const existingId = existingCache.get(interestKey);
+      const existing = existingCache.get(interestKey);
 
-      if (!existingId) {
-        await db.insert(interests).values({
+      if (!existing) {
+        newInterestRows.push({
           officialId,
           category: item.category,
           type: item.type,
@@ -96,7 +100,19 @@ export async function upsertInterests(
           amountIsNet: item.amount_is_net ?? null,
         });
         summary.created++;
-      } else {
+      } else if (
+        existing.category !== item.category ||
+        existing.roleDescription !== (item.role_description ?? null) ||
+        existing.declaredDate !== item.declared_date ||
+        existing.startDate !== (item.start_date ?? null) ||
+        existing.endDate !== (item.end_date ?? null) ||
+        existing.declarantComment !== (item.declarant_comment ?? null) ||
+        existing.sourceDocumentUrl !== (item.source_document_url ?? null) ||
+        existing.ownershipDetail !== (item.ownership_detail ?? null) ||
+        existing.annualAmount !== (item.annual_amount ?? null) ||
+        existing.amountYear !== (item.amount_year ?? null) ||
+        existing.amountIsNet !== (item.amount_is_net ?? null)
+      ) {
         await db
           .update(interests)
           .set({
@@ -114,11 +130,11 @@ export async function upsertInterests(
             amountIsNet: item.amount_is_net ?? null,
             updatedAt: new Date(),
           })
-          .where(eq(interests.id, existingId));
+          .where(eq(interests.id, existing.id));
         summary.updated++;
       }
 
-      await writeProvenance(db, {
+      provenanceItems.push({
         sourceTable: 'interests',
         sourceRecordId: `${officialId}:${item.type}:${item.entity_name}`,
         sourceName: SOURCE_NAME,
@@ -128,6 +144,12 @@ export async function upsertInterests(
       });
     }
   }
+
+  for (const rowChunk of chunk(newInterestRows, 500)) {
+    await db.insert(interests).values(rowChunk);
+  }
+
+  await writeProvenanceBatch(db, provenanceItems);
 
   const durationMs = Date.now() - t2;
   logger.info(

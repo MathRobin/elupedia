@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { mandates, addresses, externalLinks } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import type { MairieData } from '../sources/dila-mairies.js';
 import { logger } from '../logger.js';
 import {
@@ -11,6 +11,14 @@ import {
 
 const BATCH_SIZE = 200;
 const CHECKPOINT_NAME = 'upsert-mayor-addresses';
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
 
 export async function upsertMayorAddresses(
   db: NeonHttpDatabase,
@@ -58,26 +66,58 @@ export async function upsertMayorAddresses(
       `  Processing batch ${batchNum}/${totalBatches} (${batch.length} mairies)`,
     );
 
+    const batchOfficialIds: string[] = [];
     for (const mairie of batch) {
       const officialId = officialByCommune.get(mairie.communeCode);
       if (!officialId) {
         summary.skipped++;
         continue;
       }
+      batchOfficialIds.push(officialId);
+    }
 
-      const existing = await db
-        .select({ id: addresses.id })
-        .from(addresses)
-        .where(
-          and(
-            eq(addresses.officialId, officialId),
-            eq(addresses.type, 'town_hall'),
-          ),
-        )
-        .limit(1);
+    const existingAddresses = batchOfficialIds.length
+      ? await db
+          .select()
+          .from(addresses)
+          .where(
+            and(
+              inArray(addresses.officialId, batchOfficialIds),
+              eq(addresses.type, 'town_hall'),
+            ),
+          )
+      : [];
+    const addressByOfficialId = new Map(
+      existingAddresses.map((a) => [a.officialId, a]),
+    );
 
-      if (existing.length === 0) {
-        await db.insert(addresses).values({
+    const existingLinks = batchOfficialIds.length
+      ? await db
+          .select()
+          .from(externalLinks)
+          .where(
+            and(
+              inArray(externalLinks.officialId, batchOfficialIds),
+              eq(externalLinks.platform, 'official_page'),
+            ),
+          )
+      : [];
+    const linkByOfficialId = new Map(
+      existingLinks.map((l) => [l.officialId, l]),
+    );
+
+    const newAddressRows: (typeof addresses.$inferInsert)[] = [];
+    const newLinkRows: (typeof externalLinks.$inferInsert)[] = [];
+    const today = new Date().toISOString().slice(0, 10);
+
+    for (const mairie of batch) {
+      const officialId = officialByCommune.get(mairie.communeCode);
+      if (!officialId) continue;
+
+      const existingAddress = addressByOfficialId.get(officialId);
+
+      if (!existingAddress) {
+        newAddressRows.push({
           officialId,
           type: 'town_hall',
           street: mairie.street || null,
@@ -87,7 +127,13 @@ export async function upsertMayorAddresses(
           email: mairie.email ?? null,
         });
         summary.created++;
-      } else {
+      } else if (
+        existingAddress.street !== (mairie.street || null) ||
+        existingAddress.postalCode !== (mairie.postalCode || null) ||
+        existingAddress.city !== (mairie.city || null) ||
+        existingAddress.phone !== (mairie.phone ?? null) ||
+        existingAddress.email !== (mairie.email ?? null)
+      ) {
         await db
           .update(addresses)
           .set({
@@ -98,44 +144,42 @@ export async function upsertMayorAddresses(
             email: mairie.email ?? null,
             updatedAt: new Date(),
           })
-          .where(eq(addresses.id, existing[0].id));
+          .where(eq(addresses.id, existingAddress.id));
         summary.updated++;
       }
 
       if (mairie.website) {
-        const existingLink = await db
-          .select({ id: externalLinks.id, url: externalLinks.url })
-          .from(externalLinks)
-          .where(
-            and(
-              eq(externalLinks.officialId, officialId),
-              eq(externalLinks.platform, 'official_page'),
-            ),
-          )
-          .limit(1);
+        const existingLink = linkByOfficialId.get(officialId);
 
-        if (existingLink.length === 0) {
-          await db.insert(externalLinks).values({
+        if (!existingLink) {
+          newLinkRows.push({
             officialId,
             platform: 'official_page',
             url: mairie.website,
             status: 'published',
             source: 'official',
-            capturedAt: new Date().toISOString().slice(0, 10),
+            capturedAt: today,
           });
           summary.websites++;
-        } else if (existingLink[0].url !== mairie.website) {
+        } else if (existingLink.url !== mairie.website) {
           await db
             .update(externalLinks)
             .set({
               url: mairie.website,
-              capturedAt: new Date().toISOString().slice(0, 10),
+              capturedAt: today,
               updatedAt: new Date(),
             })
-            .where(eq(externalLinks.id, existingLink[0].id));
+            .where(eq(externalLinks.id, existingLink.id));
           summary.websites++;
         }
       }
+    }
+
+    for (const rowChunk of chunk(newAddressRows, 500)) {
+      await db.insert(addresses).values(rowChunk);
+    }
+    for (const rowChunk of chunk(newLinkRows, 500)) {
+      await db.insert(externalLinks).values(rowChunk);
     }
 
     saveCheckpoint(CHECKPOINT_NAME, batch[batch.length - 1].communeCode);

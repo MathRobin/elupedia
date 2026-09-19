@@ -1,8 +1,18 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, parliamentaryActivity } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { SenateurActivity } from '../sources/senat-activite.js';
 import { logger } from '../logger.js';
+
+const INSERT_CHUNK_SIZE = 500;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
 
 export async function upsertSenatParliamentaryActivity(
   db: NeonHttpDatabase,
@@ -32,22 +42,23 @@ export async function upsertSenatParliamentaryActivity(
       continue;
     }
 
-    for (const item of senateur.activities) {
-      const existing = await db
-        .select({ id: parliamentaryActivity.id })
-        .from(parliamentaryActivity)
-        .where(
-          and(
-            eq(parliamentaryActivity.officialId, officialId),
-            eq(parliamentaryActivity.type, item.type),
-            eq(parliamentaryActivity.title, item.title),
-            eq(parliamentaryActivity.date, item.date),
-          ),
-        )
-        .limit(1);
+    const existingActivities = await db
+      .select()
+      .from(parliamentaryActivity)
+      .where(eq(parliamentaryActivity.officialId, officialId));
 
-      if (existing.length === 0) {
-        await db.insert(parliamentaryActivity).values({
+    const existingByKey = new Map(
+      existingActivities.map((a) => [`${a.type}|${a.title}|${a.date}`, a]),
+    );
+
+    const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
+
+    for (const item of senateur.activities) {
+      const key = `${item.type}|${item.title}|${item.date}`;
+      const existing = existingByKey.get(key);
+
+      if (!existing) {
+        newRows.push({
           officialId,
           type: item.type,
           title: item.title,
@@ -62,8 +73,17 @@ export async function upsertSenatParliamentaryActivity(
           teteAnalyse: item.teteAnalyse ?? null,
           questionNumber: item.questionNumber ?? null,
         });
-        summary.created++;
-      } else {
+      } else if (
+        existing.status !== (item.status ?? null) ||
+        existing.questionText !== (item.questionText ?? null) ||
+        existing.responseText !== (item.responseText ?? null) ||
+        existing.responseDate !== (item.responseDate ?? null) ||
+        existing.governmentComments !== (item.ministry ?? null) ||
+        existing.sourceUrl !== (item.sourceUrl ?? null) ||
+        existing.rubrique !== (item.rubrique ?? null) ||
+        existing.teteAnalyse !== (item.teteAnalyse ?? null) ||
+        existing.questionNumber !== (item.questionNumber ?? null)
+      ) {
         await db
           .update(parliamentaryActivity)
           .set({
@@ -78,9 +98,14 @@ export async function upsertSenatParliamentaryActivity(
             questionNumber: item.questionNumber ?? null,
             updatedAt: new Date(),
           })
-          .where(eq(parliamentaryActivity.id, existing[0].id));
+          .where(eq(parliamentaryActivity.id, existing.id));
         summary.updated++;
       }
+    }
+
+    for (const rowChunk of chunk(newRows, INSERT_CHUNK_SIZE)) {
+      await db.insert(parliamentaryActivity).values(rowChunk);
+      summary.created += rowChunk.length;
     }
   }
 
