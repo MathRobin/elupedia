@@ -21,6 +21,7 @@ type Filters = {
   depute: boolean;
   senateur: boolean;
   maire: boolean;
+  eurodepute: boolean;
   mandatActif: boolean;
   photoFilter: '' | 'with' | 'without';
   department: string;
@@ -44,6 +45,7 @@ function readFiltersFromUrl(): { filters: Partial<Filters>; page?: number } {
     f.depute = types.has('depute');
     f.senateur = types.has('senateur');
     f.maire = types.has('maire');
+    f.eurodepute = types.has('eurodepute');
   }
   if (p.has('actif')) f.mandatActif = p.get('actif') !== '0';
   if (p.has('photo')) {
@@ -69,8 +71,9 @@ function writeFiltersToUrl(filters: Filters, page: number) {
     filters.depute && 'depute',
     filters.senateur && 'senateur',
     filters.maire && 'maire',
+    filters.eurodepute && 'eurodepute',
   ].filter(Boolean) as string[];
-  const allTypes = 3;
+  const allTypes = 4;
   if (activeTypes.length > 0 && activeTypes.length < allTypes) {
     p.set('type', activeTypes.join(','));
   }
@@ -169,13 +172,23 @@ function FilterPanel({
   filters: Filters;
   onChange: (f: Filters) => void;
   onReset: () => void;
-  counts: { depute: number; senateur: number; maire: number };
+  counts: {
+    depute: number;
+    senateur: number;
+    maire: number;
+    eurodepute: number;
+  };
   groups: string[];
   departments: string[];
 }) {
   const activeCount =
     (filters.search ? 1 : 0) +
-    (!filters.depute || !filters.senateur || !filters.maire ? 1 : 0) +
+    (!filters.depute ||
+    !filters.senateur ||
+    !filters.maire ||
+    !filters.eurodepute
+      ? 1
+      : 0) +
     (!filters.mandatActif ? 1 : 0) +
     (filters.photoFilter ? 1 : 0) +
     (filters.department ? 1 : 0) +
@@ -240,6 +253,20 @@ function FilterPanel({
             />
             <span className="text-sm text-slate-700 dark:text-slate-300">
               Maires <span className="text-slate-400">({counts.maire})</span>
+            </span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filters.eurodepute}
+              onChange={(e) =>
+                onChange({ ...filters, eurodepute: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              Eurodéputé·es{' '}
+              <span className="text-slate-400">({counts.eurodepute})</span>
             </span>
           </label>
         </div>
@@ -358,6 +385,7 @@ export default function OfficialsList({
     depute: true,
     senateur: true,
     maire: true,
+    eurodepute: true,
     mandatActif: true,
     photoFilter: '',
     department: '',
@@ -413,6 +441,8 @@ export default function OfficialsList({
       depute: officials.filter((o) => o.mandateType === 'depute').length,
       senateur: officials.filter((o) => o.mandateType === 'senateur').length,
       maire: officials.filter((o) => o.mandateType === 'maire').length,
+      eurodepute: officials.filter((o) => o.mandateType === 'eurodepute')
+        .length,
     }),
     [officials],
   );
@@ -440,6 +470,7 @@ export default function OfficialsList({
       if (o.mandateType === 'depute' && !filters.depute) return false;
       if (o.mandateType === 'senateur' && !filters.senateur) return false;
       if (o.mandateType === 'maire' && !filters.maire) return false;
+      if (o.mandateType === 'eurodepute' && !filters.eurodepute) return false;
       if (filters.photoFilter === 'with' && !o.photoUrl) return false;
       if (filters.photoFilter === 'without' && o.photoUrl) return false;
       if (filters.department && o.department !== filters.department)
@@ -472,7 +503,12 @@ export default function OfficialsList({
 
   const activeCount =
     (filters.search ? 1 : 0) +
-    (!filters.depute || !filters.senateur || !filters.maire ? 1 : 0) +
+    (!filters.depute ||
+    !filters.senateur ||
+    !filters.maire ||
+    !filters.eurodepute
+      ? 1
+      : 0) +
     (!filters.mandatActif ? 1 : 0) +
     (filters.photoFilter ? 1 : 0) +
     (filters.department ? 1 : 0) +
