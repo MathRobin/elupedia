@@ -1,8 +1,8 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, addresses } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { AddressData } from '../sources/an-adresses.js';
-import { writeProvenance } from './provenance.js';
+import { writeProvenanceBatch } from './provenance.js';
 
 const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
@@ -14,29 +14,32 @@ export async function upsertAddresses(
 ) {
   const summary = { created: 0, updated: 0 };
 
+  const allOfficials = await db
+    .select({ id: officials.id, anId: officials.anId })
+    .from(officials);
+  const officialByAnId = new Map<string, string>();
+  for (const o of allOfficials) {
+    if (o.anId) officialByAnId.set(o.anId, o.id);
+  }
+
+  const allAddresses = await db.select().from(addresses);
+  const existingByKey = new Map<string, typeof addresses.$inferSelect>();
+  for (const a of allAddresses) {
+    existingByKey.set(`${a.officialId}|${a.type}`, a);
+  }
+
+  const newRows: (typeof addresses.$inferInsert)[] = [];
+  const provenanceItems: Parameters<typeof writeProvenanceBatch>[1] = [];
+
   for (const addr of addressList) {
-    const [official] = await db
-      .select()
-      .from(officials)
-      .where(eq(officials.anId, addr.id_an))
-      .limit(1);
+    const officialId = officialByAnId.get(addr.id_an);
+    if (!officialId) continue;
 
-    if (!official) continue;
+    const existing = existingByKey.get(`${officialId}|${addr.type}`);
 
-    const existing = await db
-      .select()
-      .from(addresses)
-      .where(
-        and(
-          eq(addresses.officialId, official.id),
-          eq(addresses.type, addr.type),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length === 0) {
-      await db.insert(addresses).values({
-        officialId: official.id,
+    if (!existing) {
+      newRows.push({
+        officialId,
         type: addr.type,
         street: addr.street ?? null,
         postalCode: addr.postal_code ?? null,
@@ -45,7 +48,13 @@ export async function upsertAddresses(
         email: addr.email ?? null,
       });
       summary.created++;
-    } else {
+    } else if (
+      existing.street !== (addr.street ?? null) ||
+      existing.postalCode !== (addr.postal_code ?? null) ||
+      existing.city !== (addr.city ?? null) ||
+      existing.phone !== (addr.phone ?? null) ||
+      existing.email !== (addr.email ?? null)
+    ) {
       await db
         .update(addresses)
         .set({
@@ -56,11 +65,11 @@ export async function upsertAddresses(
           email: addr.email ?? null,
           updatedAt: new Date(),
         })
-        .where(eq(addresses.id, existing[0].id));
+        .where(eq(addresses.id, existing.id));
       summary.updated++;
     }
 
-    await writeProvenance(db, {
+    provenanceItems.push({
       sourceTable: 'addresses',
       sourceRecordId: `${addr.id_an}:${addr.type}`,
       sourceName: SOURCE_NAME,
@@ -69,6 +78,12 @@ export async function upsertAddresses(
       rawData: addr,
     });
   }
+
+  if (newRows.length > 0) {
+    await db.insert(addresses).values(newRows);
+  }
+
+  await writeProvenanceBatch(db, provenanceItems);
 
   return summary;
 }

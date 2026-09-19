@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, addresses } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { SenatAddressData } from '../sources/senat-adresses.js';
 
 export async function upsertSenatAddresses(
@@ -9,29 +9,31 @@ export async function upsertSenatAddresses(
 ) {
   const summary = { created: 0, updated: 0 };
 
+  const allOfficials = await db
+    .select({ id: officials.id, senatId: officials.senatId })
+    .from(officials);
+  const officialByMatricule = new Map<string, string>();
+  for (const o of allOfficials) {
+    if (o.senatId) officialByMatricule.set(o.senatId, o.id);
+  }
+
+  const allAddresses = await db.select().from(addresses);
+  const existingByKey = new Map<string, typeof addresses.$inferSelect>();
+  for (const a of allAddresses) {
+    existingByKey.set(`${a.officialId}|${a.type}`, a);
+  }
+
+  const newRows: (typeof addresses.$inferInsert)[] = [];
+
   for (const addr of addressList) {
-    const [official] = await db
-      .select()
-      .from(officials)
-      .where(eq(officials.senatId, addr.matricule))
-      .limit(1);
+    const officialId = officialByMatricule.get(addr.matricule);
+    if (!officialId) continue;
 
-    if (!official) continue;
+    const existing = existingByKey.get(`${officialId}|${addr.type}`);
 
-    const existing = await db
-      .select()
-      .from(addresses)
-      .where(
-        and(
-          eq(addresses.officialId, official.id),
-          eq(addresses.type, addr.type),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length === 0) {
-      await db.insert(addresses).values({
-        officialId: official.id,
+    if (!existing) {
+      newRows.push({
+        officialId,
         type: addr.type,
         street: addr.street,
         postalCode: addr.postal_code,
@@ -40,7 +42,13 @@ export async function upsertSenatAddresses(
         email: addr.email ?? null,
       });
       summary.created++;
-    } else {
+    } else if (
+      existing.street !== addr.street ||
+      existing.postalCode !== addr.postal_code ||
+      existing.city !== addr.city ||
+      existing.phone !== addr.phone ||
+      existing.email !== (addr.email ?? null)
+    ) {
       await db
         .update(addresses)
         .set({
@@ -51,9 +59,13 @@ export async function upsertSenatAddresses(
           email: addr.email ?? null,
           updatedAt: new Date(),
         })
-        .where(eq(addresses.id, existing[0].id));
+        .where(eq(addresses.id, existing.id));
       summary.updated++;
     }
+  }
+
+  if (newRows.length > 0) {
+    await db.insert(addresses).values(newRows);
   }
 
   return summary;

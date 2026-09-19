@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, externalLinks } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { SocialLinkData } from '../sources/an-reseaux-sociaux.js';
 
 export async function upsertSocialLinks(
@@ -9,47 +9,61 @@ export async function upsertSocialLinks(
 ) {
   const summary = { created: 0, updated: 0 };
 
+  const allOfficials = await db
+    .select({ id: officials.id, anId: officials.anId })
+    .from(officials);
+  const officialByAnId = new Map<string, string>();
+  for (const o of allOfficials) {
+    if (o.anId) officialByAnId.set(o.anId, o.id);
+  }
+
+  const allLinks = await db
+    .select({
+      id: externalLinks.id,
+      officialId: externalLinks.officialId,
+      platform: externalLinks.platform,
+      url: externalLinks.url,
+    })
+    .from(externalLinks);
+  const existingByKey = new Map<string, { id: string; url: string }>();
+  for (const l of allLinks) {
+    existingByKey.set(`${l.officialId}|${l.platform}`, l);
+  }
+
+  const newRows: (typeof externalLinks.$inferInsert)[] = [];
+  const today = new Date().toISOString().slice(0, 10);
+
   for (const link of links) {
-    const [official] = await db
-      .select({ id: officials.id })
-      .from(officials)
-      .where(eq(officials.anId, link.anId))
-      .limit(1);
+    const officialId = officialByAnId.get(link.anId);
+    if (!officialId) continue;
 
-    if (!official) continue;
+    const existing = existingByKey.get(`${officialId}|${link.platform}`);
 
-    const existing = await db
-      .select({ id: externalLinks.id, url: externalLinks.url })
-      .from(externalLinks)
-      .where(
-        and(
-          eq(externalLinks.officialId, official.id),
-          eq(externalLinks.platform, link.platform),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length === 0) {
-      await db.insert(externalLinks).values({
-        officialId: official.id,
+    if (!existing) {
+      newRows.push({
+        officialId,
         platform: link.platform,
         url: link.url,
         status: 'published',
         source: 'official',
-        capturedAt: new Date().toISOString().slice(0, 10),
+        capturedAt: today,
       });
       summary.created++;
-    } else if (existing[0].url !== link.url) {
+    } else if (existing.url !== link.url) {
       await db
         .update(externalLinks)
         .set({
           url: link.url,
-          capturedAt: new Date().toISOString().slice(0, 10),
+          capturedAt: today,
           updatedAt: new Date(),
         })
-        .where(eq(externalLinks.id, existing[0].id));
+        .where(eq(externalLinks.id, existing.id));
       summary.updated++;
     }
+  }
+
+  if (newRows.length > 0) {
+    await db.insert(externalLinks).values(newRows);
   }
 
   return summary;

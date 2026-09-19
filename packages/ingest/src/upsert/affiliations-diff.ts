@@ -1,7 +1,7 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, affiliations } from '@elupedia/shared';
-import { eq, and, isNull } from 'drizzle-orm';
-import { writeProvenance } from './provenance.js';
+import { eq, isNull, and } from 'drizzle-orm';
+import { writeProvenanceBatch } from './provenance.js';
 
 export interface AffiliationData {
   slug: string;
@@ -21,6 +21,31 @@ export async function diffAffiliations(
   const today = new Date().toISOString().split('T')[0];
   const summary = { created: 0, ended: 0, unchanged: 0 };
 
+  const allOfficials = await db
+    .select({ id: officials.id, anId: officials.anId })
+    .from(officials);
+  const officialByAnId = new Map<string, string>();
+  for (const o of allOfficials) {
+    if (o.anId) officialByAnId.set(o.anId, o.id);
+  }
+
+  const activeAffiliations = await db
+    .select()
+    .from(affiliations)
+    .where(and(eq(affiliations.kind, 'group'), isNull(affiliations.endDate)));
+  const activeByOfficialId = new Map<
+    string,
+    (typeof affiliations.$inferSelect)[]
+  >();
+  for (const a of activeAffiliations) {
+    const list = activeByOfficialId.get(a.officialId) ?? [];
+    list.push(a);
+    activeByOfficialId.set(a.officialId, list);
+  }
+
+  const newRows: (typeof affiliations.$inferInsert)[] = [];
+  const provenanceItems: Parameters<typeof writeProvenanceBatch>[1] = [];
+
   for (const depute of deputeAffiliations) {
     const anId = depute.id_an;
     if (!anId) continue;
@@ -28,25 +53,10 @@ export async function diffAffiliations(
     const group = depute.groupe_sigle ?? depute.parti_ratt_financier;
     if (!group) continue;
 
-    const [official] = await db
-      .select()
-      .from(officials)
-      .where(eq(officials.anId, anId))
-      .limit(1);
+    const officialId = officialByAnId.get(anId);
+    if (!officialId) continue;
 
-    if (!official) continue;
-
-    const currentAffiliations = await db
-      .select()
-      .from(affiliations)
-      .where(
-        and(
-          eq(affiliations.officialId, official.id),
-          eq(affiliations.kind, 'group'),
-          isNull(affiliations.endDate),
-        ),
-      );
-
+    const currentAffiliations = activeByOfficialId.get(officialId) ?? [];
     const activeGroup = currentAffiliations.find(
       (a) => a.partyOrGroup === group,
     );
@@ -62,15 +72,15 @@ export async function diffAffiliations(
         summary.ended++;
       }
 
-      await db.insert(affiliations).values({
-        officialId: official.id,
+      newRows.push({
+        officialId,
         partyOrGroup: group,
         startDate: today,
       });
       summary.created++;
     }
 
-    await writeProvenance(db, {
+    provenanceItems.push({
       sourceTable: 'affiliations',
       sourceRecordId: `${anId}:${group}`,
       sourceName: SOURCE_NAME,
@@ -79,6 +89,12 @@ export async function diffAffiliations(
       rawData: depute,
     });
   }
+
+  if (newRows.length > 0) {
+    await db.insert(affiliations).values(newRows);
+  }
+
+  await writeProvenanceBatch(db, provenanceItems);
 
   return summary;
 }

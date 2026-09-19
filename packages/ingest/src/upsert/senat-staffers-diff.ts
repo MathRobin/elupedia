@@ -1,6 +1,6 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, staffers } from '@elupedia/shared';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import type { CollaborateursSenateur } from '../sources/senat-collaborateurs.js';
 
 export async function diffSenatStaffers(
@@ -10,21 +10,35 @@ export async function diffSenatStaffers(
   const today = new Date().toISOString().split('T')[0];
   const summary = { created: 0, ended: 0, unchanged: 0 };
 
+  const allOfficials = await db
+    .select({ id: officials.id, senatId: officials.senatId })
+    .from(officials);
+  const officialByMatricule = new Map<string, string>();
+  for (const o of allOfficials) {
+    if (o.senatId) officialByMatricule.set(o.senatId, o.id);
+  }
+
+  const activeStaffers = await db
+    .select()
+    .from(staffers)
+    .where(isNull(staffers.endDate));
+  const staffersByOfficialId = new Map<
+    string,
+    (typeof staffers.$inferSelect)[]
+  >();
+  for (const s of activeStaffers) {
+    const list = staffersByOfficialId.get(s.officialId) ?? [];
+    list.push(s);
+    staffersByOfficialId.set(s.officialId, list);
+  }
+
+  const newRows: (typeof staffers.$inferInsert)[] = [];
+
   for (const senateur of senateurCollabs) {
-    const [official] = await db
-      .select()
-      .from(officials)
-      .where(eq(officials.senatId, senateur.matricule))
-      .limit(1);
+    const officialId = officialByMatricule.get(senateur.matricule);
+    if (!officialId) continue;
 
-    if (!official) continue;
-
-    const currentStaffers = await db
-      .select()
-      .from(staffers)
-      .where(
-        and(eq(staffers.officialId, official.id), isNull(staffers.endDate)),
-      );
+    const currentStaffers = staffersByOfficialId.get(officialId) ?? [];
 
     const incomingNames = new Set(
       senateur.collaborateurs.map((c) => `${c.prenom}|${c.nom}`),
@@ -37,8 +51,8 @@ export async function diffSenatStaffers(
     for (const collab of senateur.collaborateurs) {
       const key = `${collab.prenom}|${collab.nom}`;
       if (!existingNames.has(key)) {
-        await db.insert(staffers).values({
-          officialId: official.id,
+        newRows.push({
+          officialId,
           firstName: collab.prenom,
           lastName: collab.nom,
           startDate: today,
@@ -59,6 +73,10 @@ export async function diffSenatStaffers(
         summary.ended++;
       }
     }
+  }
+
+  if (newRows.length > 0) {
+    await db.insert(staffers).values(newRows);
   }
 
   return summary;

@@ -1,8 +1,16 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, committees } from '@elupedia/shared';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { SenateurCommittees } from '../sources/senat-commissions.js';
 import { logger } from '../logger.js';
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
 
 export async function upsertSenatCommittees(
   db: NeonHttpDatabase,
@@ -25,6 +33,14 @@ export async function upsertSenatCommittees(
     `  Officials cache: ${officialByMatricule.size} sénateurs mappés`,
   );
 
+  const allCommittees = await db.select().from(committees);
+  const existingByKey = new Map<string, typeof committees.$inferSelect>();
+  for (const c of allCommittees) {
+    existingByKey.set(`${c.officialId}|${c.name}|${c.type}|${c.startDate}`, c);
+  }
+
+  const newRows: (typeof committees.$inferInsert)[] = [];
+
   for (const senateur of senateurCommittees) {
     const officialId = officialByMatricule.get(senateur.matricule.trim());
     if (!officialId) {
@@ -33,21 +49,11 @@ export async function upsertSenatCommittees(
     }
 
     for (const item of senateur.committees) {
-      const existing = await db
-        .select({ id: committees.id })
-        .from(committees)
-        .where(
-          and(
-            eq(committees.officialId, officialId),
-            eq(committees.name, item.name),
-            eq(committees.type, item.type),
-            eq(committees.startDate, item.start_date),
-          ),
-        )
-        .limit(1);
+      const key = `${officialId}|${item.name}|${item.type}|${item.start_date}`;
+      const existing = existingByKey.get(key);
 
-      if (existing.length === 0) {
-        await db.insert(committees).values({
+      if (!existing) {
+        newRows.push({
           officialId,
           name: item.name,
           type: item.type,
@@ -55,14 +61,18 @@ export async function upsertSenatCommittees(
           endDate: item.end_date ?? null,
         });
         summary.created++;
-      } else {
+      } else if (existing.endDate !== (item.end_date ?? null)) {
         await db
           .update(committees)
           .set({ endDate: item.end_date ?? null, updatedAt: new Date() })
-          .where(eq(committees.id, existing[0].id));
+          .where(eq(committees.id, existing.id));
         summary.updated++;
       }
     }
+  }
+
+  for (const rowChunk of chunk(newRows, 500)) {
+    await db.insert(committees).values(rowChunk);
   }
 
   logger.info(
