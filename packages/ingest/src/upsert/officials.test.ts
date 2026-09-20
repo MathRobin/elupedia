@@ -48,12 +48,12 @@ function createMockDb() {
     select: () => ({
       from: (table: unknown) => {
         currentTable = getTableName(table);
-        return {
+        const rows = store[currentTable]?.filter(() => true) ?? [];
+        return Object.assign(Promise.resolve(rows), {
           where: () => ({
-            limit: () =>
-              Promise.resolve(store[currentTable]?.filter(() => true) ?? []),
+            limit: () => Promise.resolve(rows),
           }),
-        };
+        });
       },
     }),
     insert: (table: unknown) => {

@@ -21,6 +21,21 @@ const LEGAL_BASIS =
 export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
   const results = [];
 
+  const allSlugs = await db.select({ slug: officials.slug }).from(officials);
+  const slugSet = new Set(allSlugs.filter((o) => o.slug).map((o) => o.slug!));
+
+  function uniqueSlug(base: string): string {
+    if (!slugSet.has(base)) {
+      slugSet.add(base);
+      return base;
+    }
+    let i = 1;
+    while (slugSet.has(`${base}-${i}`)) i++;
+    const s = `${base}-${i}`;
+    slugSet.add(s);
+    return s;
+  }
+
   for (const depute of deputes) {
     const anId = depute.id_an;
 
@@ -32,7 +47,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
 
     let officialId: string;
 
-    const slug = slugify(depute.prenom, depute.nom);
+    const computeSlug = () => uniqueSlug(slugify(depute.prenom, depute.nom));
 
     if (existing.length > 0) {
       officialId = existing[0].id;
@@ -44,7 +59,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           birthDate: depute.date_naissance,
           photoUrl: depute.photo_url ?? null,
           deathDate: depute.death_date ?? null,
-          slug: existing[0].slug ?? slug,
+          slug: existing[0].slug ?? computeSlug(),
           full: depute.full,
           updatedAt: new Date(),
         })
@@ -76,7 +91,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
             birthDate: depute.date_naissance,
             photoUrl: depute.photo_url ?? senatMatch[0].photoUrl,
             deathDate: depute.death_date ?? null,
-            slug: senatMatch[0].slug ?? slug,
+            slug: senatMatch[0].slug ?? computeSlug(),
             full: depute.full,
             updatedAt: new Date(),
           })
@@ -91,7 +106,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
             birthDate: depute.date_naissance,
             photoUrl: depute.photo_url ?? null,
             deathDate: depute.death_date ?? null,
-            slug,
+            slug: computeSlug(),
             full: depute.full,
           })
           .returning();
