@@ -77,7 +77,11 @@ export async function upsertMep(
   const { mep, detail, nationalPartyLabel } = input;
 
   const existingByEuroparlId = await db
-    .select()
+    .select({
+      id: officials.id,
+      birthDate: officials.birthDate,
+      photoUrl: officials.photoUrl,
+    })
     .from(officials)
     .where(eq(officials.europarlId, mep.id))
     .limit(1);
@@ -98,7 +102,12 @@ export async function upsertMep(
   } else {
     const candidates = detail.birthDate
       ? await db
-          .select()
+          .select({
+            id: officials.id,
+            firstName: officials.firstName,
+            lastName: officials.lastName,
+            photoUrl: officials.photoUrl,
+          })
           .from(officials)
           .where(
             and(

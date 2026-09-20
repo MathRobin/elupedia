@@ -22,7 +22,7 @@ export async function upsertSenators(
 
   for (const sen of senateurs) {
     const existing = await db
-      .select()
+      .select({ id: officials.id, slug: officials.slug })
       .from(officials)
       .where(eq(officials.senatId, sen.matricule))
       .limit(1);
@@ -48,7 +48,7 @@ export async function upsertSenators(
     } else {
       const anMatch = sen.date_naissance
         ? await db
-            .select()
+            .select({ id: officials.id, photoUrl: officials.photoUrl })
             .from(officials)
             .where(
               and(
@@ -93,7 +93,7 @@ export async function upsertSenators(
 
     for (const m of sen.mandats) {
       const existingMandat = await db
-        .select()
+        .select({ id: mandates.id })
         .from(mandates)
         .where(
           and(

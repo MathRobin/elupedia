@@ -49,7 +49,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
 
     try {
       const existing = await db
-        .select()
+        .select({ id: officials.id, slug: officials.slug })
         .from(officials)
         .where(eq(officials.anId, anId))
         .limit(1);
@@ -76,7 +76,11 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
       } else {
         const senatMatch = depute.date_naissance
           ? await db
-              .select()
+              .select({
+                id: officials.id,
+                slug: officials.slug,
+                photoUrl: officials.photoUrl,
+              })
               .from(officials)
               .where(
                 and(
