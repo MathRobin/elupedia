@@ -95,9 +95,9 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 
 - **Tables** : `press_mentions`
 - **Source** : Google Actualités (flux RSS) — `google-news.ts` → `upsert/press-mentions.ts`
-- **Workflows** :
-  - `.github/workflows/ingest-press.yml` (lundi 05:00 UTC) — presse parlementaires, délai 3s entre chaque élu
-  - `.github/workflows/ingest-press-maires.yml` (06:00 et 18:00 UTC, 2x/jour) — 1500 élus vivants aléatoires par run, tous types de mandats
+- **Commandes** (exécution locale — pas de workflow GitHub Actions, l'ingestion tourne en dehors de la CI) :
+  - `yarn --cwd packages/ingest ingest:press` — députés, sénateurs et eurodéputés avec mandat actif (~1000 élus), délai 3s entre chaque élu pour ne pas marteler le flux RSS
+  - `yarn --cwd packages/ingest ingest:press:maires` — 1500 élus vivants aléatoires par run, tous types de mandats confondus (le volume de maires, ~34 800, empêche un run exhaustif à chaque fois)
 - **Description** : Articles de presse mentionnant un élu, collectés automatiquement via les flux RSS Google Actualités à partir du nom complet de l'élu. **Ce n'est pas une source officielle** : les résultats peuvent contenir du bruit (homonymes, mentions indirectes) et ne sont pas exhaustifs. Section proposée à titre informatif.
 - **Déduplication** : sur `(official_id, source_url)`, insert uniquement (pas de mise à jour des articles existants)
 - **Pages** : fiche élu (section presse en grille de cards)

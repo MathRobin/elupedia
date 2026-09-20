@@ -40,6 +40,10 @@ yarn format:fix       # Appliquer le formatage Prettier
 yarn typecheck        # Vérification TypeScript (tsc --build)
 yarn test             # Lancer les tests (Vitest)
 
+# Ingestion presse (Google Actualités) — deux périmètres distincts, voir docs/DOMAINS.md
+yarn --cwd packages/ingest ingest:press          # parlementaires (députés, sénateurs, eurodéputés)
+yarn --cwd packages/ingest ingest:press:maires   # 1500 élus vivants aléatoires (tous mandats)
+
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
 
