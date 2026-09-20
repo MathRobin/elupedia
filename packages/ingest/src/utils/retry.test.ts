@@ -72,6 +72,31 @@ describe('withRetry', () => {
     expect(delays).toEqual([10, 20]);
   });
 
+  it('uses rateLimitBaseDelayMs instead of baseDelayMs for 429 errors', async () => {
+    const delays: number[] = [];
+    vi.mocked(logger.warn).mockImplementation((msg: unknown) => {
+      const match = String(msg).match(/retrying in (\d+)ms/);
+      if (match) delays.push(Number(match[1]));
+    });
+
+    let callCount = 0;
+    const fn = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount < 3) throw new Error('API error: 429');
+      return 'ok';
+    });
+
+    const result = await withRetry(fn, {
+      maxAttempts: 3,
+      baseDelayMs: 10,
+      rateLimitBaseDelayMs: 1000,
+      source: 'test',
+    });
+
+    expect(result).toBe('ok');
+    expect(delays).toEqual([1000, 2000]);
+  });
+
   it('logs warning on retry and error on final failure', async () => {
     vi.mocked(logger.warn).mockClear();
     vi.mocked(logger.error).mockClear();

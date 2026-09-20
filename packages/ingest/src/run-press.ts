@@ -1,5 +1,5 @@
-import { createDb, officials } from '@elupedia/shared';
-import { isNull } from 'drizzle-orm';
+import { createDb, officials, mandates } from '@elupedia/shared';
+import { isNull, and, inArray, eq } from 'drizzle-orm';
 
 import { logger } from './logger.js';
 import { type StepResult, runStep, printSummary } from './run-helpers.js';
@@ -19,15 +19,24 @@ export async function runPress(): Promise<StepResult[]> {
   logger.info('=== Press ingestion started ===\n');
 
   const livingOfficials = await db
-    .select({
+    .selectDistinct({
       id: officials.id,
       firstName: officials.firstName,
       lastName: officials.lastName,
     })
     .from(officials)
-    .where(isNull(officials.deathDate));
+    .innerJoin(mandates, eq(mandates.officialId, officials.id))
+    .where(
+      and(
+        isNull(officials.deathDate),
+        inArray(mandates.type, ['depute', 'senateur', 'eurodepute']),
+        isNull(mandates.endDate),
+      ),
+    );
 
-  logger.info(`${livingOfficials.length} living officials to process\n`);
+  logger.info(
+    `${livingOfficials.length} living parliamentarians to process (députés, sénateurs, eurodéputés)\n`,
+  );
 
   results.push(
     await runStep('google-news', async () => {
