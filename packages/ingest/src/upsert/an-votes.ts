@@ -99,7 +99,10 @@ export async function upsertAnVotes(
       position: string;
       seatNumber: number | null;
     }[] = [];
-    const groupPositionRows: (typeof ballotGroupPositions.$inferInsert)[] = [];
+    const groupPositionByKey = new Map<
+      string,
+      typeof ballotGroupPositions.$inferInsert
+    >();
 
     for (const scrutin of scrutinBatch) {
       const ballotId = ballotIdByAnId.get(`scrutin-${scrutin.uid}`);
@@ -136,7 +139,11 @@ export async function upsertAnVotes(
         const position =
           POSITION_MAP[gp.positionMajoritaire] ?? gp.positionMajoritaire;
 
-        groupPositionRows.push({
+        // Certains scrutins comportent plusieurs entrées pour le même
+        // organeRef (ex. "PO0" utilisé comme code générique) : on ne garde
+        // que la dernière, un INSERT multi-lignes ne pouvant pas cibler la
+        // même ligne deux fois via ON CONFLICT DO UPDATE.
+        groupPositionByKey.set(`${ballotId}|${gp.organeRef}`, {
           ballotId,
           organeRef: gp.organeRef,
           groupName,
@@ -167,6 +174,7 @@ export async function upsertAnVotes(
       updated++;
     }
 
+    const groupPositionRows = [...groupPositionByKey.values()];
     for (const gpChunk of chunk(groupPositionRows, VOTE_CHUNK_SIZE)) {
       await db
         .insert(ballotGroupPositions)
