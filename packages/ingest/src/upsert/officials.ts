@@ -3,6 +3,9 @@ import { officials, mandates } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
 import { writeProvenance } from './provenance.js';
+import { logger } from '../logger.js';
+
+const LOG_CHUNK_SIZE = 50;
 
 function slugify(firstName: string, lastName: string): string {
   return `${firstName}-${lastName}`
@@ -36,8 +39,13 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
     return s;
   }
 
-  for (const depute of deputes) {
+  for (let i = 0; i < deputes.length; i++) {
+    const depute = deputes[i];
     const anId = depute.id_an;
+
+    if (i % LOG_CHUNK_SIZE === 0) {
+      logger.info(`  [${i + 1}/${deputes.length}] traitement des officials...`);
+    }
 
     const existing = await db
       .select()
