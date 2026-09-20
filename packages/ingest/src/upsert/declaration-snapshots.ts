@@ -53,8 +53,15 @@ export async function upsertDeclarationSnapshots(
   logger.info(`  Snapshot caches loaded (${Date.now() - t0}ms)`);
 
   const t1 = Date.now();
+  logger.info(`  ${declarations.length} declarations to process`);
 
-  for (const decl of declarations) {
+  for (let i = 0; i < declarations.length; i++) {
+    const decl = declarations[i];
+
+    if (i % 200 === 0) {
+      logger.info(`  [${i + 1}/${declarations.length}] snapshots...`);
+    }
+
     const cacheKey = `${decl.nom.toUpperCase()}|${decl.prenom.toUpperCase()}`;
     const officialId = officialCache.get(cacheKey);
     if (!officialId) continue;
@@ -62,24 +69,31 @@ export async function upsertDeclarationSnapshots(
     const snapshotKey = `${officialId}|${decl.date_depot}`;
     const existingId = snapshotCache.get(snapshotKey);
 
-    if (!existingId) {
-      await db.insert(declarationSnapshots).values({
-        officialId,
-        declarationDate: decl.date_depot,
-        declarationType: decl.declaration_type ?? 'initial',
-        sourceDocumentUrl: decl.source_document_url ?? null,
-      });
-      summary.created++;
-    } else {
-      await db
-        .update(declarationSnapshots)
-        .set({
+    try {
+      if (!existingId) {
+        await db.insert(declarationSnapshots).values({
+          officialId,
+          declarationDate: decl.date_depot,
           declarationType: decl.declaration_type ?? 'initial',
           sourceDocumentUrl: decl.source_document_url ?? null,
-          updatedAt: new Date(),
-        })
-        .where(eq(declarationSnapshots.id, existingId));
-      summary.updated++;
+        });
+        summary.created++;
+      } else {
+        await db
+          .update(declarationSnapshots)
+          .set({
+            declarationType: decl.declaration_type ?? 'initial',
+            sourceDocumentUrl: decl.source_document_url ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(declarationSnapshots.id, existingId));
+        summary.updated++;
+      }
+    } catch (error) {
+      logger.error(
+        `  Failed processing snapshot for ${decl.nom} ${decl.prenom} (${decl.date_depot}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
     }
   }
 

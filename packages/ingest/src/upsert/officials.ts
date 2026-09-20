@@ -47,134 +47,142 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
       logger.info(`  [${i + 1}/${deputes.length}] traitement des officials...`);
     }
 
-    const existing = await db
-      .select()
-      .from(officials)
-      .where(eq(officials.anId, anId))
-      .limit(1);
+    try {
+      const existing = await db
+        .select()
+        .from(officials)
+        .where(eq(officials.anId, anId))
+        .limit(1);
 
-    let officialId: string;
+      let officialId: string;
 
-    const computeSlug = () => uniqueSlug(slugify(depute.prenom, depute.nom));
+      const computeSlug = () => uniqueSlug(slugify(depute.prenom, depute.nom));
 
-    if (existing.length > 0) {
-      officialId = existing[0].id;
-      await db
-        .update(officials)
-        .set({
-          firstName: depute.prenom,
-          lastName: depute.nom,
-          birthDate: depute.date_naissance,
-          photoUrl: depute.photo_url ?? null,
-          deathDate: depute.death_date ?? null,
-          slug: existing[0].slug ?? computeSlug(),
-          full: depute.full,
-          updatedAt: new Date(),
-        })
-        .where(eq(officials.id, officialId));
-    } else {
-      const senatMatch = depute.date_naissance
-        ? await db
-            .select()
-            .from(officials)
-            .where(
-              and(
-                eq(officials.lastName, depute.nom),
-                eq(officials.firstName, depute.prenom),
-                eq(officials.birthDate, depute.date_naissance),
-                isNull(officials.anId),
-              ),
-            )
-            .limit(1)
-        : [];
-
-      if (senatMatch.length > 0) {
-        officialId = senatMatch[0].id;
+      if (existing.length > 0) {
+        officialId = existing[0].id;
         await db
           .update(officials)
           .set({
-            anId,
             firstName: depute.prenom,
             lastName: depute.nom,
             birthDate: depute.date_naissance,
-            photoUrl: depute.photo_url ?? senatMatch[0].photoUrl,
+            photoUrl: depute.photo_url ?? null,
             deathDate: depute.death_date ?? null,
-            slug: senatMatch[0].slug ?? computeSlug(),
+            slug: existing[0].slug ?? computeSlug(),
             full: depute.full,
             updatedAt: new Date(),
           })
           .where(eq(officials.id, officialId));
       } else {
-        const [inserted] = await db
-          .insert(officials)
-          .values({
-            firstName: depute.prenom,
-            lastName: depute.nom,
-            anId,
-            birthDate: depute.date_naissance,
-            photoUrl: depute.photo_url ?? null,
-            deathDate: depute.death_date ?? null,
-            slug: computeSlug(),
-            full: depute.full,
-          })
-          .returning();
-        officialId = inserted!.id;
+        const senatMatch = depute.date_naissance
+          ? await db
+              .select()
+              .from(officials)
+              .where(
+                and(
+                  eq(officials.lastName, depute.nom),
+                  eq(officials.firstName, depute.prenom),
+                  eq(officials.birthDate, depute.date_naissance),
+                  isNull(officials.anId),
+                ),
+              )
+              .limit(1)
+          : [];
+
+        if (senatMatch.length > 0) {
+          officialId = senatMatch[0].id;
+          await db
+            .update(officials)
+            .set({
+              anId,
+              firstName: depute.prenom,
+              lastName: depute.nom,
+              birthDate: depute.date_naissance,
+              photoUrl: depute.photo_url ?? senatMatch[0].photoUrl,
+              deathDate: depute.death_date ?? null,
+              slug: senatMatch[0].slug ?? computeSlug(),
+              full: depute.full,
+              updatedAt: new Date(),
+            })
+            .where(eq(officials.id, officialId));
+        } else {
+          const [inserted] = await db
+            .insert(officials)
+            .values({
+              firstName: depute.prenom,
+              lastName: depute.nom,
+              anId,
+              birthDate: depute.date_naissance,
+              photoUrl: depute.photo_url ?? null,
+              deathDate: depute.death_date ?? null,
+              slug: computeSlug(),
+              full: depute.full,
+            })
+            .returning();
+          officialId = inserted!.id;
+        }
       }
-    }
 
-    for (const m of depute.allMandates) {
-      const existingMandate = await db
-        .select({ id: mandates.id })
-        .from(mandates)
-        .where(
-          and(
-            eq(mandates.officialId, officialId),
-            eq(mandates.type, m.type),
-            eq(mandates.startDate, m.mandat_debut),
-          ),
-        )
-        .limit(1);
+      for (const m of depute.allMandates) {
+        const existingMandate = await db
+          .select({ id: mandates.id })
+          .from(mandates)
+          .where(
+            and(
+              eq(mandates.officialId, officialId),
+              eq(mandates.type, m.type),
+              eq(mandates.startDate, m.mandat_debut),
+            ),
+          )
+          .limit(1);
 
-      const district =
-        m.type === 'senateur' || m.num_circo === 0
-          ? null
-          : `${m.num_circo}e circonscription`;
+        const district =
+          m.type === 'senateur' || m.num_circo === 0
+            ? null
+            : `${m.num_circo}e circonscription`;
 
-      if (existingMandate.length === 0) {
-        await db.insert(mandates).values({
-          officialId,
-          type: m.type,
-          district,
-          department: m.nom_circo,
-          startDate: m.mandat_debut,
-          endDate: m.mandat_fin ?? null,
-          politicalGroup: m.groupe_sigle ?? null,
-        });
-      } else {
-        await db
-          .update(mandates)
-          .set({
+        if (existingMandate.length === 0) {
+          await db.insert(mandates).values({
+            officialId,
+            type: m.type,
             district,
             department: m.nom_circo,
+            startDate: m.mandat_debut,
             endDate: m.mandat_fin ?? null,
             politicalGroup: m.groupe_sigle ?? null,
-            updatedAt: new Date(),
-          })
-          .where(eq(mandates.id, existingMandate[0].id));
+          });
+        } else {
+          await db
+            .update(mandates)
+            .set({
+              district,
+              department: m.nom_circo,
+              endDate: m.mandat_fin ?? null,
+              politicalGroup: m.groupe_sigle ?? null,
+              updatedAt: new Date(),
+            })
+            .where(eq(mandates.id, existingMandate[0].id));
+        }
       }
+
+      await writeProvenance(db, {
+        sourceTable: 'officials',
+        sourceRecordId: anId,
+        sourceName: SOURCE_NAME,
+        sourceUrl: `https://www.assemblee-nationale.fr/dyn/deputes/${anId}`,
+        legalBasis: LEGAL_BASIS,
+        rawData: depute.full,
+      });
+
+      results.push({ officialId, anId });
+    } catch (error) {
+      logger.error(
+        `  Failed processing depute ${anId} (${depute.prenom} ${depute.nom}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
     }
-
-    await writeProvenance(db, {
-      sourceTable: 'officials',
-      sourceRecordId: anId,
-      sourceName: SOURCE_NAME,
-      sourceUrl: `https://www.assemblee-nationale.fr/dyn/deputes/${anId}`,
-      legalBasis: LEGAL_BASIS,
-      rawData: depute.full,
-    });
-
-    results.push({ officialId, anId });
   }
 
+  logger.info(`Officials: ${results.length} deputes processed`);
   return results;
 }

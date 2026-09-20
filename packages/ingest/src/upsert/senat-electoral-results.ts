@@ -83,5 +83,8 @@ export async function upsertSenatElectoralResults(
     );
   }
 
+  logger.info(
+    `Senate electoral results: ${summary.created} created, ${summary.updated} updated, ${summary.skipped} skipped`,
+  );
   return summary;
 }

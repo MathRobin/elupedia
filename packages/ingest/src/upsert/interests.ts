@@ -68,11 +68,18 @@ export async function upsertInterests(
   );
 
   const t2 = Date.now();
+  logger.info(`  ${declarations.length} declarations to process`);
 
   const newInterestRows: (typeof interests.$inferInsert)[] = [];
   const provenanceItems: Parameters<typeof writeProvenanceBatch>[1] = [];
 
-  for (const decl of declarations) {
+  for (let i = 0; i < declarations.length; i++) {
+    const decl = declarations[i];
+
+    if (i % 500 === 0) {
+      logger.info(`  [${i + 1}/${declarations.length}] declarations...`);
+    }
+
     const cacheKey = `${decl.nom.toUpperCase()}|${decl.prenom.toUpperCase()}`;
     const officialId = officialCache.get(cacheKey);
     if (!officialId) continue;

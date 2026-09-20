@@ -2,6 +2,7 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, addresses } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { SenatAddressData } from '../sources/senat-adresses.js';
+import { logger } from '../logger.js';
 
 export async function upsertSenatAddresses(
   db: NeonHttpDatabase,
@@ -68,5 +69,8 @@ export async function upsertSenatAddresses(
     await db.insert(addresses).values(newRows);
   }
 
+  logger.info(
+    `Sénat addresses: ${summary.created} created, ${summary.updated} updated`,
+  );
   return summary;
 }

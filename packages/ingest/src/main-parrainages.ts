@@ -23,8 +23,14 @@ async function main() {
 
   for (const election of elections) {
     logger.info(`=== Parrainages ${election.year} ===`);
-    const rows = await fetchParrainages(election);
-    await upsertSponsorships(db, rows, election.year);
+    try {
+      const rows = await fetchParrainages(election);
+      await upsertSponsorships(db, rows, election.year);
+    } catch (error) {
+      logger.error(
+        `Parrainages ${election.year} failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   logger.info('Done.');

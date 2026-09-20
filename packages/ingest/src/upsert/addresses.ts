@@ -3,6 +3,7 @@ import { officials, addresses } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { AddressData } from '../sources/an-adresses.js';
 import { writeProvenanceBatch } from './provenance.js';
+import { logger } from '../logger.js';
 
 const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
@@ -85,5 +86,8 @@ export async function upsertAddresses(
 
   await writeProvenanceBatch(db, provenanceItems);
 
+  logger.info(
+    `AN addresses: ${summary.created} created, ${summary.updated} updated`,
+  );
   return summary;
 }

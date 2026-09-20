@@ -2,8 +2,10 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, parliamentaryActivity } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { DeputeActivity } from '../sources/an-activite.js';
+import { logger } from '../logger.js';
 
 const INSERT_CHUNK_SIZE = 500;
+const LOG_CHUNK_SIZE = 50;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -27,31 +29,89 @@ export async function upsertParliamentaryActivity(
     if (o.anId) officialByAnId.set(o.anId, o.id);
   }
 
-  for (const depute of deputeActivities) {
+  logger.info(
+    `  ${deputeActivities.length} deputes to process (${officialByAnId.size} officials mapped)`,
+  );
+
+  for (let i = 0; i < deputeActivities.length; i++) {
+    const depute = deputeActivities[i];
+
+    if (i % LOG_CHUNK_SIZE === 0) {
+      logger.info(
+        `  [${i + 1}/${deputeActivities.length}] parliamentary activity...`,
+      );
+    }
+
     const officialId = officialByAnId.get(depute.id_an);
     if (!officialId) continue;
 
-    const existingActivities = await db
-      .select()
-      .from(parliamentaryActivity)
-      .where(eq(parliamentaryActivity.officialId, officialId));
+    try {
+      await processDeputeActivities(db, officialId, depute, summary);
+    } catch (error) {
+      logger.error(
+        `  Failed processing activity for ${depute.id_an}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
+  }
 
-    const existingByKey = new Map(
-      existingActivities.map((a) => [`${a.type}|${a.title}|${a.date}`, a]),
-    );
+  logger.info(
+    `Parliamentary activity: ${summary.created} created, ${summary.updated} updated`,
+  );
+  return summary;
+}
 
-    const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
+async function processDeputeActivities(
+  db: NeonHttpDatabase,
+  officialId: string,
+  depute: DeputeActivity,
+  summary: { created: number; updated: number },
+) {
+  const existingActivities = await db
+    .select()
+    .from(parliamentaryActivity)
+    .where(eq(parliamentaryActivity.officialId, officialId));
 
-    for (const item of depute.activities) {
-      const key = `${item.type}|${item.title}|${item.date}`;
-      const existing = existingByKey.get(key);
+  const existingByKey = new Map(
+    existingActivities.map((a) => [`${a.type}|${a.title}|${a.date}`, a]),
+  );
 
-      if (!existing) {
-        newRows.push({
-          officialId,
-          type: item.type,
-          title: item.title,
-          date: item.date,
+  const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
+
+  for (const item of depute.activities) {
+    const key = `${item.type}|${item.title}|${item.date}`;
+    const existing = existingByKey.get(key);
+
+    if (!existing) {
+      newRows.push({
+        officialId,
+        type: item.type,
+        title: item.title,
+        date: item.date,
+        status: item.status ?? null,
+        questionText: item.questionText ?? null,
+        responseText: item.responseText ?? null,
+        responseDate: item.responseDate ?? null,
+        governmentComments: item.ministry ?? null,
+        sourceUrl: item.sourceUrl ?? null,
+        rubrique: item.rubrique ?? null,
+        teteAnalyse: item.teteAnalyse ?? null,
+        questionNumber: item.questionNumber ?? null,
+      });
+    } else if (
+      existing.status !== (item.status ?? null) ||
+      existing.questionText !== (item.questionText ?? null) ||
+      existing.responseText !== (item.responseText ?? null) ||
+      existing.responseDate !== (item.responseDate ?? null) ||
+      existing.governmentComments !== (item.ministry ?? null) ||
+      existing.sourceUrl !== (item.sourceUrl ?? null) ||
+      existing.rubrique !== (item.rubrique ?? null) ||
+      existing.teteAnalyse !== (item.teteAnalyse ?? null) ||
+      existing.questionNumber !== (item.questionNumber ?? null)
+    ) {
+      await db
+        .update(parliamentaryActivity)
+        .set({
           status: item.status ?? null,
           questionText: item.questionText ?? null,
           responseText: item.responseText ?? null,
@@ -61,42 +121,15 @@ export async function upsertParliamentaryActivity(
           rubrique: item.rubrique ?? null,
           teteAnalyse: item.teteAnalyse ?? null,
           questionNumber: item.questionNumber ?? null,
-        });
-      } else if (
-        existing.status !== (item.status ?? null) ||
-        existing.questionText !== (item.questionText ?? null) ||
-        existing.responseText !== (item.responseText ?? null) ||
-        existing.responseDate !== (item.responseDate ?? null) ||
-        existing.governmentComments !== (item.ministry ?? null) ||
-        existing.sourceUrl !== (item.sourceUrl ?? null) ||
-        existing.rubrique !== (item.rubrique ?? null) ||
-        existing.teteAnalyse !== (item.teteAnalyse ?? null) ||
-        existing.questionNumber !== (item.questionNumber ?? null)
-      ) {
-        await db
-          .update(parliamentaryActivity)
-          .set({
-            status: item.status ?? null,
-            questionText: item.questionText ?? null,
-            responseText: item.responseText ?? null,
-            responseDate: item.responseDate ?? null,
-            governmentComments: item.ministry ?? null,
-            sourceUrl: item.sourceUrl ?? null,
-            rubrique: item.rubrique ?? null,
-            teteAnalyse: item.teteAnalyse ?? null,
-            questionNumber: item.questionNumber ?? null,
-            updatedAt: new Date(),
-          })
-          .where(eq(parliamentaryActivity.id, existing.id));
-        summary.updated++;
-      }
-    }
-
-    for (const rowChunk of chunk(newRows, INSERT_CHUNK_SIZE)) {
-      await db.insert(parliamentaryActivity).values(rowChunk);
-      summary.created += rowChunk.length;
+          updatedAt: new Date(),
+        })
+        .where(eq(parliamentaryActivity.id, existing.id));
+      summary.updated++;
     }
   }
 
-  return summary;
+  for (const rowChunk of chunk(newRows, INSERT_CHUNK_SIZE)) {
+    await db.insert(parliamentaryActivity).values(rowChunk);
+    summary.created += rowChunk.length;
+  }
 }

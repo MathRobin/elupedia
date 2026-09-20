@@ -43,158 +43,177 @@ export async function upsertAnVotes(
     if (o.anId) officialByAnId.set(o.anId, o.id);
   }
 
-  for (const scrutinBatch of chunk(scrutins, SCRUTIN_BATCH_SIZE)) {
-    const batchAnIds = scrutinBatch.map((s) => `scrutin-${s.uid}`);
-    const preExisting = await db
-      .select({ anId: ballots.anId })
-      .from(ballots)
-      .where(inArray(ballots.anId, batchAnIds));
-    const preExistingAnIds = new Set(preExisting.map((b) => b.anId));
+  const batches = chunk(scrutins, SCRUTIN_BATCH_SIZE);
+  logger.info(
+    `  ${scrutins.length} scrutins to process in ${batches.length} batches (${officialByAnId.size} officials mapped)`,
+  );
 
-    const insertedBallots = await db
-      .insert(ballots)
-      .values(
-        scrutinBatch.map((s) => ({
-          anId: `scrutin-${s.uid}`,
-          title: s.titre,
-          date: s.date,
-          type: s.type,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: ballots.anId,
-        set: {
-          title: sql`excluded.title`,
-          date: sql`excluded.date`,
-          type: sql`excluded.type`,
-          updatedAt: new Date(),
-        },
-      })
-      .returning({ id: ballots.id, anId: ballots.anId });
+  for (const [batchIndex, scrutinBatch] of batches.entries()) {
+    const batchNum = batchIndex + 1;
+    if (batchNum % 10 === 1 || batchNum === batches.length) {
+      logger.info(`  Processing batch ${batchNum}/${batches.length}`);
+    }
 
-    const ballotIdByAnId = new Map(insertedBallots.map((b) => [b.anId, b.id]));
-    const ballotIds = insertedBallots.map((b) => b.id);
-    created += insertedBallots.filter(
-      (b) => !preExistingAnIds.has(b.anId),
-    ).length;
+    try {
+      const batchAnIds = scrutinBatch.map((s) => `scrutin-${s.uid}`);
+      const preExisting = await db
+        .select({ anId: ballots.anId })
+        .from(ballots)
+        .where(inArray(ballots.anId, batchAnIds));
+      const preExistingAnIds = new Set(preExisting.map((b) => b.anId));
 
-    const existingVotes = await db
-      .select({
-        id: votes.id,
-        ballotId: votes.ballotId,
-        officialId: votes.officialId,
-        position: votes.position,
-        seatNumber: votes.seatNumber,
-      })
-      .from(votes)
-      .where(inArray(votes.ballotId, ballotIds));
+      const insertedBallots = await db
+        .insert(ballots)
+        .values(
+          scrutinBatch.map((s) => ({
+            anId: `scrutin-${s.uid}`,
+            title: s.titre,
+            date: s.date,
+            type: s.type,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: ballots.anId,
+          set: {
+            title: sql`excluded.title`,
+            date: sql`excluded.date`,
+            type: sql`excluded.type`,
+            updatedAt: new Date(),
+          },
+        })
+        .returning({ id: ballots.id, anId: ballots.anId });
 
-    const existingVoteByKey = new Map(
-      existingVotes.map((v) => [`${v.ballotId}|${v.officialId}`, v]),
-    );
+      const ballotIdByAnId = new Map(
+        insertedBallots.map((b) => [b.anId, b.id]),
+      );
+      const ballotIds = insertedBallots.map((b) => b.id);
+      created += insertedBallots.filter(
+        (b) => !preExistingAnIds.has(b.anId),
+      ).length;
 
-    const newVoteRows: (typeof votes.$inferInsert)[] = [];
-    const voteUpdates: {
-      id: string;
-      position: string;
-      seatNumber: number | null;
-    }[] = [];
-    const groupPositionByKey = new Map<
-      string,
-      typeof ballotGroupPositions.$inferInsert
-    >();
+      const existingVotes = await db
+        .select({
+          id: votes.id,
+          ballotId: votes.ballotId,
+          officialId: votes.officialId,
+          position: votes.position,
+          seatNumber: votes.seatNumber,
+        })
+        .from(votes)
+        .where(inArray(votes.ballotId, ballotIds));
 
-    for (const scrutin of scrutinBatch) {
-      const ballotId = ballotIdByAnId.get(`scrutin-${scrutin.uid}`);
-      if (!ballotId) continue;
+      const existingVoteByKey = new Map(
+        existingVotes.map((v) => [`${v.ballotId}|${v.officialId}`, v]),
+      );
 
-      for (const v of scrutin.votants) {
-        const officialId = officialByAnId.get(v.acteurRef);
-        if (!officialId) continue;
+      const newVoteRows: (typeof votes.$inferInsert)[] = [];
+      const voteUpdates: {
+        id: string;
+        position: string;
+        seatNumber: number | null;
+      }[] = [];
+      const groupPositionByKey = new Map<
+        string,
+        typeof ballotGroupPositions.$inferInsert
+      >();
 
-        const position = POSITION_MAP[v.position] ?? 'absent';
-        const existing = existingVoteByKey.get(`${ballotId}|${officialId}`);
+      for (const scrutin of scrutinBatch) {
+        const ballotId = ballotIdByAnId.get(`scrutin-${scrutin.uid}`);
+        if (!ballotId) continue;
 
-        if (!existing) {
-          newVoteRows.push({
+        for (const v of scrutin.votants) {
+          const officialId = officialByAnId.get(v.acteurRef);
+          if (!officialId) continue;
+
+          const position = POSITION_MAP[v.position] ?? 'absent';
+          const existing = existingVoteByKey.get(`${ballotId}|${officialId}`);
+
+          if (!existing) {
+            newVoteRows.push({
+              ballotId,
+              officialId,
+              position,
+              seatNumber: v.seatNumber,
+            });
+          } else if (
+            existing.position !== position ||
+            existing.seatNumber !== v.seatNumber
+          ) {
+            voteUpdates.push({
+              id: existing.id,
+              position,
+              seatNumber: v.seatNumber,
+            });
+          }
+        }
+
+        for (const gp of scrutin.groupPositions) {
+          const groupName = GP_FALLBACK[gp.organeRef] ?? gp.organeRef;
+          const position =
+            POSITION_MAP[gp.positionMajoritaire] ?? gp.positionMajoritaire;
+
+          // Certains scrutins comportent plusieurs entrées pour le même
+          // organeRef (ex. "PO0" utilisé comme code générique) : on ne
+          // garde que la dernière, un INSERT multi-lignes ne pouvant pas
+          // cibler la même ligne deux fois via ON CONFLICT DO UPDATE.
+          groupPositionByKey.set(`${ballotId}|${gp.organeRef}`, {
             ballotId,
-            officialId,
+            organeRef: gp.organeRef,
+            groupName,
             position,
-            seatNumber: v.seatNumber,
-          });
-        } else if (
-          existing.position !== position ||
-          existing.seatNumber !== v.seatNumber
-        ) {
-          voteUpdates.push({
-            id: existing.id,
-            position,
-            seatNumber: v.seatNumber,
+            memberCount: gp.memberCount || null,
+            votesFor: gp.votesFor,
+            votesAgainst: gp.votesAgainst,
+            votesAbstain: gp.votesAbstain,
+            votesAbsent: gp.votesAbsent,
           });
         }
       }
 
-      for (const gp of scrutin.groupPositions) {
-        const groupName = GP_FALLBACK[gp.organeRef] ?? gp.organeRef;
-        const position =
-          POSITION_MAP[gp.positionMajoritaire] ?? gp.positionMajoritaire;
-
-        // Certains scrutins comportent plusieurs entrées pour le même
-        // organeRef (ex. "PO0" utilisé comme code générique) : on ne garde
-        // que la dernière, un INSERT multi-lignes ne pouvant pas cibler la
-        // même ligne deux fois via ON CONFLICT DO UPDATE.
-        groupPositionByKey.set(`${ballotId}|${gp.organeRef}`, {
-          ballotId,
-          organeRef: gp.organeRef,
-          groupName,
-          position,
-          memberCount: gp.memberCount || null,
-          votesFor: gp.votesFor,
-          votesAgainst: gp.votesAgainst,
-          votesAbstain: gp.votesAbstain,
-          votesAbsent: gp.votesAbsent,
-        });
+      for (const voteChunk of chunk(newVoteRows, VOTE_CHUNK_SIZE)) {
+        await db.insert(votes).values(voteChunk);
+        created += voteChunk.length;
       }
-    }
 
-    for (const voteChunk of chunk(newVoteRows, VOTE_CHUNK_SIZE)) {
-      await db.insert(votes).values(voteChunk);
-      created += voteChunk.length;
-    }
-
-    for (const u of voteUpdates) {
-      await db
-        .update(votes)
-        .set({
-          position: u.position,
-          seatNumber: u.seatNumber,
-          updatedAt: new Date(),
-        })
-        .where(eq(votes.id, u.id));
-      updated++;
-    }
-
-    const groupPositionRows = [...groupPositionByKey.values()];
-    for (const gpChunk of chunk(groupPositionRows, VOTE_CHUNK_SIZE)) {
-      await db
-        .insert(ballotGroupPositions)
-        .values(gpChunk)
-        .onConflictDoUpdate({
-          target: [
-            ballotGroupPositions.ballotId,
-            ballotGroupPositions.organeRef,
-          ],
-          set: {
-            groupName: sql`excluded.group_name`,
-            position: sql`excluded.position`,
-            memberCount: sql`excluded.member_count`,
-            votesFor: sql`excluded.votes_for`,
-            votesAgainst: sql`excluded.votes_against`,
-            votesAbstain: sql`excluded.votes_abstain`,
-            votesAbsent: sql`excluded.votes_absent`,
+      for (const u of voteUpdates) {
+        await db
+          .update(votes)
+          .set({
+            position: u.position,
+            seatNumber: u.seatNumber,
             updatedAt: new Date(),
-          },
-        });
+          })
+          .where(eq(votes.id, u.id));
+        updated++;
+      }
+
+      const groupPositionRows = [...groupPositionByKey.values()];
+      for (const gpChunk of chunk(groupPositionRows, VOTE_CHUNK_SIZE)) {
+        await db
+          .insert(ballotGroupPositions)
+          .values(gpChunk)
+          .onConflictDoUpdate({
+            target: [
+              ballotGroupPositions.ballotId,
+              ballotGroupPositions.organeRef,
+            ],
+            set: {
+              groupName: sql`excluded.group_name`,
+              position: sql`excluded.position`,
+              memberCount: sql`excluded.member_count`,
+              votesFor: sql`excluded.votes_for`,
+              votesAgainst: sql`excluded.votes_against`,
+              votesAbstain: sql`excluded.votes_abstain`,
+              votesAbsent: sql`excluded.votes_absent`,
+              updatedAt: new Date(),
+            },
+          });
+      }
+    } catch (error) {
+      logger.error(
+        `  Batch ${batchNum}/${batches.length} failed (scrutins: ${scrutinBatch.map((s) => s.uid).join(', ')}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
     }
   }
 

@@ -158,26 +158,41 @@ export async function upsertEuropeVotes(
 
   const officialIdByEuroparlId = await loadFrenchMepOfficialIds(db);
 
-  for (const sitting of sittings) {
-    const final = isSittingFinal(sitting.date);
-    if (final && (await wasSittingProcessed(db, sitting.id))) {
-      summary.sittingsSkipped++;
-      continue;
+  logger.info(`  ${sittings.length} sittings to process`);
+
+  for (let i = 0; i < sittings.length; i++) {
+    const sitting = sittings[i];
+
+    if (i % 20 === 0) {
+      logger.info(`  [${i + 1}/${sittings.length}] sittings...`);
     }
 
-    const decisions = await fetchDecisions(sitting.id);
-    const r = await upsertSittingVotes(
-      db,
-      sitting,
-      decisions,
-      officialIdByEuroparlId,
-    );
-    summary.ballots += r.ballots;
-    summary.ballotsExisting += r.ballotsExisting;
-    summary.votes += r.votes;
+    try {
+      const final = isSittingFinal(sitting.date);
+      if (final && (await wasSittingProcessed(db, sitting.id))) {
+        summary.sittingsSkipped++;
+        continue;
+      }
 
-    if (final) {
-      await markSittingProcessed(db, sitting, decisions.length);
+      const decisions = await fetchDecisions(sitting.id);
+      const r = await upsertSittingVotes(
+        db,
+        sitting,
+        decisions,
+        officialIdByEuroparlId,
+      );
+      summary.ballots += r.ballots;
+      summary.ballotsExisting += r.ballotsExisting;
+      summary.votes += r.votes;
+
+      if (final) {
+        await markSittingProcessed(db, sitting, decisions.length);
+      }
+    } catch (error) {
+      logger.error(
+        `  Failed processing sitting ${sitting.id} (${sitting.date}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
     }
   }
 

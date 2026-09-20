@@ -3,6 +3,7 @@ import { officials, staffers } from '@elupedia/shared';
 import { eq, isNull } from 'drizzle-orm';
 import type { CollaborateursDepute } from '../sources/an-collaborateurs.js';
 import { writeProvenanceBatch } from './provenance.js';
+import { logger } from '../logger.js';
 
 const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
@@ -96,5 +97,8 @@ export async function diffStaffers(
 
   await writeProvenanceBatch(db, provenanceItems);
 
+  logger.info(
+    `Staffers: ${summary.created} created, ${summary.ended} ended, ${summary.unchanged} unchanged`,
+  );
   return summary;
 }

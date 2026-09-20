@@ -5,6 +5,7 @@ import type { SenateurActivity } from '../sources/senat-activite.js';
 import { logger } from '../logger.js';
 
 const INSERT_CHUNK_SIZE = 500;
+const LOG_CHUNK_SIZE = 50;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -35,58 +36,45 @@ export async function upsertSenatParliamentaryActivity(
     `  Officials cache: ${officialByMatricule.size} sénateurs mappés`,
   );
 
-  for (const senateur of senateurActivities) {
+  logger.info(`  ${senateurActivities.length} sénateurs to process`);
+
+  for (let i = 0; i < senateurActivities.length; i++) {
+    const senateur = senateurActivities[i];
+
+    if (i % LOG_CHUNK_SIZE === 0) {
+      logger.info(
+        `  [${i + 1}/${senateurActivities.length}] sénat parliamentary activity...`,
+      );
+    }
+
     const officialId = officialByMatricule.get(senateur.matricule.trim());
     if (!officialId) {
       summary.skipped += senateur.activities.length;
       continue;
     }
 
-    const existingActivities = await db
-      .select()
-      .from(parliamentaryActivity)
-      .where(eq(parliamentaryActivity.officialId, officialId));
+    try {
+      const existingActivities = await db
+        .select()
+        .from(parliamentaryActivity)
+        .where(eq(parliamentaryActivity.officialId, officialId));
 
-    const existingByKey = new Map(
-      existingActivities.map((a) => [`${a.type}|${a.title}|${a.date}`, a]),
-    );
+      const existingByKey = new Map(
+        existingActivities.map((a) => [`${a.type}|${a.title}|${a.date}`, a]),
+      );
 
-    const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
+      const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
 
-    for (const item of senateur.activities) {
-      const key = `${item.type}|${item.title}|${item.date}`;
-      const existing = existingByKey.get(key);
+      for (const item of senateur.activities) {
+        const key = `${item.type}|${item.title}|${item.date}`;
+        const existing = existingByKey.get(key);
 
-      if (!existing) {
-        newRows.push({
-          officialId,
-          type: item.type,
-          title: item.title,
-          date: item.date,
-          status: item.status ?? null,
-          questionText: item.questionText ?? null,
-          responseText: item.responseText ?? null,
-          responseDate: item.responseDate ?? null,
-          governmentComments: item.ministry ?? null,
-          sourceUrl: item.sourceUrl ?? null,
-          rubrique: item.rubrique ?? null,
-          teteAnalyse: item.teteAnalyse ?? null,
-          questionNumber: item.questionNumber ?? null,
-        });
-      } else if (
-        existing.status !== (item.status ?? null) ||
-        existing.questionText !== (item.questionText ?? null) ||
-        existing.responseText !== (item.responseText ?? null) ||
-        existing.responseDate !== (item.responseDate ?? null) ||
-        existing.governmentComments !== (item.ministry ?? null) ||
-        existing.sourceUrl !== (item.sourceUrl ?? null) ||
-        existing.rubrique !== (item.rubrique ?? null) ||
-        existing.teteAnalyse !== (item.teteAnalyse ?? null) ||
-        existing.questionNumber !== (item.questionNumber ?? null)
-      ) {
-        await db
-          .update(parliamentaryActivity)
-          .set({
+        if (!existing) {
+          newRows.push({
+            officialId,
+            type: item.type,
+            title: item.title,
+            date: item.date,
             status: item.status ?? null,
             questionText: item.questionText ?? null,
             responseText: item.responseText ?? null,
@@ -96,16 +84,46 @@ export async function upsertSenatParliamentaryActivity(
             rubrique: item.rubrique ?? null,
             teteAnalyse: item.teteAnalyse ?? null,
             questionNumber: item.questionNumber ?? null,
-            updatedAt: new Date(),
-          })
-          .where(eq(parliamentaryActivity.id, existing.id));
-        summary.updated++;
+          });
+        } else if (
+          existing.status !== (item.status ?? null) ||
+          existing.questionText !== (item.questionText ?? null) ||
+          existing.responseText !== (item.responseText ?? null) ||
+          existing.responseDate !== (item.responseDate ?? null) ||
+          existing.governmentComments !== (item.ministry ?? null) ||
+          existing.sourceUrl !== (item.sourceUrl ?? null) ||
+          existing.rubrique !== (item.rubrique ?? null) ||
+          existing.teteAnalyse !== (item.teteAnalyse ?? null) ||
+          existing.questionNumber !== (item.questionNumber ?? null)
+        ) {
+          await db
+            .update(parliamentaryActivity)
+            .set({
+              status: item.status ?? null,
+              questionText: item.questionText ?? null,
+              responseText: item.responseText ?? null,
+              responseDate: item.responseDate ?? null,
+              governmentComments: item.ministry ?? null,
+              sourceUrl: item.sourceUrl ?? null,
+              rubrique: item.rubrique ?? null,
+              teteAnalyse: item.teteAnalyse ?? null,
+              questionNumber: item.questionNumber ?? null,
+              updatedAt: new Date(),
+            })
+            .where(eq(parliamentaryActivity.id, existing.id));
+          summary.updated++;
+        }
       }
-    }
 
-    for (const rowChunk of chunk(newRows, INSERT_CHUNK_SIZE)) {
-      await db.insert(parliamentaryActivity).values(rowChunk);
-      summary.created += rowChunk.length;
+      for (const rowChunk of chunk(newRows, INSERT_CHUNK_SIZE)) {
+        await db.insert(parliamentaryActivity).values(rowChunk);
+        summary.created += rowChunk.length;
+      }
+    } catch (error) {
+      logger.error(
+        `  Failed processing activity for sénateur ${senateur.matricule}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
     }
   }
 

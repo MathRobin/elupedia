@@ -2,6 +2,7 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, staffers } from '@elupedia/shared';
 import { eq, isNull } from 'drizzle-orm';
 import type { CollaborateursSenateur } from '../sources/senat-collaborateurs.js';
+import { logger } from '../logger.js';
 
 export async function diffSenatStaffers(
   db: NeonHttpDatabase,
@@ -79,5 +80,8 @@ export async function diffSenatStaffers(
     await db.insert(staffers).values(newRows);
   }
 
+  logger.info(
+    `Sénat staffers: ${summary.created} created, ${summary.ended} ended, ${summary.unchanged} unchanged`,
+  );
   return summary;
 }

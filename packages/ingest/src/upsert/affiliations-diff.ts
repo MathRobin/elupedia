@@ -2,6 +2,7 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, affiliations } from '@elupedia/shared';
 import { eq, isNull, and } from 'drizzle-orm';
 import { writeProvenanceBatch } from './provenance.js';
+import { logger } from '../logger.js';
 
 export interface AffiliationData {
   slug: string;
@@ -96,5 +97,8 @@ export async function diffAffiliations(
 
   await writeProvenanceBatch(db, provenanceItems);
 
+  logger.info(
+    `Affiliations: ${summary.created} created, ${summary.ended} ended, ${summary.unchanged} unchanged`,
+  );
   return summary;
 }

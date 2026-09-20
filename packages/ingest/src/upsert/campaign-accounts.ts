@@ -120,7 +120,15 @@ export async function upsertCampaignAccounts(
   let updated = 0;
   const skipped = 0;
 
-  for (const batch of chunk(rows, BATCH_SIZE)) {
+  const batches = chunk(rows, BATCH_SIZE);
+  logger.info(`[CNCCFP] ${election.id}: ${rows.length} rows to process`);
+
+  for (const [batchIndex, batch] of batches.entries()) {
+    const batchNum = batchIndex + 1;
+    if (batchNum % 10 === 1 || batchNum === batches.length) {
+      logger.info(`  [CNCCFP] batch ${batchNum}/${batches.length}`);
+    }
+
     const batchIds = batch.map((r) => r.cnccfpId);
     const preExisting = await db
       .select({ cnccfpId: campaignAccounts.cnccfpId })
@@ -152,35 +160,42 @@ export async function upsertCampaignAccounts(
       decision: row.decision,
     }));
 
-    await db
-      .insert(campaignAccounts)
-      .values(values)
-      .onConflictDoUpdate({
-        target: campaignAccounts.cnccfpId,
-        set: {
-          officialId: sql`excluded.official_id`,
-          candidateName: sql`excluded.candidate_name`,
-          electionType: sql`excluded.election_type`,
-          electionDate: sql`excluded.election_date`,
-          constituency: sql`excluded.constituency`,
-          department: sql`excluded.department`,
-          departmentCode: sql`excluded.department_code`,
-          politicalLabel: sql`excluded.political_label`,
-          expensesDeclared: sql`excluded.expenses_declared`,
-          expensesRetained: sql`excluded.expenses_retained`,
-          revenueDeclared: sql`excluded.revenue_declared`,
-          revenueRetained: sql`excluded.revenue_retained`,
-          donationsDeclared: sql`excluded.donations_declared`,
-          donationsRetained: sql`excluded.donations_retained`,
-          personalContributionDeclared: sql`excluded.personal_contribution_declared`,
-          personalContributionRetained: sql`excluded.personal_contribution_retained`,
-          partyContributionsDeclared: sql`excluded.party_contributions_declared`,
-          partyContributionsRetained: sql`excluded.party_contributions_retained`,
-          reimbursement: sql`excluded.reimbursement`,
-          decision: sql`excluded.decision`,
-          updatedAt: new Date(),
-        },
-      });
+    try {
+      await db
+        .insert(campaignAccounts)
+        .values(values)
+        .onConflictDoUpdate({
+          target: campaignAccounts.cnccfpId,
+          set: {
+            officialId: sql`excluded.official_id`,
+            candidateName: sql`excluded.candidate_name`,
+            electionType: sql`excluded.election_type`,
+            electionDate: sql`excluded.election_date`,
+            constituency: sql`excluded.constituency`,
+            department: sql`excluded.department`,
+            departmentCode: sql`excluded.department_code`,
+            politicalLabel: sql`excluded.political_label`,
+            expensesDeclared: sql`excluded.expenses_declared`,
+            expensesRetained: sql`excluded.expenses_retained`,
+            revenueDeclared: sql`excluded.revenue_declared`,
+            revenueRetained: sql`excluded.revenue_retained`,
+            donationsDeclared: sql`excluded.donations_declared`,
+            donationsRetained: sql`excluded.donations_retained`,
+            personalContributionDeclared: sql`excluded.personal_contribution_declared`,
+            personalContributionRetained: sql`excluded.personal_contribution_retained`,
+            partyContributionsDeclared: sql`excluded.party_contributions_declared`,
+            partyContributionsRetained: sql`excluded.party_contributions_retained`,
+            reimbursement: sql`excluded.reimbursement`,
+            decision: sql`excluded.decision`,
+            updatedAt: new Date(),
+          },
+        });
+    } catch (error) {
+      logger.error(
+        `  [CNCCFP] batch ${batchNum}/${batches.length} failed (cnccfp_id: ${batchIds.join(', ')}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
 
     for (const row of batch) {
       if (preExistingIds.has(row.cnccfpId)) {

@@ -2,6 +2,7 @@ import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, committees } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { DeputeCommittees } from '../sources/an-commissions.js';
+import { logger } from '../logger.js';
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -33,38 +34,47 @@ export async function upsertCommittees(
 
   const newRows: (typeof committees.$inferInsert)[] = [];
 
+  logger.info(`  ${deputeCommittees.length} deputes to process`);
+
   for (const depute of deputeCommittees) {
     const officialId = officialByAnId.get(depute.id_an);
     if (!officialId) continue;
 
-    for (const item of depute.committees) {
-      const key = `${officialId}|${item.name}|${item.type}|${item.start_date}`;
-      const existing = existingByKey.get(key);
+    try {
+      for (const item of depute.committees) {
+        const key = `${officialId}|${item.name}|${item.type}|${item.start_date}`;
+        const existing = existingByKey.get(key);
 
-      if (!existing) {
-        newRows.push({
-          officialId,
-          name: item.name,
-          type: item.type,
-          anUid: item.an_uid ?? null,
-          startDate: item.start_date,
-          endDate: item.end_date ?? null,
-        });
-        summary.created++;
-      } else if (
-        existing.endDate !== (item.end_date ?? null) ||
-        (item.an_uid && existing.anUid !== item.an_uid)
-      ) {
-        await db
-          .update(committees)
-          .set({
+        if (!existing) {
+          newRows.push({
+            officialId,
+            name: item.name,
+            type: item.type,
+            anUid: item.an_uid ?? null,
+            startDate: item.start_date,
             endDate: item.end_date ?? null,
-            anUid: item.an_uid ?? existing.anUid,
-            updatedAt: new Date(),
-          })
-          .where(eq(committees.id, existing.id));
-        summary.updated++;
+          });
+          summary.created++;
+        } else if (
+          existing.endDate !== (item.end_date ?? null) ||
+          (item.an_uid && existing.anUid !== item.an_uid)
+        ) {
+          await db
+            .update(committees)
+            .set({
+              endDate: item.end_date ?? null,
+              anUid: item.an_uid ?? existing.anUid,
+              updatedAt: new Date(),
+            })
+            .where(eq(committees.id, existing.id));
+          summary.updated++;
+        }
       }
+    } catch (error) {
+      logger.error(
+        `  Failed processing committees for ${depute.id_an}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
     }
   }
 
@@ -72,5 +82,8 @@ export async function upsertCommittees(
     await db.insert(committees).values(rowChunk);
   }
 
+  logger.info(
+    `Committees: ${summary.created} created, ${summary.updated} updated`,
+  );
   return summary;
 }
