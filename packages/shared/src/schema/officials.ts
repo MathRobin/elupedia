@@ -27,6 +27,11 @@ export const officials = pgTable('officials', {
   // plutôt qu'un tirage aléatoire. Colonne ajoutée directement en base
   // (ALTER TABLE), le pipeline drizzle-kit migrate étant cassé.
   pressCheckedAt: timestamp('press_checked_at', { withTimezone: true }),
+  // Dernière fois où l'ingestion fact-checks a interrogé cet élu (qu'un
+  // signalement ait été trouvé ou non). Même logique que pressCheckedAt.
+  factchecksCheckedAt: timestamp('factchecks_checked_at', {
+    withTimezone: true,
+  }),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

@@ -69,6 +69,13 @@ export async function runFactChecks(): Promise<StepResult[]> {
         } catch (e) {
           errors++;
           logger.warn(`  Error for ${row.firstName} ${row.lastName}: ${e}`);
+        } finally {
+          // Marqué comme vérifié même en cas d'erreur, pour ne pas bloquer
+          // indéfiniment cet élu (voir même logique sur pressCheckedAt).
+          await db
+            .update(officials)
+            .set({ factchecksCheckedAt: new Date() })
+            .where(eq(officials.id, row.id));
         }
         await new Promise((r) => setTimeout(r, 200));
       }
