@@ -95,9 +95,9 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 
 - **Tables** : `press_mentions`
 - **Source** : Google Actualités (flux RSS) — `google-news.ts` → `upsert/press-mentions.ts`
-- **Commandes** (exécution locale — pas de workflow GitHub Actions, l'ingestion tourne en dehors de la CI) :
-  - `yarn --cwd packages/ingest ingest:press` — députés, sénateurs et eurodéputés avec mandat actif (~1000 élus), délai 3s entre chaque élu pour ne pas marteler le flux RSS
-  - `yarn --cwd packages/ingest ingest:press:maires` — 1500 élus vivants aléatoires par run, tous types de mandats confondus (le volume de maires, ~34 800, empêche un run exhaustif à chaque fois)
+- **Commandes** (planifiées via Dagu, voir `docs/INGESTION-SCHEDULE.md`) :
+  - `yarn --cwd packages/ingest ingest:press` — députés, sénateurs et eurodéputés avec mandat actif (~1000 élus), délai 3s entre chaque élu pour ne pas marteler le flux RSS. Hebdomadaire (`dagu-dags/ingest-press.yaml`)
+  - `yarn --cwd packages/ingest ingest:press:maires` — lot de 1500 élus (tous mandats confondus), trié par `officials.press_checked_at` croissant (jamais vérifié en premier) plutôt qu'aléatoire, pour garantir un cycle complet sur les ~34 800 maires. Toutes les 5h (`dagu-dags/ingest-press-maires.yaml`) → couverture complète en ~5 jours
 - **Description** : Articles de presse mentionnant un élu, collectés automatiquement via les flux RSS Google Actualités à partir du nom complet de l'élu. **Ce n'est pas une source officielle** : les résultats peuvent contenir du bruit (homonymes, mentions indirectes) et ne sont pas exhaustifs. Section proposée à titre informatif.
 - **Déduplication** : sur `(official_id, source_url)`, insert uniquement (pas de mise à jour des articles existants)
 - **Pages** : fiche élu (section presse en grille de cards)
@@ -190,7 +190,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Champ** : `officials.s3_photo_url`
 - **Source** : photos originales (AN, Sénat, Wikidata) téléchargées et uploadées sur S3
 - **Client** : `upsert/upload-photos.ts`
-- **Workflow** : `.github/workflows/ingest-photos.yml` (dimanche 03:30 UTC)
+- **Workflow** : `.github/workflows/ingest-photos.yml` (dimanche 01:30 UTC, voir `docs/INGESTION-SCHEDULE.md`)
 - **Bucket** : `elus/pp/{officialId}.jpg`
 - **Description** : Les photos des élus sont sauvegardées sur S3 pour éviter la dépendance aux URLs sources. Le site utilise `s3_photo_url` en priorité, avec fallback sur `photo_url`.
 

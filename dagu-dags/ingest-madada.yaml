@@ -1,0 +1,24 @@
+# Généré automatiquement à partir de .github/workflows/ingest-madada.yml
+# Cron repris tel quel (UTC — GitHub Actions n'exécute qu'en UTC).
+# Vérifier que Dagu/systemd interprète bien ce cron en UTC (TZ=UTC),
+# sinon les horaires réels seront décalés par rapport au calendrier
+# documenté dans docs/INGESTION-SCHEDULE.md.
+name: Ingest — Demandes MaDada
+schedule: '30 3 * * 3'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+steps:
+  - name: git-pull
+    command: git pull
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: ingestion-demandes-madada
+    command: yarn --cwd packages/ingest ingest:madada
+    depends:
+      - install-dependencies

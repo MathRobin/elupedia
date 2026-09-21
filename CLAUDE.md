@@ -61,3 +61,4 @@ La documentation se trouve dans `docs/` :
 - `ARCHITECTURE.md` — architecture technique
 - `DOMAINS.md` — domaines métier et sources de données
 - `DATA-LICENSES.md` — licences des données utilisées
+- `INGESTION-SCHEDULE.md` — calendrier des DAGs Dagu d'ingestion

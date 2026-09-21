@@ -1,0 +1,24 @@
+# Généré automatiquement à partir de .github/workflows/ingest-decorations.yml
+# Cron repris tel quel (UTC — GitHub Actions n'exécute qu'en UTC).
+# Vérifier que Dagu/systemd interprète bien ce cron en UTC (TZ=UTC),
+# sinon les horaires réels seront décalés par rapport au calendrier
+# documenté dans docs/INGESTION-SCHEDULE.md.
+name: Ingest — Décorations
+schedule: '30 3 * * 5'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+steps:
+  - name: git-pull
+    command: git pull
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: ingestion-decorations
+    command: yarn --cwd packages/ingest ingest:decorations
+    depends:
+      - install-dependencies

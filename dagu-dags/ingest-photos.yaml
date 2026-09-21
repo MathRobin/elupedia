@@ -1,0 +1,28 @@
+# Généré automatiquement à partir de .github/workflows/ingest-photos.yml
+# Cron repris tel quel (UTC — GitHub Actions n'exécute qu'en UTC).
+# Vérifier que Dagu/systemd interprète bien ce cron en UTC (TZ=UTC),
+# sinon les horaires réels seront décalés par rapport au calendrier
+# documenté dans docs/INGESTION-SCHEDULE.md.
+name: Ingest — Sauvegarde photos S3
+schedule: '30 1 * * 0'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+  - MAPS_S3_BUCKET: ${MAPS_S3_BUCKET}
+  - MAPS_S3_REGION: ${MAPS_S3_REGION}
+  - AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+  - AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+steps:
+  - name: git-pull
+    command: git pull
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: sauvegarde-photos-s3
+    command: yarn --cwd packages/ingest ingest:photos
+    depends:
+      - install-dependencies
