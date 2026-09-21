@@ -21,6 +21,12 @@ export const officials = pgTable('officials', {
   slug: varchar('slug', { length: 512 }).unique(),
   full: jsonb('full'),
   hatvpStatus: varchar('hatvp_status', { length: 20 }),
+  // Dernière fois où l'ingestion presse a vérifié cet élu (qu'un nouvel
+  // article ait été trouvé ou non). Sert à prioriser le lot suivant
+  // (ingest:press:maires) sur les élus jamais/plus anciennement vérifiés,
+  // plutôt qu'un tirage aléatoire. Colonne ajoutée directement en base
+  // (ALTER TABLE), le pipeline drizzle-kit migrate étant cassé.
+  pressCheckedAt: timestamp('press_checked_at', { withTimezone: true }),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

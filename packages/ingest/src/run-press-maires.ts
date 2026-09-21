@@ -1,5 +1,5 @@
 import { createDb, officials } from '@elupedia/shared';
-import { isNull, sql } from 'drizzle-orm';
+import { isNull, eq, sql } from 'drizzle-orm';
 
 import { logger } from './logger.js';
 import { type StepResult, runStep, printSummary } from './run-helpers.js';
@@ -27,11 +27,11 @@ export async function runPressMaires(): Promise<StepResult[]> {
     })
     .from(officials)
     .where(isNull(officials.deathDate))
-    .orderBy(sql`random()`)
+    .orderBy(sql`${officials.pressCheckedAt} asc nulls first`)
     .limit(BATCH_SIZE);
 
   logger.info(
-    `${batch.length} officials selected (random batch of ${BATCH_SIZE})\n`,
+    `${batch.length} officials selected (least recently checked first, batch of ${BATCH_SIZE})\n`,
   );
 
   results.push(
@@ -59,6 +59,13 @@ export async function runPressMaires(): Promise<StepResult[]> {
           logger.warn(
             `    → error: ${err instanceof Error ? err.message : String(err)}`,
           );
+        } finally {
+          // Marqué comme vérifié même en cas d'erreur, pour ne pas bloquer
+          // indéfiniment cet élu en tête de file au prochain run.
+          await db
+            .update(officials)
+            .set({ pressCheckedAt: new Date() })
+            .where(eq(officials.id, official.id));
         }
 
         if (i < batch.length - 1) {
