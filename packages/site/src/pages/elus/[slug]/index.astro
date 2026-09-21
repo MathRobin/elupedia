@@ -37,6 +37,7 @@ const mandateRows = await db
     senatId: officials.senatId,
     europarlId: officials.europarlId,
     hatvpStatus: officials.hatvpStatus,
+    pressCheckedAt: officials.pressCheckedAt,
     district: mandates.district,
     department: mandates.department,
     startDate: mandates.startDate,
@@ -762,6 +763,13 @@ const sectionDates = {
 function fmtRetrieval(date: Date | null): string {
   if (!date) return '';
   return ` — dernière récupération le ${date.toLocaleDateString('fr-FR')}`;
+}
+
+function fmtCheckedAt(date: Date | null): string {
+  if (!date) return '';
+  const d = date.toLocaleDateString('fr-FR');
+  const h = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `Dernière actualisation le ${d} à ${h}`;
 }
 
 const openDataNote = deputy.mandateType === 'depute'
@@ -1956,6 +1964,11 @@ for (const sp of deputySponsorships) {
           <span class="ml-2 text-sm font-normal text-slate-500">({deputyPress.length})</span>
         )}
       </h2>
+      {deputy.pressCheckedAt && (
+        <p class="mt-1 text-xs text-slate-400 dark:text-slate-500" title="Date à laquelle l'ingestion presse a vérifié cet élu pour la dernière fois, qu'un nouvel article ait été trouvé ou non">
+          <i class="fa-regular fa-clock mr-1" aria-hidden="true"></i>{fmtCheckedAt(deputy.pressCheckedAt)}
+        </p>
+      )}
 
       {deputyPress.length === 0 ? (
         <p class="mt-4 text-slate-500 dark:text-slate-400">Aucune mention presse enregistrée/trouvée.</p>
