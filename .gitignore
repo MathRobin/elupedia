@@ -16,3 +16,4 @@ dist/
 ingest-report*.json
 packages/site/public/maps/
 packages/ingest/madada-cache.json
+.claude/settings.local.json
