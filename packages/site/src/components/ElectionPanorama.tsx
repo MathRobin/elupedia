@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useFocusTrap } from '../lib/use-focus-trap.js';
 import type { PanoramaCandidate } from '../lib/election-types.js';
 
 const PAGE_SIZE = 48;
@@ -26,6 +27,12 @@ function sortKey(c: PanoramaCandidate): string {
   return c.nom.trim() || c.liste || 'Liste sans nom';
 }
 
+const SCOPE_LABELS: Record<string, string> = {
+  senatoriale: 'Département',
+  municipale: 'Commune',
+  legislative: 'Commune',
+};
+
 export default function ElectionPanorama({
   type,
   id,
@@ -41,24 +48,72 @@ export default function ElectionPanorama({
 }) {
   const [search, setSearch] = useState(initialQuery);
   const [textFilter, setTextFilter] = useState('');
+  const [scopeFilter, setScopeFilter] = useState('');
+  const [nuanceFilter, setNuanceFilter] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const drawerRef = useFocusTrap(mobileFiltersOpen);
 
   const isCommuneSearch =
     needsSearch || type === 'municipale' || type === 'legislative';
+  const scopeLabel = SCOPE_LABELS[type] ?? 'Circonscription';
+
+  const scopes = useMemo(
+    () =>
+      [...new Set(candidates.map((c) => c.scope).filter(Boolean))].sort(
+        (a, b) => a.localeCompare(b),
+      ),
+    [candidates],
+  );
+
+  const nuances = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of candidates) {
+      if (!c.nuance) continue;
+      counts.set(c.nuance, (counts.get(c.nuance) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [candidates]);
+
+  function toggleNuance(n: string) {
+    setNuanceFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(n)) next.delete(n);
+      else next.add(n);
+      return next;
+    });
+    setPage(1);
+  }
 
   const filtered = useMemo(() => {
     const q = normalize(textFilter.trim());
     const sorted = [...candidates].sort((a, b) =>
       normalize(sortKey(a)).localeCompare(normalize(sortKey(b))),
     );
-    if (!q) return sorted;
-    return sorted.filter(
-      (c) =>
-        normalize(displayName(c)).includes(q) ||
-        (c.nuance && normalize(c.nuance).includes(q)) ||
-        normalize(c.scope).includes(q),
-    );
-  }, [candidates, textFilter]);
+    return sorted.filter((c) => {
+      if (scopeFilter && c.scope !== scopeFilter) return false;
+      if (nuanceFilter.size > 0 && !(c.nuance && nuanceFilter.has(c.nuance)))
+        return false;
+      if (q) {
+        return (
+          normalize(displayName(c)).includes(q) ||
+          (c.nuance && normalize(c.nuance).includes(q)) ||
+          normalize(c.scope).includes(q)
+        );
+      }
+      return true;
+    });
+  }, [candidates, textFilter, scopeFilter, nuanceFilter]);
+
+  const activeFilterCount =
+    (textFilter ? 1 : 0) + (scopeFilter ? 1 : 0) + nuanceFilter.size;
+
+  function resetFilters() {
+    setTextFilter('');
+    setScopeFilter('');
+    setNuanceFilter(new Set());
+    setPage(1);
+  }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -96,21 +151,13 @@ export default function ElectionPanorama({
     );
   }
 
-  return (
-    <div className="mt-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {isCommuneSearch && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Commune : <strong>{initialQuery}</strong> ·{' '}
-            <a
-              href={`/elections/${type}/${id}`}
-              className="text-indigo-600 hover:underline dark:text-indigo-400"
-            >
-              changer
-            </a>
-          </p>
-        )}
-        <div className="relative flex-1 sm:max-w-xs sm:ml-auto">
+  const filterPanel = (
+    <div className="space-y-6">
+      <fieldset>
+        <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          Recherche
+        </legend>
+        <div className="relative mt-2">
           <i
             className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
             aria-hidden="true"
@@ -122,61 +169,200 @@ export default function ElectionPanorama({
               setTextFilter(e.target.value);
               setPage(1);
             }}
-            placeholder="Filtrer par nom, nuance..."
+            placeholder="Nom, nuance..."
             className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
           />
         </div>
-      </div>
+      </fieldset>
 
-      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-        {filtered.length} candidat{filtered.length !== 1 ? 's' : ''}
-      </p>
-
-      {filtered.length === 0 ? (
-        <p className="mt-8 text-center text-slate-500 dark:text-slate-400">
-          Aucun candidat trouvé.
-        </p>
-      ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {pageItems.map((c, i) => {
-            const showLetterHeader =
-              i === 0 ||
-              initial(sortKey(pageItems[i - 1])) !== initial(sortKey(c));
-            return (
-              <div key={`${c.nom}-${c.prenom}-${i}`} className="contents">
-                {showLetterHeader && (
-                  <div className="sm:col-span-2 lg:col-span-3 -mb-1 mt-2 text-xs font-bold uppercase tracking-wider text-indigo-500 first:mt-0 dark:text-indigo-400">
-                    {initial(sortKey(c))}
-                  </div>
-                )}
-                <CandidateCard candidate={c} />
-              </div>
-            );
-          })}
-        </div>
+      {scopes.length > 1 && (
+        <fieldset>
+          <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            {scopeLabel}
+          </legend>
+          <select
+            value={scopeFilter}
+            onChange={(e) => {
+              setScopeFilter(e.target.value);
+              setPage(1);
+            }}
+            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          >
+            <option value="">Tous</option>
+            {scopes.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </fieldset>
       )}
 
-      {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-center gap-2">
+      {nuances.length > 0 && (
+        <fieldset>
+          <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Groupe politique
+          </legend>
+          <div className="mt-2 max-h-64 space-y-1.5 overflow-y-auto pr-1">
+            {nuances.map(([n, count]) => (
+              <label
+                key={n}
+                className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
+              >
+                <input
+                  type="checkbox"
+                  checked={nuanceFilter.has(n)}
+                  onChange={() => toggleNuance(n)}
+                  className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span>
+                  {n}{' '}
+                  <span className="text-slate-400 dark:text-slate-500">
+                    ({count})
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {activeFilterCount > 0 && (
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+        >
+          Réinitialiser les filtres
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="mt-6 flex flex-col gap-6 lg:flex-row">
+      <aside className="hidden w-72 shrink-0 lg:block">
+        <div className="sticky top-24 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+          {filterPanel}
+        </div>
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {isCommuneSearch && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Commune : <strong>{initialQuery}</strong> ·{' '}
+              <a
+                href={`/elections/${type}/${id}`}
+                className="text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                changer
+              </a>
+            </p>
+          )}
           <button
             type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-slate-600"
+            onClick={() => setMobileFiltersOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 lg:hidden"
           >
-            Précédent
+            <i className="fa-solid fa-sliders" aria-hidden="true"></i>
+            Filtres{activeFilterCount > 0 && ` (${activeFilterCount})`}
           </button>
-          <span className="text-sm text-slate-500 dark:text-slate-400">
-            Page {page} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-slate-600"
+        </div>
+
+        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+          {filtered.length} candidat{filtered.length !== 1 ? 's' : ''}
+        </p>
+
+        {filtered.length === 0 ? (
+          <p className="mt-8 text-center text-slate-500 dark:text-slate-400">
+            Aucun candidat trouvé.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pageItems.map((c, i) => {
+              const showLetterHeader =
+                i === 0 ||
+                initial(sortKey(pageItems[i - 1])) !== initial(sortKey(c));
+              return (
+                <div key={`${c.nom}-${c.prenom}-${i}`} className="contents">
+                  {showLetterHeader && (
+                    <div className="sm:col-span-2 lg:col-span-3 -mb-1 mt-2 text-xs font-bold uppercase tracking-wider text-indigo-500 first:mt-0 dark:text-indigo-400">
+                      {initial(sortKey(c))}
+                    </div>
+                  )}
+                  <CandidateCard candidate={c} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-slate-600"
+            >
+              Précédent
+            </button>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              Page {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-slate-600"
+            >
+              Suivant
+            </button>
+          </div>
+        )}
+      </div>
+
+      {mobileFiltersOpen && (
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filtres"
+        >
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileFiltersOpen(false)}
+          />
+          <div
+            ref={drawerRef}
+            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-5 dark:bg-slate-800"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setMobileFiltersOpen(false);
+            }}
           >
-            Suivant
-          </button>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Filtres
+              </h2>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(false)}
+                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
+                aria-label="Fermer"
+              >
+                <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div className="mt-4">{filterPanel}</div>
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(false)}
+              className="mt-6 w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white"
+            >
+              Voir {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
+            </button>
+          </div>
         </div>
       )}
     </div>
