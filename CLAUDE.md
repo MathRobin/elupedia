@@ -44,6 +44,9 @@ yarn test             # Lancer les tests (Vitest)
 yarn --cwd packages/ingest ingest:press          # parlementaires (députés, sénateurs, eurodéputés)
 yarn --cwd packages/ingest ingest:press:maires   # 1500 élus vivants aléatoires (tous mandats)
 
+# Candidatures sénatoriales 2026 (pré-scrutin, voir docs/DOMAINS.md)
+yarn --cwd packages/ingest ingest:senat:candidacies
+
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
 

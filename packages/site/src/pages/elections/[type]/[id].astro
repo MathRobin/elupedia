@@ -1,0 +1,162 @@
+---
+export const prerender = false;
+
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ElectionPanorama from '../../../components/ElectionPanorama';
+import { getDb } from '../../../lib/db.js';
+import {
+  municipalElections,
+  municipalCandidates,
+  legislativeElections,
+  legislativeCandidates,
+  senatorialElections,
+  senatorialCandidates,
+  officials,
+} from '@elupedia/shared';
+import { eq, and, ilike, sql } from 'drizzle-orm';
+import type { PanoramaCandidate } from '../../../lib/election-types.js';
+
+const { type, id } = Astro.params;
+const q = Astro.url.searchParams.get('q')?.trim() ?? '';
+
+const db = getDb();
+
+let label = '';
+let electionDate = '';
+let candidates: PanoramaCandidate[] = [];
+let needsSearch = false;
+let notFound = false;
+
+if (type === 'senatoriale') {
+  const [year, roundStr] = (id ?? '').split('-');
+  const round = parseInt(roundStr ?? '1', 10);
+
+  const [election] = await db
+    .select()
+    .from(senatorialElections)
+    .where(and(eq(senatorialElections.electionYear, year ?? ''), eq(senatorialElections.round, round)))
+    .limit(1);
+
+  if (!election) {
+    notFound = true;
+  } else {
+    label = `Élections sénatoriales ${year}`;
+    electionDate = election.electionDate;
+
+    const rows = await db
+      .select({
+        nom: senatorialCandidates.nom,
+        prenom: senatorialCandidates.prenom,
+        nuance: senatorialCandidates.nuance,
+        liste: senatorialCandidates.liste,
+        sortant: senatorialCandidates.sortant,
+        elected: senatorialCandidates.elected,
+        scope: senatorialElections.departementName,
+        officialId: senatorialCandidates.officialId,
+        officialSlug: officials.slug,
+        officialPhotoUrl: officials.photoUrl,
+      })
+      .from(senatorialCandidates)
+      .innerJoin(senatorialElections, eq(senatorialCandidates.electionId, senatorialElections.id))
+      .leftJoin(officials, eq(senatorialCandidates.officialId, officials.id))
+      .where(eq(senatorialElections.electionYear, year ?? ''));
+
+    candidates = rows.map((r) => ({
+      nom: r.nom,
+      prenom: r.prenom,
+      nuance: r.nuance,
+      liste: r.liste,
+      sortant: r.sortant,
+      elected: r.elected,
+      scope: r.scope ?? '',
+      hasProfile: !!r.officialSlug,
+      profileSlug: r.officialSlug,
+      profilePhotoUrl: r.officialPhotoUrl,
+    }));
+  }
+} else if (type === 'municipale' || type === 'legislative') {
+  const electionsTable = type === 'municipale' ? municipalElections : legislativeElections;
+  const candidatesTable = type === 'municipale' ? municipalCandidates : legislativeCandidates;
+
+  const [oneRow] = await db
+    .select({ electionDate: electionsTable.electionDate })
+    .from(electionsTable)
+    .where(eq(electionsTable.electionId, id ?? ''))
+    .limit(1);
+
+  if (!oneRow) {
+    notFound = true;
+  } else {
+    const year = (id ?? '').slice(0, 4);
+    const round = /_t2$/.test(id ?? '') ? '2nd tour' : '1er tour';
+    label = `Élections ${type === 'municipale' ? 'municipales' : 'législatives'} ${year} — ${round}`;
+    electionDate = oneRow.electionDate;
+    needsSearch = q.length < 2;
+
+    if (!needsSearch) {
+      const rows = await db
+        .select({
+          nom: candidatesTable.nom,
+          prenom: candidatesTable.prenom,
+          nuance: candidatesTable.nuance,
+          liste: type === 'municipale' ? municipalCandidates.liste : sql<string | null>`null`,
+          scope: electionsTable.communeName,
+          officialId: candidatesTable.officialId,
+          officialSlug: officials.slug,
+          officialPhotoUrl: officials.photoUrl,
+        })
+        .from(candidatesTable)
+        .innerJoin(electionsTable, eq(candidatesTable.electionId, electionsTable.id))
+        .leftJoin(officials, eq(candidatesTable.officialId, officials.id))
+        .where(
+          and(
+            eq(electionsTable.electionId, id ?? ''),
+            ilike(electionsTable.communeName, `%${q}%`),
+          ),
+        )
+        .limit(500);
+
+      candidates = rows.map((r) => ({
+        nom: r.nom,
+        prenom: r.prenom,
+        nuance: r.nuance,
+        liste: r.liste,
+        sortant: false,
+        elected: null,
+        scope: r.scope ?? '',
+        hasProfile: !!r.officialSlug,
+        profileSlug: r.officialSlug,
+        profilePhotoUrl: r.officialPhotoUrl,
+      }));
+    }
+  }
+} else {
+  notFound = true;
+}
+
+if (notFound) {
+  return Astro.redirect('/404');
+}
+---
+
+<BaseLayout title={label} description={`Panorama des candidats — ${label}.`}>
+  <nav class="text-sm text-slate-500 dark:text-slate-400">
+    <a href="/elections" class="hover:text-indigo-600 dark:hover:text-indigo-400">Élections</a>
+    <span class="mx-1">/</span>
+    {label}
+  </nav>
+
+  <h1 class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{label}</h1>
+  <p class="mt-1 text-slate-500 dark:text-slate-400">
+    {new Date(electionDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+  </p>
+
+  <ElectionPanorama
+    client:load
+    type={type}
+    id={id}
+    candidates={candidates}
+    needsSearch={needsSearch}
+    initialQuery={q}
+  />
+</BaseLayout>

@@ -1,0 +1,123 @@
+---
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ElectionsList from '../../components/ElectionsList';
+import { getDb } from '../../lib/db.js';
+import {
+  municipalElections,
+  legislativeElections,
+  senatorialElections,
+  senatorialCandidates,
+} from '@elupedia/shared';
+import { sql, count, min } from 'drizzle-orm';
+import type { ElectionEvent } from '../../lib/election-types.js';
+
+const db = getDb();
+
+function roundFromElectionId(electionId: string): number {
+  const m = /_t(\d)$/.exec(electionId);
+  return m ? parseInt(m[1], 10) : 1;
+}
+
+function yearFromElectionId(electionId: string): string {
+  return electionId.slice(0, 4);
+}
+
+const [municipalRows, legislativeRows, senatorialRows] = await Promise.all([
+  db
+    .select({
+      electionId: municipalElections.electionId,
+      electionDate: min(municipalElections.electionDate),
+      candidateCount: count(),
+      scopeCount: sql<number>`count(distinct ${municipalElections.communeCode})`,
+    })
+    .from(municipalElections)
+    .groupBy(municipalElections.electionId),
+  db
+    .select({
+      electionId: legislativeElections.electionId,
+      electionDate: min(legislativeElections.electionDate),
+      candidateCount: count(),
+      scopeCount: sql<number>`count(distinct ${legislativeElections.communeCode})`,
+    })
+    .from(legislativeElections)
+    .groupBy(legislativeElections.electionId),
+  db
+    .select({
+      electionYear: senatorialElections.electionYear,
+      round: senatorialElections.round,
+      electionDate: min(senatorialElections.electionDate),
+      scopeCount: sql<number>`count(distinct ${senatorialElections.departementCode})`,
+    })
+    .from(senatorialElections)
+    .groupBy(senatorialElections.electionYear, senatorialElections.round),
+]);
+
+const events: ElectionEvent[] = [
+  ...municipalRows.map((r) => ({
+    type: 'municipale' as const,
+    id: r.electionId,
+    label: `Élections municipales ${yearFromElectionId(r.electionId)} — ${roundFromElectionId(r.electionId) === 2 ? '2nd tour' : '1er tour'}`,
+    electionDate: r.electionDate!,
+    round: roundFromElectionId(r.electionId),
+    candidateCount: r.candidateCount,
+    scopeCount: Number(r.scopeCount),
+  })),
+  ...legislativeRows.map((r) => ({
+    type: 'legislative' as const,
+    id: r.electionId,
+    label: `Élections législatives ${yearFromElectionId(r.electionId)} — ${roundFromElectionId(r.electionId) === 2 ? '2nd tour' : '1er tour'}`,
+    electionDate: r.electionDate!,
+    round: roundFromElectionId(r.electionId),
+    candidateCount: r.candidateCount,
+    scopeCount: Number(r.scopeCount),
+  })),
+  ...senatorialRows.map((r) => ({
+    type: 'senatoriale' as const,
+    id: `${r.electionYear}-${r.round}`,
+    label: `Élections sénatoriales ${r.electionYear}`,
+    electionDate: r.electionDate!,
+    round: r.round,
+    candidateCount: 0,
+    scopeCount: Number(r.scopeCount),
+  })),
+];
+
+// Complète le nombre de candidats sénatoriaux (pas de jointure simple dans
+// la requête groupée ci-dessus car la clé de regroupement diffère).
+const senatorialCandidateCounts = await db
+  .select({
+    electionYear: senatorialElections.electionYear,
+    round: senatorialElections.round,
+    candidateCount: count(),
+  })
+  .from(senatorialElections)
+  .innerJoin(
+    senatorialCandidates,
+    sql`${senatorialCandidates.electionId} = ${senatorialElections.id}`,
+  )
+  .groupBy(senatorialElections.electionYear, senatorialElections.round);
+
+for (const e of events) {
+  if (e.type !== 'senatoriale') continue;
+  const found = senatorialCandidateCounts.find(
+    (c) => c.electionYear === e.id.split('-')[0] && String(c.round) === e.id.split('-')[1],
+  );
+  if (found) e.candidateCount = found.candidateCount;
+}
+
+events.sort((a, b) => new Date(b.electionDate).getTime() - new Date(a.electionDate).getTime());
+---
+
+<BaseLayout
+  title="Élections"
+  description="Toutes les élections françaises référencées sur Elupedia : municipales, législatives et sénatoriales, à venir et passées."
+>
+  <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Élections</h1>
+  <p class="mt-2 text-slate-600 dark:text-slate-400">
+    Retrouvez le panorama des candidats pour chaque élection référencée sur Elupedia.
+  </p>
+
+  <ElectionsList client:load events={events} />
+</BaseLayout>

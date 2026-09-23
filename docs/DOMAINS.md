@@ -166,6 +166,20 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Description** : Résultats complets par tour (inscrits, abstentions, votants, blancs, nuls, exprimés) avec le détail par candidat/liste (voix, ratios, élu). Les candidats sont liés aux `officials` quand le matching est possible.
 - **Pages** : fiche élu (sections résultats municipaux, législatifs, sénatoriaux avec drawer détaillé)
 
+## Candidatures sénatoriales 2026 (pré-scrutin)
+
+- **Tables** : `senatorial_elections`, `senatorial_candidates` (mêmes tables que les résultats rétrospectifs — voir "Résultats électoraux détaillés")
+- **Source** : `senatoriales2026.senat.fr` (site officiel du Sénat), une page HTML par circonscription (63 départements + Français établis hors de France, code `ZZ`)
+- **Client** : `sources/senat-candidacies-2026.ts` (scraping HTML via `cheerio`, roster de circonscriptions figé en constante) → `upsert/senat-candidacies.ts`
+- **Commande** : `yarn --cwd packages/ingest ingest:senat:candidacies`
+- **Description** : Avant le scrutin du 27 septembre 2026, seules les candidatures sont connues (pas de résultats). Les lignes créées ont donc `inscrits`/`abstentions`/`votants`/`blancs`/`nuls`/`exprimes`/`voix`/`elected` à `null`, `round = 1`, et ciblent la même clé unique (`electionYear`, `departementCode`, `round`) que l'ingestion rétrospective des résultats — celle-ci complètera automatiquement ces lignes une fois le scrutin passé. Champs propres aux candidatures : `sieges_a_pourvoir`, `electeurs_senatoriaux` (par élection), `liste` et `sortant` (par candidat, scrutin proportionnel uniquement pour `liste`). `nuance` porte ici le libellé complet attribué par les préfets (pas le code court à 3 lettres des ingestions rétrospectives) — colonne élargie en conséquence.
+- **Pages** : page panorama `/elections/senatoriale/[year]-[round]` (répertoire alphabétique des candidats), hero d'accueil tant que l'élection 2026 est active
+
+## Pages "Élections"
+
+- **Route liste** : `/elections` (`pages/elections/index.astro` + `ElectionsList.tsx`) — liste toutes les élections référencées (municipales/législatives/sénatoriales), groupées par "événement" (type + année + tour), avec filtres sidebar (type, statut à venir/passée, année) et recherche texte ; sidebar repliée en tiroir plein écran sur mobile.
+- **Route panorama** : `/elections/[type]/[id]` (`pages/elections/[type]/[id].astro` + `ElectionPanorama.tsx`) — répertoire alphabétique des candidats de l'élection, triés par nom de famille (ou nom de liste quand l'identité individuelle n'est pas fournie par la source, cas des communes en scrutin de liste). Un candidat sans `official_id` résolu est affiché non cliquable avec la mention "Pas de fiche disponible". Pour les municipales/législatives (dizaines de milliers de communes), une recherche par nom de commune (`?q=`) est requise avant d'afficher le panorama, pour éviter de charger l'intégralité de l'élection.
+
 ## Réconciliation candidats–élus
 
 - **Script** : `packages/ingest/src/reconcile-elections.ts`
