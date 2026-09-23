@@ -1,12 +1,33 @@
+import { parseArgs } from 'node:util';
 import { logger } from './logger.js';
-import { runPressMaires } from './run-press-maires.js';
+import { runPressMaires, DEFAULT_BATCH_SIZE } from './run-press-maires.js';
 import {
   detectChanges,
   writeChangeReport,
   setGitHubOutput,
 } from './utils/change-detector.js';
 
-runPressMaires()
+const { values } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    limit: { type: 'string' },
+  },
+  strict: true,
+});
+
+let batchSize = DEFAULT_BATCH_SIZE;
+if (values.limit !== undefined) {
+  const parsed = parseInt(values.limit, 10);
+  if (isNaN(parsed) || parsed <= 0) {
+    logger.error(
+      `--limit invalide : "${values.limit}" (entier positif attendu)`,
+    );
+    process.exit(1);
+  }
+  batchSize = parsed;
+}
+
+runPressMaires(batchSize)
   .then((results) => {
     const report = detectChanges(results);
     writeChangeReport(report, 'ingest-report-press-maires.json');

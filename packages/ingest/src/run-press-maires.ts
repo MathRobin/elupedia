@@ -6,14 +6,16 @@ import { type StepResult, runStep, printSummary } from './run-helpers.js';
 import { fetchPressMentions } from './sources/google-news.js';
 import { upsertPressMentions } from './upsert/press-mentions.js';
 
-const BATCH_SIZE = 1500;
+export const DEFAULT_BATCH_SIZE = 1500;
 const DELAY_MS = 3000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-export async function runPressMaires(): Promise<StepResult[]> {
+export async function runPressMaires(
+  batchSize: number = DEFAULT_BATCH_SIZE,
+): Promise<StepResult[]> {
   const db = createDb();
   const results: StepResult[] = [];
 
@@ -28,10 +30,10 @@ export async function runPressMaires(): Promise<StepResult[]> {
     .from(officials)
     .where(isNull(officials.deathDate))
     .orderBy(sql`${officials.pressCheckedAt} asc nulls first`)
-    .limit(BATCH_SIZE);
+    .limit(batchSize);
 
   logger.info(
-    `${batch.length} officials selected (least recently checked first, batch of ${BATCH_SIZE})\n`,
+    `${batch.length} officials selected (least recently checked first, batch of ${batchSize})\n`,
   );
 
   results.push(
