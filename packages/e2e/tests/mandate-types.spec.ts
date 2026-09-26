@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-// Trois fiches de bords politiques et types de mandat différents, pour
-// couvrir les variations d'affichage entre mandat local (maire), mandat
-// parlementaire national (député) et mandat européen (eurodéputé). Jeux de
-// données stables (élus en poste, mandats anciens ou peu susceptibles de
-// bouger d'ici la prochaine exécution des tests).
+// Fiches de bords politiques et types de mandat différents, pour couvrir les
+// variations d'affichage entre mandat local (maire, conseiller départemental,
+// conseiller régional), mandat parlementaire national (député) et mandat
+// européen (eurodéputé). Jeux de données stables (élus en poste, mandats
+// anciens ou peu susceptibles de bouger d'ici la prochaine exécution des
+// tests).
 
 test.describe('Maire PS — Françoise Rossignol (Dainville)', () => {
   test.beforeEach(async ({ page }) => {
@@ -117,5 +118,92 @@ test.describe('Eurodéputée RN — France Jamet', () => {
     await expect(page.locator('#votes')).toHaveCount(0);
     await expect(page.locator('#affiliations')).toHaveCount(0);
     await expect(page.locator('#commissions')).toHaveCount(0);
+  });
+});
+
+test.describe('Conseiller départemental écologiste — Benoît Bordat (Côte-d’Or)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/elus/benoit-bordat-1');
+  });
+
+  test('affiche le mandat de conseiller départemental en cours', async ({
+    page,
+  }) => {
+    const mandatSection = page.locator('#mandat');
+    await expect(
+      mandatSection.getByText('Conseiller départemental', { exact: true }),
+    ).toBeVisible();
+    await expect(mandatSection.getByText('Dijon-4')).toBeVisible();
+  });
+
+  test('n’affiche qu’un seul mandat en cours (l’ancien mandat de député est terminé)', async ({
+    page,
+  }) => {
+    await expect(
+      page.locator('#tous-mandats').getByText('En cours', { exact: true }),
+    ).toHaveCount(1);
+  });
+
+  test('signale l’étiquette écologiste via le parrainage à Yannick Jadot', async ({
+    page,
+  }) => {
+    // Comme pour les maires, les conseillers départementaux n'ont pas de
+    // "groupe politique" en base : le parrainage présidentiel est le signal
+    // d'étiquette politique visible sur la fiche.
+    const parrainages = page.locator('#parrainages');
+    await expect(parrainages).toBeVisible();
+    await expect(parrainages.getByText('JADOT Yannick')).toBeVisible();
+  });
+
+  test('n’affiche pas les sections propres aux parlementaires nationaux', async ({
+    page,
+  }) => {
+    await expect(page.locator('#activite')).toHaveCount(0);
+    await expect(page.locator('#votes')).toHaveCount(0);
+    await expect(page.locator('#affiliations')).toHaveCount(0);
+  });
+});
+
+test.describe('Conseillère régionale macroniste — Aina Kuric (Grand Est)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/elus/aina-kuric');
+  });
+
+  test('affiche le mandat de conseillère régionale en cours', async ({
+    page,
+  }) => {
+    const mandatSection = page.locator('#mandat');
+    await expect(
+      mandatSection.getByText('Conseiller régional', { exact: true }),
+    ).toBeVisible();
+    await expect(mandatSection.getByText('Grand Est')).toBeVisible();
+  });
+
+  test('n’affiche qu’un seul mandat en cours (l’ancien mandat de député est terminé)', async ({
+    page,
+  }) => {
+    const tousMandats = page.locator('#tous-mandats');
+    await expect(
+      tousMandats.getByText('En cours', { exact: true }),
+    ).toHaveCount(1);
+    await expect(
+      tousMandats.getByText('Député', { exact: true }),
+    ).toBeVisible();
+  });
+
+  test('signale l’étiquette macroniste via le parrainage à Emmanuel Macron', async ({
+    page,
+  }) => {
+    const parrainages = page.locator('#parrainages');
+    await expect(parrainages).toBeVisible();
+    await expect(parrainages.getByText('MACRON Emmanuel')).toBeVisible();
+  });
+
+  test('n’affiche pas les sections propres aux parlementaires nationaux', async ({
+    page,
+  }) => {
+    await expect(page.locator('#activite')).toHaveCount(0);
+    await expect(page.locator('#votes')).toHaveCount(0);
+    await expect(page.locator('#affiliations')).toHaveCount(0);
   });
 });
