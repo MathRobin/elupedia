@@ -294,6 +294,7 @@ const communeElectionRows = row.mandateType === 'maire' && row.communeCode
         blancs: municipalElections.blancs,
         nuls: municipalElections.nuls,
         exprimes: municipalElections.exprimes,
+        updatedAt: municipalElections.updatedAt,
       })
       .from(municipalElections)
       .where(eq(municipalElections.communeCode, row.communeCode))
@@ -317,6 +318,7 @@ const extraElectionRows = extraElectionIds.length > 0
         blancs: municipalElections.blancs,
         nuls: municipalElections.nuls,
         exprimes: municipalElections.exprimes,
+        updatedAt: municipalElections.updatedAt,
       })
       .from(municipalElections)
       .where(inArray(municipalElections.id, extraElectionIds))
@@ -373,6 +375,7 @@ const allItems: { updatedAt: Date }[] = [
   ...deputyInterests, ...deputyPress, ...deputyActivities, ...deputyCommittees,
   ...deputyElectoralResults, ...deputyAddresses, ...deputyLinks,
   ...deputyCampaignAccounts, ...deputySponsorships, ...deputyFactChecks,
+  ...municipalElectionRows,
 ];
 const lastUpdated = allItems.length > 0
   ? allItems.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, allItems[0].updatedAt)
@@ -745,6 +748,7 @@ const sectionDates = {
   activities: maxUpdatedAt(deputyActivities),
   committees: maxUpdatedAt(deputyCommittees),
   electoral: maxUpdatedAt(deputyElectoralResults),
+  municipal: maxUpdatedAt(municipalElectionRows),
   interests: maxUpdatedAt(deputyInterests),
   votes: maxUpdatedAt(deputyVotes),
   press: maxUpdatedAt(deputyPress),
@@ -1723,7 +1727,7 @@ for (const sp of deputySponsorships) {
         </h2>
         <MunicipalElectionSection elections={municipalElectionsData} client:load />
         <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataMunicipalNote}</p>
-        <p class="mt-1 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/datasets/elections-municipales-2020-resultats/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Municipales 2020</a>{' · '}<a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0</p>
+        <p class="mt-1 text-xs text-slate-400">Source : <a href="https://www.data.gouv.fr/fr/datasets/elections-municipales-2020-resultats/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Municipales 2020</a>{' · '}<a href="https://www.data.gouv.fr" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">data.gouv.fr</a> — Licence Ouverte 2.0{fmtRetrieval(sectionDates.municipal)}</p>
       </section>
     )}
 
