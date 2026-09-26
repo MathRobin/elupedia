@@ -26,6 +26,6 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.2.5",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.1"
   }
 }
