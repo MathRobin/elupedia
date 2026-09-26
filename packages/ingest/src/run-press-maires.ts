@@ -21,6 +21,7 @@ function sleep(ms: number): Promise<void> {
 export async function runPressMaires(
   batchSize: number = DEFAULT_BATCH_SIZE,
   departmentCode?: string,
+  mandateType?: string,
 ): Promise<StepResult[]> {
   const db = createDb();
   const results: StepResult[] = [];
@@ -28,8 +29,20 @@ export async function runPressMaires(
   logger.info('=== Press ingestion (all officials) started ===\n');
 
   let batch;
-  if (departmentCode) {
-    const departmentName = DEPARTMENT_NAMES[departmentCode];
+  if (departmentCode || mandateType) {
+    const conditions = [isNull(officials.deathDate), isNull(mandates.endDate)];
+    const filterLabels: string[] = [];
+
+    if (departmentCode) {
+      const departmentName = DEPARTMENT_NAMES[departmentCode];
+      conditions.push(ilike(mandates.department, departmentName));
+      filterLabels.push(`${departmentName} (${departmentCode})`);
+    }
+    if (mandateType) {
+      conditions.push(eq(mandates.type, mandateType));
+      filterLabels.push(`mandat "${mandateType}"`);
+    }
+
     batch = await db
       .selectDistinct({
         id: officials.id,
@@ -39,18 +52,12 @@ export async function runPressMaires(
       })
       .from(officials)
       .innerJoin(mandates, eq(mandates.officialId, officials.id))
-      .where(
-        and(
-          isNull(officials.deathDate),
-          ilike(mandates.department, departmentName),
-          isNull(mandates.endDate),
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(sql`${officials.pressCheckedAt} asc nulls first`)
       .limit(batchSize);
 
     logger.info(
-      `${batch.length} officials selected in ${departmentName} (${departmentCode})\n`,
+      `${batch.length} officials selected (${filterLabels.join(', ')})\n`,
     );
   } else {
     batch = await db

@@ -44,6 +44,7 @@ yarn test             # Lancer les tests (Vitest)
 yarn --cwd packages/ingest ingest:press          # parlementaires (députés, sénateurs, eurodéputés)
 yarn --cwd packages/ingest ingest:press:maires   # 1500 élus (tous mandats), --limit <n> pour changer la taille du lot
 yarn --cwd packages/ingest ingest:press:maires --department 94   # limiter à un département (code INSEE, ex. 94, 33, 2A)
+yarn --cwd packages/ingest ingest:press:maires --type conseiller_departemental   # limiter à un type de mandat (maire, conseiller_departemental, depute, senateur, eurodepute), combinable avec --department
 
 # Candidatures sénatoriales 2026 (pré-scrutin, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:senat:candidacies
