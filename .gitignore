@@ -17,3 +17,6 @@ ingest-report*.json
 packages/site/public/maps/
 packages/ingest/madada-cache.json
 .claude/settings.local.json
+packages/e2e/test-results/
+packages/e2e/playwright-report/
+packages/e2e/.cache/

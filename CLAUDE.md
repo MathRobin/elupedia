@@ -17,7 +17,8 @@ elupedia/
 ├── packages/
 │   ├── shared/    # Types, helpers et schéma DB partagés
 │   ├── ingest/    # Scripts de collecte de données (APIs ouvertes)
-│   └── site/      # Site public Astro/React
+│   ├── site/      # Site public Astro/React
+│   └── e2e/       # Tests end-to-end (Playwright)
 ├── docs/          # Documentation projet
 └── tests/         # Tests racine (structure, intégration)
 ```
@@ -39,6 +40,9 @@ yarn format           # Vérifier le formatage Prettier
 yarn format:fix       # Appliquer le formatage Prettier
 yarn typecheck        # Vérification TypeScript (tsc --build)
 yarn test             # Lancer les tests (Vitest)
+yarn test:e2e         # Tests end-to-end (Playwright, navigateur réel) — nécessite le site en dev sur :4321
+yarn test:e2e:ui      # Idem, avec l'UI interactive Playwright
+yarn workspace @elupedia/e2e exec playwright install chromium   # à faire une fois après yarn install (navigateur non téléchargé par défaut)
 
 # Ingestion presse (Google Actualités) — deux périmètres distincts, voir docs/DOMAINS.md
 yarn --cwd packages/ingest ingest:press          # parlementaires (députés, sénateurs, eurodéputés)
