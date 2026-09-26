@@ -38,6 +38,16 @@ déjà cloné (pas de checkout distant).
 - Cron `0 22 */5 * *` : le pas `*/5` sur le jour du mois recale à 1 en fin de mois
   (écart parfois un peu plus court autour du 31 → 1), acceptable pour ce cas d'usage.
 
+## Créneau isolé — tous les 5 jours (décalé d'1 jour vs maires), 22:00 UTC
+
+- `ingest:conseillers-dep` (RNE conseillers départementaux) — même source (RNE,
+  trimestriel) et même raisonnement que `ingest:maires`, mais volume bien plus
+  petit (~4 000 lignes contre ~34 800) : le job se termine en quelques minutes.
+  Décalé d'une journée (`2/5` vs `*/5`) plutôt que d'une heure le même jour, pour
+  éviter toute contention avec `ingest:maires` sur `officials`/`mandates` tout en
+  gardant la même marge de 2h avec les tickets `press:maires` (20:00 et 00:00).
+- Cron `0 22 2/5 * *`.
+
 ## Créneau principal — un job lourd par jour, 01:30 UTC
 
 Choisi à 1h30 après le tick `press:maires` de 00:00 (qui peut tourner jusqu'à ~75 min)

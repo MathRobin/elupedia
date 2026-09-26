@@ -14,6 +14,7 @@
     "ingest:press": "tsx --env-file-if-exists=../../.env src/main-press.ts",
     "ingest:interests": "tsx --env-file-if-exists=../../.env src/main-interests.ts",
     "ingest:maires": "tsx --env-file-if-exists=../../.env src/main-maires.ts",
+    "ingest:conseillers-dep": "tsx --env-file-if-exists=../../.env src/main-conseillers-dep.ts",
     "ingest:parrainages": "tsx --env-file-if-exists=../../.env src/main-parrainages.ts",
     "ingest:rip": "tsx --env-file-if-exists=../../.env src/main-rip-signatures.ts",
     "ingest:photos": "tsx --env-file-if-exists=../../.env src/main-photos.ts",

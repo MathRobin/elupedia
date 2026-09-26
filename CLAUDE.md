@@ -48,6 +48,9 @@ yarn --cwd packages/ingest ingest:press:maires --department 94   # limiter à un
 # Candidatures sénatoriales 2026 (pré-scrutin, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:senat:candidacies
 
+# Ingestion conseillers départementaux (RNE, voir docs/DOMAINS.md)
+yarn --cwd packages/ingest ingest:conseillers-dep
+
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
 

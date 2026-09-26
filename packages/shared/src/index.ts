@@ -5,3 +5,4 @@ export { POLITICAL_GROUP_COLORS } from './political-group-colors.js';
 export { POLITICAL_GROUP_URLS } from './political-group-urls.js';
 export { buildHatvpSlug, buildHatvpUrl } from './hatvp-url.js';
 export { slugifyText } from './slugify.js';
+export { MANDATE_TYPE_LABELS, mandateTypeLabel } from './mandate-labels.js';

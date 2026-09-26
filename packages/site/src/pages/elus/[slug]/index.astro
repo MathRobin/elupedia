@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getDb } from '../../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText, MANDATE_TYPE_LABELS } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray, gte, lte, sql, count } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -181,7 +181,7 @@ const deputyCampaignAccounts = await db
   .orderBy(desc(campaignAccounts.electionDate));
 
 const deputySponsorships = await db
-  .select({ officialId: sponsorships.officialId, type: sponsorships.type, electionYear: sponsorships.electionYear, candidateName: sponsorships.candidateName, publicationDate: sponsorships.publicationDate, updatedAt: sponsorships.updatedAt })
+  .select({ officialId: sponsorships.officialId, type: sponsorships.type, electionYear: sponsorships.electionYear, candidateName: sponsorships.candidateName, rawFunction: sponsorships.rawFunction, publicationDate: sponsorships.publicationDate, updatedAt: sponsorships.updatedAt })
   .from(sponsorships)
   .where(eq(sponsorships.officialId, officialId));
 
@@ -500,13 +500,7 @@ const interestCategoryColors: Record<string, string> = {
   elected_function: 'text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20',
   financial_participation: 'text-rose-700 bg-rose-50 dark:text-rose-400 dark:bg-rose-900/20',
 };
-const mandateTypeLabels: Record<string, string> = {
-  depute: 'Député',
-  senateur: 'Sénateur',
-  maire: 'Maire',
-  president: 'Président',
-  eurodepute: 'Député·e européen·ne',
-};
+const mandateTypeLabels = MANDATE_TYPE_LABELS;
 
 type InterestGroup = { category: string; label: string; items: Interest[] };
 const interestGroups: InterestGroup[] = interestCategoryOrder
@@ -1816,7 +1810,8 @@ for (const sp of deputySponsorships) {
               <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-slate-700">
                 <th class="py-2 pr-4">Année</th>
                 <th class="py-2 pr-4">Type</th>
-                <th class="py-2">Objet</th>
+                <th class="py-2 pr-4">Objet</th>
+                <th class="py-2">Qualité déclarée</th>
               </tr>
             </thead>
             <tbody>
@@ -1828,7 +1823,8 @@ for (const sp of deputySponsorships) {
                     : s.type === 'rip_signature'
                       ? <span title="Signature de soutien à un référendum d'initiative partagée (RIP), prévu par l'article 11 de la Constitution">Signature RIP</span>
                       : s.type}</td>
-                  <td class="py-2">{s.candidateName}</td>
+                  <td class="py-2 pr-4">{s.candidateName}</td>
+                  <td class="py-2 text-slate-500 dark:text-slate-400" title="Fonction déclarée par l'élu·e auprès du Conseil constitutionnel au moment du parrainage">{s.rawFunction}</td>
                 </tr>
               ))}
             </tbody>

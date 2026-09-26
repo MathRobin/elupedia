@@ -1,6 +1,6 @@
 ---
 import { getDb } from '../../../lib/db.js';
-import { officials, mandates } from '@elupedia/shared';
+import { officials, mandates, mandateTypeLabel } from '@elupedia/shared';
 import { eq, or, desc } from 'drizzle-orm';
 
 export const prerender = false;
@@ -40,13 +40,7 @@ const photo = row.s3PhotoUrl ?? row.photoUrl;
 const officialSlug = row.slug ?? row.id;
 const profileUrl = `https://www.elupedia.fr/elus/${officialSlug}`;
 
-const mandateLabels: Record<string, string> = {
-  depute: 'Député',
-  senateur: 'Sénateur',
-  maire: 'Maire',
-  president: 'Président',
-};
-const mandateLabel = mandateLabels[row.mandateType] ?? row.mandateType;
+const mandateLabel = mandateTypeLabel(row.mandateType);
 
 const location = [row.district, row.department].filter(Boolean).join(' — ');
 

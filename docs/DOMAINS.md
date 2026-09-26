@@ -8,16 +8,22 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Sources** :
   - data.assemblee-nationale.fr (open data AN) — `assemblee-nationale.ts` → `upsert/officials.ts`
   - data.senat.fr (API JSON Sénat) — `senat.ts` → `upsert/senators.ts`
-- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés, sénateurs et maires. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
-- **Types de mandats** : `depute`, `senateur`, `maire`, `eurodepute`
+- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés, sénateurs, maires et conseillers départementaux. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
+- **Types de mandats** : `depute`, `senateur`, `maire`, `eurodepute`, `conseiller_departemental`
+- **Libellés** : centralisés dans `packages/shared/src/mandate-labels.ts` (`MANDATE_TYPE_LABELS` / `mandateTypeLabel()`), utilisés par le site (fiche élu, embed, oEmbed, image OG) pour éviter de dupliquer le mapping type → libellé.
 - **Champs commune (mandats maires)** :
-  - `commune_code` (varchar 10) — code INSEE de la commune (ex. `75056` pour Paris, `75101` pour le 1er arrondissement)
+  - `commune_code` (varchar 10) — code INSEE de la commune (ex. `75056` pour Paris, `75101` pour le 1er arrondissement). Non renseigné pour `conseiller_departemental` (élu de canton, pas de commune).
   - `parent_commune_code` (varchar 10) — code INSEE de la ville de rattachement pour les arrondissements PLM (ex. `75056` pour un arrondissement de Paris), null sinon
 - **Source maires** :
   - RNE (data.gouv.fr) — fichier CSV des maires (~34 800 entrées), séparateur `;`, UTF-8, CRLF, mise à jour trimestrielle
   - URL : `https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503`
   - Colonnes : Code département, Libellé département, Code collectivité statut particulier, Libellé collectivité statut particulier, Code commune (INSEE), Libellé commune, Nom, Prénom, Code sexe, Date naissance, Code CSP, Libellé CSP, Date début mandat, Date début fonction
   - Les maires d'arrondissement (Paris/Lyon/Marseille) ne sont PAS dans ce fichier — seuls les maires des villes entières y figurent (codes INSEE 75056, 69123, 13055)
+- **Source conseillers départementaux** :
+  - RNE (data.gouv.fr) — fichier CSV dédié (~4 000 entrées, un binôme de 2 élus par canton), séparateur `;`, UTF-8, CRLF, mise à jour trimestrielle
+  - URL : `https://www.data.gouv.fr/api/1/datasets/r/601ef073-d986-4582-8e1a-ed14dc857fba`
+  - Colonnes : Code département, Libellé département, Code canton, Libellé canton, Nom, Prénom, Code sexe, Date naissance, Code CSP, Libellé CSP, Date début mandat, Libellé de la fonction (vide, ou « Vice-président »/« Président du conseil départemental » — non persisté), Date début fonction
+  - Client : `sources/rne-conseillers-dep.ts` → `upsert/conseillers-dep.ts`. Comme un canton élit 2 titulaires (contrairement à la mairie, poste unique), le matching/fermeture des mandats se fait par la paire (canton, official) plutôt que par canton seul.
 - **Source photos maires** :
   - Wikidata (SPARQL) — requête sur les personnes ayant occupé un poste de maire (P39, sous-classes de Q382844) avec une photo (P18)
   - Endpoint : `https://query.wikidata.org/sparql`
@@ -30,7 +36,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - URL : `https://api-lannuaire.service-public.fr/api/explore/v2.1/catalog/datasets/api-lannuaire-administration/records`
   - Filtre : `pivot like "mairie"` (le champ `pivot` contient `type_service_local: "mairie"` et `code_insee_commune`)
   - Champs utiles : `adresse` (JSON : numéro_voie, code_postal, nom_commune, longitude, latitude), `telephone`, `adresse_courriel`, `site_internet`, `code_insee_commune`
-- **Pages** : page d'accueil (grille des élus actifs avec badge député/sénateur genré, filtre département), fiche élu (identité, mandat, historique des mandats)
+- **Pages** : page d'accueil (grille des élus actifs avec badge de mandat genré, filtre département et type de mandat), fiche élu (identité, mandat, historique des mandats)
 
 ## Activité parlementaire
 

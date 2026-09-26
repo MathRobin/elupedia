@@ -36,10 +36,8 @@ describe('Embed card — /elus/[slug]/embed', () => {
   });
 
   it('displays mandate type with French labels', () => {
-    expect(content).toContain('mandateLabels');
-    expect(content).toContain('Député');
-    expect(content).toContain('Sénateur');
-    expect(content).toContain('Maire');
+    expect(content).toContain('mandateTypeLabel');
+    expect(content).toContain("from '@elupedia/shared'");
   });
 
   it('displays mandate start date', () => {

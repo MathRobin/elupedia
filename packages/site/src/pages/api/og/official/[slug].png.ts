@@ -1,18 +1,15 @@
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../../lib/db.js';
-import { officials, mandates } from '@elupedia/shared';
+import {
+  officials,
+  mandates,
+  MANDATE_TYPE_LABELS as MANDATE_LABELS,
+} from '@elupedia/shared';
 import { eq, or } from 'drizzle-orm';
 import { renderOgImage } from '../../../../lib/og.js';
 import { createElement as h } from 'react';
 
 export const prerender = false;
-
-const MANDATE_LABELS: Record<string, string> = {
-  depute: 'Député',
-  senateur: 'Sénateur',
-  maire: 'Maire',
-  president: 'Président',
-};
 
 export const GET: APIRoute = async ({ params }) => {
   const { slug } = params;

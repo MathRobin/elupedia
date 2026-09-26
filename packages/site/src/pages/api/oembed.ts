@@ -1,18 +1,16 @@
 import type { APIRoute } from 'astro';
 import { getDb } from '../../lib/db.js';
-import { officials, mandates, ballots } from '@elupedia/shared';
+import {
+  officials,
+  mandates,
+  ballots,
+  MANDATE_TYPE_LABELS as MANDATE_LABELS,
+} from '@elupedia/shared';
 import { eq, or } from 'drizzle-orm';
 
 export const prerender = false;
 
 const SITE = 'https://www.elupedia.fr';
-
-const MANDATE_LABELS: Record<string, string> = {
-  depute: 'Député',
-  senateur: 'Sénateur',
-  maire: 'Maire',
-  president: 'Président',
-};
 
 type OEmbedResponse = {
   type: string;

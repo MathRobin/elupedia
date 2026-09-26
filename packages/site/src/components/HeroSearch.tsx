@@ -80,6 +80,9 @@ export default function HeroSearch({
   const mandateLabels: Record<string, string> = {
     depute: 'Député·e',
     senateur: 'Sénateur·rice',
+    maire: 'Maire',
+    eurodepute: 'Député·e européen·ne',
+    conseiller_departemental: 'Conseiller·ère départemental·e',
   };
 
   return (

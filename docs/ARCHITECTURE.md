@@ -28,9 +28,9 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 - Déclenchement manuel : `workflow_dispatch` sur chaque workflow
 - Stratégie : upsert (insert on conflict update) pour l'idempotence
 - Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (4 étapes Maires) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Intérêts + Photos + HATVP status pour un run complet
+- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (4 étapes Maires), `run-conseillers-dep.ts` (1 étape RNE) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Conseillers départementaux + Intérêts + Photos + HATVP status pour un run complet
 - Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-press-maires.ts` (`ingest:press:maires`, 1500 élus aléatoires), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main-photos.ts` (`ingest:photos`, sauvegarde S3), `main-hatvp-status.ts` (`ingest:hatvp-status`, vérification statuts HATVP), `main-decorations.ts` (`ingest:decorations`, décorations Légion d'honneur), `main-madada.ts` (`ingest:madada`, transparence MaDada.fr), `main.ts` (`ingest`, combiné)
+- Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-conseillers-dep.ts` (`ingest:conseillers-dep`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-press-maires.ts` (`ingest:press:maires`, 1500 élus aléatoires), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main-photos.ts` (`ingest:photos`, sauvegarde S3), `main-hatvp-status.ts` (`ingest:hatvp-status`, vérification statuts HATVP), `main-decorations.ts` (`ingest:decorations`, décorations Légion d'honneur), `main-madada.ts` (`ingest:madada`, transparence MaDada.fr), `main.ts` (`ingest`, combiné)
 
 #### Clients de données
 
@@ -53,6 +53,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Scrutins AN                | `sources/an-scrutins.ts`           | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
 | Presse (Google News)       | `sources/google-news.ts`           | news.google.com                            | RSS/XML       | ✅ actif |
 | Maires (RNE)               | `sources/rne-maires.ts`            | data.gouv.fr                               | CSV           | ✅ actif |
+| Conseillers dép. (RNE)     | `sources/rne-conseillers-dep.ts`   | data.gouv.fr                               | CSV           | ✅ actif |
 | Mairies (DILA)             | `sources/dila-mairies.ts`          | service-public.fr                          | JSON API      | ✅ actif |
 | Parrainages présidentiels  | `sources/parrainages.ts`           | data.gouv.fr                               | CSV           | ✅ actif |
 | Signatures RIP             | `sources/rip-signatures.ts`        | AN / Sénat                                 | HTML          | ✅ actif |
@@ -87,6 +88,7 @@ Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script tél�
 | Commissions Sénat          | `upsert/senat-committees.ts`        | Upsert sur official + name + type                                            |
 | Liens sociaux Sénat        | `upsert/senat-social-links.ts`      | Upsert sur official + platform                                               |
 | Maires                     | `upsert/mayors.ts`                  | Upsert sur nom + prénom + naissance                                          |
+| Conseillers départementaux | `upsert/conseillers-dep.ts`         | Upsert sur nom + prénom + naissance ; fermeture par paire (canton, official) |
 | Photos maires              | `upsert/mayor-photos.ts`            | Match nom + commune (fallback naissance), skip si photo, rapport de synthèse |
 | Adresses mairies           | `upsert/mayor-addresses.ts`         | Upsert sur official + town_hall                                              |
 | Scrape réseaux maires      | `upsert/mayor-social-scrape.ts`     | Scrape sites officiels communes                                              |
