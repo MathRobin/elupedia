@@ -43,6 +43,11 @@ export const CONSEILLERS_DEP_STEP_NAMES = ['conseillers-dep'] as const;
 export type ConseillersDepStepName =
   (typeof CONSEILLERS_DEP_STEP_NAMES)[number];
 
+export const CONSEILLERS_REG_STEP_NAMES = ['conseillers-reg'] as const;
+
+export type ConseillersRegStepName =
+  (typeof CONSEILLERS_REG_STEP_NAMES)[number];
+
 export const EUROPE_STEP_NAMES = ['eurodeputes', 'eurodeputes-votes'] as const;
 
 export type EuropeStepName = (typeof EUROPE_STEP_NAMES)[number];
@@ -61,6 +66,7 @@ export type StepName =
   | SenatStepName
   | MairesStepName
   | ConseillersDepStepName
+  | ConseillersRegStepName
   | EuropeStepName
   | CommonStepName;
 
@@ -69,6 +75,7 @@ export const STEP_NAMES: readonly StepName[] = [
   ...SENAT_STEP_NAMES,
   ...MAIRES_STEP_NAMES,
   ...CONSEILLERS_DEP_STEP_NAMES,
+  ...CONSEILLERS_REG_STEP_NAMES,
   ...EUROPE_STEP_NAMES,
   ...COMMON_STEP_NAMES,
 ];

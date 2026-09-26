@@ -8,11 +8,11 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Sources** :
   - data.assemblee-nationale.fr (open data AN) — `assemblee-nationale.ts` → `upsert/officials.ts`
   - data.senat.fr (API JSON Sénat) — `senat.ts` → `upsert/senators.ts`
-- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés, sénateurs, maires et conseillers départementaux. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
-- **Types de mandats** : `depute`, `senateur`, `maire`, `eurodepute`, `conseiller_departemental`
+- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés, sénateurs, maires, conseillers départementaux et conseillers régionaux. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
+- **Types de mandats** : `depute`, `senateur`, `maire`, `eurodepute`, `conseiller_departemental`, `conseiller_regional`
 - **Libellés** : centralisés dans `packages/shared/src/mandate-labels.ts` (`MANDATE_TYPE_LABELS` / `mandateTypeLabel()`), utilisés par le site (fiche élu, embed, oEmbed, image OG) pour éviter de dupliquer le mapping type → libellé.
 - **Champs commune (mandats maires)** :
-  - `commune_code` (varchar 10) — code INSEE de la commune (ex. `75056` pour Paris, `75101` pour le 1er arrondissement). Non renseigné pour `conseiller_departemental` (élu de canton, pas de commune).
+  - `commune_code` (varchar 10) — code INSEE de la commune (ex. `75056` pour Paris, `75101` pour le 1er arrondissement). Non renseigné pour `conseiller_departemental`/`conseiller_regional` (élus de canton/région, pas de commune).
   - `parent_commune_code` (varchar 10) — code INSEE de la ville de rattachement pour les arrondissements PLM (ex. `75056` pour un arrondissement de Paris), null sinon
 - **Source maires** :
   - RNE (data.gouv.fr) — fichier CSV des maires (~34 800 entrées), séparateur `;`, UTF-8, CRLF, mise à jour trimestrielle
@@ -24,6 +24,12 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - URL : `https://www.data.gouv.fr/api/1/datasets/r/601ef073-d986-4582-8e1a-ed14dc857fba`
   - Colonnes : Code département, Libellé département, Code canton, Libellé canton, Nom, Prénom, Code sexe, Date naissance, Code CSP, Libellé CSP, Date début mandat, Libellé de la fonction (vide, ou « Vice-président »/« Président du conseil départemental » — non persisté), Date début fonction
   - Client : `sources/rne-conseillers-dep.ts` → `upsert/conseillers-dep.ts`. Comme un canton élit 2 titulaires (contrairement à la mairie, poste unique), le matching/fermeture des mandats se fait par la paire (canton, official) plutôt que par canton seul.
+- **Source conseillers régionaux** :
+  - RNE (data.gouv.fr) — fichier CSV dédié (~1 750 entrées, un nombre variable de titulaires par section départementale selon la population, scrutin de liste), séparateur `;`, UTF-8, CRLF, mise à jour trimestrielle
+  - URL : `https://www.data.gouv.fr/api/1/datasets/r/430e13f9-834b-4411-a1a8-da0b4b6e715c`
+  - Colonnes : Code région, Libellé région, Code section départementale, Libellé section départementale, Nom, Prénom, Code sexe, Date naissance, Code CSP, Libellé CSP, Date début mandat, Libellé de la fonction (vide, ou « Vice-président »/« Président du conseil régional » — non persisté), Date début fonction
+  - La « section départementale » correspond en pratique à un vrai département (ex. `Ain`, `Rhône hors métropole de Lyon`, `Métropole de Lyon` — cette dernière scindée du Rhône) : stockée dans `mandates.department`, comme pour les autres types de mandat, afin de garder le filtre "Département" du site cohérent entre tous les mandats. La région (assemblée où siège l'élu) est stockée dans `mandates.district`.
+  - Client : `sources/rne-conseillers-reg.ts` → `upsert/conseillers-reg.ts`. Même adaptation que les conseillers départementaux (matching par paire (section, official)), généralisée à N titulaires par section plutôt que 2.
 - **Source photos maires** :
   - Wikidata (SPARQL) — requête sur les personnes ayant occupé un poste de maire (P39, sous-classes de Q382844) avec une photo (P18)
   - Endpoint : `https://query.wikidata.org/sparql`

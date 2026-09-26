@@ -83,6 +83,7 @@ export default function HeroSearch({
     maire: 'Maire',
     eurodepute: 'Député·e européen·ne',
     conseiller_departemental: 'Conseiller·ère départemental·e',
+    conseiller_regional: 'Conseiller·ère régional·e',
   };
 
   return (

@@ -168,6 +168,12 @@ vi.mock('./sources/rne-conseillers-dep.js', () => ({
 vi.mock('./upsert/conseillers-dep.js', () => ({
   upsertConseillersDep: vi.fn(),
 }));
+vi.mock('./sources/rne-conseillers-reg.js', () => ({
+  fetchRneConseillersReg: vi.fn(),
+}));
+vi.mock('./upsert/conseillers-reg.js', () => ({
+  upsertConseillersReg: vi.fn(),
+}));
 vi.mock('./sources/legislative-elections.js', () => ({
   fetchLegislativeElections: vi.fn(),
 }));
@@ -263,6 +269,8 @@ import { fetchMunicipalElections } from './sources/municipal-elections.js';
 import { upsertMunicipalElections } from './upsert/municipal-elections.js';
 import { fetchRneConseillersDep } from './sources/rne-conseillers-dep.js';
 import { upsertConseillersDep } from './upsert/conseillers-dep.js';
+import { fetchRneConseillersReg } from './sources/rne-conseillers-reg.js';
+import { upsertConseillersReg } from './upsert/conseillers-reg.js';
 import { fetchLegislativeElections } from './sources/legislative-elections.js';
 import { upsertLegislativeElections } from './upsert/legislative-elections.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
@@ -405,6 +413,13 @@ function setupHappyPath() {
     ended: 0,
     skipped: 0,
   });
+  vi.mocked(fetchRneConseillersReg).mockResolvedValue([]);
+  vi.mocked(upsertConseillersReg).mockResolvedValue({
+    officials: 0,
+    mandates: 0,
+    ended: 0,
+    skipped: 0,
+  });
   vi.mocked(fetchLegislativeElections).mockResolvedValue([]);
   vi.mocked(upsertLegislativeElections).mockResolvedValue({
     elections: 0,
@@ -451,7 +466,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(29);
+    expect(results).toHaveLength(30);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -480,7 +495,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(29);
+    expect(results).toHaveLength(30);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

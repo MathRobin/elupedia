@@ -52,6 +52,9 @@ yarn --cwd packages/ingest ingest:senat:candidacies
 # Ingestion conseillers départementaux (RNE, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:conseillers-dep
 
+# Ingestion conseillers régionaux (RNE, voir docs/DOMAINS.md)
+yarn --cwd packages/ingest ingest:conseillers-reg
+
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
 

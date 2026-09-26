@@ -81,7 +81,7 @@ const itemListJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ItemList',
   name: 'Annuaire des élus français',
-  description: 'Députés, sénateurs, maires et conseillers départementaux français',
+  description: 'Députés, sénateurs, maires, conseillers départementaux et régionaux français',
   numberOfItems: officialsList.length,
   itemListElement: officialsList.slice(0, 50).map((o, i) => ({
     '@type': 'ListItem',
@@ -94,7 +94,7 @@ const itemListJsonLd = {
 
 <BaseLayout
   title="Annuaire des élus"
-  description="Annuaire complet des députés, sénateurs, maires et conseillers départementaux français — recherche par nom, département, groupe politique."
+  description="Annuaire complet des députés, sénateurs, maires, conseillers départementaux et régionaux français — recherche par nom, département, groupe politique."
   jsonLd={breadcrumbJsonLd}
 >
   <Fragment slot="head">
