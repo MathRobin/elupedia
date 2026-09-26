@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util';
+import { DEPARTMENT_NAMES } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { runPressMaires, DEFAULT_BATCH_SIZE } from './run-press-maires.js';
 import {
@@ -11,6 +12,7 @@ const { values } = parseArgs({
   args: process.argv.slice(2),
   options: {
     limit: { type: 'string' },
+    department: { type: 'string' },
   },
   strict: true,
 });
@@ -27,7 +29,14 @@ if (values.limit !== undefined) {
   batchSize = parsed;
 }
 
-runPressMaires(batchSize)
+if (values.department !== undefined && !DEPARTMENT_NAMES[values.department]) {
+  logger.error(
+    `--department invalide : "${values.department}" (code département attendu, ex. 94, 33, 2A)`,
+  );
+  process.exit(1);
+}
+
+runPressMaires(batchSize, values.department)
   .then((results) => {
     const report = detectChanges(results);
     writeChangeReport(report, 'ingest-report-press-maires.json');

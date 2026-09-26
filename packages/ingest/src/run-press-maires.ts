@@ -1,5 +1,10 @@
-import { createDb, officials } from '@elupedia/shared';
-import { isNull, eq, sql } from 'drizzle-orm';
+import {
+  createDb,
+  officials,
+  mandates,
+  DEPARTMENT_NAMES,
+} from '@elupedia/shared';
+import { isNull, eq, and, sql } from 'drizzle-orm';
 
 import { logger } from './logger.js';
 import { type StepResult, runStep, printSummary } from './run-helpers.js';
@@ -15,26 +20,53 @@ function sleep(ms: number): Promise<void> {
 
 export async function runPressMaires(
   batchSize: number = DEFAULT_BATCH_SIZE,
+  departmentCode?: string,
 ): Promise<StepResult[]> {
   const db = createDb();
   const results: StepResult[] = [];
 
   logger.info('=== Press ingestion (all officials) started ===\n');
 
-  const batch = await db
-    .select({
-      id: officials.id,
-      firstName: officials.firstName,
-      lastName: officials.lastName,
-    })
-    .from(officials)
-    .where(isNull(officials.deathDate))
-    .orderBy(sql`${officials.pressCheckedAt} asc nulls first`)
-    .limit(batchSize);
+  let batch;
+  if (departmentCode) {
+    const departmentName = DEPARTMENT_NAMES[departmentCode];
+    batch = await db
+      .selectDistinct({
+        id: officials.id,
+        firstName: officials.firstName,
+        lastName: officials.lastName,
+      })
+      .from(officials)
+      .innerJoin(mandates, eq(mandates.officialId, officials.id))
+      .where(
+        and(
+          isNull(officials.deathDate),
+          eq(mandates.department, departmentName),
+          isNull(mandates.endDate),
+        ),
+      )
+      .orderBy(sql`${officials.pressCheckedAt} asc nulls first`)
+      .limit(batchSize);
 
-  logger.info(
-    `${batch.length} officials selected (least recently checked first, batch of ${batchSize})\n`,
-  );
+    logger.info(
+      `${batch.length} officials selected in ${departmentName} (${departmentCode})\n`,
+    );
+  } else {
+    batch = await db
+      .select({
+        id: officials.id,
+        firstName: officials.firstName,
+        lastName: officials.lastName,
+      })
+      .from(officials)
+      .where(isNull(officials.deathDate))
+      .orderBy(sql`${officials.pressCheckedAt} asc nulls first`)
+      .limit(batchSize);
+
+    logger.info(
+      `${batch.length} officials selected (least recently checked first, batch of ${batchSize})\n`,
+    );
+  }
 
   results.push(
     await runStep('google-news-maires', async () => {

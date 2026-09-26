@@ -43,6 +43,7 @@ yarn test             # Lancer les tests (Vitest)
 # Ingestion presse (Google Actualités) — deux périmètres distincts, voir docs/DOMAINS.md
 yarn --cwd packages/ingest ingest:press          # parlementaires (députés, sénateurs, eurodéputés)
 yarn --cwd packages/ingest ingest:press:maires   # 1500 élus (tous mandats), --limit <n> pour changer la taille du lot
+yarn --cwd packages/ingest ingest:press:maires --department 94   # limiter à un département (code INSEE, ex. 94, 33, 2A)
 
 # Candidatures sénatoriales 2026 (pré-scrutin, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:senat:candidacies
