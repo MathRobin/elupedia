@@ -4,7 +4,7 @@ import {
   mandates,
   DEPARTMENT_NAMES,
 } from '@elupedia/shared';
-import { isNull, eq, and, sql } from 'drizzle-orm';
+import { isNull, eq, and, ilike, sql } from 'drizzle-orm';
 
 import { logger } from './logger.js';
 import { type StepResult, runStep, printSummary } from './run-helpers.js';
@@ -42,7 +42,7 @@ export async function runPressMaires(
       .where(
         and(
           isNull(officials.deathDate),
-          eq(mandates.department, departmentName),
+          ilike(mandates.department, departmentName),
           isNull(mandates.endDate),
         ),
       )
