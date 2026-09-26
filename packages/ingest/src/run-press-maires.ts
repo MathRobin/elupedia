@@ -35,6 +35,7 @@ export async function runPressMaires(
         id: officials.id,
         firstName: officials.firstName,
         lastName: officials.lastName,
+        pressCheckedAt: officials.pressCheckedAt,
       })
       .from(officials)
       .innerJoin(mandates, eq(mandates.officialId, officials.id))
