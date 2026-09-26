@@ -92,17 +92,35 @@ export async function upsertSenators(
     }
 
     for (const m of sen.mandats) {
-      const existingMandat = await db
-        .select({ id: mandates.id })
-        .from(mandates)
-        .where(
-          and(
-            eq(mandates.officialId, officialId),
-            eq(mandates.type, 'senateur'),
-            eq(mandates.startDate, m.start_date),
-          ),
-        )
-        .limit(1);
+      // Un mandat en cours (end_date absente) est identifié par son statut
+      // "actif" plutôt que par sa date de début : celle-ci peut n'être que
+      // provisoire (cf. fallback dans fetchSenateurs) tant que l'open data
+      // ELUSEN du Sénat n'a pas encore publié la date officielle, et on ne
+      // veut pas dupliquer le mandat quand la vraie date arrive ensuite.
+      const existingMandat =
+        m.end_date === null
+          ? await db
+              .select({ id: mandates.id })
+              .from(mandates)
+              .where(
+                and(
+                  eq(mandates.officialId, officialId),
+                  eq(mandates.type, 'senateur'),
+                  isNull(mandates.endDate),
+                ),
+              )
+              .limit(1)
+          : await db
+              .select({ id: mandates.id })
+              .from(mandates)
+              .where(
+                and(
+                  eq(mandates.officialId, officialId),
+                  eq(mandates.type, 'senateur'),
+                  eq(mandates.startDate, m.start_date),
+                ),
+              )
+              .limit(1);
 
       if (existingMandat.length === 0) {
         await db.insert(mandates).values({
@@ -118,6 +136,7 @@ export async function upsertSenators(
           .update(mandates)
           .set({
             department: m.department,
+            startDate: m.start_date,
             endDate: m.end_date,
             updatedAt: new Date(),
           })
