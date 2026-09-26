@@ -13,6 +13,7 @@ export interface InterestDetail {
   annualAmount: string | null;
   amountYear: number | null;
   amountIsNet: boolean | null;
+  updatedAt: string;
   declarationSnapshots: DeclarationSnapshot[];
 }
 
@@ -146,6 +147,14 @@ export default function InterestDetailDrawer() {
                   </span>
                   <span className="text-slate-900 dark:text-white">
                     {formatDate(interest.declaredDate)}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-slate-500 dark:text-slate-400">
+                    Dernière mise à jour :{' '}
+                  </span>
+                  <span className="text-slate-900 dark:text-white">
+                    {formatDate(interest.updatedAt)}
                   </span>
                 </div>
               </div>
