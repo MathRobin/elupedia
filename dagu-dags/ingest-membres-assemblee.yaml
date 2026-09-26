@@ -1,0 +1,21 @@
+# Cron documenté dans docs/INGESTION-SCHEDULE.md (créneau isolé, décalé de 4
+# jours vs ingest-maires.yaml pour éviter toute contention sur officials/mandates).
+name: Ingest — Membres assemblée statut particulier (RNE)
+schedule: '0 22 5/5 * *'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+steps:
+  - name: git-pull
+    command: git pull
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: ingestion-membres-assemblee
+    command: yarn --cwd packages/ingest ingest:membres-assemblee
+    depends:
+      - install-dependencies

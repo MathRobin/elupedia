@@ -6,6 +6,7 @@ import { runMaires } from './run-maires.js';
 import { runConseillersDep } from './run-conseillers-dep.js';
 import { runConseillersReg } from './run-conseillers-reg.js';
 import { runConseillersArr } from './run-conseillers-arr.js';
+import { runMembresAssemblee } from './run-membres-assemblee.js';
 import { runInterests } from './run-interests.js';
 import { geocodeAllAddresses } from './upsert/geocode-addresses.js';
 import { uploadMaps } from './upsert/upload-maps.js';
@@ -25,6 +26,7 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
   const conseillersDepResults = await runConseillersDep(enabledSteps);
   const conseillersRegResults = await runConseillersReg(enabledSteps);
   const conseillersArrResults = await runConseillersArr(enabledSteps);
+  const membresAssembleeResults = await runMembresAssemblee(enabledSteps);
 
   const interestsResults: StepResult[] = [];
   if (enabled('interests')) {
@@ -131,6 +133,7 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     ...conseillersDepResults,
     ...conseillersRegResults,
     ...conseillersArrResults,
+    ...membresAssembleeResults,
     ...interestsResults,
     ...geocodeResults,
     ...mapsResults,

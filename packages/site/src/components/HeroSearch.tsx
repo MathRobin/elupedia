@@ -85,6 +85,7 @@ export default function HeroSearch({
     conseiller_departemental: 'Conseiller·ère départemental·e',
     conseiller_regional: 'Conseiller·ère régional·e',
     conseiller_arrondissement: "Conseiller·ère d'arrondissement",
+    membre_assemblee_statut_particulier: "Membre d'assemblée territoriale",
   };
 
   return (

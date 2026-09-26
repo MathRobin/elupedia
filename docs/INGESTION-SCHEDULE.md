@@ -64,6 +64,14 @@ déjà cloné (pas de checkout distant).
   autres jobs RNE sur `officials`/`mandates`.
 - Cron `0 22 4/5 * *`.
 
+## Créneau isolé — tous les 5 jours (décalé de 4 jours vs maires), 22:00 UTC
+
+- `ingest:membres-assemblee` (RNE membres des assemblées à statut particulier)
+  — même raisonnement, plus petit volume encore (~557 lignes, 10 collectivités
+  d'outre-mer/Corse/Métropole de Lyon). Décalé d'un jour de plus (`5/5`) pour
+  rester isolé des quatre autres jobs RNE sur `officials`/`mandates`.
+- Cron `0 22 5/5 * *`.
+
 ## Créneau principal — un job lourd par jour, 01:30 UTC
 
 Choisi à 1h30 après le tick `press:maires` de 00:00 (qui peut tourner jusqu'à ~75 min)
