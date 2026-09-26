@@ -56,6 +56,9 @@ yarn --cwd packages/ingest ingest:conseillers-dep
 # Ingestion conseillers régionaux (RNE, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:conseillers-reg
 
+# Ingestion conseillers d'arrondissement (RNE, Paris/Lyon/Marseille, voir docs/DOMAINS.md)
+yarn --cwd packages/ingest ingest:conseillers-arr
+
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
 

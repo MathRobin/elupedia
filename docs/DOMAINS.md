@@ -8,12 +8,12 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Sources** :
   - data.assemblee-nationale.fr (open data AN) — `assemblee-nationale.ts` → `upsert/officials.ts`
   - data.senat.fr (API JSON Sénat) — `senat.ts` → `upsert/senators.ts`
-- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés, sénateurs, maires, conseillers départementaux et conseillers régionaux. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
-- **Types de mandats** : `depute`, `senateur`, `maire`, `eurodepute`, `conseiller_departemental`, `conseiller_regional`
+- **Description** : Identité des élus (nom, prénom, date de naissance, photo, slug permalink) et historique de leurs mandats (législature, circonscription, dates de début/fin). Couvre les députés, sénateurs, maires, conseillers départementaux, conseillers régionaux et conseillers d'arrondissement. Le slug (ex. `manuel-bompard`) est généré automatiquement à l'insertion et sert de permalink pour les URLs (`/elus/{slug}`). Les homonymes sont suffixés (`-1`, `-2`).
+- **Types de mandats** : `depute`, `senateur`, `maire`, `eurodepute`, `conseiller_departemental`, `conseiller_regional`, `conseiller_arrondissement`
 - **Libellés** : centralisés dans `packages/shared/src/mandate-labels.ts` (`MANDATE_TYPE_LABELS` / `mandateTypeLabel()`), utilisés par le site (fiche élu, embed, oEmbed, image OG) pour éviter de dupliquer le mapping type → libellé.
-- **Champs commune (mandats maires)** :
-  - `commune_code` (varchar 10) — code INSEE de la commune (ex. `75056` pour Paris, `75101` pour le 1er arrondissement). Non renseigné pour `conseiller_departemental`/`conseiller_regional` (élus de canton/région, pas de commune).
-  - `parent_commune_code` (varchar 10) — code INSEE de la ville de rattachement pour les arrondissements PLM (ex. `75056` pour un arrondissement de Paris), null sinon
+- **Champs commune (mandats maires et conseillers d'arrondissement)** :
+  - `commune_code` (varchar 10) — code INSEE de la commune (ex. `75056` pour Paris, `75101` pour le 1er arrondissement). Non renseigné pour `conseiller_departemental`/`conseiller_regional` (élus de canton/région, pas de commune). Pour `conseiller_arrondissement`, contient le code de la ville entière (75056/69123/13055) — le RNE ne fournit pas de code INSEE propre à l'arrondissement/secteur, seulement un libellé texte (voir `district`).
+  - `parent_commune_code` (varchar 10) — code INSEE de la ville de rattachement pour les arrondissements PLM (ex. `75056` pour un arrondissement de Paris), null sinon. Non utilisé actuellement (voir note `conseiller_arrondissement` ci-dessous).
 - **Source maires** :
   - RNE (data.gouv.fr) — fichier CSV des maires (~34 800 entrées), séparateur `;`, UTF-8, CRLF, mise à jour trimestrielle
   - URL : `https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503`
@@ -30,6 +30,13 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - Colonnes : Code région, Libellé région, Code section départementale, Libellé section départementale, Nom, Prénom, Code sexe, Date naissance, Code CSP, Libellé CSP, Date début mandat, Libellé de la fonction (vide, ou « Vice-président »/« Président du conseil régional » — non persisté), Date début fonction
   - La « section départementale » correspond en pratique à un vrai département (ex. `Ain`, `Rhône hors métropole de Lyon`, `Métropole de Lyon` — cette dernière scindée du Rhône) : stockée dans `mandates.department`, comme pour les autres types de mandat, afin de garder le filtre "Département" du site cohérent entre tous les mandats. La région (assemblée où siège l'élu) est stockée dans `mandates.district`.
   - Client : `sources/rne-conseillers-reg.ts` → `upsert/conseillers-reg.ts`. Même adaptation que les conseillers départementaux (matching par paire (section, official)), généralisée à N titulaires par section plutôt que 2.
+- **Source conseillers d'arrondissement** :
+  - RNE (data.gouv.fr) — fichier CSV dédié (~1 025 entrées, Paris/Lyon/Marseille uniquement), séparateur `;`, UTF-8, CRLF, mise à jour trimestrielle
+  - URL : `https://www.data.gouv.fr/api/1/datasets/r/3b6b2281-b9d9-4959-ae9d-c2c166dff118`
+  - Colonnes : Code département, Libellé département, Code commune, Libellé commune, Libellé du secteur, Nom, Prénom, Code sexe, Date naissance, Code CSP, Libellé CSP, Date début mandat, Libellé de la fonction (vide, « Nème adjoint au maire d'arrondissement », ou « Maire d'arrondissement » — non persisté), Date début fonction
+  - Le « code commune » est celui de la ville entière (75056/69123/13055, pas un code par arrondissement) ; seul le libellé texte du secteur (ex. `Paris 1Er Secteur`, `Marseille Secteur 1`, `Lyon 1Er Secteur`) identifie l'arrondissement/secteur précis — stocké dans `mandates.district`.
+  - ⚠️ **Le fichier inclut le "Maire d'arrondissement" comme une ligne parmi les conseillers de son secteur** (fonction "Maire d'arrondissement" dans `Libellé de la fonction`). Il est ingéré comme `conseiller_arrondissement` au même titre que les autres membres du conseil, PAS comme `maire` : modéliser le maire d'arrondissement comme un vrai `maire` nécessiterait un code INSEE d'arrondissement propre (ex. `75101`) que cette source ne fournit pas. Constat au passage : aucun maire d'arrondissement n'est actuellement en base comme mandat `maire` malgré le champ `parent_commune_code` prévu à cet effet par M18T1 — la source correspondante n'a jamais été câblée.
+  - Client : `sources/rne-conseillers-arr.ts` → `upsert/conseillers-arr.ts`. Même adaptation que les conseillers régionaux (matching par paire (secteur, official), N titulaires par secteur).
 - **Source photos maires** :
   - Wikidata (SPARQL) — requête sur les personnes ayant occupé un poste de maire (P39, sous-classes de Q382844) avec une photo (P18)
   - Endpoint : `https://query.wikidata.org/sparql`

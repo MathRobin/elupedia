@@ -84,6 +84,7 @@ export default function HeroSearch({
     eurodepute: 'Député·e européen·ne',
     conseiller_departemental: 'Conseiller·ère départemental·e',
     conseiller_regional: 'Conseiller·ère régional·e',
+    conseiller_arrondissement: "Conseiller·ère d'arrondissement",
   };
 
   return (

@@ -56,6 +56,14 @@ déjà cloné (pas de checkout distant).
   `officials`/`mandates`.
 - Cron `0 22 3/5 * *`.
 
+## Créneau isolé — tous les 5 jours (décalé de 3 jours vs maires), 22:00 UTC
+
+- `ingest:conseillers-arr` (RNE conseillers d'arrondissement) — même
+  raisonnement, volume encore plus petit (~1 025 lignes, Paris/Lyon/Marseille
+  uniquement). Décalé d'un jour de plus (`4/5`) pour rester isolé des trois
+  autres jobs RNE sur `officials`/`mandates`.
+- Cron `0 22 4/5 * *`.
+
 ## Créneau principal — un job lourd par jour, 01:30 UTC
 
 Choisi à 1h30 après le tick `press:maires` de 00:00 (qui peut tourner jusqu'à ~75 min)

@@ -1,0 +1,21 @@
+# Cron documenté dans docs/INGESTION-SCHEDULE.md (créneau isolé, décalé de 3
+# jours vs ingest-maires.yaml pour éviter toute contention sur officials/mandates).
+name: Ingest — Conseillers d'arrondissement (RNE)
+schedule: '0 22 4/5 * *'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+steps:
+  - name: git-pull
+    command: git pull
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: ingestion-conseillers-arr
+    command: yarn --cwd packages/ingest ingest:conseillers-arr
+    depends:
+      - install-dependencies
