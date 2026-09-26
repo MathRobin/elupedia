@@ -128,17 +128,41 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
       }
 
       for (const m of depute.allMandates) {
-        const existingMandate = await db
-          .select({ id: mandates.id })
-          .from(mandates)
-          .where(
-            and(
-              eq(mandates.officialId, officialId),
-              eq(mandates.type, m.type),
-              eq(mandates.startDate, m.mandat_debut),
-            ),
-          )
-          .limit(1);
+        // Un mandat en cours (pas de mandat_fin) est identifié par son statut
+        // actif plutôt que par sa date de début : cette source (AN) et celle
+        // du Sénat (cf. upsert/senators.ts) peuvent publier des dates de début
+        // légèrement différentes pour le même mandat sénatorial en cours, ce
+        // qui créait un mandat en double au lieu de le mettre à jour.
+        const existingMandate = m.mandat_fin
+          ? await db
+              .select({ id: mandates.id, department: mandates.department })
+              .from(mandates)
+              .where(
+                and(
+                  eq(mandates.officialId, officialId),
+                  eq(mandates.type, m.type),
+                  eq(mandates.startDate, m.mandat_debut),
+                ),
+              )
+              .limit(1)
+          : await db
+              .select({ id: mandates.id, department: mandates.department })
+              .from(mandates)
+              .where(
+                and(
+                  eq(mandates.officialId, officialId),
+                  eq(mandates.type, m.type),
+                  isNull(mandates.endDate),
+                ),
+              )
+              .limit(1);
+
+        // Le mandat sénateur en cours peut aussi provenir de senators.ts (open
+        // data Sénat, toujours renseigné en département) : ne pas écraser un
+        // département déjà connu par une valeur vide quand cette source (AN)
+        // n'a pas l'info pour ce mandat.
+        const department =
+          m.nom_circo || existingMandate[0]?.department || null;
 
         const district =
           m.type === 'senateur' || m.num_circo === 0
@@ -150,7 +174,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
             officialId,
             type: m.type,
             district,
-            department: m.nom_circo,
+            department,
             startDate: m.mandat_debut,
             endDate: m.mandat_fin ?? null,
             politicalGroup: m.groupe_sigle ?? null,
@@ -160,7 +184,8 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
             .update(mandates)
             .set({
               district,
-              department: m.nom_circo,
+              department,
+              startDate: m.mandat_debut,
               endDate: m.mandat_fin ?? null,
               politicalGroup: m.groupe_sigle ?? null,
               updatedAt: new Date(),
