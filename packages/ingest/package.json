@@ -20,6 +20,7 @@
     "ingest:rip": "tsx --env-file-if-exists=../../.env src/main-rip-signatures.ts",
     "ingest:photos": "tsx --env-file-if-exists=../../.env src/main-photos.ts",
     "ingest:press:maires": "tsx --env-file-if-exists=../../.env src/main-press-maires.ts",
+    "ingest:press:conseillers-dep": "tsx --env-file-if-exists=../../.env src/main-press-maires.ts --type conseiller_departemental",
     "ingest:hatvp-status": "tsx --env-file-if-exists=../../.env src/main-hatvp-status.ts",
     "ingest:decorations": "tsx --env-file-if-exists=../../.env src/main-decorations.ts",
     "ingest:factchecks": "tsx --env-file-if-exists=../../.env src/main-factchecks.ts",
