@@ -32,7 +32,9 @@ test.describe('Fiche élu — Anne-Marie Nédélec (sénatrice, jeu de données 
     // Anne-Marie Nédélec a exactement 2 mandats en cours au total : sénateur
     // et conseillère départementale — un badge "En cours" par mandat.
     const tousMandats = page.locator('#tous-mandats');
-    await expect(tousMandats.getByText('En cours')).toHaveCount(2);
+    await expect(
+      tousMandats.getByText('En cours', { exact: true }),
+    ).toHaveCount(2);
   });
 
   test('affiche une date de dernière récupération pour chaque section sourcée', async ({
