@@ -10,6 +10,12 @@ import { logger } from './logger.js';
  * Purement diagnostique : aucune requête ici n'écrit en base. Chaque contrôle
  * est une requête ensembliste unique plutôt qu'une boucle ligne à ligne, les
  * tables concernées comptant des dizaines de milliers de lignes.
+ *
+ * Les plages de dates utilisent la borne '[)' (début inclus, fin exclue) :
+ * end_date est la date à laquelle le mandat suivant commence, pas le
+ * dernier jour du mandat courant. Deux mandats consécutifs qui se touchent
+ * exactement à cette date (fin de l'un = début de l'autre) ne doivent donc
+ * pas remonter comme un chevauchement.
  */
 
 const SAMPLE_LIMIT = 200;
@@ -148,8 +154,8 @@ const checks: {
         and m2.type = m1.type
         and m2.id > m1.id
       join officials o on o.id = m1.official_id
-      where daterange(m1.start_date, coalesce(m1.end_date, 'infinity'::date), '[]')
-         && daterange(m2.start_date, coalesce(m2.end_date, 'infinity'::date), '[]')
+      where daterange(m1.start_date, coalesce(m1.end_date, 'infinity'::date), '[)')
+         && daterange(m2.start_date, coalesce(m2.end_date, 'infinity'::date), '[)')
       order by m1.official_id
       limit ${SAMPLE_LIMIT}
     `,
@@ -227,7 +233,7 @@ const checks: {
         and not exists (
           select 1 from mandates m
           where m.official_id = s.official_id
-            and daterange(m.start_date, coalesce(m.end_date, 'infinity'::date), '[]') @> s.publication_date
+            and daterange(m.start_date, coalesce(m.end_date, 'infinity'::date), '[)') @> s.publication_date
         )
       limit ${SAMPLE_LIMIT}
     `,
@@ -253,7 +259,7 @@ const checks: {
         select m.department
         from mandates m
         where m.official_id = s.official_id
-          and daterange(m.start_date, coalesce(m.end_date, 'infinity'::date), '[]') @> s.publication_date
+          and daterange(m.start_date, coalesce(m.end_date, 'infinity'::date), '[)') @> s.publication_date
         order by m.start_date desc
         limit 1
       ) m on true
