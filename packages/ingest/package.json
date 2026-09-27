@@ -30,6 +30,7 @@
     "ingest:wikipedia": "tsx --env-file-if-exists=../../.env src/main-wikipedia.ts",
     "reconcile": "tsx --env-file-if-exists=../../.env src/main-reconcile.ts",
     "dedupe:committees": "tsx --env-file-if-exists=../../.env src/main-dedupe-committees.ts",
+    "check:coherence": "tsx --env-file-if-exists=../../.env src/main-check-coherence.ts",
     "test": "vitest run"
   },
   "dependencies": {
