@@ -74,6 +74,9 @@ yarn --cwd packages/ingest ingest:decorations
 
 # Dédoublonnage des commissions (fusionne « nom » et « nom (abrégé) »)
 yarn --cwd packages/ingest dedupe:committees --dry-run
+
+# Contrôles de cohérence métier (mandats qui se recoupent, parrainages sans mandat couvrant, etc.), lecture seule
+yarn --cwd packages/ingest check:coherence
 ```
 
 ## Documentation
