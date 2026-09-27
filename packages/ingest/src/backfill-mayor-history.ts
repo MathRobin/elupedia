@@ -88,6 +88,7 @@ async function fetchWithRetry(
   url: string,
   init: RequestInit,
   attempts = 5,
+  delayMs = 3000,
 ): Promise<Response> {
   let lastError: unknown;
   for (let i = 0; i < attempts; i++) {
@@ -97,13 +98,13 @@ async function fetchWithRetry(
       // ce n'est pas une exception, donc pas retenté sans ce check.
       if (res.status >= 500 && i < attempts - 1) {
         lastError = new Error(`HTTP ${res.status}`);
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, delayMs));
         continue;
       }
       return res;
     } catch (e) {
       lastError = e;
-      await new Promise((r) => setTimeout(r, 3000));
+      await new Promise((r) => setTimeout(r, delayMs));
     }
   }
   throw lastError;
@@ -119,7 +120,9 @@ async function discoverSnapshotUrls(): Promise<
   { date: string; fetchUrl: string }[]
 > {
   const cdxUrl = `${CDX_API_URL}?url=${encodeURIComponent(RNE_RESOURCE_URL)}&output=text&fl=timestamp,digest&collapse=digest`;
-  const res = await fetchWithRetry(cdxUrl, {});
+  // L'API CDX de Wayback est particulièrement instable (5xx fréquents) —
+  // plus de tentatives et un backoff plus long que pour les autres appels.
+  const res = await fetchWithRetry(cdxUrl, {}, 10, 8000);
   if (!res.ok) throw new Error(`CDX API error: ${res.status}`);
   const text = await res.text();
   const timestamps = text
