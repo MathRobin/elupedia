@@ -38,7 +38,13 @@ function sortKey(m: RneMaire): string {
 }
 
 export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
-  const summary = { officials: 0, mandates: 0, ended: 0, skipped: 0 };
+  const summary = {
+    officials: 0,
+    mandates: 0,
+    ended: 0,
+    reelected: 0,
+    skipped: 0,
+  };
 
   const sorted = [...maires].sort((a, b) =>
     sortKey(a).localeCompare(sortKey(b)),
@@ -166,18 +172,37 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
       }
 
       const existingMandate = await db
-        .select({ id: mandates.id })
+        .select({ id: mandates.id, startDate: mandates.startDate })
         .from(mandates)
         .where(
           and(
             eq(mandates.officialId, official.id),
             eq(mandates.type, 'maire'),
             eq(mandates.communeCode, maire.communeCode),
+            isNull(mandates.endDate),
           ),
         )
         .limit(1);
 
-      if (existingMandate.length === 0) {
+      const newStartDate = maire.mandateStartDate || maire.functionStartDate;
+      // Réélection du même maire sur la même commune : la date de début
+      // change, mais écraser la ligne existante effacerait le mandat
+      // précédent. On le clôt et on ouvre une nouvelle ligne, comme pour un
+      // changement de titulaire.
+      const isReelection =
+        existingMandate.length > 0 &&
+        !!newStartDate &&
+        newStartDate !== existingMandate[0].startDate;
+
+      if (isReelection) {
+        await db
+          .update(mandates)
+          .set({ endDate: newStartDate, updatedAt: new Date() })
+          .where(eq(mandates.id, existingMandate[0].id));
+        summary.reelected++;
+      }
+
+      if (existingMandate.length === 0 || isReelection) {
         try {
           const [inserted] = await db
             .insert(mandates)
@@ -186,7 +211,7 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
               type: 'maire',
               district: maire.communeName,
               department: maire.departmentName,
-              startDate: maire.mandateStartDate || maire.functionStartDate,
+              startDate: newStartDate,
               communeCode: maire.communeCode,
             })
             .returning({ id: mandates.id });
@@ -213,7 +238,6 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
             .set({
               district: maire.communeName,
               department: maire.departmentName,
-              startDate: maire.mandateStartDate || maire.functionStartDate,
               endDate: null,
               updatedAt: new Date(),
             })
@@ -240,7 +264,7 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
   clearCheckpoint(CHECKPOINT_NAME);
 
   logger.info(
-    `Mayors: ${summary.officials} officials created, ${summary.mandates} mandates upserted, ${summary.ended} mandates ended`,
+    `Mayors: ${summary.officials} officials created, ${summary.mandates} mandates upserted, ${summary.ended} mandates ended, ${summary.reelected} re-elections historized`,
   );
   return summary;
 }
