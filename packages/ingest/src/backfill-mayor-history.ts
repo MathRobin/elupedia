@@ -315,7 +315,12 @@ async function run() {
     for (const snapshot of snapshots) {
       const maire = snapshot.mayors.get(communeCode);
       if (!maire) continue;
-      const startDate = maire.mandateStartDate || maire.functionStartDate;
+      // functionStartDate (date à laquelle CETTE personne a pris la
+      // fonction de maire) plutôt que mandateStartDate (date d'élection du
+      // conseil municipal, inchangée lors d'un remplacement en cours de
+      // mandat — ex. démission). Utiliser mandateStartDate en priorité
+      // attribuait par erreur le mandat du prédécesseur au successeur.
+      const startDate = maire.functionStartDate || maire.mandateStartDate;
       if (!startDate) continue;
 
       const last = terms[terms.length - 1];

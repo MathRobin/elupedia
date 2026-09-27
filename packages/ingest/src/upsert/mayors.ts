@@ -163,7 +163,7 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
         await db
           .update(mandates)
           .set({
-            endDate: maire.mandateStartDate || maire.functionStartDate || today,
+            endDate: maire.functionStartDate || maire.mandateStartDate || today,
             updatedAt: new Date(),
           })
           .where(eq(mandates.id, previous.id));
@@ -184,7 +184,11 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
         )
         .limit(1);
 
-      const newStartDate = maire.mandateStartDate || maire.functionStartDate;
+      // functionStartDate (prise de fonction de CET élu) plutôt que
+      // mandateStartDate (élection du conseil municipal, inchangée lors
+      // d'un remplacement en cours de mandat — ex. démission) : sinon un
+      // remplacement se voit attribuer la date de début du prédécesseur.
+      const newStartDate = maire.functionStartDate || maire.mandateStartDate;
       // Réélection du même maire sur la même commune : la date de début
       // change, mais écraser la ligne existante effacerait le mandat
       // précédent. On le clôt et on ouvre une nouvelle ligne, comme pour un
