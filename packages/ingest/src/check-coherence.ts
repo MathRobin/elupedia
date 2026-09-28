@@ -165,16 +165,16 @@ const checks: {
 
   mandateChronology: {
     key: 'mandate_chronology',
-    description: 'Mandat dont la date de fin précède la date de début',
+    description: 'Mandat dont la date de fin précède ou égale la date de début',
     query: sql`
       select m.official_id, o.first_name, o.last_name, m.type, m.start_date, m.end_date
       from mandates m
       join officials o on o.id = m.official_id
-      where m.end_date is not null and m.end_date < m.start_date
+      where m.end_date is not null and m.end_date <= m.start_date
       limit ${SAMPLE_LIMIT}
     `,
     format: (r) =>
-      `${r.first_name} ${r.last_name} (${r.type}) : fin ${r.end_date} avant début ${r.start_date}`,
+      `${r.first_name} ${r.last_name} (${r.type}) : fin ${r.end_date} ${r.end_date === r.start_date ? '= début (plage vide)' : 'avant début'} ${r.start_date}`,
   },
 
   activeMandateAfterDeath: {
