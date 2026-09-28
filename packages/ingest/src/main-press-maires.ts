@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { DEPARTMENT_NAMES } from '@elupedia/shared';
+import { DEPARTMENT_NAMES, MANDATE_TYPE_LABELS } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { runPressMaires, DEFAULT_BATCH_SIZE } from './run-press-maires.js';
 import {
@@ -8,13 +8,15 @@ import {
   setGitHubOutput,
 } from './utils/change-detector.js';
 
-const MANDATE_TYPES = [
-  'maire',
-  'conseiller_departemental',
-  'depute',
-  'senateur',
-  'eurodepute',
-];
+// Dérivé de MANDATE_TYPE_LABELS plutôt qu'une liste codée en dur : une
+// liste séparée avait déjà divergé (conseiller_regional, conseiller_
+// arrondissement et membre_assemblee_statut_particulier étaient rejetés
+// par --type alors que ces mandats sont bien ingérés). "president" est
+// exclu : présent dans les libellés d'affichage mais produit par aucun
+// script d'ingestion, donc jamais présent en tant que mandates.type.
+const MANDATE_TYPES = Object.keys(MANDATE_TYPE_LABELS).filter(
+  (type) => type !== 'president',
+);
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
