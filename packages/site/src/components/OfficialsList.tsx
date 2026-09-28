@@ -762,7 +762,7 @@ export default function OfficialsList({
                       </div>
                     )}
                     <span
-                      className={`text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                      className={`inline-block w-24 text-center break-words text-[10px] font-medium uppercase px-1.5 py-0.5 leading-tight rounded-full ${
                         d.mandateType === 'depute'
                           ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                           : d.mandateType === 'senateur'
