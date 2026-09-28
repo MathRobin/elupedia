@@ -38,7 +38,13 @@ export async function upsertConseillersReg(
   db: NeonHttpDatabase,
   conseillers: RneConseillerReg[],
 ) {
-  const summary = { officials: 0, mandates: 0, ended: 0, skipped: 0 };
+  const summary = {
+    officials: 0,
+    mandates: 0,
+    ended: 0,
+    replaced: 0,
+    skipped: 0,
+  };
 
   const allOfficials = await db
     .select({
@@ -135,27 +141,77 @@ export async function upsertConseillersReg(
 
   for (const { row: c, officialId } of resolved) {
     const existingMandate = await db
-      .select({ id: mandates.id })
+      .select({ id: mandates.id, startDate: mandates.startDate })
       .from(mandates)
       .where(
         and(
           eq(mandates.officialId, officialId),
           eq(mandates.type, 'conseiller_regional'),
           eq(mandates.department, c.sectionName),
+          isNull(mandates.endDate),
         ),
       )
       .limit(1);
+    const current = existingMandate[0];
 
-    if (existingMandate.length === 0) {
+    // functionStartDate (prise de fonction de CET élu) plutôt que
+    // mandateStartDate (élection du conseil, inchangée lors d'un
+    // remplacement en cours de mandat) : sinon un remplacement se voit
+    // attribuer la date de début du prédécesseur.
+    const newStartDate = c.functionStartDate || c.mandateStartDate;
+
+    if (!newStartDate) {
+      logger.warn(
+        `  Skipping mandate for ${c.firstName} ${c.lastName} (${c.sectionName}, ${c.regionName}): ` +
+          `no mandate/function start date in source data`,
+      );
+      summary.skipped++;
+      continue;
+    }
+
+    const mandateValues = {
+      officialId,
+      type: 'conseiller_regional' as const,
+      district: c.regionName,
+      department: c.sectionName,
+      startDate: newStartDate,
+    };
+
+    // Une date de prise de fonction postérieure à celle du mandat actif
+    // signale un remplacement : on clôt l'ancien mandat et on en ouvre un
+    // nouveau plutôt que d'écraser la ligne existante, pour ne pas perdre
+    // l'historique. Une date antérieure est une simple correction de la
+    // période en cours : on met à jour la ligne existante sans l'historiser.
+    const isReplacement = !!current && newStartDate > current.startDate;
+
+    if (!current) {
       try {
-        await db.insert(mandates).values({
-          officialId,
-          type: 'conseiller_regional',
-          district: c.regionName,
-          department: c.sectionName,
-          startDate: c.mandateStartDate || c.functionStartDate,
-        });
+        await db.insert(mandates).values(mandateValues);
         summary.mandates++;
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          logger.warn(
+            `  Skipping mandate for ${c.firstName} ${c.lastName} (${c.sectionName}, ${c.regionName}): ` +
+              `official already has a "conseiller_regional" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
+          );
+          summary.skipped++;
+        } else {
+          throw error;
+        }
+      }
+    } else if (isReplacement) {
+      try {
+        // Clôture et ouverture dans le même batch (transaction unique côté
+        // Neon) : si l'insertion échoue, la clôture est annulée avec elle.
+        await db.batch([
+          db
+            .update(mandates)
+            .set({ endDate: newStartDate, updatedAt: new Date() })
+            .where(eq(mandates.id, current.id)),
+          db.insert(mandates).values(mandateValues),
+        ]);
+        summary.mandates++;
+        summary.replaced++;
       } catch (error) {
         if (isUniqueViolation(error)) {
           logger.warn(
@@ -173,11 +229,11 @@ export async function upsertConseillersReg(
           .update(mandates)
           .set({
             district: c.regionName,
-            startDate: c.mandateStartDate || c.functionStartDate,
+            startDate: newStartDate,
             endDate: null,
             updatedAt: new Date(),
           })
-          .where(eq(mandates.id, existingMandate[0].id));
+          .where(eq(mandates.id, current.id));
         summary.mandates++;
       } catch (error) {
         if (isUniqueViolation(error)) {
@@ -194,7 +250,7 @@ export async function upsertConseillersReg(
   }
 
   logger.info(
-    `Conseillers régionaux: ${summary.officials} officials created, ${summary.mandates} mandates upserted, ${summary.ended} mandates ended`,
+    `Conseillers régionaux: ${summary.officials} officials created, ${summary.mandates} mandates upserted, ${summary.ended} mandates ended, ${summary.replaced} replacements historized`,
   );
   return summary;
 }

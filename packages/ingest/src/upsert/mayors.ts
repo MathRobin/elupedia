@@ -183,46 +183,82 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
           ),
         )
         .limit(1);
+      const current = existingMandate[0];
 
       // functionStartDate (prise de fonction de CET élu) plutôt que
       // mandateStartDate (élection du conseil municipal, inchangée lors
       // d'un remplacement en cours de mandat — ex. démission) : sinon un
       // remplacement se voit attribuer la date de début du prédécesseur.
       const newStartDate = maire.functionStartDate || maire.mandateStartDate;
-      // Réélection du même maire sur la même commune : la date de début
-      // change, mais écraser la ligne existante effacerait le mandat
-      // précédent. On le clôt et on ouvre une nouvelle ligne, comme pour un
-      // changement de titulaire.
-      const isReelection =
-        existingMandate.length > 0 &&
-        !!newStartDate &&
-        newStartDate !== existingMandate[0].startDate;
 
-      if (isReelection) {
-        await db
-          .update(mandates)
-          .set({ endDate: newStartDate, updatedAt: new Date() })
-          .where(eq(mandates.id, existingMandate[0].id));
-        summary.reelected++;
+      if (!newStartDate) {
+        logger.warn(
+          `  Skipping mandate for ${maire.firstName} ${maire.lastName} (${maire.communeName}, ${maire.communeCode}): ` +
+            `no mandate/function start date in source data`,
+        );
+        summary.skipped++;
+        continue;
       }
 
-      if (existingMandate.length === 0 || isReelection) {
+      const mandateValues = {
+        officialId: official.id,
+        type: 'maire' as const,
+        district: maire.communeName,
+        department: maire.departmentName,
+        startDate: newStartDate,
+        communeCode: maire.communeCode,
+      };
+
+      // Une date de prise de fonction postérieure à celle du mandat actif
+      // signale une réélection ou un remplacement : on clôt l'ancien mandat
+      // et on en ouvre un nouveau. Une date antérieure est une simple
+      // correction de la période en cours (RNE précise une date
+      // provisoire) : on met à jour la ligne existante sans l'historiser.
+      const isReelection = !!current && newStartDate > current.startDate;
+
+      if (!current) {
         try {
           const [inserted] = await db
             .insert(mandates)
-            .values({
-              officialId: official.id,
-              type: 'maire',
-              district: maire.communeName,
-              department: maire.departmentName,
-              startDate: newStartDate,
-              communeCode: maire.communeCode,
-            })
+            .values(mandateValues)
             .returning({ id: mandates.id });
           activeMandatesByCommune.set(maire.communeCode, {
             id: inserted!.id,
             officialId: official.id,
           });
+          summary.mandates++;
+        } catch (error) {
+          if (isUniqueViolation(error)) {
+            logger.warn(
+              `  Skipping mandate for ${maire.firstName} ${maire.lastName} (${maire.communeName}, ${maire.communeCode}): ` +
+                `official already has a "maire" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
+            );
+            summary.skipped++;
+          } else {
+            throw error;
+          }
+        }
+      } else if (isReelection) {
+        try {
+          // Clôture de l'ancien mandat et ouverture du nouveau dans le même
+          // batch (transaction unique côté Neon) : si l'insertion échoue
+          // (contrainte unique violée), la clôture est annulée avec elle —
+          // jamais de mandat clos sans remplaçant.
+          const [, [inserted]] = await db.batch([
+            db
+              .update(mandates)
+              .set({ endDate: newStartDate, updatedAt: new Date() })
+              .where(eq(mandates.id, current.id)),
+            db
+              .insert(mandates)
+              .values(mandateValues)
+              .returning({ id: mandates.id }),
+          ]);
+          activeMandatesByCommune.set(maire.communeCode, {
+            id: inserted!.id,
+            officialId: official.id,
+          });
+          summary.reelected++;
           summary.mandates++;
         } catch (error) {
           if (isUniqueViolation(error)) {
@@ -242,10 +278,11 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
             .set({
               district: maire.communeName,
               department: maire.departmentName,
+              startDate: newStartDate,
               endDate: null,
               updatedAt: new Date(),
             })
-            .where(eq(mandates.id, existingMandate[0].id));
+            .where(eq(mandates.id, current.id));
           summary.mandates++;
         } catch (error) {
           if (isUniqueViolation(error)) {

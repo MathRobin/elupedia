@@ -396,6 +396,7 @@ function setupHappyPath() {
     officials: 0,
     mandates: 0,
     ended: 0,
+    reelected: 0,
     skipped: 0,
   });
   vi.mocked(fetchDilaMairies).mockResolvedValue([]);
