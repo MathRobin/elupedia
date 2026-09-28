@@ -55,6 +55,10 @@ function createMockDb(selectQueue: unknown[][]) {
         return { where: () => Promise.resolve() };
       },
     }),
+    // Les effets de bord (push dans `updates`/`store`) ont déjà eu lieu de
+    // façon synchrone à la construction de chaque requête ci-dessus ; pour
+    // ce mock, batch se contente donc de résoudre les promesses déjà prêtes.
+    batch: (queries: unknown[]) => Promise.all(queries),
   };
 
   return { db, store, updates };
@@ -128,8 +132,56 @@ describe('upsertMayors — historisation des réélections', () => {
     expect(store.mandates).toHaveLength(0);
 
     expect(updates).toHaveLength(1);
-    expect(updates[0].set).not.toHaveProperty('startDate');
-    expect(updates[0].set).toMatchObject({ endDate: null });
+    expect(updates[0].set).toMatchObject({
+      startDate: '2026-03-15',
+      endDate: null,
+    });
+  });
+
+  it('corrige la date en place sans historiser quand la nouvelle date est antérieure à celle en base', async () => {
+    // La source précise une date provisoire, puis une date plus exacte et
+    // plus ancienne (ex. RNE corrige une date de prise de fonction) : ce
+    // n'est pas une réélection, juste une correction de la même période.
+    const { db, store, updates } = createMockDb([
+      [existingOfficial],
+      [{ id: 'mandate-1', officialId: 'official-1', communeCode: '94001' }],
+      [{ id: 'mandate-1', startDate: '2026-04-01' }], // postérieure à la source
+    ]);
+    const { upsertMayors } = await import('./mayors.js');
+
+    const summary = await upsertMayors(db as never, [maire]);
+
+    expect(summary.reelected).toBe(0);
+    expect(summary.mandates).toBe(1);
+    expect(store.mandates).toHaveLength(0);
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({
+      table: 'mandates',
+      set: { startDate: '2026-03-15', endDate: null },
+    });
+  });
+
+  it("n'écrit rien et compte un skip quand la source n'a aucune date de mandat/fonction", async () => {
+    const maireSansDate: RneMaire = {
+      ...maire,
+      mandateStartDate: '',
+      functionStartDate: '',
+    };
+    const { db, store, updates } = createMockDb([
+      [existingOfficial],
+      [{ id: 'mandate-1', officialId: 'official-1', communeCode: '94001' }],
+      [{ id: 'mandate-1', startDate: '2020-05-18' }],
+    ]);
+    const { upsertMayors } = await import('./mayors.js');
+
+    const summary = await upsertMayors(db as never, [maireSansDate]);
+
+    expect(summary.skipped).toBe(1);
+    expect(summary.mandates).toBe(0);
+    expect(summary.reelected).toBe(0);
+    expect(updates).toHaveLength(0);
+    expect(store.mandates).toHaveLength(0);
   });
 
   it("insère un nouveau mandat quand aucun mandat actif n'existe", async () => {
