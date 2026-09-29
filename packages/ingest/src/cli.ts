@@ -67,7 +67,11 @@ export const MEMBRES_AFE_STEP_NAMES = ['membres-afe'] as const;
 
 export type MembresAfeStepName = (typeof MEMBRES_AFE_STEP_NAMES)[number];
 
-export const EUROPE_STEP_NAMES = ['eurodeputes', 'eurodeputes-votes'] as const;
+export const EUROPE_STEP_NAMES = [
+  'eurodeputes',
+  'eurodeputes-votes',
+  'eurodeputes-questions',
+] as const;
 
 export type EuropeStepName = (typeof EUROPE_STEP_NAMES)[number];
 

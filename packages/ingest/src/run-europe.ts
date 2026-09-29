@@ -13,6 +13,7 @@ import {
   fetchRollcallDecisions,
 } from './sources/parlement-europeen-votes.js';
 import { upsertEuropeVotes } from './upsert/europe-votes.js';
+import { upsertEuropeQuestions } from './upsert/europe-questions.js';
 
 // Législature 10 : mandats à partir du 16/07/2024.
 const LEGISLATURE_10_START_YEAR = 2024;
@@ -123,6 +124,21 @@ export async function runEurope(
           source: 'eurodeputes-votes',
           created: r.ballots,
           updated: r.votes,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('eurodeputes-questions')) {
+    logger.info('[1/1] Questions parlementaires...');
+    results.push(
+      await runStep('eurodeputes-questions', async () => {
+        const r = await upsertEuropeQuestions(db);
+        return {
+          source: 'eurodeputes-questions',
+          created: r.created,
+          updated: r.matched,
           durationMs: 0,
         };
       }),

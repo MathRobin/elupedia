@@ -560,12 +560,11 @@ describe('Fiche élu — eurodéputés (M24T7)', () => {
     );
   });
 
-  it('keeps collaborateurs/activité/commissions restricted to AN/Sénat (no data ingested for MEPs)', () => {
+  it('keeps collaborateurs/commissions restricted to AN/Sénat (no data ingested for MEPs)', () => {
     const content = readFileSync(pagePath, 'utf-8');
     expect(content).toContain(
       '{isParliamentary && <section id="collaborateurs"',
     );
-    expect(content).toContain('{isParliamentary && <section id="activite"');
     expect(content).toContain('{isParliamentary && <section id="commissions"');
   });
 
@@ -582,5 +581,32 @@ describe('Fiche élu — eurodéputés (M24T7)', () => {
     expect(content).toContain('europarlDeclarationUrl');
     expect(content).toContain('/meps/fr/${deputy.europarlId}/x/declarations');
     expect(content).toContain('pas soumis au régime déclaratif de la HATVP');
+  });
+});
+
+describe('Fiche élu — questions parlementaires européennes (M24T5)', () => {
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
+
+  it('shows the activité parlementaire section for eurodeputes too, now that EP questions are ingested', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain(
+      'const showActivite = isParliamentary || isEurodepute;',
+    );
+    expect(content).toContain('{showActivite && <section id="activite"');
+  });
+
+  it('labels the interpellation activity type', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain("interpellation: 'Interpellation'");
+  });
+
+  it('opens the detail drawer for interpellations too, like written/oral questions', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain(
+      "act.type === 'written_question' || act.type === 'oral_question' || act.type === 'interpellation'",
+    );
   });
 });

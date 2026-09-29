@@ -60,19 +60,23 @@ export async function upsertSenatParliamentaryActivity(
         .where(eq(parliamentaryActivity.officialId, officialId));
 
       const existingByKey = new Map(
-        existingActivities.map((a) => [`${a.type}|${a.title}|${a.date}`, a]),
+        existingActivities.map((a) => [
+          `${a.source}|${a.type}|${a.title}|${a.date}`,
+          a,
+        ]),
       );
 
       const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
 
       for (const item of senateur.activities) {
-        const key = `${item.type}|${item.title}|${item.date}`;
+        const key = `senat|${item.type}|${item.title}|${item.date}`;
         const existing = existingByKey.get(key);
 
         if (!existing) {
           newRows.push({
             officialId,
             type: item.type,
+            source: 'senat',
             title: item.title,
             date: item.date,
             status: item.status ?? null,
