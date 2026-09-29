@@ -8,6 +8,7 @@ export const MANDATE_TYPE_LABELS: Record<string, string> = {
   conseiller_arrondissement: "Conseiller d'arrondissement",
   membre_assemblee_statut_particulier: "Membre d'assemblée territoriale",
   conseiller_francais_etranger: "Conseiller des Français de l'étranger",
+  membre_afe: "Membre de l'Assemblée des Français de l'étranger",
   president: 'Président',
 };
 

@@ -19,6 +19,7 @@
     "ingest:conseillers-arr": "tsx --env-file-if-exists=../../.env src/main-conseillers-arr.ts",
     "ingest:membres-assemblee": "tsx --env-file-if-exists=../../.env src/main-membres-assemblee.ts",
     "ingest:conseillers-fde": "tsx --env-file-if-exists=../../.env src/main-conseillers-fde.ts",
+    "ingest:membres-afe": "tsx --env-file-if-exists=../../.env src/main-membres-afe.ts",
     "ingest:parrainages": "tsx --env-file-if-exists=../../.env src/main-parrainages.ts",
     "ingest:rip": "tsx --env-file-if-exists=../../.env src/main-rip-signatures.ts",
     "ingest:photos": "tsx --env-file-if-exists=../../.env src/main-photos.ts",
