@@ -15,7 +15,17 @@ const CURSOR_SOURCE_TABLE = 'europarl_questions_cursor';
 const CURSOR_RECORD_ID = 'cursor';
 const SOURCE_NAME = 'Parlement européen - Open Data API';
 const LEGAL_BASIS = 'Licence CC BY 4.0 - data.europarl.europa.eu';
-const RATE_LIMIT_DELAY_MS = 150;
+// La limite documentée est 500 requêtes / 5 min, soit 600ms/requête en
+// moyenne soutenue. Ce pipeline fait 1 requête liste + jusqu'à pageSize
+// requêtes détail par page (bien plus que les autres étapes europe, qui
+// restent sous la limite même à 150ms) : 700ms de marge évite le 429
+// constaté en conditions réelles (29/09/2026) avec un délai trop court.
+const RATE_LIMIT_DELAY_MS = 700;
+// Après ce nombre d'échecs consécutifs sur le détail d'une question, on
+// suppose un rate-limit ou une panne systémique côté API plutôt qu'un
+// problème isolé à ce document : continuer à tenter les items suivants un
+// par un ne ferait qu'aggraver la situation (cf. incident du 29/09/2026).
+const MAX_CONSECUTIVE_FAILURES = 5;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -78,6 +88,8 @@ export interface EuropeQuestionsOptions {
   pageSize?: number;
   maxPages?: number;
   fetchFn?: typeof fetch;
+  /** Surcharge RATE_LIMIT_DELAY_MS — utilisé par les tests pour ne pas attendre 700ms par requête simulée. */
+  rateLimitDelayMs?: number;
 }
 
 export async function upsertEuropeQuestions(
@@ -87,12 +99,15 @@ export async function upsertEuropeQuestions(
   // L'ingestion Parlement européen tourne une fois par semaine (Dagu,
   // dagu-dags/ingest-europe.yaml) : un budget trop bas mettrait des mois à
   // couvrir l'ensemble des questions du Parlement (pas de filtre serveur par
-  // auteur, cf. sources/parlement-europeen-questions.ts). 3000 documents
-  // scannés par run est un compromis entre couverture raisonnable en
-  // quelques semaines et durée d'exécution d'une tâche planifiée.
+  // auteur, cf. sources/parlement-europeen-questions.ts). À 700ms/requête
+  // (cf. RATE_LIMIT_DELAY_MS, revu à la hausse après un 429 constaté en
+  // conditions réelles le 29/09/2026), 1500 documents scannés par run prend
+  // ~20-25 min — compromis entre couverture raisonnable en quelques
+  // semaines et durée d'exécution d'une tâche planifiée.
   const pageSize = opts.pageSize ?? 50;
-  const maxPages = opts.maxPages ?? 60;
+  const maxPages = opts.maxPages ?? 30;
   const fetchFn = opts.fetchFn ?? fetch;
+  const rateLimitDelayMs = opts.rateLimitDelayMs ?? RATE_LIMIT_DELAY_MS;
 
   const officialRows = await db
     .select({ id: officials.id, europarlId: officials.europarlId })
@@ -135,9 +150,29 @@ export async function upsertEuropeQuestions(
     `  Reprise du parcours des questions parlementaires PE à l'offset ${offset}`,
   );
 
-  for (let page = 0; page < maxPages; page++) {
-    const items = await fetchQuestionsListPage(offset, pageSize, fetchFn);
-    await sleep(RATE_LIMIT_DELAY_MS);
+  // Ce run ne doit jamais faire remonter d'exception : `runStep` (côté
+  // run-europe.ts) rejoue l'intégralité de la fonction en cas d'erreur, ce
+  // qui reprendrait tout le parcours depuis l'offset chargé plus haut —
+  // aggravant un rate-limit au lieu de s'en remettre. Toute panne
+  // persistante est donc absorbée ici : on arrête proprement, on sauvegarde
+  // la progression réelle (jamais au-delà de la page en échec), et on
+  // retourne un résumé partiel plutôt que de lever.
+  let consecutiveFailures = 0;
+  let stoppedEarly = false;
+
+  pageLoop: for (let page = 0; page < maxPages; page++) {
+    let items;
+    try {
+      items = await fetchQuestionsListPage(offset, pageSize, fetchFn);
+    } catch (error) {
+      logger.warn(
+        `  Échec de récupération de la liste à l'offset ${offset}, arrêt du run (reprise au même offset la prochaine fois) : ${error instanceof Error ? error.message : String(error)}`,
+      );
+      stoppedEarly = true;
+      break;
+    } finally {
+      await sleep(rateLimitDelayMs);
+    }
     if (items.length === 0) {
       summary.exhausted = true;
       break;
@@ -149,13 +184,22 @@ export async function upsertEuropeQuestions(
       let detail;
       try {
         detail = await fetchQuestionDetail(item.identifier, fetchFn);
+        consecutiveFailures = 0;
       } catch (error) {
+        consecutiveFailures++;
         logger.warn(
-          `  Échec de récupération de ${item.identifier}, ignorée : ${error instanceof Error ? error.message : String(error)}`,
+          `  Échec de récupération de ${item.identifier}, ignorée (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}) : ${error instanceof Error ? error.message : String(error)}`,
         );
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          logger.warn(
+            `  ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs, arrêt du run (reprise à l'offset ${offset}) — probable rate-limit ou panne côté API`,
+          );
+          stoppedEarly = true;
+          break pageLoop;
+        }
         continue;
       } finally {
-        await sleep(RATE_LIMIT_DELAY_MS);
+        await sleep(rateLimitDelayMs);
       }
       if (!detail) continue;
 
@@ -188,6 +232,8 @@ export async function upsertEuropeQuestions(
       }
     }
 
+    // Atteint uniquement si la page a été traitée jusqu'au bout : les deux
+    // arrêts anticipés ci-dessus sortent de la boucle avant cette ligne.
     offset += items.length;
   }
 
@@ -198,7 +244,9 @@ export async function upsertEuropeQuestions(
     `Parlement européen questions : ${summary.scanned} document(s) parcouru(s), ${summary.matched} avec un·e auteur·rice français·e, ${summary.created} créée(s), ${summary.skipped} déjà en base` +
       (summary.exhausted
         ? ' — fin du jeu de données atteinte, le curseur repart à 0'
-        : ` — curseur à ${summary.cursorEnd} pour le prochain run`),
+        : stoppedEarly
+          ? ` — arrêt anticipé, curseur à ${summary.cursorEnd} pour le prochain run`
+          : ` — curseur à ${summary.cursorEnd} pour le prochain run`),
   );
 
   return summary;

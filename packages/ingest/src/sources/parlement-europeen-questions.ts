@@ -125,7 +125,15 @@ export async function fetchQuestionDetail(
   const res = await fetchFn(
     jsonLdUrl(`/parliamentary-questions/${identifier}`),
   );
-  if (!res.ok) return null;
+  // Lève plutôt que de renvoyer null : l'appelant (upsertEuropeQuestions)
+  // compte les échecs consécutifs pour détecter un rate-limit/une panne
+  // systémique côté API et s'arrêter proprement (incident du 29/09/2026) —
+  // un null silencieux rendrait ce mécanisme aveugle aux erreurs HTTP.
+  if (!res.ok) {
+    throw new Error(
+      `Parlement européen /parliamentary-questions/${identifier} error: ${res.status} ${res.statusText}`,
+    );
+  }
 
   const json = await res.json();
   const doc: RawQuestionDoc | undefined = json.data?.[0];
