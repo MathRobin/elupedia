@@ -100,7 +100,7 @@ const deputyVotes = votesRaw
   .slice(0, 20) as { officialId: string; ballotId: string; position: string; ballotTitle: string; ballotDate: string; updatedAt: Date }[];
 
 const deputyAffiliations = await db
-  .select({ officialId: affiliations.officialId, partyOrGroup: affiliations.partyOrGroup, startDate: affiliations.startDate, endDate: affiliations.endDate, updatedAt: affiliations.updatedAt })
+  .select({ officialId: affiliations.officialId, partyOrGroup: affiliations.partyOrGroup, kind: affiliations.kind, startDate: affiliations.startDate, endDate: affiliations.endDate, updatedAt: affiliations.updatedAt })
   .from(affiliations)
   .where(eq(affiliations.officialId, officialId))
   .orderBy(desc(affiliations.startDate));
@@ -542,6 +542,12 @@ const worksForName = deputy.mandateType === 'depute'
       : undefined;
 
 const isParliamentary = deputy.mandateType === 'depute' || deputy.mandateType === 'senateur';
+const isEurodepute = deputy.mandateType === 'eurodepute';
+// Affiliations et votes existent aussi pour les eurodéputés (M24T7) ; les
+// autres sections réservées à isParliamentary (collaborateurs, activité,
+// commissions) n'ont pas d'équivalent ingéré côté Parlement européen et
+// restent donc exclues pour ne pas afficher de section vide.
+const showAffiliationsAndVotes = isParliamentary || isEurodepute;
 const hasActiveMandate = !deputy.endDate;
 
 const constituencyAddress = deputyAddresses.find((a) =>
@@ -775,13 +781,20 @@ const openDataNote = deputy.mandateType === 'depute'
   ? 'L\'open data de l\'Assemblée nationale couvre la XIVe législature et les suivantes (depuis juin 2012). Les mandats antérieurs peuvent être incomplets.'
   : deputy.mandateType === 'senateur'
     ? 'L\'open data du Sénat est disponible depuis 2014 environ. Les mandats antérieurs peuvent être incomplets.'
-    : 'Les données du Répertoire national des élus (RNE) ne couvrent que les mandats en cours.';
+    : isEurodepute
+      ? 'L\'open data du Parlement européen couvre la législature en cours (2024-2029). L\'historique des législatures antérieures n\'est pas encore ingéré.'
+      : 'Les données du Répertoire national des élus (RNE) ne couvrent que les mandats en cours.';
 
 const openDataCollabNote = 'La publication des noms des collaborateurs parlementaires est obligatoire depuis la loi pour la confiance dans la vie politique (septembre 2017).';
 const openDataHatvpNote = 'La HATVP a été créée par la loi du 11 octobre 2013. Aucune déclaration n\'est disponible pour les périodes antérieures.';
 const openDataVotesNote = deputy.mandateType === 'depute'
   ? 'Les données de scrutins de l\'Assemblée nationale sont disponibles depuis la XIVe législature (juin 2012).'
-  : 'Les données de scrutins du Sénat sont disponibles depuis 2014 environ.';
+  : isEurodepute
+    ? 'Seuls les scrutins par appel nominal du Parlement européen publient une position individuelle ; les votes à main levée ne sont pas repris ici (voir docs/DOMAINS.md).'
+    : 'Les données de scrutins du Sénat sont disponibles depuis 2014 environ.';
+const europarlDeclarationUrl = isEurodepute && deputy.europarlId
+  ? `https://www.europarl.europa.eu/meps/fr/${deputy.europarlId}/x/declarations`
+  : null;
 const openDataElectoralNote = deputy.mandateType === 'depute'
   ? 'L\'historique électoral couvre les élections législatives de 2022 et 2024 (données publiées sur data.gouv.fr).'
   : deputy.mandateType === 'senateur'
@@ -998,7 +1011,7 @@ for (const sp of deputySponsorships) {
         {transparencyRow && <li><a href="#transparence" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Transparence</a></li>}
         {bursaeEmbed && <li><a href="#budget" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Finances communales</a></li>}
         <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
-        {isParliamentary && <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations politiques</a></li>}
+        {showAffiliationsAndVotes && <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations politiques</a></li>}
         {isParliamentary && <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
         {isParliamentary && <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité parlementaire</a></li>}
         {isParliamentary && <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions & groupes</a></li>}
@@ -1006,13 +1019,13 @@ for (const sp of deputySponsorships) {
         {municipalElectionsData.length > 0 && <li><a href="#electoral-municipal" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral municipal</a></li>}
         {deputyCampaignAccounts.length > 0 && <li><a href="#financement" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Financement</a></li>}
         <li><a href="#interets" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts déclarés</a></li>
-        {isParliamentary && <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique des votes</a></li>}
+        {showAffiliationsAndVotes && <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique des votes</a></li>}
         <li><a href="#presse" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Dans la presse</a></li>
         <li><a href="#liens" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Liens extérieurs</a></li>
       </ul>
     </nav>
 
-    {isParliamentary && deputyVotes.length > 0 && (() => {
+    {showAffiliationsAndVotes && deputyVotes.length > 0 && (() => {
       const voteCounts: Record<string, number> = { for: 0, against: 0, abstain: 0, absent: 0 };
       for (const v of deputyVotes) { voteCounts[v.position] = (voteCounts[v.position] ?? 0) + 1; }
       const total = deputyVotes.length;
@@ -1044,7 +1057,7 @@ for (const sp of deputySponsorships) {
           {transparencyRow && <li><a href="#transparence" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Transparence</a></li>}
           {bursaeEmbed && <li><a href="#budget" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Finances</a></li>}
           <li><a href="#coordonnees" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
-          {isParliamentary && <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations</a></li>}
+          {showAffiliationsAndVotes && <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations</a></li>}
           {isParliamentary && <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
           {isParliamentary && <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité</a></li>}
           {isParliamentary && <li><a href="#commissions" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions</a></li>}
@@ -1052,7 +1065,7 @@ for (const sp of deputySponsorships) {
           {municipalElectionsData.length > 0 && <li><a href="#electoral-municipal" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral municipal</a></li>}
           {deputyCampaignAccounts.length > 0 && <li><a href="#financement" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Financement</a></li>}
           <li><a href="#interets" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts</a></li>
-          {isParliamentary && <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Votes</a></li>}
+          {showAffiliationsAndVotes && <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Votes</a></li>}
           <li><a href="#presse" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Presse</a></li>
           <li><a href="#liens" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Liens</a></li>
         </ul>
@@ -1388,7 +1401,7 @@ for (const sp of deputySponsorships) {
       <p class="mt-3 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={contactSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{contactSource.name}</a>{fmtRetrieval(sectionDates.addresses)}</p>
     </section>
 
-    {isParliamentary && <section id="affiliations" class="mt-8 scroll-mt-12">
+    {showAffiliationsAndVotes && <section id="affiliations" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Affiliations politiques
         {deputyAffiliations.length > 0 && (
@@ -1402,7 +1415,10 @@ for (const sp of deputySponsorships) {
         <ul class="mt-4 space-y-3">
           {deputyAffiliations.map((a) => (
             <li class="flex items-baseline justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-              <span class="font-medium dark:text-white">{POLITICAL_GROUP_URLS[a.partyOrGroup]
+              <span class="font-medium dark:text-white">
+                {a.kind === 'european_group' && <span class="mr-2 text-xs font-normal text-slate-400">Groupe politique européen ·</span>}
+                {a.kind === 'national_party' && <span class="mr-2 text-xs font-normal text-slate-400">Parti national ·</span>}
+                {POLITICAL_GROUP_URLS[a.partyOrGroup]
                 ? <a href={POLITICAL_GROUP_URLS[a.partyOrGroup]} target="_blank" rel="noopener noreferrer" class="text-inherit hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{a.partyOrGroup}</a>
                 : a.partyOrGroup}</span>
               <span class="text-sm text-slate-500 dark:text-slate-400">
@@ -1848,7 +1864,11 @@ for (const sp of deputySponsorships) {
       </h2>
 
       {deputyInterests.length === 0 ? (
-        deputy.hatvpStatus === 'pending' ? (
+        europarlDeclarationUrl ? (
+          <p class="mt-4 text-slate-500 dark:text-slate-400">
+            Les eurodéputés ne sont pas soumis au régime déclaratif de la HATVP. Leur déclaration d'intérêts privés est déposée auprès du Parlement européen : <a href={europarlDeclarationUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-indigo-600">voir la déclaration officielle</a>.
+          </p>
+        ) : deputy.hatvpStatus === 'pending' ? (
           <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
             <p class="text-sm text-amber-800 dark:text-amber-200">
               Déclaration d'intérêts déposée auprès de la <a href={buildHatvpUrl(deputy.firstName, deputy.lastName)} target="_blank" rel="noopener noreferrer" class="underline font-medium hover:text-amber-600" title="Haute Autorité pour la transparence de la vie publique">HATVP</a>, publication à venir.
@@ -1911,11 +1931,17 @@ for (const sp of deputySponsorships) {
           ))}
         </div>
       )}
-      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataHatvpNote}</p>
-      <p class="mt-1 text-xs text-slate-400">Source : <a href={buildHatvpUrl(deputy.firstName, deputy.lastName)} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Haute Autorité pour la transparence de la vie publique">Fiche HATVP</a>{' · '}<a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Haute Autorité pour la transparence de la vie publique — données ouvertes">HATVP (open data)</a>{fmtRetrieval(sectionDates.interests)}</p>
+      {deputyInterests.length === 0 && europarlDeclarationUrl ? (
+        <p class="mt-1 text-xs text-slate-400">Source : <a href={europarlDeclarationUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Parlement européen — déclarations</a></p>
+      ) : (
+        <Fragment>
+          <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataHatvpNote}</p>
+          <p class="mt-1 text-xs text-slate-400">Source : <a href={buildHatvpUrl(deputy.firstName, deputy.lastName)} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Haute Autorité pour la transparence de la vie publique">Fiche HATVP</a>{' · '}<a href="https://www.hatvp.fr/open-data/" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600" title="Haute Autorité pour la transparence de la vie publique — données ouvertes">HATVP (open data)</a>{fmtRetrieval(sectionDates.interests)}</p>
+        </Fragment>
+      )}
     </section>
 
-    {isParliamentary && <section id="votes" class="mt-8 scroll-mt-12">
+    {showAffiliationsAndVotes && <section id="votes" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Historique des votes
         {deputyVotes.length > 0 && (

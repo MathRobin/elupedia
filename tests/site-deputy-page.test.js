@@ -544,3 +544,43 @@ describe('Fiche élu — indicateur dernière mise à jour (#67)', () => {
     expect(content).toContain('lastUpdated');
   });
 });
+
+describe('Fiche élu — eurodéputés (M24T7)', () => {
+  const pagePath = resolve(
+    root,
+    'packages/site/src/pages/elus/[slug]/index.astro',
+  );
+
+  it('shows affiliations and votes sections for eurodeputes too, not just AN/Sénat', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('isEurodepute');
+    expect(content).toContain('showAffiliationsAndVotes');
+    expect(content).toContain(
+      'const showAffiliationsAndVotes = isParliamentary || isEurodepute;',
+    );
+  });
+
+  it('keeps collaborateurs/activité/commissions restricted to AN/Sénat (no data ingested for MEPs)', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain(
+      '{isParliamentary && <section id="collaborateurs"',
+    );
+    expect(content).toContain('{isParliamentary && <section id="activite"');
+    expect(content).toContain('{isParliamentary && <section id="commissions"');
+  });
+
+  it('distinguishes European political group from national party in affiliations', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain("a.kind === 'european_group'");
+    expect(content).toContain("a.kind === 'national_party'");
+    expect(content).toContain('Groupe politique européen');
+    expect(content).toContain('Parti national');
+  });
+
+  it('links to the official EP declaration of interests instead of HATVP for MEPs', () => {
+    const content = readFileSync(pagePath, 'utf-8');
+    expect(content).toContain('europarlDeclarationUrl');
+    expect(content).toContain('/meps/fr/${deputy.europarlId}/x/declarations');
+    expect(content).toContain('pas soumis au régime déclaratif de la HATVP');
+  });
+});

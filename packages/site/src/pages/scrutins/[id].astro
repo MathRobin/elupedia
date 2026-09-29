@@ -20,6 +20,19 @@ const [ballot] = await db
 
 if (!ballot) return Astro.redirect('/votes');
 
+const isEuroparl = ballot.type === 'europarl';
+// Le type de mandat à privilégier pour résoudre groupe/département d'un
+// votant : sans ce filtre, un élu cumulant un mandat local actif (ex.
+// eurodéputé et conseiller régional en même temps) se voit attribuer au
+// hasard le groupe/département de l'un ou l'autre mandat (dernière ligne du
+// Map), selon l'ordre de retour de la requête — constaté en conditions
+// réelles sur des scrutins europarl (M24T7).
+const voterMandateType = isEuroparl
+  ? 'eurodepute'
+  : ballot.anId?.startsWith('senat-scrutin-')
+    ? 'senateur'
+    : 'depute';
+
 const ballotVotesRaw = await db
   .select({ position: votes.position, officialId: votes.officialId, seatNumber: votes.seatNumber })
   .from(votes)
@@ -33,7 +46,7 @@ const officialRows = officialIds.length > 0
 const officialMap = new Map(officialRows.map((o) => [o.id, o]));
 
 const mandateRows = officialIds.length > 0
-  ? await db.select({ officialId: mandates.officialId, politicalGroup: mandates.politicalGroup, department: mandates.department }).from(mandates).where(and(inArray(mandates.officialId, officialIds), isNull(mandates.endDate)))
+  ? await db.select({ officialId: mandates.officialId, politicalGroup: mandates.politicalGroup, department: mandates.department }).from(mandates).where(and(inArray(mandates.officialId, officialIds), eq(mandates.type, voterMandateType), isNull(mandates.endDate)))
   : [];
 const mandateMap = new Map(mandateRows.map((m) => [m.officialId, m]));
 
@@ -125,8 +138,10 @@ for (const v of ballotVotes) {
 const dateFormatted = new Date(ballot.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 const metaDescription = [
   `Scrutin du ${dateFormatted}`,
-  `${counts.for} pour, ${counts.against} contre, ${counts.abstain} abstentions, ${counts.absent} absents`,
-  ballot.type,
+  isEuroparl
+    ? `délégation française : ${counts.for} pour, ${counts.against} contre, ${counts.abstain} abstentions, ${counts.absent} absents`
+    : `${counts.for} pour, ${counts.against} contre, ${counts.abstain} abstentions, ${counts.absent} absents`,
+  isEuroparl ? 'Parlement européen' : ballot.type,
 ].join(' — ');
 
 const ballotJsonLd = {
@@ -136,7 +151,7 @@ const ballotJsonLd = {
   startTime: ballot.date,
   location: {
     '@type': 'GovernmentOrganization',
-    name: 'Assemblée nationale',
+    name: isEuroparl ? 'Parlement européen' : 'Assemblée nationale',
   },
 };
 
@@ -150,9 +165,11 @@ const breadcrumbJsonLd = {
   ],
 };
 
-const sourceUrl = ballot.anId
-  ? `https://www.assemblee-nationale.fr/dyn/17/scrutins/${ballot.anId}`
-  : null;
+const sourceUrl = isEuroparl
+  ? `https://www.europarl.europa.eu/doceo/document/PV-10-${ballot.date}-VOT_FR.html`
+  : ballot.anId
+    ? `https://www.assemblee-nationale.fr/dyn/17/scrutins/${ballot.anId}`
+    : null;
 ---
 
 <BaseLayout title={ballot.title} description={metaDescription} image={new URL(`/api/og/scrutin/${ballot.id}.png`, Astro.site).href} jsonLd={ballotJsonLd}>
@@ -176,7 +193,7 @@ const sourceUrl = ballot.anId
         <i class="fa-solid fa-calendar-days text-sm" aria-hidden="true"></i>
         {new Date(ballot.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       </span>
-      <span class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/10 dark:bg-indigo-900/20 dark:text-indigo-300 dark:ring-indigo-400/20">{ballot.type}</span>
+      <span class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/10 dark:bg-indigo-900/20 dark:text-indigo-300 dark:ring-indigo-400/20">{isEuroparl ? 'Parlement européen' : ballot.type}</span>
       {sourceUrl && (
         <a
           href={sourceUrl}
@@ -190,7 +207,7 @@ const sourceUrl = ballot.anId
       )}
     </div>
 
-    {ballotVotes.length > 0 && (
+    {ballotVotes.length > 0 && !isEuroparl && (
       <div class="mt-4">
         <span class={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ${
           counts.for > counts.against
@@ -199,6 +216,12 @@ const sourceUrl = ballot.anId
         }`}>
           {counts.for > counts.against ? 'Adopté' : 'Rejeté'}
         </span>
+      </div>
+    )}
+
+    {ballotVotes.length > 0 && isEuroparl && (
+      <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+        Les chiffres ci-dessous portent uniquement sur les {ballotVotes.length} eurodéputés français ayant pris part à ce scrutin, sur environ 720 membres du Parlement européen au total. Le résultat du vote (adopté ou rejeté) dépend de l'ensemble des groupes politiques européens et ne peut pas être déduit de la seule délégation française.
       </div>
     )}
 
@@ -225,7 +248,7 @@ const sourceUrl = ballot.anId
       </div>
     )}
 
-    {ballotVotes.length > 0 && (
+    {ballotVotes.length > 0 && !isEuroparl && (
       <section class="mt-8">
         <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
           Hémicycle
@@ -295,7 +318,7 @@ const sourceUrl = ballot.anId
 
     <section class="mt-8">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
-        Votes des députés
+        {isEuroparl ? 'Votes des eurodéputés français' : 'Votes des députés'}
         <span class="ml-2 text-sm font-normal text-slate-500" id="visible-count">({ballotVotes.length})</span>
       </h2>
 
