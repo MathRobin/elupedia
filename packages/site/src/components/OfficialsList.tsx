@@ -26,6 +26,8 @@ type Filters = {
   conseillerRegional: boolean;
   conseillerArrondissement: boolean;
   membreAssembleeStatutParticulier: boolean;
+  conseillerFrancaisEtranger: boolean;
+  membreAfe: boolean;
   mandatActif: boolean;
   photoFilter: '' | 'with' | 'without';
   department: string;
@@ -56,6 +58,8 @@ function readFiltersFromUrl(): { filters: Partial<Filters>; page?: number } {
     f.membreAssembleeStatutParticulier = types.has(
       'membre_assemblee_statut_particulier',
     );
+    f.conseillerFrancaisEtranger = types.has('conseiller_francais_etranger');
+    f.membreAfe = types.has('membre_afe');
   }
   if (p.has('actif')) f.mandatActif = p.get('actif') !== '0';
   if (p.has('photo')) {
@@ -87,8 +91,10 @@ function writeFiltersToUrl(filters: Filters, page: number) {
     filters.conseillerArrondissement && 'conseiller_arrondissement',
     filters.membreAssembleeStatutParticulier &&
       'membre_assemblee_statut_particulier',
+    filters.conseillerFrancaisEtranger && 'conseiller_francais_etranger',
+    filters.membreAfe && 'membre_afe',
   ].filter(Boolean) as string[];
-  const allTypes = 8;
+  const allTypes = 10;
   if (activeTypes.length > 0 && activeTypes.length < allTypes) {
     p.set('type', activeTypes.join(','));
   }
@@ -196,6 +202,8 @@ function FilterPanel({
     conseillerRegional: number;
     conseillerArrondissement: number;
     membreAssembleeStatutParticulier: number;
+    conseillerFrancaisEtranger: number;
+    membreAfe: number;
   };
   groups: string[];
   departments: string[];
@@ -209,7 +217,9 @@ function FilterPanel({
     !filters.conseillerDepartemental ||
     !filters.conseillerRegional ||
     !filters.conseillerArrondissement ||
-    !filters.membreAssembleeStatutParticulier
+    !filters.membreAssembleeStatutParticulier ||
+    !filters.conseillerFrancaisEtranger ||
+    !filters.membreAfe
       ? 1
       : 0) +
     (!filters.mandatActif ? 1 : 0) +
@@ -368,6 +378,39 @@ function FilterPanel({
               </span>
             </span>
           </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filters.conseillerFrancaisEtranger}
+              onChange={(e) =>
+                onChange({
+                  ...filters,
+                  conseillerFrancaisEtranger: e.target.checked,
+                })
+              }
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              Conseillers·ères des Français·es de l'étranger{' '}
+              <span className="text-slate-400">
+                ({counts.conseillerFrancaisEtranger})
+              </span>
+            </span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filters.membreAfe}
+              onChange={(e) =>
+                onChange({ ...filters, membreAfe: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              Membres de l'AFE{' '}
+              <span className="text-slate-400">({counts.membreAfe})</span>
+            </span>
+          </label>
         </div>
       </fieldset>
 
@@ -489,6 +532,8 @@ export default function OfficialsList({
     conseillerRegional: true,
     conseillerArrondissement: true,
     membreAssembleeStatutParticulier: true,
+    conseillerFrancaisEtranger: true,
+    membreAfe: true,
     mandatActif: true,
     photoFilter: '',
     department: '',
@@ -558,6 +603,10 @@ export default function OfficialsList({
       membreAssembleeStatutParticulier: officials.filter(
         (o) => o.mandateType === 'membre_assemblee_statut_particulier',
       ).length,
+      conseillerFrancaisEtranger: officials.filter(
+        (o) => o.mandateType === 'conseiller_francais_etranger',
+      ).length,
+      membreAfe: officials.filter((o) => o.mandateType === 'membre_afe').length,
     }),
     [officials],
   );
@@ -606,6 +655,12 @@ export default function OfficialsList({
         !filters.membreAssembleeStatutParticulier
       )
         return false;
+      if (
+        o.mandateType === 'conseiller_francais_etranger' &&
+        !filters.conseillerFrancaisEtranger
+      )
+        return false;
+      if (o.mandateType === 'membre_afe' && !filters.membreAfe) return false;
       if (filters.photoFilter === 'with' && !o.photoUrl) return false;
       if (filters.photoFilter === 'without' && o.photoUrl) return false;
       if (filters.department && o.department !== filters.department)
@@ -645,7 +700,9 @@ export default function OfficialsList({
     !filters.conseillerDepartemental ||
     !filters.conseillerRegional ||
     !filters.conseillerArrondissement ||
-    !filters.membreAssembleeStatutParticulier
+    !filters.membreAssembleeStatutParticulier ||
+    !filters.conseillerFrancaisEtranger ||
+    !filters.membreAfe
       ? 1
       : 0) +
     (!filters.mandatActif ? 1 : 0) +
@@ -779,7 +836,12 @@ export default function OfficialsList({
                                     : d.mandateType ===
                                         'membre_assemblee_statut_particulier'
                                       ? 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-400'
-                                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                      : d.mandateType ===
+                                          'conseiller_francais_etranger'
+                                        ? 'bg-lime-100 text-lime-700 dark:bg-lime-900/30 dark:text-lime-400'
+                                        : d.mandateType === 'membre_afe'
+                                          ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                       }`}
                     >
                       {d.mandateType === 'depute'
@@ -809,9 +871,16 @@ export default function OfficialsList({
                                   : d.mandateType ===
                                       'membre_assemblee_statut_particulier'
                                     ? "Membre d'assemblée"
-                                    : d.isFemale
-                                      ? 'Mairesse'
-                                      : 'Maire'}
+                                    : d.mandateType ===
+                                        'conseiller_francais_etranger'
+                                      ? d.isFemale
+                                        ? "Conseillère des Français·es de l'étranger"
+                                        : "Conseiller des Français·es de l'étranger"
+                                      : d.mandateType === 'membre_afe'
+                                        ? "Membre de l'AFE"
+                                        : d.isFemale
+                                          ? 'Mairesse'
+                                          : 'Maire'}
                     </span>
                   </div>
                   <div className="min-w-0">
