@@ -49,22 +49,32 @@ function stripSortant(raw: string): string {
   return raw.replace(/\(sortant(e)?\)/i, '').trim();
 }
 
+// Le balisage de ".candidates-vote" n'est pas homogène sur le site : les
+// gros départements séparent voix/pourcentage en <span> ("<span>709</span>
+// <span>/</span><span>19 %</span>"), mais la Corse, les COM (Saint-
+// Barthélemy, Saint-Martin, Wallis-et-Futuna), la Polynésie française et
+// les Français établis hors de France rendent la cellule en texte brut
+// ("293 / 64%", sans espace avant le %). On parse donc le texte concaténé
+// de la cellule plutôt que de dépendre de la présence de <span>.
 function parseVoteCell($cell: Cheerio<AnyNode>): {
   voix: number;
   ratioExprimes: number | null;
 } | null {
-  const spans = $cell.find('.candidates-vote span');
-  if (spans.length === 0) return null;
-  const voixRaw = spans.eq(0).text();
-  const voix = parseCount(voixRaw);
+  const $vote = $cell.find('.candidates-vote');
+  if ($vote.length === 0) return null;
+  const text = $vote
+    .text()
+    .replace(/\u00A0/g, ' ')
+    .trim();
+  if (!text) return null;
+  const match = text.match(/^([\d\s]+)\s*\/\s*([\d.,]+)\s*%?/);
+  if (!match) return null;
+  const voix = parseCount(match[1]);
   if (voix === null) return null;
-  const pctRaw = spans.eq(2).text();
-  const ratioExprimes = pctRaw
-    ? parseFloat(pctRaw.replace(',', '.').replace('%', '').trim())
-    : null;
+  const ratioExprimes = parseFloat(match[2].replace(',', '.'));
   return {
     voix,
-    ratioExprimes: isNaN(ratioExprimes ?? NaN) ? null : ratioExprimes,
+    ratioExprimes: isNaN(ratioExprimes) ? null : ratioExprimes,
   };
 }
 
@@ -208,7 +218,9 @@ function parseDepartementResultPage(
   $('.district-header li').each((_, el) => {
     const text = $(el).text();
     const count = $(el).find('.district-count').text();
-    if (/si[eè]ges/i.test(text)) siegesAPourvoir = parseCount(count);
+    // "siège(s) pourvu(s)" — singulier pour les circonscriptions à un seul
+    // siège (Corse, plusieurs COM/DOM-TOM).
+    if (/si[eè]ges?/i.test(text)) siegesAPourvoir = parseCount(count);
     if (/électeurs/i.test(text)) electeursSenatoriaux = parseCount(count);
   });
 

@@ -146,7 +146,11 @@ function parseDepartementPage(
   $('.district-header li').each((_, el) => {
     const text = $(el).text();
     const count = $(el).find('.district-count').text();
-    if (/si[eè]ges/i.test(text)) siegesAPourvoir = parseCount(count);
+    // "siège(s) pourvu(s)" — singulier pour les circonscriptions à un seul
+    // siège (Corse, plusieurs COM/DOM-TOM) : bug découvert lors de la
+    // vérification du scraper post-scrutin (mêmes pages), qui ratait
+    // "1 siège pourvu" faute du "s" final attendu par le regex.
+    if (/si[eè]ges?/i.test(text)) siegesAPourvoir = parseCount(count);
     if (/électeurs/i.test(text)) electeursSenatoriaux = parseCount(count);
   });
 

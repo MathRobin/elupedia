@@ -232,6 +232,74 @@ describe('parseDepartementResultPage — scrutin majoritaire, second tour', () =
   });
 });
 
+describe('parseDepartementResultPage — petite circonscription (Corse, COM)', () => {
+  // Régression : la Corse, les COM (Saint-Barthélemy, Saint-Martin,
+  // Wallis-et-Futuna), la Polynésie française et les Français établis
+  // hors de France rendent ".candidates-vote" en texte brut ("293 / 64%",
+  // sans <span> ni espace avant le %) et affichent "1 siège pourvu" au
+  // singulier — deux variantes qui faisaient disparaître silencieusement
+  // tous les résultats de ces circonscriptions.
+  const html = `<html><body>
+    <span class="district-name mb-1">Corse-du-Sud</span>
+    <div class="district-header">
+      <ul>
+        <li class="district-number"><div><span class="district-count">1</span> siège pourvu</div></li>
+        <li class="district-number"><div><span class="district-count">465</span> électeurs sénatoriaux</div></li>
+      </ul>
+    </div>
+    ${elusList([{ name: 'Jean-Jacques PANUNZI', nuance: 'Les Républicains' }])}
+    <table class="table table-bordered district-simple">
+      <tbody>
+        <tr class="elected">
+          <td class="candidates-party">Les Républicains</td>
+          <td><div class="candidates-names-inner">Jean-Jacques PANUNZI (sortant)<span class="vote-pin elected">Élu</span></div></td>
+          <td class="text-center middle"><div class="candidates-vote">293 / 64%</div></td>
+        </tr>
+        <tr class="">
+          <td class="candidates-party">Divers</td>
+          <td><div class="candidates-names-inner">René PERES</div></td>
+          <td class="text-center middle"><div class="candidates-vote">4 / 0%</div></td>
+        </tr>
+      </tbody>
+    </table>
+  </body></html>`;
+
+  it('reads the singular "siège pourvu" header', () => {
+    const result = parseDepartementResultPage(html, '2A');
+    expect(result?.siegesAPourvoir).toBe(1);
+    expect(result?.electeursSenatoriaux).toBe(465);
+  });
+
+  it('parses votes and percentages from the plain-text vote cell', () => {
+    const result = parseDepartementResultPage(html, '2A');
+    expect(result?.rounds).toEqual([
+      {
+        round: 1,
+        candidates: [
+          {
+            nom: 'PANUNZI',
+            prenom: 'Jean-Jacques',
+            nuance: 'Les Républicains',
+            liste: null,
+            voix: 293,
+            ratioExprimes: 64,
+            elected: true,
+          },
+          {
+            nom: 'PERES',
+            prenom: 'René',
+            nuance: 'Divers',
+            liste: null,
+            voix: 4,
+            ratioExprimes: 0,
+            elected: false,
+          },
+        ],
+      },
+    ]);
+  });
+});
+
 describe('parseDepartementResultPage — pas encore dépouillé', () => {
   it('returns null when there is no "Sénateurs élus" list', () => {
     const html = `<html><body>${header(2, '100')}</body></html>`;
