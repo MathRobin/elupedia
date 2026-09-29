@@ -250,6 +250,7 @@ describe('#16 — parliamentary_activity', () => {
     expect(cols).toContain('responseText');
     expect(cols).toContain('responseDate');
     expect(cols).toContain('governmentComments');
+    expect(cols).toContain('source');
   });
 
   it('activityTypeEnum has valid values', async () => {
@@ -258,8 +259,19 @@ describe('#16 — parliamentary_activity', () => {
     expect(activityTypeEnum).toEqual([
       'written_question',
       'oral_question',
+      'interpellation',
       'amendment',
       'report',
+    ]);
+  });
+
+  it('parliamentaryActivitySourceEnum distinguishes AN/Sénat/Parlement européen (M24T5)', async () => {
+    const { parliamentaryActivitySourceEnum } =
+      await import('../packages/shared/src/schema/parliamentary-activity.js');
+    expect(parliamentaryActivitySourceEnum).toEqual([
+      'assemblee_nationale',
+      'senat',
+      'europarl',
     ]);
   });
 

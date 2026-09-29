@@ -73,19 +73,23 @@ async function processDeputeActivities(
     .where(eq(parliamentaryActivity.officialId, officialId));
 
   const existingByKey = new Map(
-    existingActivities.map((a) => [`${a.type}|${a.title}|${a.date}`, a]),
+    existingActivities.map((a) => [
+      `${a.source}|${a.type}|${a.title}|${a.date}`,
+      a,
+    ]),
   );
 
   const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
 
   for (const item of depute.activities) {
-    const key = `${item.type}|${item.title}|${item.date}`;
+    const key = `assemblee_nationale|${item.type}|${item.title}|${item.date}`;
     const existing = existingByKey.get(key);
 
     if (!existing) {
       newRows.push({
         officialId,
         type: item.type,
+        source: 'assemblee_nationale',
         title: item.title,
         date: item.date,
         status: item.status ?? null,

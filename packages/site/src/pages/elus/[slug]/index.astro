@@ -461,6 +461,7 @@ const committeeTypeLabels: Record<string, string> = {
 const activityTypeLabels: Record<string, string> = {
   written_question: 'Question écrite',
   oral_question: 'Question orale',
+  interpellation: 'Interpellation',
   amendment: 'Amendement',
   report: 'Rapport',
 };
@@ -543,11 +544,13 @@ const worksForName = deputy.mandateType === 'depute'
 
 const isParliamentary = deputy.mandateType === 'depute' || deputy.mandateType === 'senateur';
 const isEurodepute = deputy.mandateType === 'eurodepute';
-// Affiliations et votes existent aussi pour les eurodéputés (M24T7) ; les
-// autres sections réservées à isParliamentary (collaborateurs, activité,
-// commissions) n'ont pas d'équivalent ingéré côté Parlement européen et
-// restent donc exclues pour ne pas afficher de section vide.
+// Affiliations, votes et activité (questions parlementaires, M24T5) existent
+// aussi pour les eurodéputés. Collaborateurs et commissions restent réservés
+// à isParliamentary : aucun équivalent n'est ingéré côté Parlement européen,
+// les afficher vides violerait la consigne de ne pas afficher de section
+// vide.
 const showAffiliationsAndVotes = isParliamentary || isEurodepute;
+const showActivite = isParliamentary || isEurodepute;
 const hasActiveMandate = !deputy.endDate;
 
 const constituencyAddress = deputyAddresses.find((a) =>
@@ -1013,7 +1016,7 @@ for (const sp of deputySponsorships) {
         <li><a href="#coordonnees" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
         {showAffiliationsAndVotes && <li><a href="#affiliations" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations politiques</a></li>}
         {isParliamentary && <li><a href="#collaborateurs" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
-        {isParliamentary && <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité parlementaire</a></li>}
+        {showActivite && <li><a href="#activite" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité parlementaire</a></li>}
         {isParliamentary && <li><a href="#commissions" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions & groupes</a></li>}
         <li><a href="#electoral" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral</a></li>
         {municipalElectionsData.length > 0 && <li><a href="#electoral-municipal" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique électoral municipal</a></li>}
@@ -1059,7 +1062,7 @@ for (const sp of deputySponsorships) {
           <li><a href="#coordonnees" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Coordonnées</a></li>
           {showAffiliationsAndVotes && <li><a href="#affiliations" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Affiliations</a></li>}
           {isParliamentary && <li><a href="#collaborateurs" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Collaborateurs</a></li>}
-          {isParliamentary && <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité</a></li>}
+          {showActivite && <li><a href="#activite" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Activité</a></li>}
           {isParliamentary && <li><a href="#commissions" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Commissions</a></li>}
           <li><a href="#electoral" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral</a></li>
           {municipalElectionsData.length > 0 && <li><a href="#electoral-municipal" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Électoral municipal</a></li>}
@@ -1470,7 +1473,7 @@ for (const sp of deputySponsorships) {
       <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.staffers)}</p>
     </section>}
 
-    {isParliamentary && <section id="activite" class="mt-8 scroll-mt-12">
+    {showActivite && <section id="activite" class="mt-8 scroll-mt-12">
       <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
         Activité parlementaire
         {deputyActivities.length > 0 && (
@@ -1561,7 +1564,7 @@ for (const sp of deputySponsorships) {
               </thead>
               <tbody>
                 {deputyActivities.map((act) => {
-                  const isQuestion = act.type === 'written_question' || act.type === 'oral_question';
+                  const isQuestion = act.type === 'written_question' || act.type === 'oral_question' || act.type === 'interpellation';
                   return (
                     <tr
                       data-activity-date={act.date}

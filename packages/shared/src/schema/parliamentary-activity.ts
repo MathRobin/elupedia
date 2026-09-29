@@ -12,6 +12,7 @@ import { officials } from './officials.js';
 export const activityTypeEnum = [
   'written_question',
   'oral_question',
+  'interpellation',
   'amendment',
   'report',
 ] as const;
@@ -22,12 +23,23 @@ export const amendmentStatusEnum = [
   'withdrawn',
 ] as const;
 
+// Distingue l'origine d'une activité : AN/Sénat/PE ont chacun leurs propres
+// questions écrites/orales dans la même table, et un élu cumulant un mandat
+// national et un mandat européen (successif ou simultané) aurait sinon des
+// lignes mélangées sans façon de les distinguer (M24T5/M24T7).
+export const parliamentaryActivitySourceEnum = [
+  'assemblee_nationale',
+  'senat',
+  'europarl',
+] as const;
+
 export const parliamentaryActivity = pgTable('parliamentary_activity', {
   id: uuid('id').defaultRandom().primaryKey(),
   officialId: uuid('official_id')
     .notNull()
     .references(() => officials.id),
   type: varchar('type', { length: 50 }).notNull(),
+  source: varchar('source', { length: 30 }).notNull(),
   title: varchar('title', { length: 1024 }).notNull(),
   date: date('date').notNull(),
   status: varchar('status', { length: 20 }),
