@@ -8,8 +8,10 @@ const ELECTION_DATE = '2026-09-27';
 // Roster fixe des 63 départements renouvelés en 2026 + les Français établis
 // hors de France (code ZZ), tel que publié sur senatoriales2026.senat.fr.
 // La page d'accueil construit ces liens en JS (pas de sitemap/API), d'où la
-// liste figée ici plutôt qu'une découverte dynamique.
-const DEPARTEMENT_SLUGS = [
+// liste figée ici plutôt qu'une découverte dynamique. Exporté pour être
+// réutilisé par le scraper post-scrutin (sources/senat-resultats-2026.ts),
+// qui cible les mêmes pages une fois les résultats publiés.
+export const DEPARTEMENT_SLUGS = [
   '01-ain',
   '02-aisne',
   '03-allier',
@@ -95,13 +97,16 @@ export interface SenatorialCandidacyDepartement {
   candidates: SenatorialCandidacy[];
 }
 
-function parseCount(raw: string | undefined): number | null {
+export function parseCount(raw: string | undefined): number | null {
   if (!raw) return null;
   const n = parseInt(raw.replace(/[^\d]/g, ''), 10);
   return isNaN(n) ? null : n;
 }
 
-function splitNomPrenom(fullName: string): { nom: string; prenom: string } {
+export function splitNomPrenom(fullName: string): {
+  nom: string;
+  prenom: string;
+} {
   // Convention data.gouv/Sénat : "PRENOM NOM" ou "Prénom NOM" — le nom de
   // famille est en capitales. On isole le premier "mot tout en majuscules"
   // comme début du nom, le reste avant comme prénom(s).
