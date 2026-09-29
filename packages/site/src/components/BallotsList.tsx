@@ -22,6 +22,7 @@ type Filters = {
 };
 
 function formatLabel(raw: string): string {
+  if (raw === 'europarl') return 'Parlement européen';
   return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 }
 
