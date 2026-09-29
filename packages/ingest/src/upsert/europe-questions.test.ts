@@ -107,6 +107,7 @@ describe('upsertEuropeQuestions', () => {
     const summary = await upsertEuropeQuestions(db as never, {
       pageSize: 1,
       maxPages: 2,
+      rateLimitDelayMs: 0,
       fetchFn,
     });
 
@@ -143,6 +144,7 @@ describe('upsertEuropeQuestions', () => {
     const summary = await upsertEuropeQuestions(db as never, {
       pageSize: 1,
       maxPages: 2,
+      rateLimitDelayMs: 0,
       fetchFn,
     });
 
@@ -179,6 +181,7 @@ describe('upsertEuropeQuestions', () => {
     const summary = await upsertEuropeQuestions(db as never, {
       pageSize: 1,
       maxPages: 2,
+      rateLimitDelayMs: 0,
       fetchFn,
     });
 
@@ -219,6 +222,7 @@ describe('upsertEuropeQuestions', () => {
     const summary = await upsertEuropeQuestions(db as never, {
       pageSize: 1,
       maxPages: 2,
+      rateLimitDelayMs: 0,
       fetchFn,
     });
 
@@ -249,6 +253,7 @@ describe('upsertEuropeQuestions', () => {
     await upsertEuropeQuestions(db as never, {
       pageSize: 25,
       maxPages: 1,
+      rateLimitDelayMs: 0,
       fetchFn: fetchFn as unknown as typeof fetch,
     });
 
@@ -277,6 +282,7 @@ describe('upsertEuropeQuestions', () => {
     const summary = await upsertEuropeQuestions(db as never, {
       pageSize: 1,
       maxPages: 1,
+      rateLimitDelayMs: 0,
       fetchFn,
     });
 
@@ -286,5 +292,121 @@ describe('upsertEuropeQuestions', () => {
       (r) => r.sourceRecordId === 'cursor',
     );
     expect((cursorRow?.rawData as { offset: number }).offset).toBe(1);
+  });
+});
+
+describe('upsertEuropeQuestions — résilience au rate limit (incident du 29/09/2026)', () => {
+  it('never throws when the list page fetch fails, and saves the cursor before that page rather than losing progress', async () => {
+    const { db, store } = createMockDb({ officials: [] });
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      json: () => Promise.resolve({}),
+    });
+
+    const { upsertEuropeQuestions } = await import('./europe-questions.js');
+    // Ne doit pas lever : `runStep` (run-europe.ts) rejoue toute la fonction
+    // sur une exception, ce qui reprendrait à l'offset chargé au démarrage —
+    // aggravant le rate limit plutôt que de s'en remettre.
+    const summary = await upsertEuropeQuestions(db as never, {
+      pageSize: 10,
+      maxPages: 3,
+      rateLimitDelayMs: 0,
+      fetchFn: fetchFn as unknown as typeof fetch,
+    });
+
+    expect(summary.exhausted).toBe(false);
+    expect(summary.cursorEnd).toBe(0);
+    expect(fetchFn).toHaveBeenCalledTimes(1); // pas de nouvel essai en boucle sur la même page
+    const cursorRow = store.data_provenance.find(
+      (r) => r.sourceRecordId === 'cursor',
+    );
+    expect((cursorRow?.rawData as { offset: number }).offset).toBe(0);
+  });
+
+  it('stops after MAX_CONSECUTIVE_FAILURES detail fetch errors instead of burning through the rest of a doomed page', async () => {
+    const { db } = createMockDb({ officials: [] });
+    const listResponse = {
+      data: Array.from({ length: 10 }, (_, i) => ({
+        identifier: `E-10-2024-00000${i}`,
+        work_type: writtenQuestion.work_type,
+      })),
+    };
+    let detailCalls = 0;
+    const fetchFn = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('offset=')) {
+        return {
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(listResponse),
+        };
+      }
+      detailCalls++;
+      return { ok: false, status: 429, statusText: 'Too Many Requests' };
+    });
+
+    const { upsertEuropeQuestions } = await import('./europe-questions.js');
+    const summary = await upsertEuropeQuestions(db as never, {
+      pageSize: 10,
+      maxPages: 1,
+      rateLimitDelayMs: 0,
+      fetchFn: fetchFn as unknown as typeof fetch,
+    });
+
+    expect(summary.scanned).toBe(5); // s'arrête après 5 échecs consécutifs, pas les 10 de la page
+    expect(detailCalls).toBe(5);
+    expect(summary.cursorEnd).toBe(0); // n'avance pas au-delà de la page interrompue
+  });
+
+  it('resets the consecutive-failure counter on a successful fetch, not aborting on isolated failures', async () => {
+    const officialId = 'official-bardella';
+    const { db, store } = createMockDb({
+      officials: [{ id: officialId, europarlId: '131580' }],
+    });
+    let detailCallCount = 0;
+    const fetchFn = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('offset=')) {
+        return {
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              data: [
+                { identifier: 'bad-1', work_type: writtenQuestion.work_type },
+                { identifier: 'bad-2', work_type: writtenQuestion.work_type },
+                { identifier: 'bad-3', work_type: writtenQuestion.work_type },
+                { identifier: 'bad-4', work_type: writtenQuestion.work_type },
+                {
+                  identifier: 'E-10-2024-000001',
+                  work_type: writtenQuestion.work_type,
+                },
+              ],
+            }),
+        };
+      }
+      detailCallCount++;
+      if (detailCallCount <= 4) {
+        return { ok: false, status: 500, statusText: 'Internal Server Error' };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ data: [writtenQuestion] }),
+      };
+    });
+
+    const { upsertEuropeQuestions } = await import('./europe-questions.js');
+    const summary = await upsertEuropeQuestions(db as never, {
+      pageSize: 5,
+      maxPages: 1,
+      rateLimitDelayMs: 0,
+      fetchFn: fetchFn as unknown as typeof fetch,
+    });
+
+    // 4 échecs (sous le seuil de 5) suivis d'un succès : le compteur repart
+    // de zéro, pas d'arrêt anticipé.
+    expect(summary.matched).toBe(1);
+    expect(store.parliamentary_activity).toHaveLength(1);
   });
 });

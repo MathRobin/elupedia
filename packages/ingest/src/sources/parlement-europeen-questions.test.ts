@@ -173,9 +173,10 @@ describe('fetchQuestionDetail', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null on HTTP error instead of throwing (a single missing document should not abort the crawl)', async () => {
-    const mockFetch = mockFetchJson({}, false, 404);
-    const result = await fetchQuestionDetail('missing', mockFetch);
-    expect(result).toBeNull();
+  it('throws on HTTP error, so the caller can count consecutive failures and detect a rate limit (incident du 29/09/2026)', async () => {
+    const mockFetch = mockFetchJson({}, false, 429);
+    await expect(fetchQuestionDetail('missing', mockFetch)).rejects.toThrow(
+      'Parlement européen /parliamentary-questions/missing error: 429',
+    );
   });
 });
