@@ -91,6 +91,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
   - `question_number` (integer) — numéro officiel de la question. Champ `identifiant.numero`.
   - `source_url` (text) — lien vers la page officielle AN. Pattern : `assemblee-nationale.fr/dyn/{legislature}/questions/{uid}`.
 - **Pages M4** : fiche élu (section activité parlementaire avec table triée par date)
+- **Incident de résilience Sénat constaté en conditions réelles (30/09/2026)** : `upsert/senat-parliamentary-activity.ts` traite ~1500 sénateurs séquentiellement, avec 1 requête select (+ update/insert éventuels) par sénateur via le driver Neon HTTP (un aller-retour HTTP par requête, sans connexion persistante). Un simple blip réseau isolé sur l'un d'eux était fatal à tout le run : l'exception remontait jusqu'à `runStep` (`run-helpers.ts`) dont le `withRetry` rejoue toute la fonction depuis le premier sénateur, perdant ~20-25 min de progression — même famille de problème que l'incident 429 PE du 29/09/2026 ci-dessus. Corrigé : un retry léger (2 essais) absorbe un blip isolé par sénateur ; au-delà de 5 échecs consécutifs (panne systémique probable), le run s'arrête proprement sans lever d'exception plutôt que de faire rejouer tout le parcours — le dump source n'étant pas paginé/curseuré, le prochain run repart de toute façon du jeu de données complet.
 
 ## Votes et scrutins
 
