@@ -9,6 +9,7 @@
     "ingest:an:partial": "tsx --env-file-if-exists=../../.env src/main-an-partial.ts",
     "ingest:senat": "tsx --env-file-if-exists=../../.env src/main-senat.ts",
     "ingest:senat:candidacies": "tsx --env-file-if-exists=../../.env src/main-senat-candidacies.ts",
+    "ingest:senat:resultats": "tsx --env-file-if-exists=../../.env src/main-senat-resultats.ts",
     "ingest:europe": "tsx --env-file-if-exists=../../.env src/main-europe.ts",
     "ingest:social-links": "tsx --env-file-if-exists=../../.env src/main-social-links.ts",
     "ingest:press": "tsx --env-file-if-exists=../../.env src/main-press.ts",

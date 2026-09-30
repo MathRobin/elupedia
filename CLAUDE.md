@@ -54,6 +54,9 @@ yarn --cwd packages/ingest ingest:press:conseillers-dep   # raccourci pour --typ
 # Candidatures sénatoriales 2026 (pré-scrutin, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:senat:candidacies
 
+# Résultats sénatoriales 2026 (post-scrutin : résultats, nouvelles fiches, mandats — voir docs/DOMAINS.md)
+yarn --cwd packages/ingest ingest:senat:resultats
+
 # Ingestion conseillers départementaux (RNE, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:conseillers-dep
 

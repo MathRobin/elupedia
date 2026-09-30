@@ -1,5 +1,5 @@
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import {
   officials,
   municipalCandidates,
@@ -7,6 +7,15 @@ import {
   senatorialCandidates,
 } from '@elupedia/shared';
 import { logger } from './logger.js';
+
+// Certaines tables (municipal_candidates) dépassent le million de lignes non
+// rattachées : un unique SELECT sans pagination provoque des coupures de
+// connexion intermittentes côté driver HTTP de Neon ("TypeError: terminated"
+// depuis undici) une fois la réponse trop volumineuse. On pagine par
+// curseur (id > dernier id vu) plutôt que par OFFSET : les lignes déjà
+// mises à jour dans cette même passe sortent naturellement du filtre
+// "official_id IS NULL" sans décaler les pages suivantes.
+const BATCH_SIZE = 5000;
 
 function normalize(s: string): string {
   return s
@@ -28,31 +37,46 @@ async function reconcileTable(
   label: string,
   officialByName: Map<string, string>,
 ): Promise<{ updated: number; total: number }> {
-  const unlinked = await db
-    .select({
-      id: table.id,
-      nom: table.nom,
-      prenom: table.prenom,
-    })
-    .from(table)
-    .where(isNull(table.officialId));
-
   let updated = 0;
+  let total = 0;
+  let cursor: string | null = null;
 
-  for (const c of unlinked) {
-    const key = `${normalize(c.nom)}|${normalize(c.prenom)}`;
-    const officialId = officialByName.get(key);
-    if (!officialId) continue;
+  while (true) {
+    const page = await db
+      .select({
+        id: table.id,
+        nom: table.nom,
+        prenom: table.prenom,
+      })
+      .from(table)
+      .where(
+        cursor
+          ? and(isNull(table.officialId), gt(table.id, cursor))
+          : isNull(table.officialId),
+      )
+      .orderBy(table.id)
+      .limit(BATCH_SIZE);
 
-    await db
-      .update(table)
-      .set({ officialId, updatedAt: new Date() })
-      .where(eq(table.id, c.id));
-    updated++;
+    if (page.length === 0) break;
+
+    for (const c of page) {
+      total++;
+      const key = `${normalize(c.nom)}|${normalize(c.prenom)}`;
+      const officialId = officialByName.get(key);
+      if (!officialId) continue;
+
+      await db
+        .update(table)
+        .set({ officialId, updatedAt: new Date() })
+        .where(eq(table.id, c.id));
+      updated++;
+    }
+
+    cursor = page[page.length - 1].id;
   }
 
-  logger.info(`  ${label}: ${updated} linked / ${unlinked.length} unlinked`);
-  return { updated, total: unlinked.length };
+  logger.info(`  ${label}: ${updated} linked / ${total} unlinked`);
+  return { updated, total };
 }
 
 export async function reconcileElections(db: NeonHttpDatabase) {
