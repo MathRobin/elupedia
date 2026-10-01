@@ -3,6 +3,13 @@ import { officials, mandates } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { Senateur } from '../sources/senat.js';
 import { logger } from '../logger.js';
+import { withRetry, describeError } from '../utils/retry.js';
+
+// Même famille d'incident que upsert/senat-parliamentary-activity.ts
+// (driver Neon HTTP sans connexion persistante, un blip réseau isolé sur un
+// sénateur faisait auparavant échouer tout le run et le rejouer depuis le
+// début via runStep — constaté en conditions réelles le 01/10/2026).
+const MAX_CONSECUTIVE_FAILURES = 5;
 
 function slugify(firstName: string, lastName: string): string {
   return `${firstName}-${lastName}`
@@ -14,139 +21,173 @@ function slugify(firstName: string, lastName: string): string {
     .replace(/^-|-$/g, '');
 }
 
+async function processSenateurRecord(
+  db: NeonHttpDatabase,
+  sen: Senateur,
+  summary: { officials: number; mandates: number; merged: number },
+): Promise<void> {
+  const existing = await db
+    .select({ id: officials.id, slug: officials.slug })
+    .from(officials)
+    .where(eq(officials.senatId, sen.matricule))
+    .limit(1);
+
+  let officialId: string;
+
+  const slug = slugify(sen.prenom, sen.nom);
+
+  if (existing.length > 0) {
+    officialId = existing[0].id;
+    await db
+      .update(officials)
+      .set({
+        firstName: sen.prenom,
+        lastName: sen.nom,
+        birthDate: sen.date_naissance,
+        photoUrl: sen.photo_url,
+        slug: existing[0].slug ?? slug,
+        full: sen.full,
+        updatedAt: new Date(),
+      })
+      .where(eq(officials.id, officialId));
+  } else {
+    const anMatch = sen.date_naissance
+      ? await db
+          .select({ id: officials.id, photoUrl: officials.photoUrl })
+          .from(officials)
+          .where(
+            and(
+              eq(officials.lastName, sen.nom),
+              eq(officials.firstName, sen.prenom),
+              eq(officials.birthDate, sen.date_naissance),
+              isNull(officials.senatId),
+            ),
+          )
+          .limit(1)
+      : [];
+
+    if (anMatch.length > 0) {
+      officialId = anMatch[0].id;
+      await db
+        .update(officials)
+        .set({
+          senatId: sen.matricule,
+          photoUrl: sen.photo_url ?? anMatch[0].photoUrl,
+          full: sen.full,
+          updatedAt: new Date(),
+        })
+        .where(eq(officials.id, officialId));
+      summary.merged++;
+    } else {
+      const [inserted] = await db
+        .insert(officials)
+        .values({
+          firstName: sen.prenom,
+          lastName: sen.nom,
+          senatId: sen.matricule,
+          birthDate: sen.date_naissance,
+          photoUrl: sen.photo_url,
+          slug,
+          full: sen.full,
+        })
+        .returning();
+      officialId = inserted!.id;
+      summary.officials++;
+    }
+  }
+
+  for (const m of sen.mandats) {
+    // Un mandat en cours (end_date absente) est identifié par son statut
+    // "actif" plutôt que par sa date de début : celle-ci peut n'être que
+    // provisoire (cf. fallback dans fetchSenateurs) tant que l'open data
+    // ELUSEN du Sénat n'a pas encore publié la date officielle, et on ne
+    // veut pas dupliquer le mandat quand la vraie date arrive ensuite.
+    const existingMandat =
+      m.end_date === null
+        ? await db
+            .select({ id: mandates.id })
+            .from(mandates)
+            .where(
+              and(
+                eq(mandates.officialId, officialId),
+                eq(mandates.type, 'senateur'),
+                isNull(mandates.endDate),
+              ),
+            )
+            .limit(1)
+        : await db
+            .select({ id: mandates.id })
+            .from(mandates)
+            .where(
+              and(
+                eq(mandates.officialId, officialId),
+                eq(mandates.type, 'senateur'),
+                eq(mandates.startDate, m.start_date),
+              ),
+            )
+            .limit(1);
+
+    if (existingMandat.length === 0) {
+      await db.insert(mandates).values({
+        officialId,
+        type: 'senateur',
+        department: m.department,
+        startDate: m.start_date,
+        endDate: m.end_date,
+      });
+      summary.mandates++;
+    } else {
+      await db
+        .update(mandates)
+        .set({
+          department: m.department,
+          startDate: m.start_date,
+          endDate: m.end_date,
+          updatedAt: new Date(),
+        })
+        .where(eq(mandates.id, existingMandat[0].id));
+    }
+  }
+}
+
 export async function upsertSenators(
   db: NeonHttpDatabase,
   senateurs: Senateur[],
 ) {
   const summary = { officials: 0, mandates: 0, merged: 0 };
 
+  let consecutiveFailures = 0;
+  let stoppedEarly = false;
+
   for (const sen of senateurs) {
-    const existing = await db
-      .select({ id: officials.id, slug: officials.slug })
-      .from(officials)
-      .where(eq(officials.senatId, sen.matricule))
-      .limit(1);
-
-    let officialId: string;
-
-    const slug = slugify(sen.prenom, sen.nom);
-
-    if (existing.length > 0) {
-      officialId = existing[0].id;
-      await db
-        .update(officials)
-        .set({
-          firstName: sen.prenom,
-          lastName: sen.nom,
-          birthDate: sen.date_naissance,
-          photoUrl: sen.photo_url,
-          slug: existing[0].slug ?? slug,
-          full: sen.full,
-          updatedAt: new Date(),
-        })
-        .where(eq(officials.id, officialId));
-    } else {
-      const anMatch = sen.date_naissance
-        ? await db
-            .select({ id: officials.id, photoUrl: officials.photoUrl })
-            .from(officials)
-            .where(
-              and(
-                eq(officials.lastName, sen.nom),
-                eq(officials.firstName, sen.prenom),
-                eq(officials.birthDate, sen.date_naissance),
-                isNull(officials.senatId),
-              ),
-            )
-            .limit(1)
-        : [];
-
-      if (anMatch.length > 0) {
-        officialId = anMatch[0].id;
-        await db
-          .update(officials)
-          .set({
-            senatId: sen.matricule,
-            photoUrl: sen.photo_url ?? anMatch[0].photoUrl,
-            full: sen.full,
-            updatedAt: new Date(),
-          })
-          .where(eq(officials.id, officialId));
-        summary.merged++;
-      } else {
-        const [inserted] = await db
-          .insert(officials)
-          .values({
-            firstName: sen.prenom,
-            lastName: sen.nom,
-            senatId: sen.matricule,
-            birthDate: sen.date_naissance,
-            photoUrl: sen.photo_url,
-            slug,
-            full: sen.full,
-          })
-          .returning();
-        officialId = inserted!.id;
-        summary.officials++;
-      }
-    }
-
-    for (const m of sen.mandats) {
-      // Un mandat en cours (end_date absente) est identifié par son statut
-      // "actif" plutôt que par sa date de début : celle-ci peut n'être que
-      // provisoire (cf. fallback dans fetchSenateurs) tant que l'open data
-      // ELUSEN du Sénat n'a pas encore publié la date officielle, et on ne
-      // veut pas dupliquer le mandat quand la vraie date arrive ensuite.
-      const existingMandat =
-        m.end_date === null
-          ? await db
-              .select({ id: mandates.id })
-              .from(mandates)
-              .where(
-                and(
-                  eq(mandates.officialId, officialId),
-                  eq(mandates.type, 'senateur'),
-                  isNull(mandates.endDate),
-                ),
-              )
-              .limit(1)
-          : await db
-              .select({ id: mandates.id })
-              .from(mandates)
-              .where(
-                and(
-                  eq(mandates.officialId, officialId),
-                  eq(mandates.type, 'senateur'),
-                  eq(mandates.startDate, m.start_date),
-                ),
-              )
-              .limit(1);
-
-      if (existingMandat.length === 0) {
-        await db.insert(mandates).values({
-          officialId,
-          type: 'senateur',
-          department: m.department,
-          startDate: m.start_date,
-          endDate: m.end_date,
-        });
-        summary.mandates++;
-      } else {
-        await db
-          .update(mandates)
-          .set({
-            department: m.department,
-            startDate: m.start_date,
-            endDate: m.end_date,
-            updatedAt: new Date(),
-          })
-          .where(eq(mandates.id, existingMandat[0].id));
+    try {
+      // 2 essais absorbent un blip réseau isolé (driver Neon HTTP, pas de
+      // connexion persistante) sans attendre le withRetry de runStep, qui
+      // rejouerait sinon tout le run depuis le premier sénateur.
+      await withRetry(() => processSenateurRecord(db, sen, summary), {
+        source: `senateurs ${sen.matricule}`,
+        maxAttempts: 2,
+        baseDelayMs: 500,
+      });
+      consecutiveFailures = 0;
+    } catch (error) {
+      consecutiveFailures++;
+      logger.warn(
+        `  Failed processing sénateur ${sen.matricule} (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}) : ${describeError(error)}`,
+      );
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        logger.warn(
+          `  ${MAX_CONSECUTIVE_FAILURES} échecs consécutifs, arrêt du run — probable panne côté base de données`,
+        );
+        stoppedEarly = true;
+        break;
       }
     }
   }
 
   logger.info(
-    `Senators: ${summary.officials} new officials, ${summary.mandates} new mandates, ${summary.merged} merged with AN`,
+    `Senators: ${summary.officials} new officials, ${summary.mandates} new mandates, ${summary.merged} merged with AN` +
+      (stoppedEarly ? ' — arrêt anticipé (voir logs ci-dessus)' : ''),
   );
   return summary;
 }

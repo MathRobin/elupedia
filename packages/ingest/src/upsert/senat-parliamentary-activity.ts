@@ -3,7 +3,7 @@ import { officials, parliamentaryActivity } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { SenateurActivity } from '../sources/senat-activite.js';
 import { logger } from '../logger.js';
-import { withRetry } from '../utils/retry.js';
+import { withRetry, describeError } from '../utils/retry.js';
 
 const INSERT_CHUNK_SIZE = 500;
 const LOG_CHUNK_SIZE = 50;
@@ -166,7 +166,7 @@ export async function upsertSenatParliamentaryActivity(
     } catch (error) {
       consecutiveFailures++;
       logger.warn(
-        `  Failed processing activity for sénateur ${senateur.matricule} (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}) : ${error instanceof Error ? error.message : String(error)}`,
+        `  Failed processing activity for sénateur ${senateur.matricule} (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}) : ${describeError(error)}`,
       );
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         logger.warn(

@@ -12,6 +12,21 @@ function isRateLimitError(error: unknown): boolean {
   return error instanceof Error && /\b429\b/.test(error.message);
 }
 
+// drizzle-orm enveloppe les erreurs de requête dans un message générique
+// ("Failed query: ... params: ...") et place la vraie raison (ex. le code
+// d'erreur Postgres) dans `error.cause`, jamais inclus par défaut — sans ce
+// repli, ces logs ne permettent pas de distinguer un blip réseau transitoire
+// d'un vrai problème de données (constaté en conditions réelles le
+// 01/10/2026, cf. upsert/senators.ts).
+export function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const cause = error.cause;
+  if (cause instanceof Error)
+    return `${error.message} (cause: ${cause.message})`;
+  if (cause != null) return `${error.message} (cause: ${String(cause)})`;
+  return error.message;
+}
+
 export async function withRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {},
@@ -27,7 +42,7 @@ export async function withRetry<T>(
     try {
       return await fn();
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = describeError(error);
 
       if (attempt === maxAttempts) {
         logger.error(

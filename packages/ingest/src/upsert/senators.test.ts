@@ -114,3 +114,110 @@ describe('upsertSenators — déduplication des mandats en cours', () => {
     });
   });
 });
+
+const DRIZZLE_NAME = Symbol.for('drizzle:Name');
+function getTableName(table: unknown): string {
+  return (table as Record<symbol, string>)[DRIZZLE_NAME] ?? 'unknown';
+}
+
+/**
+ * Mock DB pour tester la résilience (retry + arrêt propre après échecs
+ * consécutifs) plutôt que la logique métier : le premier select
+ * (officials par senatId) échoue `failOfficialsSelects` fois avant de
+ * laisser passer, comme dans senat-parliamentary-activity.test.ts.
+ * `date_naissance: null` sur les sénateurs de test évite le select
+ * supplémentaire de rapprochement AN, pour un comptage prévisible.
+ */
+function createResilienceMockDb(failOfficialsSelects = 0) {
+  const store: Record<string, Record<string, unknown>[]> = {
+    officials: [],
+    mandates: [],
+  };
+  let remainingFailures = failOfficialsSelects;
+  let officialsSelectCount = 0;
+
+  const db = {
+    select: () => ({
+      from: (table: unknown) => {
+        const name = getTableName(table);
+        if (name === 'officials') {
+          officialsSelectCount++;
+          if (remainingFailures > 0) {
+            remainingFailures--;
+            return {
+              where: () => ({
+                limit: () =>
+                  Promise.reject(new Error('fetch failed (blip réseau)')),
+              }),
+            };
+          }
+        }
+        return { where: () => ({ limit: () => Promise.resolve([]) }) };
+      },
+    }),
+    insert: (table: unknown) => {
+      const name = getTableName(table);
+      return {
+        values: (values: Record<string, unknown>) => {
+          const row = { id: crypto.randomUUID(), ...values };
+          store[name]?.push(row);
+          return { returning: () => Promise.resolve([row]) };
+        },
+      };
+    },
+    update: () => ({ set: () => ({ where: () => Promise.resolve() }) }),
+  };
+
+  return { db, store, getOfficialsSelectCount: () => officialsSelectCount };
+}
+
+function makeSenateur(matricule: string): Senateur {
+  return {
+    matricule,
+    nom: `Nom${matricule}`,
+    prenom: `Prenom${matricule}`,
+    sexe: 'F',
+    date_naissance: null,
+    circonscription: 'Haute-Marne',
+    slug: `prenom${matricule}-nom${matricule}`,
+    photo_url: 'https://example.com/photo.jpg',
+    full: {},
+    mandats: [],
+  };
+}
+
+describe('upsertSenators — résilience aux blips réseau (incident du 01/10/2026)', () => {
+  it('retries an isolated transient failure and still processes the sénateur', async () => {
+    const { db, store } = createResilienceMockDb(1); // échoue une seule fois : absorbé par le retry
+
+    const { upsertSenators } = await import('./senators.js');
+    const summary = await upsertSenators(db as never, [makeSenateur('1A')]);
+
+    expect(summary.officials).toBe(1);
+    expect(store.officials).toHaveLength(1);
+  });
+
+  it('stops cleanly (without throwing) after too many consecutive failures, keeping progress already made', async () => {
+    // Échoue en continu : chaque tentative (les 2 essais du retry compris)
+    // échoue, jamais absorbée — simule une panne systémique plutôt qu'un
+    // blip isolé.
+    const { db, store, getOfficialsSelectCount } =
+      createResilienceMockDb(Infinity);
+
+    const { upsertSenators } = await import('./senators.js');
+    const senateurs = Array.from({ length: 7 }, (_, i) =>
+      makeSenateur(`${i}A`),
+    );
+
+    // Ne doit jamais lever : run-senat.ts rejoue toute la fonction sur une
+    // exception (withRetry de run-helpers.ts), ce qui repartirait du
+    // premier sénateur au lieu de s'arrêter proprement.
+    const summary = await upsertSenators(db as never, senateurs);
+
+    expect(summary.officials).toBe(0);
+    expect(store.officials).toHaveLength(0);
+    // 5 sénateurs tentés (seuil MAX_CONSECUTIVE_FAILURES) × 2 essais chacun
+    // (withRetry) = 10, jamais les 7 × 2 = 14 qu'un parcours complet ferait.
+    expect(getOfficialsSelectCount()).toBeLessThanOrEqual(10);
+  });
+});
