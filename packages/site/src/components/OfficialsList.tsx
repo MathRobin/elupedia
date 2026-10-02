@@ -41,7 +41,10 @@ function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-function readFiltersFromUrl(): { filters: Partial<Filters>; page?: number } {
+export function readFiltersFromUrl(): {
+  filters: Partial<Filters>;
+  page?: number;
+} {
   if (typeof window === 'undefined') return { filters: {} };
   const p = new URLSearchParams(window.location.search);
   const f: Partial<Filters> = {};
@@ -541,12 +544,11 @@ export default function OfficialsList({
     sort: 'name',
   };
 
-  const initial = readFiltersFromUrl();
-  const [filters, setFilters] = useState<Filters>({
-    ...defaultFilters,
-    ...initial.filters,
-  });
-  const [page, setPage] = useState(initial.page ?? 1);
+  // État initial identique au SSR (toujours defaultFilters) pour éviter un
+  // mismatch d'hydratation : les filtres réels de l'URL sont appliqués après
+  // le montage, dans l'effet ci-dessous.
+  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const filterTrapRef = useFocusTrap(drawerOpen);
   const isFirstRender = useRef(true);
@@ -561,13 +563,24 @@ export default function OfficialsList({
   }, [drawerOpen]);
 
   useEffect(() => {
-    writeFiltersToUrl(filters, page);
+    // Au tout premier rendu, ne pas réécrire l'URL : elle doit rester
+    // intacte jusqu'à ce que l'effet de synchronisation ci-dessous l'ait lue.
     if (isFirstRender.current) {
       isFirstRender.current = false;
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
+    writeFiltersToUrl(filters, page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [filters, page]);
+
+  // Applique les filtres réels de l'URL une fois montés côté client (le
+  // rendu initial, identique au SSR, ignore volontairement l'URL).
+  useEffect(() => {
+    const u = readFiltersFromUrl();
+    if (Object.keys(u.filters).length === 0 && !u.page) return;
+    setFilters({ ...defaultFilters, ...u.filters });
+    setPage(u.page ?? 1);
+  }, []);
 
   const updateFilters = (f: Filters) => {
     setFilters(f);
