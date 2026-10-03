@@ -50,7 +50,7 @@
     "satori": "^0.33.5",
     "tsx": "^4.23.15",
     "typescript": "~5.8",
-    "typescript-eslint": "^8.70.1",
-    "vitest": "^5.0.2"
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
   }
 }
