@@ -42,6 +42,23 @@ export async function upsertCommuneTransparency(
 
   for (let i = 0; i < entries.length; i += BATCH_SIZE) {
     const batch = entries.slice(i, i + BATCH_SIZE);
+
+    // "commune_transparency_madada_idx" est un 2e index unique (sur
+    // madada_url_name) en plus de la clé primaire commune_code. Si ce
+    // url_name appartenait jusqu'ici à une autre commune (fusion/
+    // renumérotation INSEE), l'INSERT ci-dessous viole cette 2e contrainte
+    // sans que "ON CONFLICT (commune_code)" ne l'intercepte — Postgres ne
+    // gère qu'une seule cible de conflit par requête. On libère donc le
+    // url_name au préalable en supprimant l'éventuelle ancienne ligne.
+    await db.execute(sql`
+      DELETE FROM commune_transparency ct
+      USING (VALUES ${sql.join(
+        batch.map((e) => sql`(${e.madadaUrlName}, ${e.communeCode})`),
+        sql`, `,
+      )}) AS v(url_name, commune_code)
+      WHERE ct.madada_url_name = v.url_name AND ct.commune_code <> v.commune_code
+    `);
+
     await db
       .insert(communeTransparency)
       .values(batch)

@@ -95,6 +95,12 @@ async function main() {
 }
 
 main().catch((err) => {
-  logger.error(String(err));
+  // `${err}`/String(err) n'affiche que le message de premier niveau — la
+  // vraie cause (souvent un timeout réseau côté driver Neon) est perdue
+  // quand elle est portée par err.cause.
+  logger.error(err?.stack ?? String(err));
+  if (err?.cause) {
+    logger.error(`Cause: ${err.cause?.stack ?? err.cause}`);
+  }
   process.exit(1);
 });
