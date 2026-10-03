@@ -21,6 +21,36 @@ function slugify(firstName: string, lastName: string): string {
     .replace(/^-|-$/g, '');
 }
 
+// Constaté en conditions réelles le 04/10/2026 : l'insertion d'un nouveau
+// sénateur peut heurter la contrainte unique sur `officials.slug` quand le
+// rapprochement AN ci-dessus (nom + prénom + date de naissance exacts) ne
+// trouve pas la personne alors qu'un official du même nom existe déjà (ex.
+// ancien·ne député·e devenu·e sénateur·rice, avec une date de naissance
+// enregistrée différemment selon la source). Plutôt que d'abandonner ce
+// sénateur à chaque run (le conflit est déterministe, pas un blip réseau :
+// le retry ci-dessous ne le résorbe jamais), on se rabat sur l'official
+// existant portant exactement ce slug et on le rattache comme pour un
+// rapprochement AN classique.
+function isSlugUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const err = error as {
+    code?: unknown;
+    constraint?: unknown;
+    message?: unknown;
+    cause?: unknown;
+  };
+  if (err.code === '23505') {
+    if (err.constraint === 'officials_slug_unique') return true;
+    if (
+      typeof err.message === 'string' &&
+      err.message.includes('officials_slug_unique')
+    )
+      return true;
+  }
+  if ('cause' in err) return isSlugUniqueViolation(err.cause);
+  return false;
+}
+
 async function processSenateurRecord(
   db: NeonHttpDatabase,
   sen: Senateur,
@@ -79,20 +109,43 @@ async function processSenateurRecord(
         .where(eq(officials.id, officialId));
       summary.merged++;
     } else {
-      const [inserted] = await db
-        .insert(officials)
-        .values({
-          firstName: sen.prenom,
-          lastName: sen.nom,
-          senatId: sen.matricule,
-          birthDate: sen.date_naissance,
-          photoUrl: sen.photo_url,
-          slug,
-          full: sen.full,
-        })
-        .returning();
-      officialId = inserted!.id;
-      summary.officials++;
+      try {
+        const [inserted] = await db
+          .insert(officials)
+          .values({
+            firstName: sen.prenom,
+            lastName: sen.nom,
+            senatId: sen.matricule,
+            birthDate: sen.date_naissance,
+            photoUrl: sen.photo_url,
+            slug,
+            full: sen.full,
+          })
+          .returning();
+        officialId = inserted!.id;
+        summary.officials++;
+      } catch (error) {
+        if (!isSlugUniqueViolation(error)) throw error;
+
+        const bySlug = await db
+          .select({ id: officials.id, photoUrl: officials.photoUrl })
+          .from(officials)
+          .where(eq(officials.slug, slug))
+          .limit(1);
+        if (bySlug.length === 0) throw error;
+
+        officialId = bySlug[0].id;
+        await db
+          .update(officials)
+          .set({
+            senatId: sen.matricule,
+            photoUrl: sen.photo_url ?? bySlug[0].photoUrl,
+            full: sen.full,
+            updatedAt: new Date(),
+          })
+          .where(eq(officials.id, officialId));
+        summary.merged++;
+      }
     }
   }
 
