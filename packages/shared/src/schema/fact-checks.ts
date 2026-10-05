@@ -17,7 +17,7 @@ export const factChecks = pgTable('fact_checks', {
   reviewUrl: varchar('review_url', { length: 2048 }).notNull(),
   reviewerName: varchar('reviewer_name', { length: 255 }).notNull(),
   reviewerUrl: varchar('reviewer_url', { length: 2048 }),
-  rating: varchar('rating', { length: 100 }),
+  rating: text('rating'),
   datePublished: date('date_published'),
   languageCode: varchar('language_code', { length: 10 })
     .notNull()
