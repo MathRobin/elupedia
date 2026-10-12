@@ -211,7 +211,15 @@ const MORPH_DURATION_SEC = 0.9;
 export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const groups = orderGroups(ballot.groups).slice(0, MAX_BARS);
+  // Ordre alphabétique du sigle : aucun groupe n'est mis en avant par sa
+  // place (l'ordre gauche/droite reste réservé à l'hémicycle).
+  const groups = [...orderGroups(ballot.groups)]
+    .sort((a, b) =>
+      shortGroupName(a.name).localeCompare(shortGroupName(b.name), 'fr', {
+        sensitivity: 'base',
+      }),
+    )
+    .slice(0, MAX_BARS);
   const max = Math.max(1, ...groups.map((g) => g.memberCount ?? 0));
   const morph = interpolate(
     frame,
