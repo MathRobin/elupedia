@@ -5,7 +5,13 @@ import { POLITICAL_GROUP_COLORS } from '@elupedia/shared/src/political-group-col
 import type { BallotFacts } from '../script-facts.js';
 import type { Scene } from '../script-schema.js';
 import { BigText, CountUp, Logo, useReveal } from './components.js';
-import { COLORS, FONT, POSITION_LABELS, shortGroupName } from './theme.js';
+import { COLORS, FONT, shortGroupName } from './theme.js';
+import {
+  Seat,
+  VOTE_LABELS,
+  VoteIcon,
+  segmentBackground,
+} from './vote-icons.js';
 import {
   assignSeatsByAngle,
   assignSeatsByGroup,
@@ -119,12 +125,12 @@ export const HemicycleScene: React.FC<{ ballot: BallotFacts }> = ({
         style={{ overflow: 'visible' }}
       >
         {seats.map(([x, y], i) => (
-          <circle
+          <Seat
             key={i}
-            cx={x}
-            cy={100 - y}
-            r={1.9}
-            fill={i < revealed ? SEAT_COLORS[positions[i]] : '#1e293b'}
+            x={x}
+            y={100 - y}
+            position={positions[i]}
+            revealed={i < revealed}
           />
         ))}
       </svg>
@@ -155,9 +161,14 @@ export const HemicycleScene: React.FC<{ ballot: BallotFacts }> = ({
                 marginTop: 10,
                 letterSpacing: 2,
                 textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
               }}
             >
-              {POSITION_LABELS[pos]}
+              <VoteIcon position={pos} size={30} />
+              {VOTE_LABELS[pos]}
             </div>
           </div>
         ))}
@@ -172,15 +183,7 @@ export const HemicycleScene: React.FC<{ ballot: BallotFacts }> = ({
           gap: 16,
         }}
       >
-        <span
-          style={{
-            display: 'inline-block',
-            width: 22,
-            height: 22,
-            borderRadius: 11,
-            background: COLORS.absent,
-          }}
-        />
+        <VoteIcon position="absent" size={30} />
         <span>
           <span style={{ color: COLORS.text, fontWeight: 800 }}>
             <CountUp value={ballot.counts.notVoting} delay={28} />
@@ -240,10 +243,10 @@ export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
           const b = groupBreakdown(g);
           const width = (b.members / max) * 100 * enter;
           const segments = [
-            { key: 'for', n: b.for, color: SEAT_COLORS.for },
-            { key: 'abstain', n: b.abstain, color: SEAT_COLORS.abstain },
-            { key: 'grey', n: b.grey, color: SEAT_COLORS.absent },
-            { key: 'against', n: b.against, color: SEAT_COLORS.against },
+            { key: 'for' as const, n: b.for },
+            { key: 'abstain' as const, n: b.abstain },
+            { key: 'absent' as const, n: b.grey },
+            { key: 'against' as const, n: b.against },
           ];
           const posColor =
             g.majorityPosition === 'pour'
@@ -289,8 +292,18 @@ export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
                     {segments
                       .filter((seg) => seg.n > 0)
                       .map((seg, k) => (
-                        <span key={seg.key} style={{ color: seg.color }}>
-                          {k > 0 ? '  ' : ''}
+                        <span
+                          key={seg.key}
+                          style={{
+                            color: SEAT_COLORS[seg.key],
+                            marginLeft: k > 0 ? 14 : 0,
+                          }}
+                        >
+                          <VoteIcon
+                            position={seg.key}
+                            size={fontSize * 0.9}
+                            style={{ marginRight: 4 }}
+                          />
                           {seg.n}
                         </span>
                       ))}
@@ -330,7 +343,7 @@ export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
                         style={{
                           position: 'absolute',
                           inset: 0,
-                          background: seg.color,
+                          background: segmentBackground(seg.key),
                           opacity: morph,
                         }}
                       />
@@ -352,28 +365,13 @@ export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
           gap: 28,
         }}
       >
-        {(
-          [
-            ['for', 'Pour'],
-            ['abstain', 'Abstention'],
-            ['absent', 'Sans vote'],
-            ['against', 'Contre'],
-          ] as const
-        ).map(([key, label]) => (
+        {(['for', 'abstain', 'absent', 'against'] as const).map((key) => (
           <span
             key={key}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <span
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 8,
-                background: SEAT_COLORS[key],
-                display: 'inline-block',
-              }}
-            />
-            {label}
+            <VoteIcon position={key} size={26} />
+            {VOTE_LABELS[key]}
           </span>
         ))}
       </div>
@@ -440,7 +438,12 @@ export const GroupFocusScene: React.FC<{
           .filter((part) => part.n > 0)
           .map((part) => (
             <span key={part.pos} style={{ color: SEAT_COLORS[part.pos] }}>
-              {part.n} {POSITION_LABELS[part.pos].toLowerCase()}
+              <VoteIcon
+                position={part.pos}
+                size={34}
+                style={{ marginRight: 8 }}
+              />
+              {part.n} {VOTE_LABELS[part.pos].toLowerCase()}
             </span>
           ))}
       </div>
