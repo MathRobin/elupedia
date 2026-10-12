@@ -72,6 +72,7 @@ yarn --cwd packages/ingest ingest:membres-assemblee
 
 # Sélection des scrutins candidats à un short vidéo (voir docs/DOMAINS.md)
 yarn --cwd packages/shorts select --dry-run   # classement seul, rien écrit ; --days, --max-shorts, --min-score
+yarn --cwd packages/shorts script --dry-run   # script LLM des shorts candidate (ANTHROPIC_API_KEY requise) ; --id, --force, --model
 
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile

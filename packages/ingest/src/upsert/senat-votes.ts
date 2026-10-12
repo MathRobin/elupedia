@@ -20,7 +20,7 @@ export async function upsertSenatVotes(
   db: NeonHttpDatabase,
   scrutins: SenatScrutinWithVotes[],
 ) {
-  const summary = { ballots: 0, votes: 0 };
+  const summary = { ballots: 0, updated: 0, votes: 0 };
 
   const senators = await db
     .select({ id: officials.id, senatId: officials.senatId })
@@ -44,12 +44,18 @@ export async function upsertSenatVotes(
 
     if (existingBallot.length > 0) {
       ballotId = existingBallot[0].id;
-      // Rattrape les scrutins ingérés avant l'ajout de la colonne `result`.
-      if (result && existingBallot[0].result !== result) {
+      // Rattrape les scrutins ingérés avant l'ajout de la colonne `result` et
+      // ceux dont l'intitulé avait été tronqué (ancien parseur ligne à ligne).
+      const patch: Partial<typeof ballots.$inferInsert> = {};
+      if (result && existingBallot[0].result !== result) patch.result = result;
+      if (existingBallot[0].title !== scrutin.title)
+        patch.title = scrutin.title;
+      if (Object.keys(patch).length > 0) {
         await db
           .update(ballots)
-          .set({ result, updatedAt: new Date() })
+          .set({ ...patch, updatedAt: new Date() })
           .where(eq(ballots.id, ballotId));
+        summary.updated++;
       }
     } else {
       const [inserted] = await db
@@ -92,7 +98,7 @@ export async function upsertSenatVotes(
   }
 
   logger.info(
-    `Senate votes: ${summary.ballots} new ballots, ${summary.votes} new votes`,
+    `Senate votes: ${summary.ballots} new ballots, ${summary.updated} updated, ${summary.votes} new votes`,
   );
   return summary;
 }

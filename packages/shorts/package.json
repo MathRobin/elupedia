@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "select": "tsx --env-file-if-exists=../../.env src/main-select.ts",
+    "script": "tsx --env-file-if-exists=../../.env src/main-script.ts",
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@elupedia/shared": "*",
     "@neondatabase/serverless": "^1.1.0",
     "drizzle-orm": "^0.45.3",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "tsx": "^4.23.15",

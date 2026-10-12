@@ -1,12 +1,13 @@
 # Ingestion quotidienne des scrutins AN + Sénat (étapes `votes` et `senat-votes`
 # seulement), pour disposer des votes récents sans attendre les passes complètes
 # hebdomadaires (ingest-an le lundi, ingest-senat le mardi), puis sélection des
-# scrutins candidats à un short vidéo (packages/shorts).
+# scrutins candidats à un short vidéo et génération de leur script (packages/shorts).
 # Cron en UTC — voir docs/INGESTION-SCHEDULE.md.
 name: Ingest — Votes AN + Sénat
 schedule: '30 12 * * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}
+  - ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
 steps:
   - name: git-pull
     command: git pull
@@ -30,3 +31,7 @@ steps:
     command: yarn --cwd packages/shorts select
     depends:
       - votes-senat
+  - name: script-shorts
+    command: yarn --cwd packages/shorts script
+    depends:
+      - select-shorts
