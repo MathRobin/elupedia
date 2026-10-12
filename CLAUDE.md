@@ -76,6 +76,9 @@ yarn --cwd packages/shorts script --dry-run   # script LLM des shorts candidate 
 yarn --cwd packages/shorts voiceover --dry-run   # voix off ElevenLabs des shorts draft (ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID) ; --id, --force, --out
 yarn --cwd packages/shorts render --draft   # rendu Remotion (1080×1920) des shorts draft dans packages/shorts/out/<id>/ ; --id, --force, --out, --dry-run
 yarn --cwd packages/shorts preview   # Remotion Studio pour retoucher la composition (src/remotion/)
+yarn --cwd packages/shorts review   # revue humaine : liste les draft ; review approve <id> / review reject <id> --note "…"
+yarn --cwd packages/shorts youtube-auth   # une fois : autorisation OAuth YouTube, affiche YOUTUBE_REFRESH_TOKEN
+yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approved (YOUTUBE_*) ; --id, --max, --privacy
 
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile

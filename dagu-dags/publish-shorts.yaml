@@ -1,0 +1,28 @@
+# Publication YouTube des shorts approuvés lors de la revue (packages/shorts).
+# Un short par exécution, le plus ancien d'abord : le rythme quotidien espace
+# les mises en ligne. Cron en UTC (16:00 = 18:00 Paris) — voir
+# docs/INGESTION-SCHEDULE.md. Aucun accès aux tables d'ingestion.
+name: Publish — Shorts YouTube
+schedule: '0 16 * * *'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+  - YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID}
+  - YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET}
+  - YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN}
+  - YOUTUBE_PRIVACY_STATUS: ${YOUTUBE_PRIVACY_STATUS}
+  - SHORTS_OUTPUT_DIR: ${SHORTS_OUTPUT_DIR}
+steps:
+  - name: git-pull
+    command: git pull
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: publish-shorts
+    command: yarn --cwd packages/shorts publish --max 1
+    depends:
+      - install-dependencies

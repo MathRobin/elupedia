@@ -121,6 +121,15 @@ voiceover` (voix off ElevenLabs, `ELEVENLABS_API_KEY` et `ELEVENLABS_VOICE_ID`)
   quelques minutes par short, CPU seulement), voir `docs/DOMAINS.md`.
 - Cron `30 12 * * *`.
 
+## Créneau quotidien — publication des shorts, 16:00 UTC
+
+- `yarn --cwd packages/shorts publish --max 1` (DAG `publish-shorts.yaml`) — met
+  en ligne sur YouTube le plus ancien short au statut `approved` (revue humaine
+  faite). Un seul par jour pour espacer les publications ; 16:00 UTC = 18:00 à
+  Paris, créneau de forte audience. Ne lit que `video_shorts` : aucune
+  contention avec les ingestions. Sans short approuvé, le job ne fait rien.
+- Cron `0 16 * * *`.
+
 ## Créneau mensuel — 1er du mois, 06:30 UTC
 
 - `ingest --only maps` — génère et téléverse les cartes statiques de juridictions
