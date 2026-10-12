@@ -23,7 +23,7 @@ steps:
     depends:
       - enable-corepack
   - name: votes-assemblee-nationale
-    command: yarn --cwd packages/ingest ingest:an --only votes
+    command: yarn --cwd packages/ingest ingest:an --only votes,ballot-proposers
     depends:
       - install-dependencies
   - name: votes-senat

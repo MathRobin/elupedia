@@ -1,6 +1,11 @@
 export { officials } from './officials.js';
 export { mandates } from './mandates.js';
-export { ballots, ballotResultEnum, type BallotResult } from './ballots.js';
+export {
+  ballots,
+  ballotResultEnum,
+  type BallotResult,
+  type BallotProposer,
+} from './ballots.js';
 export { votes, votePositionEnum } from './votes.js';
 export { staffers } from './staffers.js';
 export { affiliations } from './affiliations.js';

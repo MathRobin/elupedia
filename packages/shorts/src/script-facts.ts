@@ -41,6 +41,12 @@ export interface BallotFacts {
   title: string;
   type: string;
   result: 'adopté' | 'rejeté' | null;
+  /** Jour de la semaine de la séance (ex. « jeudi »). L'heure du scrutin n'est pas publiée. */
+  weekday: string;
+  /** Auteurs du texte (initiateurs du dossier législatif), vide si inconnus. */
+  proposers: { name: string; group: string | null }[];
+  /** Qui a demandé le scrutin public — pas l'auteur du texte. */
+  requestedBy: string | null;
   counts: {
     for: number;
     against: number;
@@ -91,6 +97,8 @@ export function buildBallotFacts(input: {
   date: string;
   type: string;
   result: string | null;
+  proposers?: { name: string; group: string | null }[] | null;
+  requestedBy?: string | null;
   counts: { for: number; against: number; abstain: number; absent: number };
   groups: {
     groupName: string;
@@ -153,6 +161,15 @@ export function buildBallotFacts(input: {
     chamber: chamber === 'senat' ? 'Sénat' : 'Assemblée nationale',
     date: input.date,
     dateLabel: formatDateLabel(input.date),
+    weekday: new Date(`${input.date}T12:00:00Z`).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      timeZone: 'UTC',
+    }),
+    proposers: (input.proposers ?? []).map((p) => ({
+      name: p.name,
+      group: p.group,
+    })),
+    requestedBy: input.requestedBy ?? null,
     title: input.title,
     type: input.type,
     result:
@@ -206,6 +223,8 @@ export async function loadShortFacts(
       date: ballots.date,
       type: ballots.type,
       result: ballots.result,
+      proposers: ballots.proposers,
+      requestedBy: ballots.requestedBy,
     })
     .from(ballots)
     .where(inArray(ballots.id, ids));

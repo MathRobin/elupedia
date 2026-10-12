@@ -72,6 +72,8 @@ export async function upsertAnVotes(
             date: s.date,
             type: s.type,
             result: normalizeBallotResult(s.sort),
+            dossierRef: s.dossierRef,
+            requestedBy: s.requestedBy,
           })),
         )
         .onConflictDoUpdate({
@@ -81,6 +83,8 @@ export async function upsertAnVotes(
             date: sql`excluded.date`,
             type: sql`excluded.type`,
             result: sql`excluded.result`,
+            dossierRef: sql`excluded.dossier_ref`,
+            requestedBy: sql`excluded.requested_by`,
             updatedAt: new Date(),
           },
         })
