@@ -284,7 +284,6 @@ export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
                       right: 0,
                       opacity: morph,
                       whiteSpace: 'nowrap',
-                      fontSize: fontSize * 0.85,
                     }}
                   >
                     {segments
