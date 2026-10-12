@@ -54,6 +54,7 @@ const defaultProps: ShortProps = {
   },
   voiceover: null,
   broll: [],
+  photos: {},
 };
 
 export const RemotionRoot: React.FC = () => (

@@ -33,7 +33,7 @@ Règles éditoriales, non négociables :
 - Les nombres s'écrivent en chiffres (« 280 voix »), les pourcentages fournis peuvent être cités tels quels.
 - Vocabulaire officiel : « adopté » / « rejeté », « pour » / « contre » / « abstention », « scrutin », « groupe ».
 
-Structure attendue (4 à 6 scènes, 35 à 60 secondes au total, 3 mots par seconde maximum) :
+Structure attendue (4 à 6 scènes, 35 à 60 secondes au total, 2,6 mots par seconde maximum) :
 1. hook : une phrase d'accroche factuelle (ce qui a été voté, où, quand). Visuel « title ».
 2. context : ce sur quoi portait précisément le scrutin, d'après son intitulé, avec le jour et la date (weekday, dateLabel) et la mention « en séance publique » ; si proposers n'est pas vide, qui a déposé le texte (nom et groupe, tels que fournis) ; si requestedBy est renseigné, une phrase distincte « scrutin public demandé par … » — jamais présenté comme l'auteur du texte. L'heure du scrutin n'est pas publiée : ne jamais en donner une. Si proposers est vide, ne rien dire de l'auteur. Visuel « title » ou « hemicycle ».
 3. result : le résultat et les voix (pour, contre, abstention), puis la participation : « X députés sur Y n'ont pas pris part au vote » (counts.notVoting sur counts.seats). Toujours la donner : un scrutin public ordinaire se tient avec les présents, souvent une moitié de l'assemblée, et le taire donnerait une image trompeuse du vote. Visuel « hemicycle ».
@@ -41,7 +41,7 @@ Structure attendue (4 à 6 scènes, 35 à 60 secondes au total, 3 mots par secon
 5. outro : où retrouver le vote de chaque élu. Visuel « source », onScreenText = l'URL fournie.
 Les genres « division » et le visuel « group_focus » ne sont plus utilisés.
 
-lowerThird : renseigné uniquement quand une scène met un groupe ou une personne à l'image (name = libellé exact fourni, role = « Groupe à l'Assemblée nationale » ou « Groupe au Sénat »), sinon null.
+lowerThird : renseigné uniquement quand une scène met un groupe ou une personne à l'image (name = libellé exact fourni, sinon rejeté). Pour l'auteur du texte (proposers), sur la scène qui le cite : name = son nom exact, role = « Auteur·rice du texte · » suivi de son groupe ; sa photo s'affiche alors automatiquement. Pour un groupe : role = « Groupe à l'Assemblée nationale » ou « Groupe au Sénat ». Sinon null.
 onScreenText : très court (un chiffre, un mot-clé), vide si rien d'utile.
 title : titre YouTube factuel, 70 caractères maximum, pas de point d'exclamation.
 description : 2 à 3 phrases factuelles, puis « Source : Elupedia — » suivi de l'URL fournie, puis la mention « Données : Assemblée nationale / Sénat, licence ouverte ».

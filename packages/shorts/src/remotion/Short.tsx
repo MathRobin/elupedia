@@ -1,5 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile } from 'remotion';
+import { POLITICAL_GROUP_COLORS } from '@elupedia/shared/src/political-group-colors.js';
 import type { ShortProps } from './props.js';
 import { buildTimeline, type TimelineScene } from './timeline.js';
 import {
@@ -43,7 +44,7 @@ const SceneView: React.FC<{
       body = <SourceScene scene={scene} ballot={ballot} />;
       break;
     default:
-      body = <TitleScene scene={scene} ballot={ballot} />;
+      body = <TitleScene scene={scene} ballot={ballot} photos={props.photos} />;
   }
   return (
     <AbsoluteFill>
@@ -51,7 +52,16 @@ const SceneView: React.FC<{
       <Header chamber={ballot.chamber} dateLabel={ballot.dateLabel} />
       {body}
       {scene.lowerThird ? (
-        <LowerThird name={scene.lowerThird.name} role={scene.lowerThird.role} />
+        <LowerThird
+          name={scene.lowerThird.name}
+          role={scene.lowerThird.role}
+          accent={(() => {
+            const group = ballot.proposers.find(
+              (p) => p.name === scene.lowerThird?.name,
+            )?.group;
+            return group ? POLITICAL_GROUP_COLORS[group] : undefined;
+          })()}
+        />
       ) : null}
       {entry.audio?.file ? (
         <Audio src={staticFile(entry.audio.file.split('/').pop()!)} />

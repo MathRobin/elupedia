@@ -12,6 +12,8 @@ export type ShortProps = {
   voiceover: StoredVoiceover | null;
   /** Images de b-roll (chemins relatifs au dossier public du rendu). */
   broll: string[];
+  /** Photos disponibles localement : officialId → chemin relatif au dossier public. */
+  photos: Record<string, string>;
 };
 
 export const FPS = 30;

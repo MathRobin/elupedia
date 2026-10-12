@@ -4,6 +4,7 @@ import {
   ballots,
   votes,
   ballotGroupPositions,
+  officials,
   videoShorts,
   videoShortBallots,
 } from '@elupedia/shared';
@@ -44,7 +45,13 @@ export interface BallotFacts {
   /** Jour de la semaine de la séance (ex. « jeudi »). L'heure du scrutin n'est pas publiée. */
   weekday: string;
   /** Auteurs du texte (initiateurs du dossier législatif), vide si inconnus. */
-  proposers: { name: string; group: string | null }[];
+  proposers: {
+    officialId: string;
+    name: string;
+    group: string | null;
+    /** Photo de l'élu (copie S3 de préférence), null si aucune. */
+    photoUrl: string | null;
+  }[];
   /** Qui a demandé le scrutin public — pas l'auteur du texte. */
   requestedBy: string | null;
   counts: {
@@ -97,7 +104,14 @@ export function buildBallotFacts(input: {
   date: string;
   type: string;
   result: string | null;
-  proposers?: { name: string; group: string | null }[] | null;
+  proposers?:
+    | {
+        officialId: string;
+        name: string;
+        group: string | null;
+        photoUrl?: string | null;
+      }[]
+    | null;
   requestedBy?: string | null;
   counts: { for: number; against: number; abstain: number; absent: number };
   groups: {
@@ -166,8 +180,10 @@ export function buildBallotFacts(input: {
       timeZone: 'UTC',
     }),
     proposers: (input.proposers ?? []).map((p) => ({
+      officialId: p.officialId,
       name: p.name,
       group: p.group,
+      photoUrl: p.photoUrl ?? null,
     })),
     requestedBy: input.requestedBy ?? null,
     title: input.title,
@@ -253,6 +269,26 @@ export async function loadShortFacts(
     .from(ballotGroupPositions)
     .where(inArray(ballotGroupPositions.ballotId, ids));
 
+  const proposerIds = [
+    ...new Set(
+      rows.flatMap((r) => (r.proposers ?? []).map((p) => p.officialId)),
+    ),
+  ];
+  const photoRows =
+    proposerIds.length === 0
+      ? []
+      : await db
+          .select({
+            id: officials.id,
+            photoUrl: officials.photoUrl,
+            s3PhotoUrl: officials.s3PhotoUrl,
+          })
+          .from(officials)
+          .where(inArray(officials.id, proposerIds));
+  const photoById = new Map(
+    photoRows.map((r) => [r.id, r.s3PhotoUrl ?? r.photoUrl ?? null]),
+  );
+
   const facts = ids.map((id) => {
     const row = rows.find((r) => r.id === id);
     if (!row) throw new Error(`scrutin ${id} introuvable`);
@@ -264,6 +300,10 @@ export async function loadShortFacts(
     }
     return buildBallotFacts({
       ...row,
+      proposers: (row.proposers ?? []).map((p) => ({
+        ...p,
+        photoUrl: photoById.get(p.officialId) ?? null,
+      })),
       counts,
       groups: groupRows.filter((g) => g.ballotId === id),
     });

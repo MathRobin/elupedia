@@ -9,8 +9,12 @@ import type { ShortScript } from './script-schema.js';
 
 export const MIN_TOTAL_SEC = 35;
 export const MAX_TOTAL_SEC = 60;
-/** Débit de lecture maximal (mots/seconde) pour une voix posée. */
-export const MAX_WORDS_PER_SEC = 3;
+/**
+ * Débit de lecture maximal (mots/seconde) : celui de la voix réelle (débit
+ * 0.95, environ 2,6 mots/s), sans quoi la voix déborde la durée prévue et la
+ * vidéo dépasse la minute.
+ */
+export const MAX_WORDS_PER_SEC = 2.6;
 export const MAX_TITLE_LENGTH = 70;
 
 /**
@@ -63,6 +67,7 @@ export interface ValidationIssue {
     | 'too_fast'
     | 'title_too_long'
     | 'duplicate_scene_id'
+    | 'unknown_person'
     | 'missing_source';
   message: string;
 }
@@ -157,6 +162,21 @@ export function validateScript(
         code: 'too_fast',
         message: `Scène ${scene.id} : ${words} mots en ${scene.durationSec} s (max ${MAX_WORDS_PER_SEC} mots/s)`,
       });
+    }
+
+    if (scene.lowerThird) {
+      const known = new Set(
+        facts.ballots.flatMap((b) => [
+          ...b.proposers.map((p) => p.name),
+          ...b.groups.map((g) => g.name),
+        ]),
+      );
+      if (!known.has(scene.lowerThird.name)) {
+        issues.push({
+          code: 'unknown_person',
+          message: `Scène ${scene.id} : le bandeau « ${scene.lowerThird.name} » ne correspond à aucun auteur ni groupe des données`,
+        });
+      }
     }
 
     for (const field of ['voiceover', 'onScreenText'] as const) {

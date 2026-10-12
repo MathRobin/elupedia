@@ -45,7 +45,7 @@ function script(over: Partial<ShortScript> = {}): ShortScript {
       {
         id: 's1',
         kind: 'hook',
-        durationSec: 6,
+        durationSec: 7,
         voiceover:
           "Le 8 octobre 2026, l'Assemblée nationale a voté le projet de loi de finances pour 2027.",
         onScreenText: '8 octobre 2026',
@@ -194,5 +194,18 @@ describe('validateScript', () => {
     const codes = validateScript(s, facts).map((i) => i.code);
     expect(codes).toContain('duplicate_scene_id');
     expect(codes).toContain('title_too_long');
+  });
+
+  it('rejects a lower third naming someone absent from the data', () => {
+    const s = script();
+    s.scenes[0].lowerThird = { name: 'Personne Inventée', role: 'Auteur' };
+    expect(validateScript(s, facts).map((i) => i.code)).toContain(
+      'unknown_person',
+    );
+    s.scenes[0].lowerThird = {
+      name: 'Les Démocrates (Dem)',
+      role: "Groupe à l'Assemblée nationale",
+    };
+    expect(validateScript(s, facts)).toEqual([]);
   });
 });

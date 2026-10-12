@@ -143,10 +143,12 @@ export const Subtitles: React.FC<{ words: WordTiming[] }> = ({ words }) => {
 };
 
 /** Bandeau nom façon JT, affiché quelques secondes en début de scène. */
-export const LowerThird: React.FC<{ name: string; role: string }> = ({
-  name,
-  role,
-}) => {
+export const LowerThird: React.FC<{
+  name: string;
+  role: string;
+  /** Couleur du liseré (groupe), sinon déduite du nom ou accent. */
+  accent?: string;
+}> = ({ name, role, accent }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const inP = spring({ frame, fps, config: { damping: 200 } });
@@ -155,7 +157,7 @@ export const LowerThird: React.FC<{ name: string; role: string }> = ({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const color = POLITICAL_GROUP_COLORS[name] ?? COLORS.accent;
+  const color = accent ?? POLITICAL_GROUP_COLORS[name] ?? COLORS.accent;
   return (
     <div
       style={{

@@ -1,4 +1,4 @@
-import { mkdir, readdir, copyFile, stat } from 'node:fs/promises';
+import { mkdir, readdir, copyFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
@@ -13,6 +13,7 @@ import {
 } from '@remotion/renderer';
 import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
+import type { ShortFacts } from './script-facts.js';
 import type { StoredVoiceover } from './voiceover.js';
 import type { ShortProps } from './remotion/props.js';
 import { FPS } from './remotion/props.js';
@@ -54,6 +55,46 @@ export interface RenderOptions {
   outputDir: string;
   /** Rendu accéléré pour vérifier la composition (basse qualité). */
   draft: boolean;
+}
+
+/**
+ * Télécharge dans le dossier du short la photo des auteurs de textes, pour
+ * que le rendu ne dépende pas du réseau. Une photo introuvable est ignorée :
+ * la scène s'affiche alors sans portrait.
+ */
+export async function fetchProposerPhotos(
+  facts: ShortFacts,
+  shortDir: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<Record<string, string>> {
+  const photos: Record<string, string> = {};
+  const dir = path.join(shortDir, 'photos');
+  for (const ballot of facts.ballots) {
+    for (const p of ballot.proposers) {
+      if (!p.photoUrl || photos[p.officialId]) continue;
+      const rel = `photos/${p.officialId}.jpg`;
+      const file = path.join(shortDir, rel);
+      try {
+        await stat(file);
+        photos[p.officialId] = rel;
+        continue;
+      } catch {
+        // à télécharger
+      }
+      try {
+        const res = await fetchFn(p.photoUrl, {
+          headers: { 'User-Agent': 'Elupedia/1.0 (shorts)' },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await mkdir(dir, { recursive: true });
+        await writeFile(file, Buffer.from(await res.arrayBuffer()));
+        photos[p.officialId] = rel;
+      } catch (error) {
+        logger.warn(`photo de ${p.name} indisponible (${error}), ignorée`);
+      }
+    }
+  }
+  return photos;
 }
 
 export async function listBroll(dir: string): Promise<string[]> {
@@ -232,6 +273,9 @@ export async function renderShorts(
       script: stored.script,
       voiceover,
       broll: await listBroll(shortDir),
+      photos: options.dryRun
+        ? {}
+        : await fetchProposerPhotos(stored.facts, shortDir),
     };
     const timeline = buildTimeline(props.script, props.voiceover, FPS);
     if (options.dryRun) {

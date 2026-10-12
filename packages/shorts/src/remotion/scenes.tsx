@@ -1,5 +1,12 @@
 import React from 'react';
-import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import {
+  Img,
+  interpolate,
+  spring,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 import { generateHemicycleSeats } from '@elupedia/shared/src/hemicycle-layout.js';
 import { POLITICAL_GROUP_COLORS } from '@elupedia/shared/src/political-group-colors.js';
 import type { BallotFacts } from '../script-facts.js';
@@ -42,23 +49,68 @@ const Center: React.FC<{ children: React.ReactNode; top?: number }> = ({
   </div>
 );
 
-export const TitleScene: React.FC<{ scene: Scene; ballot: BallotFacts }> = ({
-  scene,
-  ballot,
-}) => (
-  <Center>
-    {scene.onScreenText ? (
-      <BigText size={scene.onScreenText.length > 40 ? 60 : 84}>
-        {scene.onScreenText}
-      </BigText>
-    ) : (
-      <BigText size={56}>{ballot.title}</BigText>
-    )}
-    {scene.kind === 'hook' && ballot.result ? (
-      <ResultBadge result={ballot.result} delay={12} />
-    ) : null}
-  </Center>
-);
+/** Portrait de l'auteur du texte, quand le bandeau de la scène le désigne. */
+const Portrait: React.FC<{ src: string; color: string }> = ({ src, color }) => {
+  const style = useReveal(4);
+  return (
+    <div
+      style={{
+        ...style,
+        width: 300,
+        height: 300,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        border: `8px solid ${color}`,
+        boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+        flexShrink: 0,
+      }}
+    >
+      <Img
+        src={staticFile(src)}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center 20%',
+        }}
+      />
+    </div>
+  );
+};
+
+export const TitleScene: React.FC<{
+  scene: Scene;
+  ballot: BallotFacts;
+  photos: Record<string, string>;
+}> = ({ scene, ballot, photos }) => {
+  const proposer = scene.lowerThird
+    ? ballot.proposers.find((p) => p.name === scene.lowerThird?.name)
+    : undefined;
+  const photo = proposer ? photos[proposer.officialId] : undefined;
+  return (
+    <Center>
+      {photo && proposer ? (
+        <Portrait
+          src={photo}
+          color={
+            (proposer.group && POLITICAL_GROUP_COLORS[proposer.group]) ||
+            COLORS.accent
+          }
+        />
+      ) : null}
+      {scene.onScreenText ? (
+        <BigText size={scene.onScreenText.length > 40 ? 60 : 84}>
+          {scene.onScreenText}
+        </BigText>
+      ) : (
+        <BigText size={56}>{ballot.title}</BigText>
+      )}
+      {scene.kind === 'hook' && ballot.result ? (
+        <ResultBadge result={ballot.result} delay={12} />
+      ) : null}
+    </Center>
+  );
+};
 
 const ResultBadge: React.FC<{
   result: 'adopté' | 'rejeté';
