@@ -10,7 +10,8 @@ import {
   Seat,
   VOTE_LABELS,
   VoteIcon,
-  segmentBackground,
+  PatternDefs,
+  segmentFill,
 } from './vote-icons.js';
 import {
   assignSeatsByAngle,
@@ -197,6 +198,8 @@ export const HemicycleScene: React.FC<{ ballot: BallotFacts }> = ({
 };
 
 const MAX_BARS = 12;
+/** Largeur utile des barres : 1080 px moins les marges de la scène. */
+const BAR_WIDTH = 940;
 /** Instant (s) où les barres de position se transforment en détail des voix. */
 const MORPH_AT_SEC = 3;
 const MORPH_DURATION_SEC = 0.9;
@@ -232,6 +235,7 @@ export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
 
   return (
     <Center top={260}>
+      <PatternDefs />
       <div
         style={{
           width: '100%',
@@ -326,38 +330,54 @@ export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
                   overflow: 'hidden',
                 }}
               >
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${width}%`,
-                    display: 'flex',
-                    borderRadius: rowHeight / 2,
-                    overflow: 'hidden',
-                  }}
+                <svg
+                  width={BAR_WIDTH}
+                  height={rowHeight}
+                  viewBox={`0 0 ${BAR_WIDTH} ${rowHeight}`}
+                  style={{ display: 'block' }}
                 >
-                  {segments.map((seg) => (
-                    <div
-                      key={seg.key}
-                      style={{
-                        height: '100%',
-                        width: `${(seg.n / Math.max(1, b.members)) * 100}%`,
-                        // Avant le morphing, tous les segments portent la
-                        // couleur du groupe ; ils prennent ensuite celle du vote.
-                        background: color,
-                        position: 'relative',
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: segmentBackground(seg.key),
-                          opacity: morph,
-                        }}
+                  <defs>
+                    <clipPath id={`bar-clip-${i}`}>
+                      <rect
+                        width={(width / 100) * BAR_WIDTH}
+                        height={rowHeight}
+                        rx={rowHeight / 2}
                       />
-                    </div>
-                  ))}
-                </div>
+                    </clipPath>
+                  </defs>
+                  <g clipPath={`url(#bar-clip-${i})`}>
+                    {(() => {
+                      let x = 0;
+                      return segments.map((seg) => {
+                        const w =
+                          (seg.n / Math.max(1, b.members)) *
+                          BAR_WIDTH *
+                          (width / 100);
+                        const rect = (
+                          <g key={seg.key}>
+                            {/* Avant le morphing : couleur du groupe ; puis
+                                couleur et motif du vote, communs à tous. */}
+                            <rect
+                              x={x}
+                              width={w}
+                              height={rowHeight}
+                              fill={color}
+                            />
+                            <rect
+                              x={x}
+                              width={w}
+                              height={rowHeight}
+                              fill={segmentFill(seg.key)}
+                              opacity={morph}
+                            />
+                          </g>
+                        );
+                        x += w;
+                        return rect;
+                      });
+                    })()}
+                  </g>
+                </svg>
               </div>
             </div>
           );
