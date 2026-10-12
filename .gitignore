@@ -19,4 +19,4 @@ packages/ingest/madada-cache.json
 .claude/settings.local.json
 packages/e2e/test-results/
 packages/e2e/playwright-report/
-packages/e2e/.cache/
+packages/e2e/.cache/packages/shorts/out/

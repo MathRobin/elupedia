@@ -115,7 +115,9 @@ Petits volumes, largement avant le tick `press:maires` de 05:00.
 - Enchaîne ensuite `yarn --cwd packages/shorts select` (sélection des scrutins
   candidats à un short vidéo, quelques requêtes seulement) puis
   `yarn --cwd packages/shorts script` (script des candidats via l'API Claude,
-  variable `ANTHROPIC_API_KEY` à fournir au DAG), voir `docs/DOMAINS.md`.
+  variable `ANTHROPIC_API_KEY` à fournir au DAG) et `yarn --cwd packages/shorts
+voiceover` (voix off ElevenLabs, `ELEVENLABS_API_KEY` et `ELEVENLABS_VOICE_ID`),
+  voir `docs/DOMAINS.md`.
 - Cron `30 12 * * *`.
 
 ## Créneau mensuel — 1er du mois, 06:30 UTC

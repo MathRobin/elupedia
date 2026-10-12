@@ -36,6 +36,8 @@ export const videoShorts = pgTable('video_shorts', {
   scoreDetails: jsonb('score_details'),
   /** Script structuré (scènes, voix off, textes à l'écran), rempli plus tard. */
   script: jsonb('script'),
+  /** Voix off synthétisée : fichiers audio par scène et horodatage des mots. */
+  voiceover: jsonb('voiceover'),
   videoKey: varchar('video_key', { length: 512 }),
   thumbnailKey: varchar('thumbnail_key', { length: 512 }),
   youtubeVideoId: varchar('youtube_video_id', { length: 32 }),

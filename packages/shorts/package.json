@@ -6,6 +6,7 @@
   "scripts": {
     "select": "tsx --env-file-if-exists=../../.env src/main-select.ts",
     "script": "tsx --env-file-if-exists=../../.env src/main-script.ts",
+    "voiceover": "tsx --env-file-if-exists=../../.env src/main-voiceover.ts",
     "test": "vitest run"
   },
   "dependencies": {
