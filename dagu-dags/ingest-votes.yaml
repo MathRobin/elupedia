@@ -1,0 +1,27 @@
+# Ingestion quotidienne des scrutins AN + Sénat (étapes `votes` et `senat-votes`
+# seulement), pour disposer des votes récents sans attendre les passes complètes
+# hebdomadaires (ingest-an le lundi, ingest-senat le mardi).
+# Cron en UTC — voir docs/INGESTION-SCHEDULE.md.
+name: Ingest — Votes AN + Sénat
+schedule: '30 12 * * *'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+steps:
+  - name: git-pull
+    command: git pull
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: votes-assemblee-nationale
+    command: yarn --cwd packages/ingest ingest:an --only votes
+    depends:
+      - install-dependencies
+  - name: votes-senat
+    command: yarn --cwd packages/ingest ingest:senat --only senat-votes
+    depends:
+      - votes-assemblee-nationale

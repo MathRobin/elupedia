@@ -9,6 +9,7 @@ import {
 import { type Scrutin } from '../sources/an-scrutins.js';
 import { GP_FALLBACK } from '../sources/assemblee-nationale.js';
 import { logger } from '../logger.js';
+import { normalizeBallotResult } from './ballot-result.js';
 
 const POSITION_MAP: Record<string, 'for' | 'against' | 'abstain' | 'absent'> = {
   pour: 'for',
@@ -70,6 +71,7 @@ export async function upsertAnVotes(
             title: s.titre,
             date: s.date,
             type: s.type,
+            result: normalizeBallotResult(s.sort),
           })),
         )
         .onConflictDoUpdate({
@@ -78,6 +80,7 @@ export async function upsertAnVotes(
             title: sql`excluded.title`,
             date: sql`excluded.date`,
             type: sql`excluded.type`,
+            result: sql`excluded.result`,
             updatedAt: new Date(),
           },
         })

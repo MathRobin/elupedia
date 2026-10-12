@@ -4,6 +4,7 @@ import { eq, isNotNull } from 'drizzle-orm';
 import type { SenatScrutinWithVotes } from '../sources/senat-scrutins.js';
 import { mapSenatVotePosition } from '../sources/senat-scrutins.js';
 import { logger } from '../logger.js';
+import { normalizeBallotResult } from './ballot-result.js';
 
 const VOTE_CHUNK_SIZE = 500;
 
@@ -31,6 +32,7 @@ export async function upsertSenatVotes(
 
   for (const scrutin of scrutins) {
     const ballotAnId = `senat-scrutin-${scrutin.session}-${scrutin.number}`;
+    const result = normalizeBallotResult(scrutin.result);
 
     const existingBallot = await db
       .select()
@@ -42,6 +44,13 @@ export async function upsertSenatVotes(
 
     if (existingBallot.length > 0) {
       ballotId = existingBallot[0].id;
+      // Rattrape les scrutins ingérés avant l'ajout de la colonne `result`.
+      if (result && existingBallot[0].result !== result) {
+        await db
+          .update(ballots)
+          .set({ result, updatedAt: new Date() })
+          .where(eq(ballots.id, ballotId));
+      }
     } else {
       const [inserted] = await db
         .insert(ballots)
@@ -50,6 +59,7 @@ export async function upsertSenatVotes(
           title: scrutin.title,
           date: scrutin.date,
           type: 'ordinaire',
+          result,
         })
         .returning();
       ballotId = inserted!.id;

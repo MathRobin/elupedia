@@ -101,6 +101,19 @@ Petits volumes, largement avant le tick `press:maires` de 05:00.
 | Samedi   | `ingest:hatvp-status`                                                   |
 | Dimanche | `ingest --only geocode` (géocode les adresses ingérées dans la semaine) |
 
+## Créneau quotidien — votes AN + Sénat, 12:30 UTC
+
+- `ingest:an --only votes` puis `ingest:senat --only senat-votes` (DAG
+  `ingest-votes.yaml`, les deux étapes en séquence) — les scrutins publics sont
+  publiés par les deux assemblées dès le lendemain de la séance, et les passes
+  complètes hebdomadaires (lundi/mardi 01:30) laissent jusqu'à 6 jours de retard,
+  trop pour exploiter un vote récent (fiches à jour, génération de contenus).
+  Ne touche que `ballots`/`votes`/`ballot_group_positions`, pas `officials` ni
+  `mandates` : pas de contention avec les jobs RNE. Placé à 12:30, après la fin
+  du tick `press:maires` de 10:00 (~11:15 au plus tard) et bien avant celui de
+  15:00.
+- Cron `30 12 * * *`.
+
 ## Créneau mensuel — 1er du mois, 06:30 UTC
 
 - `ingest --only maps` — génère et téléverse les cartes statiques de juridictions
