@@ -16,7 +16,8 @@ import type { StoredScript } from './generate-script.js';
 import type { StoredVoiceover } from './voiceover.js';
 import type { ShortProps } from './remotion/props.js';
 import { FPS } from './remotion/props.js';
-import { buildTimeline } from './remotion/timeline.js';
+import { buildTimeline, estimateWordTimings } from './remotion/timeline.js';
+import type { ShortScript } from './script-schema.js';
 
 /**
  * Rendu vidéo d'un short avec Remotion : bundle de la composition (une fois
@@ -65,12 +66,39 @@ export async function listBroll(dir: string): Promise<string[]> {
   }
 }
 
+/**
+ * Sans voix off (clés TTS absentes, démo) : sous-titres à horodatage estimé
+ * et vidéo muette, plutôt qu'une vidéo sans texte.
+ */
+export function estimatedVoiceover(script: ShortScript): StoredVoiceover {
+  return {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    provider: 'estimated',
+    voiceId: '',
+    modelId: '',
+    outputDir: '',
+    scenes: script.scenes
+      .filter((s) => s.voiceover.trim())
+      .map((s) => {
+        const words = estimateWordTimings(s.voiceover);
+        return {
+          sceneId: s.id,
+          file: '',
+          durationSec: words.length > 0 ? words[words.length - 1].end : 0,
+          words,
+        };
+      }),
+  };
+}
+
 /** Les MP3 de la voix off peuvent venir d'un autre dossier de sortie. */
 async function syncVoiceoverFiles(
   voiceover: StoredVoiceover,
   shortDir: string,
 ): Promise<void> {
   for (const scene of voiceover.scenes) {
+    if (!scene.file) continue;
     const target = path.join(shortDir, path.basename(scene.file));
     const source = path.join(voiceover.outputDir, scene.file);
     if (path.resolve(source) === path.resolve(target)) continue;
@@ -186,9 +214,12 @@ export async function renderShorts(
       failed.push(target.id);
       continue;
     }
-    const voiceover = target.voiceover as StoredVoiceover | null;
+    let voiceover = target.voiceover as StoredVoiceover | null;
     if (!voiceover) {
-      logger.warn(`short ${target.id} : pas de voix off, rendu muet`);
+      logger.warn(
+        `short ${target.id} : pas de voix off, rendu muet avec sous-titres estimés`,
+      );
+      voiceover = estimatedVoiceover(stored.script);
     }
     const shortDir = path.join(options.outputDir, target.id);
     const props: ShortProps = {

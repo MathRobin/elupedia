@@ -47,12 +47,10 @@ const SceneView: React.FC<{
       {scene.lowerThird ? (
         <LowerThird name={scene.lowerThird.name} role={scene.lowerThird.role} />
       ) : null}
-      {entry.audio ? (
-        <>
-          <Audio src={staticFile(entry.audio.file.split('/').pop()!)} />
-          <Subtitles words={entry.audio.words} />
-        </>
+      {entry.audio?.file ? (
+        <Audio src={staticFile(entry.audio.file.split('/').pop()!)} />
       ) : null}
+      {entry.audio ? <Subtitles words={entry.audio.words} /> : null}
       <div
         style={{
           position: 'absolute',

@@ -17,7 +17,7 @@ import type { TtsProvider, WordTiming } from './tts.js';
 
 export interface VoiceoverScene {
   sceneId: string;
-  /** Chemin du MP3, relatif à `outputDir`. */
+  /** Chemin du MP3, relatif à `outputDir` ; vide = sous-titres sans audio. */
   file: string;
   durationSec: number;
   words: WordTiming[];

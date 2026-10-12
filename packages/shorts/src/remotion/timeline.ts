@@ -144,3 +144,30 @@ export function assignSeatsByAngle(
   });
   return positions;
 }
+
+/** Débit de lecture retenu pour estimer des sous-titres sans voix off. */
+export const ESTIMATED_WORDS_PER_SEC = 2.6;
+
+/**
+ * Horodatage estimé des mots d'un texte, quand aucune voix off n'existe
+ * (démo, clés TTS absentes) : débit constant, pause un peu plus longue après
+ * une ponctuation forte. Les sous-titres restent affichables, sans audio.
+ */
+export function estimateWordTimings(
+  text: string,
+  startSec = 0.3,
+  wordsPerSec = ESTIMATED_WORDS_PER_SEC,
+): WordTiming[] {
+  const words = text
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+  const step = 1 / wordsPerSec;
+  let t = startSec;
+  return words.map((word) => {
+    const start = t;
+    const end = start + step * 0.85;
+    t += step + (/[.!?;:]$/.test(word) ? 0.35 : 0);
+    return { word, start, end };
+  });
+}

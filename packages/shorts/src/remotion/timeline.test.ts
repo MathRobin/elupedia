@@ -5,6 +5,7 @@ import {
   assignSeatsByAngle,
   buildTimeline,
   chunkWords,
+  estimateWordTimings,
 } from './timeline.js';
 import type { ShortScript } from '../script-schema.js';
 import type { StoredVoiceover } from '../voiceover.js';
@@ -145,5 +146,19 @@ describe('assignSeatsByAngle', () => {
       seats,
     );
     expect(positions).toEqual(['against', 'for', 'abstain']);
+  });
+});
+
+describe('estimateWordTimings', () => {
+  it('spaces words at a constant rate with a pause after sentences', () => {
+    const w = estimateWordTimings('Un deux. Trois', 0, 2);
+    expect(w.map((x) => x.word)).toEqual(['Un', 'deux.', 'Trois']);
+    expect(w[0]).toEqual({ word: 'Un', start: 0, end: 0.425 });
+    expect(w[1].start).toBeCloseTo(0.5);
+    expect(w[2].start).toBeCloseTo(1.35);
+  });
+
+  it('returns nothing for blank text', () => {
+    expect(estimateWordTimings('   ')).toEqual([]);
   });
 });
