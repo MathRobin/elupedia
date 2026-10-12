@@ -1,0 +1,236 @@
+import { mkdir, readdir, copyFile, stat } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
+import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+import { videoShorts } from '@elupedia/shared';
+import { bundle, type WebpackOverrideFn } from '@remotion/bundler';
+import {
+  ensureBrowser,
+  renderMedia,
+  renderStill,
+  selectComposition,
+} from '@remotion/renderer';
+import { logger } from './logger.js';
+import type { StoredScript } from './generate-script.js';
+import type { StoredVoiceover } from './voiceover.js';
+import type { ShortProps } from './remotion/props.js';
+import { FPS } from './remotion/props.js';
+import { buildTimeline } from './remotion/timeline.js';
+
+/**
+ * Rendu vidéo d'un short avec Remotion : bundle de la composition (une fois
+ * par exécution), puis pour chaque short une vidéo 1080×1920 H.264 + une
+ * vignette PNG dans `<outputDir>/<shortId>/`. Le dossier du short sert de
+ * dossier « public » du bundle : la composition y lit les MP3 de la voix off
+ * (`staticFile`) et les éventuelles images de b-roll (`broll/`).
+ */
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Le code est écrit avec des imports `./x.js` (convention Node16 de TypeScript)
+ * que webpack ne sait pas résoudre vers `x.ts(x)` sans cet alias.
+ */
+export const webpackOverride: WebpackOverrideFn = (config) => ({
+  ...config,
+  resolve: {
+    ...config.resolve,
+    extensionAlias: { '.js': ['.ts', '.tsx', '.js'] },
+  },
+});
+export const ENTRY_POINT = path.join(here, 'remotion', 'index.ts');
+export const COMPOSITION_ID = 'Short';
+export const VIDEO_FILE = 'short.mp4';
+export const THUMBNAIL_FILE = 'thumbnail.png';
+
+export interface RenderOptions {
+  shortId?: string;
+  force: boolean;
+  dryRun: boolean;
+  outputDir: string;
+  /** Rendu accéléré pour vérifier la composition (basse qualité). */
+  draft: boolean;
+}
+
+export async function listBroll(dir: string): Promise<string[]> {
+  try {
+    const files = await readdir(path.join(dir, 'broll'));
+    return files
+      .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+      .sort()
+      .map((f) => `broll/${f}`);
+  } catch {
+    return [];
+  }
+}
+
+/** Les MP3 de la voix off peuvent venir d'un autre dossier de sortie. */
+async function syncVoiceoverFiles(
+  voiceover: StoredVoiceover,
+  shortDir: string,
+): Promise<void> {
+  for (const scene of voiceover.scenes) {
+    const target = path.join(shortDir, path.basename(scene.file));
+    const source = path.join(voiceover.outputDir, scene.file);
+    if (path.resolve(source) === path.resolve(target)) continue;
+    try {
+      await stat(target);
+    } catch {
+      await copyFile(source, target);
+    }
+  }
+}
+
+export async function renderShort(
+  shortId: string,
+  props: ShortProps,
+  options: Pick<RenderOptions, 'outputDir' | 'draft'>,
+  onProgress?: (fraction: number) => void,
+): Promise<{ videoFile: string; thumbnailFile: string; durationSec: number }> {
+  const shortDir = path.join(options.outputDir, shortId);
+  await mkdir(shortDir, { recursive: true });
+  if (props.voiceover) await syncVoiceoverFiles(props.voiceover, shortDir);
+
+  const serveUrl = await bundle({
+    entryPoint: ENTRY_POINT,
+    publicDir: shortDir,
+    webpackOverride,
+    onProgress: () => {},
+  });
+
+  const inputProps = props as unknown as Record<string, unknown>;
+  const composition = await selectComposition({
+    serveUrl,
+    id: COMPOSITION_ID,
+    inputProps,
+  });
+
+  const videoFile = path.join(shortId, VIDEO_FILE);
+  await renderMedia({
+    composition,
+    serveUrl,
+    codec: 'h264',
+    audioCodec: 'aac',
+    outputLocation: path.join(options.outputDir, videoFile),
+    inputProps,
+    scale: options.draft ? 0.5 : 1,
+    crf: options.draft ? 32 : 18,
+    onProgress: ({ progress }) => onProgress?.(progress),
+  });
+
+  // Vignette : au premier tiers de la première scène, quand l'animation
+  // d'entrée est terminée.
+  const timeline = buildTimeline(props.script, props.voiceover, FPS);
+  const first = timeline.scenes[0];
+  const thumbnailFile = path.join(shortId, THUMBNAIL_FILE);
+  await renderStill({
+    composition,
+    serveUrl,
+    output: path.join(options.outputDir, thumbnailFile),
+    inputProps,
+    frame: first ? first.from + Math.floor(first.durationInFrames / 3) : 0,
+  });
+
+  return {
+    videoFile,
+    thumbnailFile,
+    durationSec: Math.round((timeline.totalFrames / FPS) * 10) / 10,
+  };
+}
+
+export async function renderShorts(
+  db: NeonHttpDatabase,
+  options: RenderOptions,
+): Promise<{ rendered: string[]; failed: string[] }> {
+  const rendered: string[] = [];
+  const failed: string[] = [];
+
+  const columns = {
+    id: videoShorts.id,
+    script: videoShorts.script,
+    voiceover: videoShorts.voiceover,
+    videoKey: videoShorts.videoKey,
+  };
+  const targets = options.shortId
+    ? await db
+        .select(columns)
+        .from(videoShorts)
+        .where(eq(videoShorts.id, options.shortId))
+    : await db
+        .select(columns)
+        .from(videoShorts)
+        .where(
+          options.force
+            ? and(
+                eq(videoShorts.status, 'draft'),
+                isNotNull(videoShorts.script),
+              )
+            : and(
+                eq(videoShorts.status, 'draft'),
+                isNotNull(videoShorts.script),
+                isNull(videoShorts.videoKey),
+              ),
+        );
+
+  if (options.shortId && targets.length === 0) {
+    throw new Error(`video_short ${options.shortId} introuvable`);
+  }
+  logger.info(`${targets.length} short(s) à rendre`);
+  if (targets.length > 0 && !options.dryRun) await ensureBrowser();
+
+  for (const target of targets) {
+    const stored = target.script as StoredScript | null;
+    if (!stored?.script) {
+      logger.warn(`short ${target.id} : pas de script, ignoré`);
+      failed.push(target.id);
+      continue;
+    }
+    const voiceover = target.voiceover as StoredVoiceover | null;
+    if (!voiceover) {
+      logger.warn(`short ${target.id} : pas de voix off, rendu muet`);
+    }
+    const shortDir = path.join(options.outputDir, target.id);
+    const props: ShortProps = {
+      facts: stored.facts,
+      script: stored.script,
+      voiceover,
+      broll: await listBroll(shortDir),
+    };
+    const timeline = buildTimeline(props.script, props.voiceover, FPS);
+    if (options.dryRun) {
+      logger.info(
+        `[dry-run] short ${target.id} : ${timeline.scenes.length} scènes, ${(timeline.totalFrames / FPS).toFixed(1)} s, ${props.broll.length} image(s) de b-roll`,
+      );
+      rendered.push(target.id);
+      continue;
+    }
+    try {
+      let lastLogged = -1;
+      const result = await renderShort(target.id, props, options, (p) => {
+        const pct = Math.floor(p * 10) * 10;
+        if (pct > lastLogged) {
+          lastLogged = pct;
+          logger.info(`  rendu ${pct} %`);
+        }
+      });
+      await db
+        .update(videoShorts)
+        .set({
+          videoKey: result.videoFile,
+          thumbnailKey: result.thumbnailFile,
+          updatedAt: new Date(),
+        })
+        .where(eq(videoShorts.id, target.id));
+      logger.info(
+        `short ${target.id} : ${result.durationSec} s rendues dans ${path.join(options.outputDir, result.videoFile)}`,
+      );
+      rendered.push(target.id);
+    } catch (error) {
+      logger.error(`short ${target.id} : rendu échoué — ${error}`);
+      failed.push(target.id);
+    }
+  }
+
+  return { rendered, failed };
+}

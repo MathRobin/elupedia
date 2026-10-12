@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateHemicycleSeats } from './generate-hemicycle-seats.js';
+import { generateHemicycleSeats } from './hemicycle-layout.js';
 
 describe('generateHemicycleSeats', () => {
   it('returns an empty array for 0 seats', () => {
