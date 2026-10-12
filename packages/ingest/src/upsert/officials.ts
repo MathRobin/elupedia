@@ -128,34 +128,49 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
       }
 
       for (const m of depute.allMandates) {
-        // Un mandat en cours (pas de mandat_fin) est identifié par son statut
-        // actif plutôt que par sa date de début : cette source (AN) et celle
-        // du Sénat (cf. upsert/senators.ts) peuvent publier des dates de début
-        // légèrement différentes pour le même mandat sénatorial en cours, ce
-        // qui créait un mandat en double au lieu de le mettre à jour.
-        const existingMandate = m.mandat_fin
-          ? await db
-              .select({ id: mandates.id, department: mandates.department })
-              .from(mandates)
-              .where(
-                and(
-                  eq(mandates.officialId, officialId),
-                  eq(mandates.type, m.type),
-                  eq(mandates.startDate, m.mandat_debut),
-                ),
-              )
-              .limit(1)
-          : await db
-              .select({ id: mandates.id, department: mandates.department })
-              .from(mandates)
-              .where(
-                and(
-                  eq(mandates.officialId, officialId),
-                  eq(mandates.type, m.type),
-                  isNull(mandates.endDate),
-                ),
-              )
-              .limit(1);
+        const mandateColumns = {
+          id: mandates.id,
+          department: mandates.department,
+          endDate: mandates.endDate,
+        };
+
+        // 1) Même mandat identifié par sa date de début. Toujours tenté en
+        // premier, y compris pour un mandat « en cours » côté AN : l'index
+        // unique (official_id, type, start_date) interdit de déplacer la date
+        // de début du mandat actif sur une date déjà occupée par un autre
+        // mandat. Cas réel : après les sénatoriales 2026, le Sénat a clos le
+        // mandat 2023 → 2026 et ouvert le nouveau, alors que l'AN republie
+        // encore le mandat 2023 sans date de fin.
+        let existingMandate = await db
+          .select(mandateColumns)
+          .from(mandates)
+          .where(
+            and(
+              eq(mandates.officialId, officialId),
+              eq(mandates.type, m.type),
+              eq(mandates.startDate, m.mandat_debut),
+            ),
+          )
+          .limit(1);
+
+        // 2) Sinon, un mandat en cours (pas de mandat_fin) est identifié par
+        // son statut actif : cette source (AN) et celle du Sénat (cf.
+        // upsert/senators.ts) peuvent publier des dates de début légèrement
+        // différentes pour le même mandat sénatorial en cours, ce qui créait
+        // un mandat en double au lieu de le mettre à jour.
+        if (existingMandate.length === 0 && !m.mandat_fin) {
+          existingMandate = await db
+            .select(mandateColumns)
+            .from(mandates)
+            .where(
+              and(
+                eq(mandates.officialId, officialId),
+                eq(mandates.type, m.type),
+                isNull(mandates.endDate),
+              ),
+            )
+            .limit(1);
+        }
 
         // Le mandat sénateur en cours peut aussi provenir de senators.ts (open
         // data Sénat, toujours renseigné en département) : ne pas écraser un
@@ -186,7 +201,10 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               district,
               department,
               startDate: m.mandat_debut,
-              endDate: m.mandat_fin ?? null,
+              // Une date de fin déjà connue (posée par une source plus à jour,
+              // ex. résultats des sénatoriales) n'est pas effacée par une
+              // absence d'info côté AN.
+              endDate: m.mandat_fin ?? existingMandate[0].endDate ?? null,
               politicalGroup: m.groupe_sigle ?? null,
               updatedAt: new Date(),
             })
@@ -208,6 +226,14 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
       logger.error(
         `  Failed processing depute ${anId} (${depute.prenom} ${depute.nom}): ${error instanceof Error ? error.message : String(error)}`,
       );
+      // Drizzle enveloppe l'erreur Postgres : la vraie cause (violation
+      // d'unicité, etc.) est dans error.cause, jamais imprimée sinon.
+      const cause = (error as { cause?: unknown })?.cause;
+      if (cause) {
+        logger.error(
+          `  Cause: ${cause instanceof Error ? cause.message : String(cause)}`,
+        );
+      }
       throw error;
     }
   }

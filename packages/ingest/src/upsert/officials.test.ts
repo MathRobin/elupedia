@@ -147,7 +147,8 @@ describe('upsertOfficials — mandat en cours cross-source (AN + Sénat)', () =>
   /**
    * Mock à file d'attente : chaque select consomme la prochaine entrée, dans
    * l'ordre exact émis par upsertOfficials (officials par anId, puis pour
-   * chaque mandat un select mandates, puis data_provenance).
+   * chaque mandat un select mandates par date de début, puis — seulement si
+   * vide et mandat sans fin — un select du mandat actif, puis data_provenance).
    */
   function createQueueMockDb(selectQueue: unknown[][]) {
     const DRIZZLE_NAME = Symbol.for('drizzle:Name');
@@ -209,7 +210,8 @@ describe('upsertOfficials — mandat en cours cross-source (AN + Sénat)', () =>
     const { db, inserts, updates } = createQueueMockDb([
       [], // officials.slug (uniqueSlug pool)
       [existingOfficial], // officials by anId
-      [{ id: 'mandate-1', department: 'Haute-Marne' }], // mandates: mandat actif déjà connu (venant du Sénat)
+      [], // mandates par date de début : aucun à cette date
+      [{ id: 'mandate-1', department: 'Haute-Marne', endDate: null }], // mandates: mandat actif déjà connu (venant du Sénat)
       [], // data_provenance
     ]);
 
@@ -224,10 +226,47 @@ describe('upsertOfficials — mandat en cours cross-source (AN + Sénat)', () =>
     });
   });
 
+  // Cas réel (Gérard Larcher, PA1828) : après les sénatoriales 2026 la base
+  // a le mandat 2023-10-02 → 2026-09-30 clos et un nouveau mandat actif depuis
+  // 2026-10-01, alors que l'AN republie encore le mandat 2023 sans fin.
+  // Déplacer la date de début du mandat actif sur 2023-10-02 violait l'index
+  // unique (official_id, type, start_date).
+  it('updates the closed mandate matching the start date instead of moving the active one onto it', async () => {
+    const { db, inserts, updates } = createQueueMockDb([
+      [], // officials.slug (uniqueSlug pool)
+      [existingOfficial], // officials by anId
+      [{ id: 'mandate-2023', department: 'Yvelines', endDate: '2026-09-30' }], // mandates par date de début : mandat 2023 clos
+      [], // data_provenance
+    ]);
+
+    const { upsertOfficials } = await import('./officials.js');
+    await upsertOfficials(db as never, [
+      {
+        ...senateurMandateFromAn,
+        allMandates: [
+          {
+            ...senateurMandateFromAn.allMandates[0],
+            mandat_debut: '2023-10-02',
+          },
+        ],
+      },
+    ]);
+
+    expect(inserts.filter((i) => i.table === 'mandates')).toHaveLength(0);
+    const mandateUpdates = updates.filter((u) => u.table === 'mandates');
+    expect(mandateUpdates).toHaveLength(1);
+    expect(mandateUpdates[0].set).toMatchObject({
+      startDate: '2023-10-02',
+      endDate: '2026-09-30', // la fin posée par le Sénat n'est pas effacée
+      department: 'Yvelines',
+    });
+  });
+
   it('inserts a new mandate when no active mandate exists yet', async () => {
     const { db, inserts } = createQueueMockDb([
       [], // officials.slug (uniqueSlug pool)
       [existingOfficial], // officials by anId
+      [], // mandates par date de début
       [], // mandates: aucun mandat actif existant
       [], // data_provenance
     ]);
