@@ -222,3 +222,43 @@ export const CountUp: React.FC<{ value: number; delay?: number }> = ({
   const p = spring({ frame: frame - delay, fps, config: { damping: 30 } });
   return <>{Math.round(value * Math.min(1, p))}</>;
 };
+
+/** Logo Elupedia (public/logo.png, copié dans le dossier du short au rendu). */
+export const Logo: React.FC<{ size: number; style?: React.CSSProperties }> = ({
+  size,
+  style,
+}) => (
+  <Img
+    src={staticFile('logo.png')}
+    style={{
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
+      ...style,
+    }}
+  />
+);
+
+/** Pied de vidéo : logo + domaine, présent sur toutes les scènes. */
+export const Footer: React.FC = () => (
+  <div
+    style={{
+      position: 'absolute',
+      bottom: 140,
+      left: 0,
+      right: 0,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 18,
+      fontFamily: FONT,
+      fontSize: 26,
+      color: COLORS.muted,
+      letterSpacing: 3,
+    }}
+  >
+    <Logo size={56} />
+    <span>ELUPEDIA.FR</span>
+  </div>
+);

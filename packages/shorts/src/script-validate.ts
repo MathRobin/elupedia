@@ -90,6 +90,7 @@ export function allowedNumbers(facts: ShortFacts): Set<number> {
     for (const n of extractNumbers(b.dateLabel)) allowed.add(n);
     for (const n of Object.values(b.counts)) allowed.add(n);
     for (const n of Object.values(b.percentOfExpressed)) allowed.add(n);
+    allowed.add(b.participationPercent);
     for (const g of b.groups) {
       if (g.memberCount !== null) allowed.add(g.memberCount);
       allowed.add(g.for);

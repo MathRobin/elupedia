@@ -41,6 +41,8 @@ export const webpackOverride: WebpackOverrideFn = (config) => ({
   },
 });
 export const ENTRY_POINT = path.join(here, 'remotion', 'index.ts');
+/** Fichiers statiques de la composition (logo), copiés dans le dossier du short. */
+export const PUBLIC_DIR = path.join(here, '..', 'public');
 export const COMPOSITION_ID = 'Short';
 export const VIDEO_FILE = 'short.mp4';
 export const THUMBNAIL_FILE = 'thumbnail.png';
@@ -119,6 +121,9 @@ export async function renderShort(
   const shortDir = path.join(options.outputDir, shortId);
   await mkdir(shortDir, { recursive: true });
   if (props.voiceover) await syncVoiceoverFiles(props.voiceover, shortDir);
+  for (const file of await readdir(PUBLIC_DIR)) {
+    await copyFile(path.join(PUBLIC_DIR, file), path.join(shortDir, file));
+  }
 
   const serveUrl = await bundle({
     entryPoint: ENTRY_POINT,

@@ -36,7 +36,7 @@ Règles éditoriales, non négociables :
 Structure attendue (4 à 8 scènes, 35 à 60 secondes au total, 3 mots par seconde maximum) :
 1. hook : une phrase d'accroche factuelle (ce qui a été voté, où, quand). Visuel « title ».
 2. context : ce sur quoi portait précisément le scrutin, d'après son intitulé. Visuel « title » ou « hemicycle ».
-3. result : le résultat et les voix (pour, contre, abstention). Visuel « hemicycle ».
+3. result : le résultat et les voix (pour, contre, abstention), puis la participation : « X députés sur Y n'ont pas pris part au vote » (counts.notVoting sur counts.seats). Toujours la donner : un scrutin public ordinaire se tient avec les présents, souvent une moitié de l'assemblée, et le taire donnerait une image trompeuse du vote. Visuel « hemicycle ».
 4. groups : la position majoritaire des principaux groupes, dans l'ordre des effectifs. Visuel « bars ».
 5. division (optionnelle, seulement si les faits signalent un groupe divisé) : le groupe concerné et la part de ses membres qui s'est écartée de sa position majoritaire. Visuel « group_focus » avec un lowerThird portant le nom du groupe.
 6. outro : où retrouver le vote de chaque élu. Visuel « source », onScreenText = l'URL fournie.

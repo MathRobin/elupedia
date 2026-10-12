@@ -97,6 +97,10 @@ describe('buildBallotFacts', () => {
     expect(b.result).toBe('adopté');
     expect(b.dateLabel).toBe('8 octobre 2026');
     expect(b.counts.expressed).toBe(550);
+    // Effectif : somme des groupes (131) < 577 votes enregistrés, on prend le max.
+    expect(b.counts.seats).toBe(577);
+    expect(b.counts.notVoting).toBe(27);
+    expect(b.participationPercent).toBe(95);
     expect(b.percentOfExpressed).toEqual({ for: 51, against: 47, abstain: 2 });
     expect(b.groups.map((g) => g.name)).toEqual([
       'Ensemble pour la République (EPR)',

@@ -2,7 +2,13 @@ import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile } from 'remotion';
 import type { ShortProps } from './props.js';
 import { buildTimeline, type TimelineScene } from './timeline.js';
-import { Background, Header, LowerThird, Subtitles } from './components.js';
+import {
+  Background,
+  Footer,
+  Header,
+  LowerThird,
+  Subtitles,
+} from './components.js';
 import {
   BarsScene,
   GroupFocusScene,
@@ -11,7 +17,7 @@ import {
   TitleScene,
 } from './scenes.js';
 import { FPS } from './props.js';
-import { COLORS, FONT } from './theme.js';
+import { COLORS } from './theme.js';
 
 const SceneView: React.FC<{
   entry: TimelineScene;
@@ -51,21 +57,7 @@ const SceneView: React.FC<{
         <Audio src={staticFile(entry.audio.file.split('/').pop()!)} />
       ) : null}
       {entry.audio ? <Subtitles words={entry.audio.words} /> : null}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 150,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          fontFamily: FONT,
-          fontSize: 26,
-          color: COLORS.muted,
-          letterSpacing: 3,
-        }}
-      >
-        ELUPEDIA.FR
-      </div>
+      <Footer />
     </AbsoluteFill>
   );
 };

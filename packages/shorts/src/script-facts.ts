@@ -7,7 +7,7 @@ import {
   videoShorts,
   videoShortBallots,
 } from '@elupedia/shared';
-import { chamberOf } from './select-candidates.js';
+import { CHAMBER_SIZE_FALLBACK, chamberOf } from './select-candidates.js';
 
 /**
  * Faits d'un scrutin, seule matière autorisée pour le script. Tout ce que le
@@ -45,10 +45,22 @@ export interface BallotFacts {
     for: number;
     against: number;
     abstain: number;
+    /** Non-votants déclarés par la source (ex. président de séance). */
     absent: number;
+    /** Pour + contre + abstention. */
     expressed: number;
+    /** Effectif de l'assemblée au moment du scrutin (sièges pourvus). */
+    seats: number;
+    /**
+     * Députés/sénateurs n'ayant pas pris part au vote : sièges moins suffrages
+     * exprimés. L'AN ne liste pas les absents (seulement les non-votants
+     * présents), ils ne se déduisent que par différence avec l'effectif.
+     */
+    notVoting: number;
   };
   percentOfExpressed: { for: number; against: number; abstain: number };
+  /** Part de l'effectif ayant exprimé un vote, en %. */
+  participationPercent: number;
   groups: GroupFacts[];
   mostDividedGroup: {
     name: string;
@@ -94,6 +106,18 @@ export function buildBallotFacts(input: {
     input.counts.for + input.counts.against + input.counts.abstain;
   const pct = (n: number) =>
     expressed > 0 ? Math.round((100 * n) / expressed) : 0;
+  const chamber = chamberOf(input.anId);
+  const fromGroups = input.groups.reduce(
+    (sum, g) => sum + (g.memberCount ?? 0),
+    0,
+  );
+  const recorded = expressed + input.counts.absent;
+  const seats = Math.max(
+    fromGroups,
+    recorded,
+    fromGroups === 0 && recorded === 0 ? CHAMBER_SIZE_FALLBACK[chamber] : 0,
+  );
+  const notVoting = Math.max(0, seats - expressed);
 
   const groups: GroupFacts[] = input.groups
     .map((g) => ({
@@ -126,8 +150,7 @@ export function buildBallotFacts(input: {
 
   return {
     ballotId: input.id,
-    chamber:
-      chamberOf(input.anId) === 'senat' ? 'Sénat' : 'Assemblée nationale',
+    chamber: chamber === 'senat' ? 'Sénat' : 'Assemblée nationale',
     date: input.date,
     dateLabel: formatDateLabel(input.date),
     title: input.title,
@@ -138,12 +161,13 @@ export function buildBallotFacts(input: {
         : input.result === 'rejected'
           ? 'rejeté'
           : null,
-    counts: { ...input.counts, expressed },
+    counts: { ...input.counts, expressed, seats, notVoting },
     percentOfExpressed: {
       for: pct(input.counts.for),
       against: pct(input.counts.against),
       abstain: pct(input.counts.abstain),
     },
+    participationPercent: seats > 0 ? Math.round((100 * expressed) / seats) : 0,
     groups,
     mostDividedGroup,
     url: `${SITE_URL}/scrutins/${input.id}`,

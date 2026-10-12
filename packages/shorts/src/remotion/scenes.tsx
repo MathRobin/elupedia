@@ -4,7 +4,7 @@ import { generateHemicycleSeats } from '@elupedia/shared/src/hemicycle-layout.js
 import { POLITICAL_GROUP_COLORS } from '@elupedia/shared/src/political-group-colors.js';
 import type { BallotFacts } from '../script-facts.js';
 import type { Scene } from '../script-schema.js';
-import { BigText, CountUp, useReveal } from './components.js';
+import { BigText, CountUp, Logo, useReveal } from './components.js';
 import { COLORS, FONT, POSITION_LABELS, shortGroupName } from './theme.js';
 import { assignSeatsByAngle } from './timeline.js';
 
@@ -86,12 +86,7 @@ export const HemicycleScene: React.FC<{ ballot: BallotFacts }> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const fromGroups = ballot.groups.reduce(
-    (s, g) => s + (g.memberCount ?? 0),
-    0,
-  );
-  const recorded = ballot.counts.expressed + ballot.counts.absent;
-  const totalSeats = Math.max(fromGroups, recorded, 1);
+  const totalSeats = Math.max(ballot.counts.seats, 1);
   const seats = React.useMemo(
     () => generateHemicycleSeats(totalSeats),
     [totalSeats],
@@ -156,6 +151,32 @@ export const HemicycleScene: React.FC<{ ballot: BallotFacts }> = ({
             </div>
           </div>
         ))}
+      </div>
+      <div
+        style={{
+          fontFamily: FONT,
+          fontSize: 34,
+          color: COLORS.muted,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-block',
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            background: COLORS.absent,
+          }}
+        />
+        <span>
+          <span style={{ color: COLORS.text, fontWeight: 800 }}>
+            <CountUp value={ballot.counts.notVoting} delay={28} />
+          </span>{' '}
+          sur {ballot.counts.seats} n'ont pas pris part au vote
+        </span>
       </div>
       {ballot.result ? <ResultBadge result={ballot.result} delay={40} /> : null}
     </Center>
@@ -315,7 +336,10 @@ export const SourceScene: React.FC<{ scene: Scene; ballot: BallotFacts }> = ({
   ballot,
 }) => (
   <Center>
-    <BigText size={88} color={COLORS.accent}>
+    <div style={useReveal(0)}>
+      <Logo size={380} />
+    </div>
+    <BigText size={88} color={COLORS.accent} delay={6}>
       Elupedia
     </BigText>
     <BigText size={40} delay={8}>

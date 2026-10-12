@@ -111,17 +111,17 @@ describe('chunkWords', () => {
 });
 
 describe('assignSeats', () => {
-  it('fills seats in reading order and pads with absents', () => {
-    const seats = assignSeats({ for: 2, against: 3, abstain: 1, absent: 0 }, 8);
+  it('puts non-voters in grey between for and against', () => {
+    const seats = assignSeats({ for: 2, against: 3, abstain: 1, absent: 1 }, 8);
     expect(seats).toEqual([
       'for',
       'for',
       'abstain',
-      'against',
-      'against',
-      'against',
       'absent',
       'absent',
+      'against',
+      'against',
+      'against',
     ]);
   });
 
@@ -146,6 +146,11 @@ describe('assignSeatsByAngle', () => {
       seats,
     );
     expect(positions).toEqual(['against', 'for', 'abstain']);
+    const withGrey = assignSeatsByAngle(
+      { for: 1, against: 1, abstain: 0, absent: 0 },
+      seats,
+    );
+    expect(withGrey).toEqual(['against', 'for', 'absent']);
   });
 });
 

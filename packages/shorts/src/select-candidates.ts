@@ -30,7 +30,7 @@ import { logger } from './logger.js';
  */
 
 /** Effectif de référence quand la source ne donne pas la taille de l'assemblée. */
-const CHAMBER_SIZE_FALLBACK: Record<'an' | 'senat', number> = {
+export const CHAMBER_SIZE_FALLBACK: Record<'an' | 'senat', number> = {
   an: 577,
   senat: 348,
 };

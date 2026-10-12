@@ -105,22 +105,27 @@ export function activeChunk(
 export type SeatPosition = 'for' | 'against' | 'abstain' | 'absent';
 
 /**
- * Suite de positions pour N sièges, dans l'ordre pour, abstention, absents,
- * contre, complétée par des absents si les totaux ne couvrent pas tout.
+ * Suite de positions pour N sièges : pour, abstention, puis en gris tous ceux
+ * qui n'ont pas pris part au vote (non-votants déclarés et sièges restants,
+ * l'AN ne listant pas les absents), puis contre. Les gris au milieu séparent
+ * visuellement les pour (gauche) des contre (droite).
  */
 export function assignSeats(
   counts: { for: number; against: number; abstain: number; absent: number },
   totalSeats: number,
 ): SeatPosition[] {
-  const order: SeatPosition[] = ['for', 'abstain', 'absent', 'against'];
-  const seats: SeatPosition[] = [];
-  for (const pos of order) {
-    for (let i = 0; i < counts[pos] && seats.length < totalSeats; i++) {
-      seats.push(pos);
-    }
-  }
-  while (seats.length < totalSeats) seats.push('absent');
-  return seats;
+  const take = (pos: SeatPosition, n: number) =>
+    Array.from({ length: Math.max(0, n) }, () => pos);
+  const forN = Math.min(counts.for, totalSeats);
+  const abstainN = Math.min(counts.abstain, totalSeats - forN);
+  const againstN = Math.min(counts.against, totalSeats - forN - abstainN);
+  const greyN = totalSeats - forN - abstainN - againstN;
+  return [
+    ...take('for', forN),
+    ...take('abstain', abstainN),
+    ...take('absent', greyN),
+    ...take('against', againstN),
+  ];
 }
 
 /**
