@@ -50,6 +50,9 @@ export async function upsertSenatVotes(
       if (result && existingBallot[0].result !== result) patch.result = result;
       if (existingBallot[0].title !== scrutin.title)
         patch.title = scrutin.title;
+      // Les dates de séance aussi : l'ancien parseur prenait parfois une date
+      // citée dans l'intitulé (« loi du 6 mars 2017 ») pour la date de séance.
+      if (existingBallot[0].date !== scrutin.date) patch.date = scrutin.date;
       if (Object.keys(patch).length > 0) {
         await db
           .update(ballots)

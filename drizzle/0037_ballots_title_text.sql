@@ -1,0 +1,1 @@
+ALTER TABLE "ballots" ALTER COLUMN "title" SET DATA TYPE text;

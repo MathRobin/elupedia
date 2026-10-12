@@ -1,4 +1,11 @@
-import { pgTable, uuid, varchar, date, timestamp } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  date,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 /**
  * Résultat officiel du scrutin tel que publié par l'assemblée (AN : `sort.code`,
@@ -12,7 +19,8 @@ export type BallotResult = (typeof ballotResultEnum)[number];
 export const ballots = pgTable('ballots', {
   id: uuid('id').defaultRandom().primaryKey(),
   anId: varchar('an_id', { length: 50 }).unique(),
-  title: varchar('title', { length: 1024 }).notNull(),
+  // Certains intitulés du Sénat dépassent 1 000 caractères (motions longues).
+  title: text('title').notNull(),
   date: date('date').notNull(),
   type: varchar('type', { length: 100 }).notNull(),
   result: varchar('result', { length: 20 }),
