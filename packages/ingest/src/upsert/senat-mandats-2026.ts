@@ -7,7 +7,10 @@
  *
  * Tables écrites : `officials` (création des nouveaux élus, sans date de
  * naissance ni matricule : l'open data Sénat les complétera ensuite via
- * `upsert/senators.ts`) et `mandates` (type `senateur`).
+ * `upsert/senators.ts`) et `mandates` (type `senateur`, plus clôture du
+ * mandat `depute` actif d'un député élu sénateur : les deux mandats sont
+ * incompatibles, art. LO 137 du code électoral, l'AN publiera ensuite la
+ * date de fin officielle qui remplacera MANDATE_START via upsert/officials.ts).
  *
  * Clés de rapprochement :
  * - official : nom + prénom normalisés (pas de date de naissance dans la
@@ -107,6 +110,7 @@ export async function upsertSenatMandats2026(
     mandatesOpened: 0,
     reelected: 0,
     mandatesClosed: 0,
+    deputeMandatesClosed: 0,
     skipped: 0,
   };
 
@@ -249,6 +253,22 @@ export async function upsertSenatMandats2026(
           throw error;
         }
       }
+
+      // Député élu sénateur : son mandat de député cesse (incompatibilité).
+      // Clos à MANDATE_START faute de date officielle ; idempotent (plus de
+      // mandat député actif au rejeu).
+      const closedDeputeMandates = await db
+        .update(mandates)
+        .set({ endDate: MANDATE_START, updatedAt: new Date() })
+        .where(
+          and(
+            eq(mandates.officialId, official.id),
+            eq(mandates.type, 'depute'),
+            isNull(mandates.endDate),
+          ),
+        )
+        .returning({ id: mandates.id });
+      summary.deputeMandatesClosed += closedDeputeMandates.length;
     }
 
     // Sortants non réélus : tout mandat actif du département dont le
@@ -269,7 +289,8 @@ export async function upsertSenatMandats2026(
   logger.info(
     `Senat mandats 2026: ${summary.officialsCreated} nouvelles fiches, ` +
       `${summary.mandatesOpened} mandats ouverts (dont ${summary.reelected} réélections), ` +
-      `${summary.mandatesClosed} mandats sortants clôturés, ${summary.skipped} ignorés`,
+      `${summary.mandatesClosed} mandats sortants clôturés, ` +
+      `${summary.deputeMandatesClosed} mandats de député clos (élus sénateurs), ${summary.skipped} ignorés`,
   );
   return summary;
 }

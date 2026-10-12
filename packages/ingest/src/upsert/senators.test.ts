@@ -14,8 +14,9 @@ function makeThenable(rows: unknown[]) {
 
 /**
  * Mock minimal, dans l'ordre exact des requêtes émises par upsertSenators :
- * officials par senatId, puis pour chaque mandat un select mandates (soit par
- * statut actif, soit par date de début exacte selon m.end_date).
+ * officials par senatId, puis pour chaque mandat un select mandates par date
+ * de début exacte, puis — seulement si vide et mandat sans fin — un select du
+ * mandat actif.
  */
 function createMockDb(selectQueue: unknown[][]) {
   const store: Record<string, Record<string, unknown>[]> = {
@@ -81,7 +82,8 @@ describe('upsertSenators — déduplication des mandats en cours', () => {
     // mandat actif au lieu de corriger le premier.
     const { db, store, updates } = createMockDb([
       [existingOfficial], // officials by senatId
-      [{ id: 'mandate-1' }], // mandates: mandat actif existant (peu importe sa startDate)
+      [], // mandates par date de début exacte : aucun
+      [{ id: 'mandate-1', endDate: null }], // mandates: mandat actif existant (peu importe sa startDate)
     ]);
     const { upsertSenators } = await import('./senators.js');
 
@@ -97,9 +99,60 @@ describe('upsertSenators — déduplication des mandats en cours', () => {
     });
   });
 
+  // Cas réel (sénatoriales 2026) : senat-mandats-2026 a ouvert le mandat au
+  // 2026-10-01, puis fetchSenateurs, sans ligne ELUSEN pour ce nouvel élu,
+  // fournit un mandat synthétique. Sa date provisoire écrasait la bonne.
+  it('does not overwrite the start date of the active mandate with a synthetic one', async () => {
+    const { db, store, updates } = createMockDb([
+      [existingOfficial], // officials by senatId
+      [], // mandates par date de début exacte : aucun
+      [{ id: 'mandate-2026', endDate: null }], // mandat actif ouvert par senat-mandats-2026
+    ]);
+    const { upsertSenators } = await import('./senators.js');
+
+    await upsertSenators(db as never, [
+      {
+        ...senateur,
+        mandats: [
+          {
+            start_date: '2023-10-01',
+            end_date: null,
+            department: 'Haute-Marne',
+            synthetic: true,
+          },
+        ],
+      },
+    ]);
+
+    expect(store.mandates).toHaveLength(0);
+    const mandateUpdate = updates.find((u) => u.table === 'mandates');
+    expect(mandateUpdate?.set).not.toHaveProperty('startDate');
+    expect(mandateUpdate?.set).toMatchObject({ department: 'Haute-Marne' });
+  });
+
+  // Cas réel (Gérard Larcher) : le mandat 2023 → 2026 a été clos par les
+  // résultats des sénatoriales, mais ELUSEN le publie encore sans fin.
+  it('updates the closed mandate matching the start date and keeps its end date', async () => {
+    const { db, store, updates } = createMockDb([
+      [existingOfficial], // officials by senatId
+      [{ id: 'mandate-2023', endDate: '2026-10-01' }], // mandates par date de début : mandat clos
+    ]);
+    const { upsertSenators } = await import('./senators.js');
+
+    await upsertSenators(db as never, [senateur]);
+
+    expect(store.mandates).toHaveLength(0);
+    const mandateUpdate = updates.find((u) => u.table === 'mandates');
+    expect(mandateUpdate?.set).toMatchObject({
+      startDate: '2023-10-02',
+      endDate: '2026-10-01',
+    });
+  });
+
   it('inserts a new mandate when no active mandate exists yet', async () => {
     const { db, store } = createMockDb([
       [existingOfficial], // officials by senatId
+      [], // mandates par date de début exacte
       [], // mandates: aucun mandat actif existant
     ]);
     const { upsertSenators } = await import('./senators.js');

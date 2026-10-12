@@ -13,8 +13,11 @@
  * Pièges :
  *   - le sexe est déduit de la civilité (« Mme » → F, sinon M) ;
  *   - un mandat sans date de début est ignoré ; un sénateur ACTIF sans aucun
- *     mandat exploitable reçoit un mandat synthétique démarrant à
- *     SYNTHETIC_MANDATE_START pour ne pas disparaître du site ;
+ *     mandat exploitable (cas des nouveaux élus, tant qu'ODSEN_ELUSEN n'est
+ *     pas à jour) reçoit un mandat synthétique (`synthetic: true`) démarrant
+ *     au dernier renouvellement sénatorial (syntheticMandateStart) pour ne
+ *     pas disparaître du site ; upsert/senators.ts n'écrase jamais une date
+ *     de début déjà en base avec cette date provisoire ;
  *   - le fichier des mandats ne porte pas la circonscription : elle est
  *     recopiée depuis la fiche GENERAL sur tous les mandats du sénateur, y
  *     compris les anciens (approximation si l'élu a changé de département) ;
@@ -32,10 +35,30 @@ const MANDATS_URL = 'https://data.senat.fr/data/senateurs/ODSEN_ELUSEN.json';
 export { GENERAL_URL, MANDATS_URL };
 
 /**
- * Date de début attribuée à un sénateur ACTIF sans mandat exploitable dans
- * ODSEN_ELUSEN (début de la session suivant le renouvellement de 2023).
+ * Premier renouvellement partiel du Sénat pris comme origine du calendrier :
+ * série 1 le 1er octobre 2023, puis une série tous les trois ans (série 2 en
+ * 2026, série 1 en 2029...).
  */
-const SYNTHETIC_MANDATE_START = '2023-10-01';
+const FIRST_RENEWAL_YEAR = 2023;
+const RENEWAL_INTERVAL_YEARS = 3;
+
+/**
+ * Date de début provisoire attribuée à un sénateur ACTIF sans mandat
+ * exploitable dans ODSEN_ELUSEN : le 1er octobre du dernier renouvellement
+ * déjà passé à la date `today`. Heuristique : un nouvel élu sans ligne ELUSEN
+ * vient très probablement du dernier scrutin (faux pour une élection
+ * partielle en cours de série, corrigé quand le Sénat publie la vraie date).
+ */
+export function syntheticMandateStart(today: Date = new Date()): string {
+  let year = FIRST_RENEWAL_YEAR;
+  while (
+    new Date(Date.UTC(year + RENEWAL_INTERVAL_YEARS, 9, 1)).getTime() <=
+    today.getTime()
+  ) {
+    year += RENEWAL_INTERVAL_YEARS;
+  }
+  return `${year}-10-01`;
+}
 
 const SenateurGeneralSchema = z.object({
   Matricule: z.string(),
@@ -78,6 +101,12 @@ export interface SenatMandat {
   start_date: string;
   end_date: string | null;
   department: string | null;
+  /**
+   * Vrai quand `start_date` est une date provisoire calculée par
+   * syntheticMandateStart (aucune ligne ELUSEN pour ce sénateur ACTIF), et
+   * non une date publiée par le Sénat.
+   */
+  synthetic?: boolean;
 }
 
 /** « Jean », « Dupont » → « jean-dupont » (slug Elupedia : minuscules ASCII, tirets). */
@@ -175,9 +204,10 @@ export async function fetchSenateurs(
     if (mandats.length === 0 && general.Etat === 'ACTIF') {
       mandats = [
         {
-          start_date: SYNTHETIC_MANDATE_START,
+          start_date: syntheticMandateStart(),
           end_date: null,
           department: general.Circonscription ?? null,
+          synthetic: true,
         },
       ];
     }

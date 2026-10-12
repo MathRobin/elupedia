@@ -188,35 +188,44 @@ async function processSenateurRecord(
   }
 
   for (const mandat of senateur.mandats) {
-    // Un mandat en cours (end_date absente) est identifié par son statut
-    // "actif" plutôt que par sa date de début : celle-ci peut n'être que
-    // provisoire (cf. fallback dans fetchSenateurs) tant que l'open data
-    // ELUSEN du Sénat n'a pas encore publié la date officielle, et on ne
-    // veut pas dupliquer le mandat quand la vraie date arrive ensuite.
-    const existingMandat =
-      mandat.end_date === null
-        ? await db
-            .select({ id: mandates.id })
-            .from(mandates)
-            .where(
-              and(
-                eq(mandates.officialId, officialId),
-                eq(mandates.type, 'senateur'),
-                isNull(mandates.endDate),
-              ),
-            )
-            .limit(1)
-        : await db
-            .select({ id: mandates.id })
-            .from(mandates)
-            .where(
-              and(
-                eq(mandates.officialId, officialId),
-                eq(mandates.type, 'senateur'),
-                eq(mandates.startDate, mandat.start_date),
-              ),
-            )
-            .limit(1);
+    const mandateColumns = { id: mandates.id, endDate: mandates.endDate };
+
+    // 1) Même mandat identifié par sa date de début exacte. Toujours tenté
+    // en premier : l'index unique (official_id, type, start_date) interdit de
+    // déplacer la date de début du mandat actif sur une date déjà occupée.
+    // Cas réel après les sénatoriales 2026 : senat-mandats-2026 a clos le
+    // mandat 2020 → 2026 et ouvert le nouveau, alors qu'ODSEN_ELUSEN publie
+    // encore le mandat 2020 sans date de fin.
+    let existingMandat = await db
+      .select(mandateColumns)
+      .from(mandates)
+      .where(
+        and(
+          eq(mandates.officialId, officialId),
+          eq(mandates.type, 'senateur'),
+          eq(mandates.startDate, mandat.start_date),
+        ),
+      )
+      .limit(1);
+
+    // 2) Sinon, un mandat en cours (end_date absente) est identifié par son
+    // statut actif : la date de début de la source peut n'être que
+    // provisoire (mandat synthétique de fetchSenateurs) ou différer de celle
+    // posée par une autre source (AN, senat-mandats-2026), et on ne veut pas
+    // dupliquer le mandat quand la vraie date arrive ensuite.
+    if (existingMandat.length === 0 && mandat.end_date === null) {
+      existingMandat = await db
+        .select(mandateColumns)
+        .from(mandates)
+        .where(
+          and(
+            eq(mandates.officialId, officialId),
+            eq(mandates.type, 'senateur'),
+            isNull(mandates.endDate),
+          ),
+        )
+        .limit(1);
+    }
 
     if (existingMandat.length === 0) {
       await db.insert(mandates).values({
@@ -232,8 +241,16 @@ async function processSenateurRecord(
         .update(mandates)
         .set({
           department: mandat.department,
-          startDate: mandat.start_date,
-          endDate: mandat.end_date,
+          // Une date provisoire (mandat synthétique) n'écrase jamais une date
+          // de début déjà en base, qui vient d'une source plus précise
+          // (senat-mandats-2026 : 1er octobre suivant le scrutin). Cas réel :
+          // les élus de 2026 se retrouvaient datés du renouvellement de 2023.
+          ...(mandat.synthetic ? {} : { startDate: mandat.start_date }),
+          // Une date de fin déjà connue (posée par une source plus à jour,
+          // ex. résultats des sénatoriales) n'est pas effacée par une absence
+          // d'info côté ELUSEN : sinon on rouvrirait un mandat clos et la
+          // personne aurait deux mandats sénateur actifs.
+          endDate: mandat.end_date ?? existingMandat[0].endDate ?? null,
           updatedAt: new Date(),
         })
         .where(eq(mandates.id, existingMandat[0].id));
