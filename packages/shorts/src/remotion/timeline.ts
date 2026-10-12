@@ -1,6 +1,7 @@
 import type { Scene, ShortScript } from '../script-schema.js';
 import type { StoredVoiceover, VoiceoverScene } from '../voiceover.js';
 import type { WordTiming } from '../tts.js';
+import { politicalGroupRank } from '@elupedia/shared/src/political-group-order.js';
 
 /**
  * Découpage temporel du short : une entrée par scène, en frames. La durée
@@ -142,6 +143,58 @@ export function assignSeatsByAngle(
   const byAngle = seats
     .map(([x, y], i) => ({ i, angle: Math.atan2(y, x) }))
     // π (gauche) → 0 (droite)
+    .sort((a, b) => b.angle - a.angle);
+  const positions: SeatPosition[] = new Array(seats.length);
+  byAngle.forEach((seat, k) => {
+    positions[seat.i] = sequence[k];
+  });
+  return positions;
+}
+
+export interface GroupSeatCounts {
+  name: string;
+  memberCount: number | null;
+  for: number;
+  against: number;
+  abstain: number;
+}
+
+/**
+ * Hémicycle « en salle » : chaque groupe occupe un bloc, de gauche à droite
+ * selon son placement politique (`politicalGroupRank`), et chaque siège du
+ * bloc prend la couleur du vote de son occupant — pour, abstention, puis en
+ * gris les membres n'ayant pas pris part au vote, puis contre. La division
+ * d'un groupe se lit ainsi dans son propre bloc. Sans effectifs de groupe
+ * (Sénat), se rabattre sur `assignSeatsByAngle`.
+ */
+export function assignSeatsByGroup(
+  groups: readonly GroupSeatCounts[],
+  seats: readonly (readonly [number, number])[],
+): SeatPosition[] {
+  const ordered = [...groups]
+    .filter((g) => (g.memberCount ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        politicalGroupRank(a.name) - politicalGroupRank(b.name) ||
+        a.name.localeCompare(b.name, 'fr'),
+    );
+  const sequence: SeatPosition[] = [];
+  for (const g of ordered) {
+    const members = g.memberCount ?? 0;
+    const forN = Math.min(g.for, members);
+    const abstainN = Math.min(g.abstain, members - forN);
+    const againstN = Math.min(g.against, members - forN - abstainN);
+    const greyN = members - forN - abstainN - againstN;
+    sequence.push(
+      ...Array.from({ length: forN }, (): SeatPosition => 'for'),
+      ...Array.from({ length: abstainN }, (): SeatPosition => 'abstain'),
+      ...Array.from({ length: greyN }, (): SeatPosition => 'absent'),
+      ...Array.from({ length: againstN }, (): SeatPosition => 'against'),
+    );
+  }
+  while (sequence.length < seats.length) sequence.push('absent');
+  const byAngle = seats
+    .map(([x, y], i) => ({ i, angle: Math.atan2(y, x) }))
     .sort((a, b) => b.angle - a.angle);
   const positions: SeatPosition[] = new Array(seats.length);
   byAngle.forEach((seat, k) => {

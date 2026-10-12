@@ -3,6 +3,7 @@ import {
   activeChunk,
   assignSeats,
   assignSeatsByAngle,
+  assignSeatsByGroup,
   buildTimeline,
   chunkWords,
   estimateWordTimings,
@@ -165,5 +166,57 @@ describe('estimateWordTimings', () => {
 
   it('returns nothing for blank text', () => {
     expect(estimateWordTimings('   ')).toEqual([]);
+  });
+});
+
+describe('assignSeatsByGroup', () => {
+  // Cinq sièges sur un arc, de gauche (π) à droite (0), dans le désordre.
+  const seats: [number, number][] = [
+    [10, 0],
+    [-10, 0],
+    [0, 10],
+    [-7, 7],
+    [7, 7],
+  ];
+
+  it('places group blocks left to right and colours seats by vote', () => {
+    const positions = assignSeatsByGroup(
+      [
+        {
+          name: 'Rassemblement National (RN)',
+          memberCount: 2,
+          for: 2,
+          against: 0,
+          abstain: 0,
+        },
+        {
+          name: 'Socialistes et apparentés (SOC)',
+          memberCount: 3,
+          for: 0,
+          against: 2,
+          abstain: 0,
+        },
+      ],
+      seats,
+    );
+    // Gauche → droite : bloc SOC (gris puis contre, contre) puis bloc RN (pour, pour).
+    const leftToRight = [1, 3, 2, 4, 0].map((i) => positions[i]);
+    expect(leftToRight).toEqual(['absent', 'against', 'against', 'for', 'for']);
+  });
+
+  it('pads with grey when group sizes do not cover every seat', () => {
+    const positions = assignSeatsByGroup(
+      [
+        {
+          name: 'Les Démocrates (Dem)',
+          memberCount: 1,
+          for: 1,
+          against: 0,
+          abstain: 0,
+        },
+      ],
+      seats,
+    );
+    expect(positions.filter((p) => p === 'absent')).toHaveLength(4);
   });
 });

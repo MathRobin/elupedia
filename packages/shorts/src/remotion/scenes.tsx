@@ -6,7 +6,7 @@ import type { BallotFacts } from '../script-facts.js';
 import type { Scene } from '../script-schema.js';
 import { BigText, CountUp, Logo, useReveal } from './components.js';
 import { COLORS, FONT, POSITION_LABELS, shortGroupName } from './theme.js';
-import { assignSeatsByAngle } from './timeline.js';
+import { assignSeatsByAngle, assignSeatsByGroup } from './timeline.js';
 
 const Center: React.FC<{ children: React.ReactNode; top?: number }> = ({
   children,
@@ -91,9 +91,14 @@ export const HemicycleScene: React.FC<{ ballot: BallotFacts }> = ({
     () => generateHemicycleSeats(totalSeats),
     [totalSeats],
   );
+  // En salle par groupe quand les effectifs sont connus (AN), sinon par
+  // position (Sénat : pas de décompte par groupe dans la source).
   const positions = React.useMemo(
-    () => assignSeatsByAngle(ballot.counts, seats),
-    [ballot.counts, seats],
+    () =>
+      ballot.groups.length > 0
+        ? assignSeatsByGroup(ballot.groups, seats)
+        : assignSeatsByAngle(ballot.counts, seats),
+    [ballot.groups, ballot.counts, seats],
   );
   // Révélation progressive des sièges sur 1,5 s.
   const revealed = interpolate(frame, [0, fps * 1.5], [0, totalSeats], {

@@ -7,3 +7,7 @@ export { buildHatvpSlug, buildHatvpUrl } from './hatvp-url.js';
 export { slugifyText } from './slugify.js';
 export { MANDATE_TYPE_LABELS, mandateTypeLabel } from './mandate-labels.js';
 export { generateHemicycleSeats } from './hemicycle-layout.js';
+export {
+  POLITICAL_GROUP_ORDER,
+  politicalGroupRank,
+} from './political-group-order.js';
