@@ -1,3 +1,5 @@
+// Tests de senat : jointure GENERAL/ELUSEN sur le matricule, sexe depuis la
+// civilité, URL de photo reconstruite et mandat synthétique pour un ACTIF sans mandat.
 import { describe, it, expect, vi } from 'vitest';
 import { fetchSenateurs, GENERAL_URL, MANDATS_URL } from './senat.js';
 

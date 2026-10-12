@@ -1,11 +1,30 @@
+/**
+ * Upsert de l'activité parlementaire des députés (questions écrites/orales,
+ * amendements, rapports...) lue par `sources/an-activite.ts`, appelé par
+ * `run-an.ts` (`ingest:an`) et `run-an-partial.ts`.
+ *
+ * Table écrite : `parliamentary_activity` (source `assemblee_nationale`).
+ *
+ * Clé de rapprochement : official + source + type + titre + date (pas d'id
+ * stable côté AN pour tous les types d'activité). Un député sans fiche
+ * `officials` (an_id inconnu) est ignoré silencieusement.
+ *
+ * Idempotent : une ligne existante n'est réécrite que si l'un de ses champs
+ * a changé (typiquement l'arrivée d'une réponse ministérielle). Rien n'est
+ * supprimé. Une erreur sur un député interrompt tout le lot.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, parliamentaryActivity } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { DeputeActivity } from '../sources/an-activite.js';
 import { logger } from '../logger.js';
 
+/** Taille des INSERT groupés (limite de paramètres Postgres). */
 const INSERT_CHUNK_SIZE = 500;
+/** Un log d'avancement tous les N députés. */
 const LOG_CHUNK_SIZE = 50;
+
+const SOURCE = 'assemblee_nationale';
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -15,6 +34,10 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+/**
+ * Upsert de l'activité de chaque député. Écrit dans `parliamentary_activity`.
+ * Retourne le nombre de lignes créées et mises à jour.
+ */
 export async function upsertParliamentaryActivity(
   db: NeonHttpDatabase,
   deputeActivities: DeputeActivity[],
@@ -25,8 +48,8 @@ export async function upsertParliamentaryActivity(
     .select({ id: officials.id, anId: officials.anId })
     .from(officials);
   const officialByAnId = new Map<string, string>();
-  for (const o of allOfficials) {
-    if (o.anId) officialByAnId.set(o.anId, o.id);
+  for (const official of allOfficials) {
+    if (official.anId) officialByAnId.set(official.anId, official.id);
   }
 
   logger.info(
@@ -61,6 +84,20 @@ export async function upsertParliamentaryActivity(
   return summary;
 }
 
+/** Clé de rapprochement d'une activité, identique côté DB et côté source. */
+function activityKey(
+  source: string,
+  type: string,
+  title: string,
+  date: string,
+): string {
+  return `${source}|${type}|${title}|${date}`;
+}
+
+/**
+ * Compare les activités d'un député à celles déjà en base : insère les
+ * nouvelles (par paquets) et met à jour celles dont un champ a changé.
+ */
 async function processDeputeActivities(
   db: NeonHttpDatabase,
   officialId: string,
@@ -73,23 +110,28 @@ async function processDeputeActivities(
     .where(eq(parliamentaryActivity.officialId, officialId));
 
   const existingByKey = new Map(
-    existingActivities.map((a) => [
-      `${a.source}|${a.type}|${a.title}|${a.date}`,
-      a,
+    existingActivities.map((activity) => [
+      activityKey(
+        activity.source,
+        activity.type,
+        activity.title,
+        activity.date,
+      ),
+      activity,
     ]),
   );
 
   const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
 
   for (const item of depute.activities) {
-    const key = `assemblee_nationale|${item.type}|${item.title}|${item.date}`;
+    const key = activityKey(SOURCE, item.type, item.title, item.date);
     const existing = existingByKey.get(key);
 
     if (!existing) {
       newRows.push({
         officialId,
         type: item.type,
-        source: 'assemblee_nationale',
+        source: SOURCE,
         title: item.title,
         date: item.date,
         status: item.status ?? null,
@@ -103,6 +145,8 @@ async function processDeputeActivities(
         questionNumber: item.questionNumber ?? null,
       });
     } else if (
+      // Mise à jour seulement si un champ a changé, pour ne pas toucher
+      // updated_at (et ne pas émettre des milliers d'UPDATE inutiles).
       existing.status !== (item.status ?? null) ||
       existing.questionText !== (item.questionText ?? null) ||
       existing.responseText !== (item.responseText ?? null) ||

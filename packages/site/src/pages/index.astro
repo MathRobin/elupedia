@@ -1,4 +1,12 @@
 ---
+/**
+ * Page d'accueil (route /).
+ *
+ * Prérendue au build (pas de `prerender = false`) : les requêtes ci-dessous
+ * tournent à la génération du site, pas à chaque visite. Charge la liste des
+ * élus en mandat pour la recherche instantanée (HeroSearch), les compteurs du
+ * bandeau et les statistiques de l'encart sénatoriales.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroSearch from '../components/HeroSearch';
 import { getDb } from '../lib/db.js';
@@ -7,6 +15,9 @@ import { eq, isNull, sql } from 'drizzle-orm';
 
 const db = getDb();
 
+// Liste complète des élus en mandat (type + groupe) : alimente la recherche
+// instantanée côté client du composant HeroSearch. Un élu cumulant plusieurs
+// mandats actifs apparaît une fois par mandat.
 const searchRows = await db
   .select({
     slug: officials.slug,
@@ -28,19 +39,24 @@ const searchList = searchRows.map((r) => ({
   politicalGroup: r.politicalGroup,
 }));
 
-const [countResult] = await db
+// Compteurs affichés dans le bandeau d'accueil.
+const [activeOfficialsCountRow] = await db
   .select({ count: sql<number>`count(distinct ${officials.id})` })
   .from(officials)
   .innerJoin(mandates, eq(mandates.officialId, officials.id))
   .where(isNull(mandates.endDate));
 
-const [ballotCount] = await db
+const [ballotsCountRow] = await db
   .select({ count: sql<number>`count(*)` })
   .from(ballots);
 
-const totalOfficials = Number(countResult?.count ?? 0);
-const totalBallots = Number(ballotCount?.count ?? 0);
+// Les agrégats Postgres arrivent en chaîne via le driver : conversion explicite.
+const totalOfficials = Number(activeOfficialsCountRow?.count ?? 0);
+const totalBallots = Number(ballotsCountRow?.count ?? 0);
 
+// Encart « sénatoriales » : candidatures et départements renouvelés pour le
+// scrutin de l'année ci-dessous. Le wording bascule de « à venir » à « récente »
+// une fois la date du scrutin passée (senatorialElectionIsUpcoming).
 const SENATORIAL_YEAR = '2026';
 const [senatorialStats] = await db
   .select({
@@ -53,6 +69,7 @@ const [senatorialStats] = await db
 
 const senatorialCandidateCount = Number(senatorialStats?.candidateCount ?? 0);
 const senatorialDepartementCount = Number(senatorialStats?.departementCount ?? 0);
+// Toutes les lignes d'un même millésime partagent la date du scrutin : une seule suffit.
 const [senatorialDateRow] = await db
   .select({ electionDate: senatorialElections.electionDate })
   .from(senatorialElections)

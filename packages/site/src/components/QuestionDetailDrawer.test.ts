@@ -1,3 +1,9 @@
+/**
+ * Tests de `QuestionDetailDrawer` par inspection du code source (pas de
+ * rendu React) : champs du type, libellés, nettoyage HTML, appel à
+ * `/api/question-text` et état de chargement. Toute reformulation de ces
+ * chaînes dans le composant doit être répercutée ici.
+ */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -7,8 +13,8 @@ const source = readFileSync(componentPath, 'utf-8');
 
 describe('QuestionDetailDrawer', () => {
   it('exports a default function component', async () => {
-    const mod = await import('./QuestionDetailDrawer.js');
-    expect(typeof mod.default).toBe('function');
+    const componentModule = await import('./QuestionDetailDrawer.js');
+    expect(typeof componentModule.default).toBe('function');
   });
 
   it('exports QuestionDetail type fields', () => {

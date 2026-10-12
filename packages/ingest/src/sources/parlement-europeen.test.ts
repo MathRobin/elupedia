@@ -1,3 +1,7 @@
+/**
+ * Tests de parlement-europeen.ts : liste, détail et libellés d'organisation
+ * à partir de réponses JSON-LD simulées.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import {
   fetchCurrentFrenchMeps,

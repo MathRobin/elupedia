@@ -1,3 +1,5 @@
+// Tests de rne-maires : parsing ligne à ligne du CSV RNE (14 colonnes, dont
+// 2-3 = collectivité à statut particulier, vides) et saut de l'en-tête au fetch.
 import { describe, it, expect, vi } from 'vitest';
 import { parseCsvRow, fetchRneMaires } from './rne-maires.js';
 

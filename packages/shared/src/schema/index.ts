@@ -1,3 +1,15 @@
+/**
+ * Agrégateur du schéma Drizzle : ré-exporte chaque table (et les listes de
+ * valeurs `*Enum` associées) pour que `drizzle.config.ts`, l'ingest, le
+ * site et l'admin importent tout depuis `@elupedia/shared`.
+ *
+ * Les `*Enum` sont des tableaux TypeScript `as const`, pas des enums
+ * Postgres : les colonnes correspondantes restent des varchar libres et
+ * rien n'empêche une autre valeur en base.
+ *
+ * Toute nouvelle table doit être ajoutée ici, sinon drizzle-kit l'ignore et
+ * `tests/schema.test.js` échoue.
+ */
 export { officials } from './officials.js';
 export { mandates } from './mandates.js';
 export { ballots } from './ballots.js';

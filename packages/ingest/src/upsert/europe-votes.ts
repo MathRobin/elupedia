@@ -1,3 +1,21 @@
+/**
+ * Upsert des votes nominatifs (roll-call) des eurodéputés français en
+ * séance plénière du Parlement européen. Les séances et décisions viennent
+ * de `sources/parlement-europeen-votes.ts` ; `run-europe.ts` (étape
+ * « eurodeputes-votes ») fournit la liste des séances et une fonction de
+ * récupération des décisions (avec retry et rate limit côté appelant).
+ *
+ * Tables écrites : `ballots` (clé `an_id` = "europarl-vote-<decision id>",
+ * type 'europarl'), `votes` (clé logique (ballot_id, official_id)) et
+ * `data_provenance` (source_table 'europarl_sittings' : une ligne par séance
+ * entièrement traitée, utilisée comme marqueur « ne plus rejouer »).
+ * Idempotent : insert-only — un ballot ou un vote déjà présent n'est jamais
+ * mis à jour (titre, position…). Seuls les votants dont le person id
+ * correspond à `officials.europarl_id` sont conservés.
+ * Les séances « définitives » (plus de 2 jours, cf. isSittingFinal) déjà
+ * marquées sont ignorées sans appel réseau ; les séances récentes sont
+ * rejouées à chaque run (les résultats peuvent encore être publiés).
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, ballots, votes, dataProvenance } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
@@ -10,6 +28,8 @@ import { logger } from '../logger.js';
 const SOURCE_NAME = 'Parlement européen - Open Data API';
 const LEGAL_BASIS = 'Licence CC BY 4.0 - data.europarl.europa.eu';
 const PROVENANCE_TABLE = 'europarl_sittings';
+// Un log de progression toutes les N séances.
+const PROGRESS_LOG_EVERY = 20;
 
 function ballotAnId(decisionId: string): string {
   return `europarl-vote-${decisionId}`;
@@ -30,6 +50,7 @@ export function isSittingFinal(
   return new Date(sittingDate) < twoDaysAgo;
 }
 
+/** Vrai si la séance a déjà été marquée traitée dans `data_provenance`. */
 export async function wasSittingProcessed(
   db: NeonHttpDatabase,
   sittingId: string,
@@ -64,26 +85,35 @@ async function markSittingProcessed(
 }
 
 export interface EuropeVotesSummary {
+  /** Séances définitives déjà traitées, ignorées sans appel réseau. */
   sittingsSkipped: number;
+  /** Ballots créés. */
   ballots: number;
+  /** Ballots déjà en base (rejoués sans modification). */
   ballotsExisting: number;
+  /** Votes créés. */
   votes: number;
 }
 
-/** French officials avec mandat eurodéputé : person id (europarl_id) -> official id. */
-export async function loadFrenchMepOfficialIds(
+/** Officials ayant un europarl_id : person id (europarl_id) -> official id. */
+export async function loadOfficialIdsByEuroparlId(
   db: NeonHttpDatabase,
 ): Promise<Map<string, string>> {
   const rows = await db
     .select({ id: officials.id, europarlId: officials.europarlId })
     .from(officials);
-  const map = new Map<string, string>();
-  for (const r of rows) {
-    if (r.europarlId) map.set(r.europarlId, r.id);
+  const officialIdByEuroparlId = new Map<string, string>();
+  for (const row of rows) {
+    if (row.europarlId) officialIdByEuroparlId.set(row.europarlId, row.id);
   }
-  return map;
+  return officialIdByEuroparlId;
 }
 
+/**
+ * Insère les ballots et votes d'une séance (écriture DB, insert-only, une
+ * requête d'existence par ballot et par vote). `officialIdByEuroparlId`
+ * vient de loadOfficialIdsByEuroparlId.
+ */
 export async function upsertSittingVotes(
   db: NeonHttpDatabase,
   sitting: PlenarySitting,
@@ -144,6 +174,12 @@ export async function upsertSittingVotes(
   return { ballots: ballotsCreated, ballotsExisting, votes: votesCreated };
 }
 
+/**
+ * Traite chaque séance : saute celles déjà définitives et marquées, sinon
+ * récupère ses décisions via `fetchDecisions`, les upserte, et marque la
+ * séance si elle est définitive (écriture DB). Une erreur sur une séance
+ * interrompt le run.
+ */
 export async function upsertEuropeVotes(
   db: NeonHttpDatabase,
   sittings: PlenarySitting[],
@@ -156,36 +192,36 @@ export async function upsertEuropeVotes(
     votes: 0,
   };
 
-  const officialIdByEuroparlId = await loadFrenchMepOfficialIds(db);
+  const officialIdByEuroparlId = await loadOfficialIdsByEuroparlId(db);
 
   logger.info(`  ${sittings.length} sittings to process`);
 
   for (let i = 0; i < sittings.length; i++) {
     const sitting = sittings[i];
 
-    if (i % 20 === 0) {
+    if (i % PROGRESS_LOG_EVERY === 0) {
       logger.info(`  [${i + 1}/${sittings.length}] sittings...`);
     }
 
     try {
-      const final = isSittingFinal(sitting.date);
-      if (final && (await wasSittingProcessed(db, sitting.id))) {
+      const isFinal = isSittingFinal(sitting.date);
+      if (isFinal && (await wasSittingProcessed(db, sitting.id))) {
         summary.sittingsSkipped++;
         continue;
       }
 
       const decisions = await fetchDecisions(sitting.id);
-      const r = await upsertSittingVotes(
+      const sittingResult = await upsertSittingVotes(
         db,
         sitting,
         decisions,
         officialIdByEuroparlId,
       );
-      summary.ballots += r.ballots;
-      summary.ballotsExisting += r.ballotsExisting;
-      summary.votes += r.votes;
+      summary.ballots += sittingResult.ballots;
+      summary.ballotsExisting += sittingResult.ballotsExisting;
+      summary.votes += sittingResult.votes;
 
-      if (final) {
+      if (isFinal) {
         await markSittingProcessed(db, sitting, decisions.length);
       }
     } catch (error) {

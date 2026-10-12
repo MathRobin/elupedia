@@ -1,3 +1,5 @@
+// Tests de senat-collaborateurs : parsing du CSV Regards Citoyens et extraction
+// du matricule depuis l'URL de la fiche senat.fr.
 import { describe, it, expect, vi } from 'vitest';
 import { fetchSenatCollaborateurs } from './senat-collaborateurs.js';
 

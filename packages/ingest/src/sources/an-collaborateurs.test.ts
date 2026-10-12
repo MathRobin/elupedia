@@ -1,3 +1,7 @@
+/**
+ * Tests de an-collaborateurs.ts : CSV en ligne, cas limites du parseur
+ * (virgules et guillemets dans les champs).
+ */
 import { describe, it, expect, vi } from 'vitest';
 import { fetchCollaborateurs, DATASET_URL } from './an-collaborateurs.js';
 

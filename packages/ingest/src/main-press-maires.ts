@@ -1,7 +1,24 @@
+/**
+ * Point d'entrée CLI de l'ingestion presse (Google Actualités) pour tous les
+ * élus, par lots : à chaque run, les N élus vérifiés le moins récemment.
+ * Complément de main-press.ts (parlementaires uniquement), voir
+ * docs/DOMAINS.md.
+ *
+ * Commandes :
+ *   `yarn --cwd packages/ingest ingest:press:maires [--limit n] [--department 94] [--type maire]`
+ *   `yarn --cwd packages/ingest ingest:press:conseillers-dep` (= --type conseiller_departemental)
+ *
+ * Convention du package : ce `main-*.ts` ne fait que valider les options et
+ * lancer `run-press-maires.ts`, qui porte la logique testable. Toute option
+ * invalide arrête le processus (code 1) avant tout accès réseau ou DB.
+ */
 import { parseArgs } from 'node:util';
 import { DEPARTMENT_NAMES, MANDATE_TYPE_LABELS } from '@elupedia/shared';
 import { logger } from './logger.js';
-import { runPressMaires, DEFAULT_BATCH_SIZE } from './run-press-maires.js';
+import {
+  runPressAllOfficials,
+  DEFAULT_BATCH_SIZE,
+} from './run-press-maires.js';
 import {
   detectChanges,
   writeChangeReport,
@@ -18,6 +35,7 @@ const MANDATE_TYPES = Object.keys(MANDATE_TYPE_LABELS).filter(
   (type) => type !== 'president',
 );
 
+// strict: true → toute option inconnue lève une exception (et donc code 1).
 const { values } = parseArgs({
   args: process.argv.slice(2),
   options: {
@@ -54,7 +72,7 @@ if (values.type !== undefined && !MANDATE_TYPES.includes(values.type)) {
   process.exit(1);
 }
 
-runPressMaires(batchSize, values.department, values.type)
+runPressAllOfficials(batchSize, values.department, values.type)
   .then((results) => {
     const report = detectChanges(results);
     writeChangeReport(report, 'ingest-report-press-maires.json');

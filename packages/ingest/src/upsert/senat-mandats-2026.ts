@@ -1,3 +1,23 @@
+/**
+ * Ouverture des mandats des sénateurs élus en septembre 2026 et clôture des
+ * mandats sortants, à partir des résultats publiés sur
+ * senatoriales2026.senat.fr (`sources/senat-resultats-2026.ts`). Appelé par
+ * `run-senat-resultats.ts` (`ingest:senat:resultats`), après
+ * `upsert/senat-resultats-2026.ts`.
+ *
+ * Tables écrites : `officials` (création des nouveaux élus, sans date de
+ * naissance ni matricule : l'open data Sénat les complétera ensuite via
+ * `upsert/senators.ts`) et `mandates` (type `senateur`).
+ *
+ * Clés de rapprochement :
+ * - official : nom + prénom normalisés (pas de date de naissance dans la
+ *   source) — approximatif, homonymes confondus ;
+ * - mandat : le mandat sénateur actif de l'official (un seul par personne).
+ *
+ * Idempotent : un rejeu ne rouvre rien (mandat déjà à MANDATE_START). Un
+ * sortant réélu voit son ancien mandat clos et un nouveau ouvert (historique
+ * conservé) ; un sortant absent des élus de son département est clos.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates, slugifyText } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -12,8 +32,9 @@ import { logger } from '../logger.js';
 // upsert/mayors.ts : la date de début du nouveau mandat clôt l'ancien).
 const MANDATE_START = '2026-10-01';
 
-function normalize(s: string): string {
-  return s
+/** Minuscules, sans accents, séparateurs uniformisés : clé de rapprochement. */
+function normalize(name: string): string {
+  return name
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
@@ -52,9 +73,19 @@ function titleCaseLastName(raw: string): string {
     .join('');
 }
 
+/** Code SQLSTATE Postgres d'une violation de contrainte d'unicité. */
+const PG_UNIQUE_VIOLATION = '23505';
+
+/**
+ * Détecte une violation d'unicité Postgres, y compris quand Drizzle
+ * l'enveloppe dans `error.cause`.
+ */
 function isUniqueViolation(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
-  if ('code' in error && (error as { code?: unknown }).code === '23505') {
+  if (
+    'code' in error &&
+    (error as { code?: unknown }).code === PG_UNIQUE_VIOLATION
+  ) {
     return true;
   }
   if ('cause' in error) {
@@ -63,6 +94,10 @@ function isUniqueViolation(error: unknown): boolean {
   return false;
 }
 
+/**
+ * Ouvre les mandats 2026 des élus et clôt ceux des sortants, département par
+ * département. Écrit dans `officials` et `mandates`. Retourne des compteurs.
+ */
 export async function upsertSenatMandats2026(
   db: NeonHttpDatabase,
   departements: SenatorialResultDepartement[],
@@ -85,24 +120,25 @@ export async function upsertSenatMandats2026(
     .from(officials);
 
   const officialByName = new Map<string, { id: string }>();
-  for (const o of allOfficials) {
-    const key = `${normalize(o.lastName)}|${normalize(o.firstName)}`;
-    officialByName.set(key, { id: o.id });
+  for (const official of allOfficials) {
+    const key = `${normalize(official.lastName)}|${normalize(official.firstName)}`;
+    officialByName.set(key, { id: official.id });
   }
 
-  const slugSet = new Set(
+  const takenSlugs = new Set(
     allOfficials.filter((o) => o.slug).map((o) => o.slug!),
   );
+  /** Suffixe `-1`, `-2`... si le slug de base est déjà pris (homonymes). */
   function uniqueSlug(base: string): string {
-    if (!slugSet.has(base)) {
-      slugSet.add(base);
+    if (!takenSlugs.has(base)) {
+      takenSlugs.add(base);
       return base;
     }
-    let i = 1;
-    while (slugSet.has(`${base}-${i}`)) i++;
-    const s = `${base}-${i}`;
-    slugSet.add(s);
-    return s;
+    let suffix = 1;
+    while (takenSlugs.has(`${base}-${suffix}`)) suffix++;
+    const candidate = `${base}-${suffix}`;
+    takenSlugs.add(candidate);
+    return candidate;
   }
 
   const activeSenateurMandates = await db
@@ -115,17 +151,19 @@ export async function upsertSenatMandats2026(
     .from(mandates)
     .where(and(eq(mandates.type, 'senateur'), isNull(mandates.endDate)));
 
+  // Deux index sur les mandats actifs : par official (pour décider
+  // ouverture / réélection) et par département (pour trouver les sortants).
   const activeByOfficial = new Map<
     string,
     { id: string; department: string | null; startDate: string }
   >();
   const activeByDept = new Map<string, { id: string; officialId: string }[]>();
-  for (const m of activeSenateurMandates) {
-    activeByOfficial.set(m.officialId, m);
-    if (m.department) {
-      const key = normalize(m.department);
+  for (const mandate of activeSenateurMandates) {
+    activeByOfficial.set(mandate.officialId, mandate);
+    if (mandate.department) {
+      const key = normalize(mandate.department);
       const list = activeByDept.get(key) ?? [];
-      list.push({ id: m.id, officialId: m.officialId });
+      list.push({ id: mandate.id, officialId: mandate.officialId });
       activeByDept.set(key, list);
     }
   }
@@ -213,14 +251,17 @@ export async function upsertSenatMandats2026(
       }
     }
 
+    // Sortants non réélus : tout mandat actif du département dont le
+    // titulaire ne figure pas parmi les élus (de ce département : un sénateur
+    // réélu ailleurs serait clos ici et rouvert dans son nouveau département).
     const outgoing = (activeByDept.get(deptKey) ?? []).filter(
-      (m) => !reelectedOfficialIds.has(m.officialId),
+      (mandate) => !reelectedOfficialIds.has(mandate.officialId),
     );
-    for (const m of outgoing) {
+    for (const mandate of outgoing) {
       await db
         .update(mandates)
         .set({ endDate: MANDATE_START, updatedAt: new Date() })
-        .where(eq(mandates.id, m.id));
+        .where(eq(mandates.id, mandate.id));
       summary.mandatesClosed++;
     }
   }

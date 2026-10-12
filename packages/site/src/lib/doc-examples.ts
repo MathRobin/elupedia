@@ -1,20 +1,24 @@
-import { officials, mandates } from '@elupedia/shared';
-import { eq, and, isNull, isNotNull } from 'drizzle-orm';
-import { getDb } from './db.js';
-
 /**
- * Élu servant d'exemple dans la documentation publique.
+ * Choisit un élu réel servant d'exemple dans la documentation publique
+ * (`/integrer`, `/docs/oembed`, `/docs/og-images`).
  *
  * Les slugs d'élus ne sont pas stables : ils changent avec les corrections
  * d'état civil et la résolution des homonymies. Les citer en dur a fini par
  * afficher une iframe et une image en 404 sur `/integrer` (#268). L'exemple est
- * donc choisi dans la base au moment du rendu.
+ * donc choisi dans la base au moment du rendu : le premier député en exercice
+ * par ordre alphabétique qui a un slug et une photo. Résultat mémorisé pour la
+ * durée de vie de l'instance serveur.
  */
+import { officials, mandates } from '@elupedia/shared';
+import { eq, and, isNull, isNotNull } from 'drizzle-orm';
+import { getDb } from './db.js';
+
 export interface DocExample {
   slug: string;
   fullName: string;
 }
 
+/** Utilisé si la base est injoignable ou vide : la doc reste lisible, l'exemple est juste fictif. */
 const FALLBACK: DocExample = {
   slug: 'exemple',
   fullName: 'Nom de l’élu',
@@ -22,6 +26,7 @@ const FALLBACK: DocExample = {
 
 let cached: DocExample | null = null;
 
+/** Renvoie l'élu d'exemple (lecture DB au premier appel, puis cache mémoire). Ne lève jamais. */
 export async function getDocExample(): Promise<DocExample> {
   if (cached) return cached;
 

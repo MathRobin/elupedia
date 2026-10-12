@@ -1,9 +1,38 @@
+/**
+ * `GET /api/og/default.png` : image Open Graph générique du site (logo, nom,
+ * sous-titre, pastilles des grandes familles de contenu). Servie par
+ * `BaseLayout.astro` comme `og:image` de toute page qui n'en fournit pas une
+ * spécifique (élus et scrutins ont les leurs dans ce dossier).
+ *
+ * Rendu via `lib/og.ts` (satori → resvg) ; l'arbre est écrit en
+ * `createElement` car satori n'accepte que des éléments React avec un style
+ * CSS restreint (flexbox, pas de grid). Cache CDN 7 jours, stale 30 jours.
+ */
 import type { APIRoute } from 'astro';
 import { renderOgImage } from '../../../lib/og.js';
 import { LOGO_DATA_URI } from '../../../lib/og-assets.js';
 import { createElement as h } from 'react';
 
 export const prerender = false;
+
+/** Pastille « famille de contenu » en bas de l'image. */
+function contentPill(label: string) {
+  return h(
+    'div',
+    {
+      style: {
+        display: 'flex',
+        padding: '10px 24px',
+        borderRadius: '12px',
+        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+        border: '1px solid rgba(99, 102, 241, 0.3)',
+        fontSize: '22px',
+        color: '#818cf8',
+      },
+    },
+    label,
+  );
+}
 
 export const GET: APIRoute = async () => {
   const png = await renderOgImage(
@@ -20,6 +49,7 @@ export const GET: APIRoute = async () => {
           padding: '60px',
         },
       },
+      // Bloc principal : logo à gauche, nom du site et sous-titre à droite.
       h(
         'div',
         {
@@ -72,6 +102,7 @@ export const GET: APIRoute = async () => {
             },
             'Encyclopédie ouverte des élus français',
           ),
+          // Barre d'accent sous le sous-titre.
           h('div', {
             style: {
               display: 'flex',
@@ -92,66 +123,10 @@ export const GET: APIRoute = async () => {
             gap: '20px',
           },
         },
-        h(
-          'div',
-          {
-            style: {
-              display: 'flex',
-              padding: '10px 24px',
-              borderRadius: '12px',
-              backgroundColor: 'rgba(99, 102, 241, 0.15)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              fontSize: '22px',
-              color: '#818cf8',
-            },
-          },
-          'Députés',
-        ),
-        h(
-          'div',
-          {
-            style: {
-              display: 'flex',
-              padding: '10px 24px',
-              borderRadius: '12px',
-              backgroundColor: 'rgba(99, 102, 241, 0.15)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              fontSize: '22px',
-              color: '#818cf8',
-            },
-          },
-          'Sénateurs',
-        ),
-        h(
-          'div',
-          {
-            style: {
-              display: 'flex',
-              padding: '10px 24px',
-              borderRadius: '12px',
-              backgroundColor: 'rgba(99, 102, 241, 0.15)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              fontSize: '22px',
-              color: '#818cf8',
-            },
-          },
-          'Maires',
-        ),
-        h(
-          'div',
-          {
-            style: {
-              display: 'flex',
-              padding: '10px 24px',
-              borderRadius: '12px',
-              backgroundColor: 'rgba(99, 102, 241, 0.15)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              fontSize: '22px',
-              color: '#818cf8',
-            },
-          },
-          'Votes',
-        ),
+        contentPill('Députés'),
+        contentPill('Sénateurs'),
+        contentPill('Maires'),
+        contentPill('Votes'),
       ),
     ),
   );

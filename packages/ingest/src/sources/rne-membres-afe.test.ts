@@ -1,3 +1,5 @@
+// Tests de rne-membres-afe : parsing du CSV RNE à champs entre guillemets
+// (11 colonnes) et saut de l'en-tête au fetch.
 import { describe, it, expect, vi } from 'vitest';
 import { parseCsvRow, fetchRneMembresAfe } from './rne-membres-afe.js';
 

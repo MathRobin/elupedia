@@ -16,21 +16,15 @@ flowchart LR
 
 ### 1. Ingestion (`packages/ingest`)
 
-Scripts Node.js exécutés via des cron jobs GitHub Actions. Chaque script télécharge des archives ZIP ou des fichiers CSV depuis les portails open data et effectue un upsert en base.
+Scripts Node.js (tsx) lancés par des DAGs **Dagu** (`dagu-dags/`, calendrier dans `docs/INGESTION-SCHEDULE.md`). Les anciens workflows cron GitHub Actions d'ingestion ont été retirés ; GitHub Actions ne sert plus qu'à la CI. Chaque script lit une ou plusieurs sources ouvertes (ZIP/JSON, CSV, API, scraping) et écrit en base par upsert.
 
-- Exécution : quatre cron GitHub Actions séparés :
-  - AN complète (`.github/workflows/ingest-an.yml`, 1er dimanche du mois 21:00 UTC) — ingestion intégrale : députés, collaborateurs, adresses, activité parlementaire, commissions, votes (scrutins)
-  - AN partielle (`.github/workflows/ingest-an-partial.yml`, mardi/samedi 02:00 UTC) — activité parlementaire, critérisée : exclut députés décédés, mandats terminés, questions répondues depuis plus de 3 mois
-  - Sénat (`.github/workflows/ingest-senat.yml`, mardi/samedi 03:00 UTC) — sénateurs, votes, affiliations, collaborateurs, adresses, historique électoral
-  - Maires (`.github/workflows/ingest-maires.yml`, 1er du mois 04:00 UTC) — maires RNE, adresses DILA, photos Wikidata, scrape réseaux sociaux communes
-  - Intérêts HATVP (`.github/workflows/ingest-interests.yml`, 1er et 15 du mois 04:00 UTC) — déclarations d'intérêts transverses (députés, sénateurs, maires), une seule passe indépendante des pipelines par institution
-  - Presse (`.github/workflows/ingest-press.yml`, lundi 05:00 UTC) — articles de presse via Google News RSS, élus vivants uniquement, délai 3s entre chaque élu
-- Déclenchement manuel : `workflow_dispatch` sur chaque workflow
-- Stratégie : upsert (insert on conflict update) pour l'idempotence
-- Résilience : retry avec backoff exponentiel (3 tentatives, délais 1s/2s/4s) via `utils/retry.ts`
-- Orchestration : `run-an.ts` (6 étapes AN), `run-senat.ts` (9 étapes Sénat), `run-maires.ts` (4 étapes Maires), `run-conseillers-dep.ts` (1 étape RNE), `run-conseillers-reg.ts` (1 étape RNE), `run-conseillers-arr.ts` (1 étape RNE), `run-membres-assemblee.ts` (1 étape RNE) et `run-interests.ts` (1 étape HATVP transverse), isole les erreurs par étape et affiche un résumé ; `run-social-links.ts` (crawl AN + scraping sites perso) ; `run.ts` combine AN + Sénat + Maires + Conseillers départementaux + Conseillers régionaux + Conseillers d'arrondissement + Membres d'assemblée + Intérêts + Photos + HATVP status pour un run complet
-- Détection de changement : `utils/change-detector.ts` compare les compteurs created/updated, expose un indicateur `has_changes` en output GitHub Actions
-- Points d'entrée : `main-an.ts` (`ingest:an`, 6 étapes), `main-an-partial.ts` (`ingest:an:partial`), `main-senat.ts` (`ingest:senat`), `main-maires.ts` (`ingest:maires`), `main-conseillers-dep.ts` (`ingest:conseillers-dep`), `main-conseillers-reg.ts` (`ingest:conseillers-reg`), `main-conseillers-arr.ts` (`ingest:conseillers-arr`), `main-membres-assemblee.ts` (`ingest:membres-assemblee`), `main-interests.ts` (`ingest:interests`, HATVP transverse), `main-social-links.ts` (`ingest:social-links`), `main-press.ts` (`ingest:press`), `main-press-maires.ts` (`ingest:press:maires`, 1500 élus aléatoires), `main-parrainages.ts` (`ingest:parrainages`, accepte un argument année optionnel), `main-rip-signatures.ts` (`ingest:rip`), `main-photos.ts` (`ingest:photos`, sauvegarde S3), `main-hatvp-status.ts` (`ingest:hatvp-status`, vérification statuts HATVP), `main-decorations.ts` (`ingest:decorations`, décorations Légion d'honneur), `main-madada.ts` (`ingest:madada`, transparence MaDada.fr), `main.ts` (`ingest`, combiné)
+- Exécution : un DAG Dagu par domaine (`ingest-an`, `ingest-senat`, `ingest-maires`, `ingest-conseillers-*`, `ingest-interests`, `ingest-press`, `ingest-press-maires`, `ingest-photos`, `ingest-maps`, `ingest-geocode`, `ingest-europe`, `ingest-factchecks`, `ingest-wikipedia`, `ingest-madada`, `ingest-hatvp-status`, `ingest-decorations`, `ingest-reconcile`, `ingest-social-links`, `ingest-membres-assemblee`)
+- Déclenchement manuel : `yarn --cwd packages/ingest <script>` (liste complète dans `docs/INGEST.md`)
+- Stratégie : upsert idempotent (insert on conflict update, ou select préalable + insert/update) ; un rejeu complet ne crée pas de doublons
+- Résilience : `runStep` (voir `run-helpers.ts`) rejoue fetch + upsert jusqu'à 3 fois avec backoff (`utils/retry.ts`), isole les erreurs par étape et produit un résumé ; les sources qui tolèrent l'absence de données renvoient `[]`/`null` au lieu de lever (google-news, madada, hatvp-status, scraping) pour ne pas faire échouer un DAG entier
+- Détection de changement : `utils/change-detector.ts` compare les compteurs `created`/`updated` et écrit `ingest-report*.json` à la racine du package ; un rebuild du site est déclenché si quelque chose a changé
+- Orchestration : `run-*.ts` par domaine (ex. `run-an.ts` 8 étapes, `run-senat.ts` 9 étapes, `run-maires.ts` 5 étapes) ; `run.ts` enchaîne l'ensemble pour un run complet
+- Points d'entrée : `main-*.ts` (un par script `package.json`), voir la convention ci-dessous et `docs/INGEST.md`
 
 #### Clients de données
 
@@ -197,6 +191,66 @@ Le site est déployé sur Vercel. Chaque push sur `main` déclenche un rebuild. 
 - Analytics : Vercel Web Analytics (`@vercel/analytics`, cookieless, injecté dans le layout)
 - Chaîne ingestion → rebuild : chaque workflow d'ingestion (AN, Sénat) expose `has_changes`, qui conditionne un rebuild Vercel via deploy hook
 
+## Guide de lecture du code
+
+Cette section résume les conventions qu'il faut connaître avant de plonger dans le code. Chaque fichier source porte en plus un commentaire d'en-tête (rôle, source des données, appelants, pièges).
+
+### Convention `main-*.ts` / `run-*.ts` / `sources/` / `upsert/` (ingest)
+
+| Couche                | Rôle                                                                                                                                                               | Règles                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `main-<domaine>.ts`   | Point d'entrée CLI d'un script `package.json`. Parse les arguments (`cli.ts`), ouvre la connexion DB, appelle le `run-*`, écrit le rapport, fixe le code de sortie | Seul endroit qui fait `process.exit`                                                                          |
+| `run-<domaine>.ts`    | Orchestration testable : enchaîne des étapes `runStep({ fetch, upsert })` et renvoie des `StepResult`                                                              | Ne fait jamais `process.exit` ; injectable (DB et fetch en paramètres) ; testé dans `run.test.ts`             |
+| `sources/<source>.ts` | Lecture d'une source ouverte et conversion en objets typés. Aucune écriture en base                                                                                | Prend un `fetchFn` injectable ; documente le format brut et ses pièges                                        |
+| `upsert/<table>.ts`   | Écriture en base à partir des objets des sources                                                                                                                   | Idempotent ; documente la clé de rapprochement, ce qui n'est jamais écrasé, et le sens de `created`/`updated` |
+| `services/`, `utils/` | Briques transverses (géocodage, cartes statiques, retry, checkpoints, détection de changement)                                                                     |                                                                                                               |
+| `filters/`            | Critères de l'ingestion AN partielle                                                                                                                               |                                                                                                               |
+
+Dérogations documentées dans leur en-tête : `main-decorations`, `main-madada`, `main-parrainages`, `main-rip-signatures`, `main-photos` portent leur logique sans `run-*` ; `main-reconcile`, `main-dedupe-committees`, `main-check-coherence` sont des outils de maintenance.
+
+### Contrat `StepResult` et compteurs
+
+`runStep` rejoue fetch + upsert jusqu'à 3 fois : les upserts doivent donc être idempotents. `created`/`updated` sont des compteurs libres dont le sens varie par étape (certaines étapes rangent les lignes ignorées dans `updated`) ; chaque upsert documente la sémantique dans son en-tête. `change-detector` considère qu'il y a un changement dès qu'un compteur est > 0.
+
+### Rapprochement des élus entre sources
+
+Une personne est identifiée, dans l'ordre : par son identifiant source quand il existe (`officials.an_id`, `senat_id`, `europarl_id`), sinon par le triplet (prénom, nom, date de naissance) normalisé, sinon (Sénat uniquement) par le slug. Les sources RNE et les résultats électoraux n'ont que nom + prénom (± naissance) : les homonymes stricts sont un risque connu (voir `docs/KNOWN-ISSUES.md`). Pour les mandats, l'index unique `(official_id, type, start_date)` est la clé ; un mandat « en cours » côté source est d'abord cherché par date de début exacte, puis par statut actif (`upsert/officials.ts`).
+
+### Historisation des mandats locaux (RNE)
+
+Pour maires, conseillers (dép./rég./arr.), membres d'assemblée et AFE : si la date de prise de fonction du fichier est postérieure au mandat actif, on clôt l'ancien et on ouvre une nouvelle ligne ; si elle est antérieure, on corrige en place. Les titulaires disparus du fichier sont clos à la date du run. Une violation de l'index unique (code Postgres 23505) est absorbée. Le sens de `district`/`department`/`commune_code` dépend du type de mandat (secteur pour arrondissement, région + section pour les régionaux, libellé fixe pour les FDE) ; voir les en-têtes de `packages/shared/src/schema/mandates.ts` et des upserts concernés.
+
+### Ce qui n'est jamais écrasé par une ingestion
+
+Photos existantes (`mayor-photos`), coordonnées GPS déjà géocodées, `an_uid` des commissions, titres/URL des demandes MaDaDa, département connu d'un mandat quand la source n'a pas l'info, date de fin posée par une source plus à jour. Chaque cas est commenté à l'endroit où la règle s'applique.
+
+### Fichiers annexes produits par l'ingestion
+
+- `packages/ingest/ingest-report*.json` : rapports de run (compteurs par étape)
+- `packages/ingest/madada-cache.json` : cache des réponses MaDaDa
+- `~/.elupedia/checkpoints/` : reprises des ingestions longues (maires, adresses mairies)
+- `data_provenance` : outre les provenances, sert de stockage de curseurs d'ingestion incrémentale (`source_table = 'europarl_questions_cursor'`, `'europarl_sittings'`)
+- Colonnes/index ajoutés à la main en base hors drizzle-kit : `officials.press_checked_at`, `officials.factchecks_checked_at`, index `press_mentions_official_source_idx`
+
+### Site : conventions à connaître
+
+- **Rendu** : pages statiques (accueil, `/elus`, `/votes`, glossaire, pages légales) vs SSR avec `Cache-Control: s-maxage=3600, stale-while-revalidate=86400` (fiche élu, embed, scrutin, commission, élections). Les fiches élus acceptent un slug **ou** un UUID ; la comparaison à `officials.id` n'a lieu que si la valeur a la forme d'un UUID.
+- **Directives `client:*`** : `client:load` pour l'interactif visible immédiatement, `client:idle` pour les tiroirs fermés par défaut, rien pour les SVG/HTML statiques (`JurisdictionMap`, `GlossaryExampleCard`).
+- **Hydratation** : un composant qui lit `window`/l'URL doit faire son premier rendu sans la lire puis se synchroniser dans un effet (modèle : `OfficialsList`).
+- **Événements DOM entre pages Astro et îlots React** : `open-question-detail`, `open-interest-detail`, `open-madada-drawer` (sur `window`, émis par la fiche élu) ; `dept-filter` (sur `document`, émis par `FranceDepartmentMap`, consommé par `scrutins/[id].astro`).
+- **Query strings** : `OfficialsList` (`q,type,actif,photo,dep,groupe,tri,page`), `BallotsList` (`q,type,resultat,du,au,tri`), `ElectionPanorama` (`q` = commune, filtrage serveur).
+- **Identifiants d'élections** : `YYYY..._tN` (fichiers OVH) pour municipales/législatives, `<année>-<tour>` pour les sénatoriales ; construits par `/elections/index`, consommés par `/elections/[type]/[id]`.
+- **Commissions** : `committees` est une table d'adhésions sans table d'organes ; le slug de `/commissions/[slug]` est dérivé du nom via `slugifyText` et doit rester identique entre liens et page.
+- **Thème sombre** : classe `.dark` sur `<html>`, clé localStorage `theme`, appliquée par un script inline de `BaseLayout` avant le premier rendu puis par `ThemeToggle`.
+- **Cartes statiques** : clé MD5 de `lat_lon_zoom_WxH` (zoom 13, 400×200) partagée entre `packages/ingest/src/services/static-map.ts`, `upsert/upload-maps.ts` et la fiche élu (`MAPS_BASE_URL/maps/<md5>.png`). `packages/site/src/lib/static-map.ts` est un vestige sans appelant.
+- **Images OG** : satori n'accepte que flexbox (`display:flex` obligatoire sur chaque conteneur), polices Inter téléchargées au premier rendu, logo inliné en base64 car `public/` n'est pas dans le bundle serverless.
+- **Libellés de groupes** : `POLITICAL_GROUP_COLORS`/`URLS` font une correspondance stricte sur la chaîne « Nom (SIGLE) » ; un renommage à la source fait perdre couleur et lien silencieusement.
+- **`slugifyText`** produit des URLs publiques (`/elus/{slug}`, `/commissions/{slug}`) : toute modification est un changement d'URL.
+
+### Tests qui lisent le code source
+
+Les tests racine (`tests/site-*.test.js`, `embed-card`, `oembed`, `og-image`, `commune-api`, `schema`, `site-db`…) et certains tests de composants ouvrent les fichiers source et vérifient des chaînes exactes (noms de variables comme `deputy.firstName` ou `v.ballotTitle`, blocs de code, absence du mot `BaseLayout` dans `embed.astro`). Avant un refactor, lancer `yarn vitest run` à la racine ; les fichiers concernés le signalent dans leur en-tête.
+
 ## Packages partagés (`packages/shared`)
 
 Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript et les helpers utilisés à la fois par `ingest` et `site`.
@@ -208,19 +262,14 @@ Contient le client DB (Drizzle + Neon), le schéma complet, les types TypeScript
 - **docs/DATA-LICENSES.md** : inventaire des sources de données et leurs licences de réutilisation
 - **docs/ARCHITECTURE.md** : ce fichier
 - **docs/DOMAINS.md** : domaines métier et sources associées
+- **docs/INGEST.md** : scripts d'ingestion et leurs options
+- **docs/INGESTION-SCHEDULE.md** : calendrier des DAGs Dagu
+- **docs/KNOWN-ISSUES.md** : anomalies et dettes connues, repérées à la lecture du code
 
 ## CI / CD
 
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) : lint, format, typecheck et tests sur chaque PR et push sur `main`
-- **GitHub Actions Ingestion AN — complète** (`.github/workflows/ingest-an.yml`) : 1er dimanche du mois 21:00 UTC, pipeline AN intégral (sans intérêts, désormais transverse)
-- **GitHub Actions Ingestion AN — partielle** (`.github/workflows/ingest-an-partial.yml`) : mardi/samedi 02:00 UTC, activité parlementaire avec critérisation (exclut décédés, mandats terminés, Q/R anciennes)
-- **GitHub Actions Ingestion Sénat** (`.github/workflows/ingest-senat.yml`) : mardi/samedi 03:00 UTC, pipeline Sénat
-- **GitHub Actions Ingestion Maires** (`.github/workflows/ingest-maires.yml`) : 1er du mois 04:00 UTC, pipeline Maires (RNE + DILA + scrape communes)
-- **GitHub Actions Ingestion HATVP intérêts** (`.github/workflows/ingest-interests.yml`) : 1er et 15 du mois 04:00 UTC, déclarations d'intérêts transverses (députés, sénateurs, maires)
-- **GitHub Actions Ingestion liens sociaux** (`.github/workflows/ingest-social-links.yml`) : quotidien 03:30 UTC, crawl des 2 pages AN (réseaux sociaux + sites personnels) + scraping de 50 sites perso/jour pour détection Instagram/TikTok/YouTube
-- **GitHub Actions Ingestion presse tous élus** (`.github/workflows/ingest-press-maires.yml`) : 2x/jour (06:00 et 18:00 UTC), 1500 élus vivants aléatoires par run, timeout 240 min
-- **GitHub Actions Photos S3** (`.github/workflows/ingest-photos.yml`) : hebdomadaire (dimanche 03:30 UTC), sauvegarde des photos officielles vers S3
-- **GitHub Actions Social Daily Post** (`.github/workflows/social-daily-post.yml`) : deux publications quotidiennes sur les réseaux sociaux via Postiz — matin 08:30 Paris (élu aléatoire), soir 18:30 Paris (vote récent) ; déclenchement manuel avec choix du mode
+- **Ingestion** : DAGs Dagu (`dagu-dags/`), plus de cron GitHub Actions d'ingestion ; calendrier dans `docs/INGESTION-SCHEDULE.md`
 - **Dependabot** (`.github/dependabot.yml`) : surveillance hebdomadaire des dépendances npm
 
 ## Dépendance externe : Bursae (fiche budgétaire communale)

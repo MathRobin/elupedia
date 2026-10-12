@@ -1,4 +1,14 @@
 ---
+/**
+ * Fiche d'une commission, délégation ou groupe parlementaire (route
+ * /commissions/[slug]).
+ *
+ * Rendu à la demande (SSR, `prerender = false`). Le slug est dérivé du nom de
+ * l'organe par slugifyText (même fonction que les liens des fiches d'élus) :
+ * il n'est pas stocké en base. Affiche les membres actuels et passés avec
+ * leurs dates d'adhésion, et le lien vers la fiche de l'instance sur le site
+ * de l'AN quand l'uid open data est connu. Slug inconnu : redirection /elus.
+ */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getDb } from '../../lib/db.js';
 import { committees, officials, slugifyText } from '@elupedia/shared';
@@ -9,6 +19,10 @@ export const prerender = false;
 const { slug } = Astro.params;
 const db = getDb();
 
+// Il n'y a pas de table d'organes : `committees` est une table d'adhésions
+// (une ligne par élu et par période). On charge donc toutes les adhésions et
+// on retrouve l'organe en comparant le slug du nom, ce qui coûte un scan
+// complet à chaque requête (d'où le Cache-Control en bas de page).
 const allCommittees = await db
   .select({
     name: committees.name,
@@ -21,16 +35,17 @@ const allCommittees = await db
   .from(committees)
   .orderBy(desc(committees.startDate));
 
-const matching = allCommittees.filter((c) => slugifyText(c.name) === slug);
+const committeeMembershipRows = allCommittees.filter((c) => slugifyText(c.name) === slug);
 
-if (matching.length === 0) return Astro.redirect('/elus');
+if (committeeMembershipRows.length === 0) return Astro.redirect('/elus');
 
-const committeeName = matching[0].name;
-const committeeType = matching[0].type;
+// Le nom et le type sont identiques sur toutes les lignes retenues (même slug).
+const committeeName = committeeMembershipRows[0].name;
+const committeeType = committeeMembershipRows[0].type;
 
 // Fiche de l'instance sur le site de l'Assemblée nationale, reconstruite depuis
 // l'uid de l'organe de l'open data (absente pour les commissions du Sénat).
-const anUid = matching.find((c) => c.anUid)?.anUid ?? null;
+const anUid = committeeMembershipRows.find((c) => c.anUid)?.anUid ?? null;
 const anInstanceUrl = anUid
   ? `https://www2.assemblee-nationale.fr/instances/fiche/OMC_${anUid}`
   : null;
@@ -39,21 +54,21 @@ const anInstanceUrl = anUid
 // on ne garde qu'une entrée par élu, avec la plus ancienne date d'adhésion.
 // Le membre est considéré actif dès qu'une de ses périodes est en cours ;
 // sinon on retient la date de fin la plus récente.
-const membershipByOfficial = new Map<string, (typeof matching)[number]>();
-for (const c of matching) {
-  const existing = membershipByOfficial.get(c.officialId);
+const membershipByOfficial = new Map<string, (typeof committeeMembershipRows)[number]>();
+for (const membership of committeeMembershipRows) {
+  const existing = membershipByOfficial.get(membership.officialId);
   if (!existing) {
-    membershipByOfficial.set(c.officialId, c);
+    membershipByOfficial.set(membership.officialId, membership);
     continue;
   }
-  membershipByOfficial.set(c.officialId, {
+  membershipByOfficial.set(membership.officialId, {
     ...existing,
-    startDate: c.startDate < existing.startDate ? c.startDate : existing.startDate,
+    startDate: membership.startDate < existing.startDate ? membership.startDate : existing.startDate,
     endDate:
-      !c.endDate || !existing.endDate
+      !membership.endDate || !existing.endDate
         ? null
-        : c.endDate > existing.endDate
-          ? c.endDate
+        : membership.endDate > existing.endDate
+          ? membership.endDate
           : existing.endDate,
   });
 }
@@ -78,6 +93,9 @@ const officialRows = officialIds.length > 0
 
 const officialMap = new Map(officialRows.map((o) => [o.id, o]));
 
+// Membres affichables : adhésions dont l'élu existe encore en base, membres
+// actifs d'abord puis ordre alphabétique. La photo S3 (CDN) prime sur l'URL
+// d'origine.
 const members = memberships
   .map((c) => {
     const official = officialMap.get(c.officialId);
@@ -107,6 +125,7 @@ const members = memberships
 const activeMembers = members.filter((m) => !m.endDate);
 const pastMembers = members.filter((m) => m.endDate);
 
+// Libellés des types d'organes tels qu'ingérés (AN et Sénat confondus).
 const committeeTypeLabels: Record<string, string> = {
   standing_committee: 'Commission permanente',
   special_committee: 'Commission spéciale',
@@ -118,6 +137,7 @@ const committeeTypeLabels: Record<string, string> = {
 const typeLabel = committeeTypeLabels[committeeType] ?? committeeType;
 const metaDescription = `${typeLabel} : ${committeeName} — ${members.length} membre${members.length > 1 ? 's' : ''}`;
 
+// 1 h en cache CDN, réponse périmée servie jusqu'à 24 h pendant la régénération.
 Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 ---
 

@@ -1,3 +1,8 @@
+/**
+ * Test de reconcile-elections.ts avec un faux `db` : vérifie que la
+ * pagination par curseur parcourt toutes les pages et ne rattache que les
+ * candidats dont le nom correspond à une fiche.
+ */
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./logger.js', () => ({

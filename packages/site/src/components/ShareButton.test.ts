@@ -1,3 +1,7 @@
+/**
+ * Tests de `buildShareUrl` (ShareButton) : construction des liens de partage
+ * email / Facebook / X, encodage des caractères spéciaux et repli `#`.
+ */
 import { describe, it, expect } from 'vitest';
 import { buildShareUrl } from './ShareButton';
 

@@ -1,4 +1,13 @@
 ---
+/**
+ * `/docs/commune-api` : documentation de `GET /api/commune/{code}`
+ * (`pages/api/commune/[code].ts`). L'exemple de réponse est fictif et écrit en
+ * dur ; les champs listés doivent rester alignés avec l'endpoint
+ * (`tests/commune-api.test.js` vérifie leur présence dans cette page).
+ *
+ * Note : la page annonce un 400 pour un code invalide, alors que l'endpoint
+ * redirige en 302 vers cette doc.
+ */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 

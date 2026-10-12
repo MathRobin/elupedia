@@ -1,3 +1,9 @@
+/**
+ * Tests de l'orchestrateur complet run.ts, toutes sources et tous upserts
+ * mockés : nombre et ordre des StepResult, filtrage par `enabledSteps`,
+ * isolation d'une étape en erreur. Le nombre attendu de résultats (32) doit
+ * être ajusté à chaque ajout d'étape dans un run-*.ts.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@elupedia/shared', () => ({
@@ -108,8 +114,8 @@ vi.mock('./upsert/senat-addresses.js', () => ({
   upsertSenatAddresses: vi.fn(),
 }));
 vi.mock('./sources/senat-elections.js', () => ({
-  fetchSenatElections: vi.fn(),
-  fetchSenatorialElections: vi.fn(),
+  fetchSenatElectedResults: vi.fn(),
+  fetchSenatDepartementResults: vi.fn(),
 }));
 vi.mock('./upsert/senat-electoral-results.js', () => ({
   upsertSenatElectoralResults: vi.fn(),
@@ -258,8 +264,8 @@ import { diffSenatStaffers } from './upsert/senat-staffers-diff.js';
 import { fetchSenatAdresses } from './sources/senat-adresses.js';
 import { upsertSenatAddresses } from './upsert/senat-addresses.js';
 import {
-  fetchSenatElections,
-  fetchSenatorialElections,
+  fetchSenatElectedResults,
+  fetchSenatDepartementResults,
 } from './sources/senat-elections.js';
 import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js';
 import { upsertSenatorialElections } from './upsert/senatorial-elections.js';
@@ -361,13 +367,13 @@ function setupHappyPath() {
   });
   vi.mocked(fetchSenatAdresses).mockResolvedValue([]);
   vi.mocked(upsertSenatAddresses).mockResolvedValue({ created: 0, updated: 0 });
-  vi.mocked(fetchSenatElections).mockResolvedValue([]);
+  vi.mocked(fetchSenatElectedResults).mockResolvedValue([]);
   vi.mocked(upsertSenatElectoralResults).mockResolvedValue({
     created: 0,
     updated: 0,
     skipped: 0,
   });
-  vi.mocked(fetchSenatorialElections).mockResolvedValue([]);
+  vi.mocked(fetchSenatDepartementResults).mockResolvedValue([]);
   vi.mocked(upsertSenatorialElections).mockResolvedValue({
     elections: 0,
     candidates: 0,

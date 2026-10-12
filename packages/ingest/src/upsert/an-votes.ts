@@ -1,3 +1,20 @@
+/**
+ * Upsert des scrutins publics de l'Assemblée nationale : le scrutin lui-même,
+ * le vote nominatif de chaque député français connu en base, et la position
+ * majoritaire de chaque groupe. Données issues de `sources/an-scrutins.ts`,
+ * appelé par `run-an.ts`.
+ *
+ * Tables écrites : `ballots` (clé `an_id` = "scrutin-<uid>", unique),
+ * `votes` (clé logique (ballot_id, official_id), dédoublonnée côté
+ * application — pas de contrainte unique en base), `ballot_group_positions`
+ * (index unique (ballot_id, organe_ref)).
+ * Idempotent : ballots et positions de groupe via ON CONFLICT DO UPDATE ;
+ * les votes ne sont réécrits que si position ou numéro de siège a changé.
+ * Les votants dont l'acteurRef n'a pas d'official (an_id) en base sont
+ * ignorés. Traitement par lots de scrutins pour borner la taille des
+ * requêtes ; un lot en échec fait remonter l'erreur (pas de reprise
+ * partielle, le run est rejoué dans son ensemble).
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { sql, inArray, eq } from 'drizzle-orm';
 import {
@@ -10,6 +27,9 @@ import { type Scrutin } from '../sources/an-scrutins.js';
 import { GP_FALLBACK } from '../sources/assemblee-nationale.js';
 import { logger } from '../logger.js';
 
+// Positions telles que libellées dans l'open data AN -> enum interne.
+// Un vote individuel à position inconnue est stocké comme 'absent' ; une
+// position de groupe inconnue est conservée telle quelle.
 const POSITION_MAP: Record<string, 'for' | 'against' | 'abstain' | 'absent'> = {
   pour: 'for',
   contre: 'against',
@@ -17,8 +37,12 @@ const POSITION_MAP: Record<string, 'for' | 'against' | 'abstain' | 'absent'> = {
   'non-votant': 'absent',
 };
 
+// Nombre de scrutins traités par itération (un scrutin = jusqu'à ~580 votes).
 const SCRUTIN_BATCH_SIZE = 50;
+// Taille max d'un INSERT multi-lignes (votes et positions de groupe).
 const VOTE_CHUNK_SIZE = 500;
+// Un log de progression toutes les N itérations de lot.
+const PROGRESS_LOG_EVERY_BATCHES = 10;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -28,6 +52,15 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+function ballotAnId(scrutinUid: string): string {
+  return `scrutin-${scrutinUid}`;
+}
+
+/**
+ * Écrit scrutins, votes nominatifs et positions de groupe en base.
+ * `created` additionne scrutins et votes créés ; `updated` ne compte que les
+ * votes dont la position ou le siège a changé.
+ */
 export async function upsertAnVotes(
   db: NeonHttpDatabase,
   scrutins: Scrutin[],
@@ -39,8 +72,8 @@ export async function upsertAnVotes(
     .select({ id: officials.id, anId: officials.anId })
     .from(officials);
   const officialByAnId = new Map<string, string>();
-  for (const o of allOfficials) {
-    if (o.anId) officialByAnId.set(o.anId, o.id);
+  for (const official of allOfficials) {
+    if (official.anId) officialByAnId.set(official.anId, official.id);
   }
 
   const batches = chunk(scrutins, SCRUTIN_BATCH_SIZE);
@@ -50,26 +83,33 @@ export async function upsertAnVotes(
 
   for (const [batchIndex, scrutinBatch] of batches.entries()) {
     const batchNum = batchIndex + 1;
-    if (batchNum % 10 === 1 || batchNum === batches.length) {
+    if (
+      batchNum % PROGRESS_LOG_EVERY_BATCHES === 1 ||
+      batchNum === batches.length
+    ) {
       logger.info(`  Processing batch ${batchNum}/${batches.length}`);
     }
 
     try {
-      const batchAnIds = scrutinBatch.map((s) => `scrutin-${s.uid}`);
+      // Lu avant l'upsert uniquement pour distinguer créations et mises à
+      // jour dans le compteur : l'upsert lui-même ne fait pas la différence.
+      const batchAnIds = scrutinBatch.map((scrutin) => ballotAnId(scrutin.uid));
       const preExisting = await db
         .select({ anId: ballots.anId })
         .from(ballots)
         .where(inArray(ballots.anId, batchAnIds));
-      const preExistingAnIds = new Set(preExisting.map((b) => b.anId));
+      const preExistingAnIds = new Set(
+        preExisting.map((ballot) => ballot.anId),
+      );
 
-      const insertedBallots = await db
+      const upsertedBallots = await db
         .insert(ballots)
         .values(
-          scrutinBatch.map((s) => ({
-            anId: `scrutin-${s.uid}`,
-            title: s.titre,
-            date: s.date,
-            type: s.type,
+          scrutinBatch.map((scrutin) => ({
+            anId: ballotAnId(scrutin.uid),
+            title: scrutin.titre,
+            date: scrutin.date,
+            type: scrutin.type,
           })),
         )
         .onConflictDoUpdate({
@@ -84,11 +124,11 @@ export async function upsertAnVotes(
         .returning({ id: ballots.id, anId: ballots.anId });
 
       const ballotIdByAnId = new Map(
-        insertedBallots.map((b) => [b.anId, b.id]),
+        upsertedBallots.map((ballot) => [ballot.anId, ballot.id]),
       );
-      const ballotIds = insertedBallots.map((b) => b.id);
-      created += insertedBallots.filter(
-        (b) => !preExistingAnIds.has(b.anId),
+      const ballotIds = upsertedBallots.map((ballot) => ballot.id);
+      created += upsertedBallots.filter(
+        (ballot) => !preExistingAnIds.has(ballot.anId),
       ).length;
 
       const existingVotes = await db
@@ -103,7 +143,10 @@ export async function upsertAnVotes(
         .where(inArray(votes.ballotId, ballotIds));
 
       const existingVoteByKey = new Map(
-        existingVotes.map((v) => [`${v.ballotId}|${v.officialId}`, v]),
+        existingVotes.map((vote) => [
+          `${vote.ballotId}|${vote.officialId}`,
+          vote,
+        ]),
       );
 
       const newVoteRows: (typeof votes.$inferInsert)[] = [];
@@ -118,14 +161,14 @@ export async function upsertAnVotes(
       >();
 
       for (const scrutin of scrutinBatch) {
-        const ballotId = ballotIdByAnId.get(`scrutin-${scrutin.uid}`);
+        const ballotId = ballotIdByAnId.get(ballotAnId(scrutin.uid));
         if (!ballotId) continue;
 
-        for (const v of scrutin.votants) {
-          const officialId = officialByAnId.get(v.acteurRef);
+        for (const votant of scrutin.votants) {
+          const officialId = officialByAnId.get(votant.acteurRef);
           if (!officialId) continue;
 
-          const position = POSITION_MAP[v.position] ?? 'absent';
+          const position = POSITION_MAP[votant.position] ?? 'absent';
           const existing = existingVoteByKey.get(`${ballotId}|${officialId}`);
 
           if (!existing) {
@@ -133,39 +176,43 @@ export async function upsertAnVotes(
               ballotId,
               officialId,
               position,
-              seatNumber: v.seatNumber,
+              seatNumber: votant.seatNumber,
             });
           } else if (
             existing.position !== position ||
-            existing.seatNumber !== v.seatNumber
+            existing.seatNumber !== votant.seatNumber
           ) {
             voteUpdates.push({
               id: existing.id,
               position,
-              seatNumber: v.seatNumber,
+              seatNumber: votant.seatNumber,
             });
           }
         }
 
-        for (const gp of scrutin.groupPositions) {
-          const groupName = GP_FALLBACK[gp.organeRef] ?? gp.organeRef;
+        for (const groupPosition of scrutin.groupPositions) {
+          // Libellé du groupe résolu depuis la table statique GP_FALLBACK ;
+          // à défaut on stocke l'organeRef brut plutôt que de perdre la ligne.
+          const groupName =
+            GP_FALLBACK[groupPosition.organeRef] ?? groupPosition.organeRef;
           const position =
-            POSITION_MAP[gp.positionMajoritaire] ?? gp.positionMajoritaire;
+            POSITION_MAP[groupPosition.positionMajoritaire] ??
+            groupPosition.positionMajoritaire;
 
           // Certains scrutins comportent plusieurs entrées pour le même
           // organeRef (ex. "PO0" utilisé comme code générique) : on ne
           // garde que la dernière, un INSERT multi-lignes ne pouvant pas
           // cibler la même ligne deux fois via ON CONFLICT DO UPDATE.
-          groupPositionByKey.set(`${ballotId}|${gp.organeRef}`, {
+          groupPositionByKey.set(`${ballotId}|${groupPosition.organeRef}`, {
             ballotId,
-            organeRef: gp.organeRef,
+            organeRef: groupPosition.organeRef,
             groupName,
             position,
-            memberCount: gp.memberCount || null,
-            votesFor: gp.votesFor,
-            votesAgainst: gp.votesAgainst,
-            votesAbstain: gp.votesAbstain,
-            votesAbsent: gp.votesAbsent,
+            memberCount: groupPosition.memberCount || null,
+            votesFor: groupPosition.votesFor,
+            votesAgainst: groupPosition.votesAgainst,
+            votesAbstain: groupPosition.votesAbstain,
+            votesAbsent: groupPosition.votesAbsent,
           });
         }
       }
@@ -175,23 +222,26 @@ export async function upsertAnVotes(
         created += voteChunk.length;
       }
 
-      for (const u of voteUpdates) {
+      for (const voteUpdate of voteUpdates) {
         await db
           .update(votes)
           .set({
-            position: u.position,
-            seatNumber: u.seatNumber,
+            position: voteUpdate.position,
+            seatNumber: voteUpdate.seatNumber,
             updatedAt: new Date(),
           })
-          .where(eq(votes.id, u.id));
+          .where(eq(votes.id, voteUpdate.id));
         updated++;
       }
 
       const groupPositionRows = [...groupPositionByKey.values()];
-      for (const gpChunk of chunk(groupPositionRows, VOTE_CHUNK_SIZE)) {
+      for (const groupPositionChunk of chunk(
+        groupPositionRows,
+        VOTE_CHUNK_SIZE,
+      )) {
         await db
           .insert(ballotGroupPositions)
-          .values(gpChunk)
+          .values(groupPositionChunk)
           .onConflictDoUpdate({
             target: [
               ballotGroupPositions.ballotId,
@@ -211,7 +261,7 @@ export async function upsertAnVotes(
       }
     } catch (error) {
       logger.error(
-        `  Batch ${batchNum}/${batches.length} failed (scrutins: ${scrutinBatch.map((s) => s.uid).join(', ')}): ${error instanceof Error ? error.message : String(error)}`,
+        `  Batch ${batchNum}/${batches.length} failed (scrutins: ${scrutinBatch.map((scrutin) => scrutin.uid).join(', ')}): ${error instanceof Error ? error.message : String(error)}`,
       );
       throw error;
     }

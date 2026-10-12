@@ -1,3 +1,6 @@
+/**
+ * Tests de datagouv-elections.ts : réponse JSON simulée et validation Zod.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import {
   fetchElectionResults,

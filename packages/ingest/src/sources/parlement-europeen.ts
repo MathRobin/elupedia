@@ -1,3 +1,27 @@
+/**
+ * Eurodéputés français de la législature en cours (open data du Parlement
+ * européen).
+ *
+ * Source : API v2 `data.europarl.europa.eu` (JSON-LD) :
+ * - `/meps/show-current` : tous les eurodéputés en exercice, filtrés sur le
+ *   pays de représentation FR ;
+ * - `/meps/{id}` : détail d'un eurodéputé (date de naissance, liste de ses
+ *   appartenances : Parlement, groupe, parti national…) ;
+ * - `/corporate-bodies/{id}` : libellé d'une organisation (parti national).
+ * Les réponses sont validées par des schémas Zod locaux.
+ *
+ * Extrait : `FrenchMep` (identité + groupe politique européen), `MepDetail`
+ * (mandat de la législature courante, parti national actif), libellés
+ * d'organisations.
+ *
+ * Pièges :
+ * - La législature est figée par CURRENT_LEGISLATURE (10 = 2024-2029).
+ * - Les clés JSON-LD portent parfois un préfixe (`api:political-group`).
+ * - `bday` peut valoir "" : normalisé en null.
+ * - Ordre des paramètres : `fetchFn` d'abord, puis l'identifiant.
+ *
+ * Appelé par run-europe.ts via upsert/meps.ts.
+ */
 import { z } from 'zod/v4';
 
 const API_BASE = 'https://data.europarl.europa.eu/api/v2';
@@ -9,6 +33,11 @@ const API_BASE = 'https://data.europarl.europa.eu/api/v2';
 // résoudre un par un, cf. fetchOrganizationLabel).
 export const CURRENT_LEGISLATURE = 10;
 const CURRENT_LEGISLATURE_ORG = `org/ep-${CURRENT_LEGISLATURE}`;
+
+const COUNTRY_FRANCE = 'FR';
+const ROLE_MEMBER_PARLIAMENT = 'def/ep-roles/MEMBER_PARLIAMENT';
+const CLASSIFICATION_NATIONAL_PARTY =
+  'def/ep-entities/NATIONAL_POLITICAL_GROUP';
 
 function jsonLdUrl(path: string): string {
   return `${API_BASE}${path}${path.includes('?') ? '&' : '?'}format=application%2Fld%2Bjson`;
@@ -28,31 +57,33 @@ const MepListSchema = z.object({
 });
 
 export interface FrenchMep {
+  /** Identifiant numérique EP (`identifier`), sans le préfixe `person/`. */
   id: string;
   familyName: string;
   givenName: string;
   politicalGroup: string | null;
 }
 
+/** Eurodéputés français en exercice. Lève sur erreur HTTP. */
 export async function fetchCurrentFrenchMeps(
   fetchFn: typeof fetch = fetch,
 ): Promise<FrenchMep[]> {
-  const res = await fetchFn(jsonLdUrl('/meps/show-current'));
-  if (!res.ok) {
+  const response = await fetchFn(jsonLdUrl('/meps/show-current'));
+  if (!response.ok) {
     throw new Error(
-      `Parlement européen /meps/show-current error: ${res.status}`,
+      `Parlement européen /meps/show-current error: ${response.status}`,
     );
   }
-  const json = await res.json();
+  const json = await response.json();
   const parsed = MepListSchema.parse(json);
 
   return parsed.data
-    .filter((m) => m['api:country-of-representation'] === 'FR')
-    .map((m) => ({
-      id: m.identifier,
-      familyName: m.familyName,
-      givenName: m.givenName,
-      politicalGroup: m['api:political-group'] ?? null,
+    .filter((mep) => mep['api:country-of-representation'] === COUNTRY_FRANCE)
+    .map((mep) => ({
+      id: mep.identifier,
+      familyName: mep.familyName,
+      givenName: mep.givenName,
+      politicalGroup: mep['api:political-group'] ?? null,
     }));
 }
 
@@ -91,28 +122,33 @@ export interface MepDetail {
   currentNationalPartyStartDate: string | null;
 }
 
+/**
+ * Détail d'un eurodéputé : date de naissance, mandat de la législature en
+ * cours et parti national sans date de fin. Lève sur erreur HTTP ou réponse
+ * vide.
+ */
 export async function fetchMepDetail(
   fetchFn: typeof fetch = fetch,
   id: string,
 ): Promise<MepDetail> {
-  const res = await fetchFn(jsonLdUrl(`/meps/${id}`));
-  if (!res.ok) {
-    throw new Error(`Parlement européen /meps/${id} error: ${res.status}`);
+  const response = await fetchFn(jsonLdUrl(`/meps/${id}`));
+  if (!response.ok) {
+    throw new Error(`Parlement européen /meps/${id} error: ${response.status}`);
   }
-  const json = await res.json();
+  const json = await response.json();
   const parsed = MepDetailResponseSchema.parse(json);
   const mep = parsed.data[0]!;
 
   const parliamentaryMandate = mep.hasMembership.find(
-    (m) =>
-      m.role === 'def/ep-roles/MEMBER_PARLIAMENT' &&
-      m.organization === CURRENT_LEGISLATURE_ORG,
+    (membership) =>
+      membership.role === ROLE_MEMBER_PARLIAMENT &&
+      membership.organization === CURRENT_LEGISLATURE_ORG,
   );
 
   const nationalParty = mep.hasMembership.find(
-    (m) =>
-      m.membershipClassification ===
-        'def/ep-entities/NATIONAL_POLITICAL_GROUP' && !m.memberDuring?.endDate,
+    (membership) =>
+      membership.membershipClassification === CLASSIFICATION_NATIONAL_PARTY &&
+      !membership.memberDuring?.endDate,
   );
 
   return {
@@ -142,15 +178,20 @@ const OrganizationResponseSchema = z.object({
   data: z.array(OrganizationSchema).min(1),
 });
 
-/** Résout le libellé d'une organisation (ex. parti national) à partir de son id numérique ("org/6727" -> "6727"). Mise en cache côté appelant recommandée : plusieurs élus partagent le même parti. */
+/**
+ * Résout le libellé d'une organisation (ex. parti national) à partir de son
+ * id numérique ("org/6727" -> "6727"). Renvoie null sur erreur HTTP ou
+ * réponse inattendue (ne lève pas). Mise en cache côté appelant recommandée :
+ * plusieurs élus partagent le même parti.
+ */
 export async function fetchOrganizationLabel(
   fetchFn: typeof fetch = fetch,
   orgId: string,
 ): Promise<string | null> {
   const numericId = orgId.replace(/^org\//, '');
-  const res = await fetchFn(jsonLdUrl(`/corporate-bodies/${numericId}`));
-  if (!res.ok) return null;
-  const json = await res.json();
+  const response = await fetchFn(jsonLdUrl(`/corporate-bodies/${numericId}`));
+  if (!response.ok) return null;
+  const json = await response.json();
   const parsed = OrganizationResponseSchema.safeParse(json);
   return parsed.success ? parsed.data.data[0]!.label : null;
 }

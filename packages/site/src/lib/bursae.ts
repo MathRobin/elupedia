@@ -1,5 +1,7 @@
 /**
- * Client de la fiche budgétaire Bursae, récupérée par oEmbed.
+ * Client de la fiche budgétaire Bursae (finances communales), récupérée par
+ * oEmbed et affichée sur la fiche d'un élu municipal
+ * (`pages/elus/[slug]/index.astro`).
  *
  * Bursae identifie ses collectivités par code INSEE (voir MathRobin/bursae#115) :
  * c'est la seule clé non ambiguë, plusieurs communes françaises partageant le
@@ -40,8 +42,10 @@ interface CacheEntry {
   expiresAt: number;
 }
 
+/** Cache mémoire par code INSEE (majuscules), partagé par toutes les fiches d'une même instance. */
 const cache = new Map<string, CacheEntry>();
 
+/** URL de l'endpoint oEmbed de Bursae pour une commune, ciblant sa page « par code INSEE ». */
 export function buildOembedUrl(communeCode: string): string {
   const pageUrl = `${BURSAE_PAGE_ORIGIN}/collectivite/insee/${communeCode}`;
   return `${BURSAE_ORIGIN}/api/oembed?url=${encodeURIComponent(pageUrl)}&format=json`;
@@ -91,6 +95,7 @@ export async function fetchBursaeEmbed(
   communeCode: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<BursaeEmbed | null> {
+  // Code INSEE commune : 5 caractères, lettres A/B admises pour la Corse (2A/2B).
   if (!/^[0-9AB]{5}$/i.test(communeCode)) return null;
 
   const key = communeCode.toUpperCase();

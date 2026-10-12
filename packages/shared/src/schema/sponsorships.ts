@@ -1,3 +1,16 @@
+/**
+ * Table `sponsorships` : parrainages présidentiels validés par le Conseil
+ * constitutionnel (2017, 2022) et signatures de propositions de loi
+ * référendaires (RIP), une ligne par (élu parrain, candidat ou texte).
+ *
+ * Alimentée par `parrainages.ts` (CSV data.gouv.fr) et `rip-signatures.ts`
+ * (HTML AN/Sénat) → `upsert/sponsorships.ts`, ingestion one-shot par
+ * scrutin. La source ne donne que le nom, la fonction et la circonscription
+ * de l'élu, en texte libre : les colonnes `raw_*` les conservent telles
+ * quelles, et `official_id` n'est renseigné que si le matching par nom
+ * normalisé a abouti (`matched`). Le dédoublonnage se fait sur
+ * (election_year, type, raw_elected_name).
+ */
 import {
   pgTable,
   uuid,
@@ -12,8 +25,10 @@ import { officials } from './officials.js';
 export const sponsorships = pgTable('sponsorships', {
   id: uuid('id').defaultRandom().primaryKey(),
   officialId: uuid('official_id').references(() => officials.id),
+  // 'parrainage_presidentiel' ou 'rip_signature'.
   type: varchar('type', { length: 50 }).notNull(),
   electionYear: integer('election_year').notNull(),
+  // Candidat parrainé, ou intitulé du texte pour un RIP.
   candidateName: varchar('candidate_name', { length: 255 }).notNull(),
   rawElectedName: varchar('raw_elected_name', { length: 255 }).notNull(),
   rawFunction: varchar('raw_function', { length: 255 }).notNull(),

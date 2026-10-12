@@ -1,9 +1,27 @@
+/**
+ * Signataires des propositions de loi de référendum d'initiative partagée (RIP).
+ *
+ * Source : la page HTML officielle de chaque proposition (assemblee-nationale.fr
+ * ou senat.fr), listée en dur dans RIP_PROPOSITIONS avec la décision du Conseil
+ * constitutionnel associée. Pas d'API ni de format structuré : on aplatit le
+ * HTML en texte, on isole le bloc « présentée par Mesdames et Messieurs … députés
+ * et sénateurs » et on découpe les noms sur les virgules.
+ *
+ * Format des noms : « Prénom NOM », parfois précédé d'un titre (Mme, M., MM.).
+ * Le nom de famille est reconnu par sa casse (mots entièrement en capitales),
+ * donc une particule en minuscules (« de », « van ») est rattachée au prénom.
+ *
+ * Appelé par main-rip-signatures.ts ; le rattachement aux élus (matching
+ * nom/prénom) est fait en aval par upsert/sponsorships.ts.
+ */
 import { logger } from '../logger.js';
 
 export interface RipProposition {
   year: number;
   subject: string;
+  /** Page HTML de la proposition, scrapée pour la liste des signataires. */
   url: string;
+  /** Décision du Conseil constitutionnel sur la recevabilité de la proposition. */
   sourceDecision: string;
   decisionDate: string;
 }
@@ -42,17 +60,31 @@ export interface RipSignataireRow {
   year: number;
 }
 
+/** Titres de civilité en tête d'un nom (« Mme », « M. », « MM. » pour une suite de messieurs). */
 const TITLE_PREFIXES = /^(Mme|Mmes|M\.|MM\.|M)\s+/;
 
-function extractNamesFromText(text: string): string[] {
-  const startMarkers = [
-    'présentée par Mesdames et Messieurs',
-    'présenté par Mesdames et Messieurs',
-    'PRÉSENTÉE PAR MESDAMES ET MESSIEURS',
-  ];
+// Formules d'ouverture et de clôture du bloc des signataires, telles qu'elles
+// apparaissent sur les pages AN et Sénat (casse et accord variables).
+const SIGNATORY_BLOCK_START_MARKERS = [
+  'présentée par Mesdames et Messieurs',
+  'présenté par Mesdames et Messieurs',
+  'PRÉSENTÉE PAR MESDAMES ET MESSIEURS',
+];
+const SIGNATORY_BLOCK_END_MARKERS = [
+  'députés et sénateurs',
+  'députés.',
+  'sénateurs et députés',
+  'sénateurs.',
+  'Sénateurs et Députés',
+];
 
+/**
+ * Isole le bloc des signataires dans le texte aplati et le découpe en noms
+ * bruts (titre éventuel inclus). Retourne [] si la formule d'ouverture est absente.
+ */
+function extractNamesFromText(text: string): string[] {
   let startIdx = -1;
-  for (const marker of startMarkers) {
+  for (const marker of SIGNATORY_BLOCK_START_MARKERS) {
     startIdx = text.indexOf(marker);
     if (startIdx !== -1) {
       startIdx += marker.length;
@@ -62,16 +94,9 @@ function extractNamesFromText(text: string): string[] {
 
   if (startIdx === -1) return [];
 
-  const endMarkers = [
-    'députés et sénateurs',
-    'députés.',
-    'sénateurs et députés',
-    'sénateurs.',
-    'Sénateurs et Députés',
-  ];
-
+  // Fin du bloc = la première des formules de clôture rencontrée après l'ouverture.
   let endIdx = text.length;
-  for (const marker of endMarkers) {
+  for (const marker of SIGNATORY_BLOCK_END_MARKERS) {
     const idx = text.indexOf(marker, startIdx);
     if (idx !== -1 && idx < endIdx) {
       endIdx = idx;
@@ -85,6 +110,11 @@ function extractNamesFromText(text: string): string[] {
     .filter((s) => s.length > 1);
 }
 
+/**
+ * Sépare prénom et nom d'un nom brut (« Mme Nadège ABOMANGOLI » → Nadège /
+ * ABOMANGOLI). Les mots tout en capitales forment le nom, les autres le
+ * prénom. Retourne null si l'un des deux manque (ex. un seul mot).
+ */
 function parseName(
   raw: string,
 ): { firstName: string; lastName: string } | null {
@@ -98,6 +128,7 @@ function parseName(
   const firstNameParts: string[] = [];
 
   for (const part of parts) {
+    // `length > 1` évite de prendre une initiale (« J. ») pour un nom.
     if (part === part.toUpperCase() && part.length > 1) {
       lastNameParts.push(part);
     } else {
@@ -113,6 +144,11 @@ function parseName(
   };
 }
 
+/**
+ * Aplatit le HTML en texte : balises → espace, entités courantes décodées.
+ * &#8209; (tiret insécable, fréquent dans les prénoms composés côté AN) est
+ * conservé tel quel ; les espaces typographiques &#x2000-200F; sont supprimés.
+ */
 function stripHtml(html: string): string {
   return html
     .replace(/<[^>]+>/g, ' ')
@@ -125,6 +161,11 @@ function stripHtml(html: string): string {
     .replace(/\s+/g, ' ');
 }
 
+/**
+ * Télécharge la page d'une proposition RIP et en extrait les signataires.
+ * Appel réseau (un GET). Lève une erreur si la page ne répond pas en 2xx ;
+ * un bloc de signataires introuvable donne simplement une liste vide.
+ */
 export async function fetchRipSignatures(
   proposition: RipProposition,
   fetchFn: typeof fetch = fetch,
@@ -142,8 +183,8 @@ export async function fetchRipSignatures(
   const rawNames = extractNamesFromText(text);
 
   const rows: RipSignataireRow[] = [];
-  for (const raw of rawNames) {
-    const parsed = parseName(raw);
+  for (const rawName of rawNames) {
+    const parsed = parseName(rawName);
     if (!parsed) continue;
     rows.push({
       firstName: parsed.firstName,

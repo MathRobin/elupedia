@@ -1,3 +1,5 @@
+// Tests de rip-signatures : parsing des signataires sur du HTML AN et Sénat
+// simulé (titres de civilité, format « Prénom NOM », erreur HTTP).
 import { describe, it, expect, vi } from 'vitest';
 import { fetchRipSignatures, type RipProposition } from './rip-signatures.js';
 

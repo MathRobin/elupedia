@@ -1,3 +1,16 @@
+/**
+ * `GET /api/question-text?officialId=&type=&title=&date=` : texte intégral
+ * d'une question parlementaire (question + réponse ministérielle) et ses
+ * métadonnées, chargés à la demande par `QuestionDetailDrawer.tsx` quand
+ * l'utilisateur ouvre une question — ces textes sont trop volumineux pour
+ * être inclus dans la fiche élu.
+ *
+ * La table `parliamentary_activity` n'expose pas d'identifiant côté client :
+ * la ligne est désignée par le quadruplet (élu, type, titre, date), qui sert
+ * de clé naturelle. Tous les paramètres sont obligatoires.
+ *
+ * Réponses JSON : 200 (cache 1 h), 400 paramètre manquant, 404 ligne absente.
+ */
 import type { APIRoute } from 'astro';
 import { getDb } from '../../lib/db.js';
 import { parliamentaryActivity } from '@elupedia/shared';
@@ -52,6 +65,7 @@ export const GET: APIRoute = async ({ url }) => {
       questionText: row.questionText,
       responseText: row.responseText,
       sourceUrl: row.sourceUrl,
+      // `rubrique` et `teteAnalyse` : classification thématique de l'AN/du Sénat.
       rubrique: row.rubrique,
       teteAnalyse: row.teteAnalyse,
       questionNumber: row.questionNumber,

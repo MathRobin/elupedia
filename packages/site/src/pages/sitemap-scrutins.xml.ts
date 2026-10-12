@@ -1,3 +1,7 @@
+/**
+ * `GET /sitemap-scrutins.xml` : une entrée par scrutin (`ballots`), sans
+ * filtre. Cache CDN 24 h. Référencé par `sitemap-index.xml.ts`.
+ */
 import type { APIRoute } from 'astro';
 import { getDb } from '../lib/db.js';
 import { ballots } from '@elupedia/shared';
@@ -13,9 +17,9 @@ export const GET: APIRoute = async () => {
 
   const urls = rows
     .map(
-      (r) =>
+      (ballot) =>
         `  <url>
-    <loc>${SITE}/scrutins/${r.id}</loc>
+    <loc>${SITE}/scrutins/${ballot.id}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>`,

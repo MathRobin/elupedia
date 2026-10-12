@@ -1,3 +1,14 @@
+/**
+ * Point d'entrée CLI de l'envoi des photos officielles vers S3
+ * (upsert/upload-photos.ts). Même étape que `photos` dans `run.ts`, isolée
+ * ici pour pouvoir être planifiée seule.
+ *
+ * Commande : `yarn --cwd packages/ingest ingest:photos`
+ *
+ * Exception à la convention main/run du package : pas de `run-photos.ts`, le
+ * main appelle directement l'upsert via runStep. Code de sortie 1 si l'étape
+ * a échoué.
+ */
 import { createDb } from '@elupedia/shared';
 import { runStep, printSummary } from './run-helpers.js';
 import { uploadPhotos } from './upsert/upload-photos.js';
@@ -9,11 +20,12 @@ async function main() {
 
   const results = [
     await runStep('photos', async () => {
-      const r = await uploadPhotos(db);
+      const upload = await uploadPhotos(db);
+      // Pas de colonne « ignorées » dans StepResult : on recycle `updated`.
       return {
         source: 'photos',
-        created: r.uploaded,
-        updated: r.skipped,
+        created: upload.uploaded,
+        updated: upload.skipped,
         durationMs: 0,
       };
     }),
@@ -21,7 +33,7 @@ async function main() {
 
   printSummary('Photos', results, logger);
 
-  const hasErrors = results.some((r) => r.error);
+  const hasErrors = results.some((result) => result.error);
   process.exit(hasErrors ? 1 : 0);
 }
 

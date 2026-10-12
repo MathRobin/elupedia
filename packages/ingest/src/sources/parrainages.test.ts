@@ -1,3 +1,6 @@
+/**
+ * Tests de parrainages.ts : CSV en ligne au format data.gouv (2022).
+ */
 import { describe, it, expect, vi } from 'vitest';
 import { fetchParrainages, type ParrainageElection } from './parrainages.js';
 

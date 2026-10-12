@@ -1,29 +1,56 @@
+/**
+ * Bouton « Chronologie complète » et tiroir latéral affichant la frise de
+ * vie publique d'un élu : naissance, mandats, affiliations, commissions,
+ * élections, collaborateurs, parrainages, décès.
+ *
+ * Rendu sur `pages/elus/[slug]/index.astro` avec `client:load` (le bouton
+ * déclencheur est dans le composant lui-même). Les événements sont
+ * construits par la page.
+ *
+ * Modèle d'affichage :
+ * - les événements « ponctuels » (naissance, décès, élection, parrainage)
+ *   sont des cartes à une date ;
+ * - les événements « à durée » (mandat, affiliation, commission,
+ *   collaborateur) sont des couloirs verticaux (`assignLanes`) : chaque
+ *   couloir est une colonne de barres, et une barre est pleine à la date
+ *   de début, atténuée à la date de fin, grise quand le couloir est occupé
+ *   par un autre événement ;
+ * - le tout est groupé par année, de la plus récente à la plus ancienne,
+ *   avec un groupe « Date inconnue » (année sentinelle 0) en fin de liste.
+ */
 import { useState, useMemo, useEffect } from 'react';
 import { useFocusTrap } from '../lib/use-focus-trap.js';
 
+type TimelineEventType =
+  | 'birth'
+  | 'death'
+  | 'mandate'
+  | 'affiliation'
+  | 'committee'
+  | 'election'
+  | 'staffer'
+  | 'sponsorship';
+
 type TimelineEvent = {
-  type:
-    | 'birth'
-    | 'death'
-    | 'mandate'
-    | 'affiliation'
-    | 'committee'
-    | 'election'
-    | 'staffer'
-    | 'sponsorship';
+  type: TimelineEventType;
+  /** Libellé brut (souvent une clé snake_case), passé par `humanize`. */
   label: string;
   detail?: string;
+  /** Date ISO ; null si inconnue. */
   startDate: string | null;
+  /** Date ISO ; null/absent si en cours ou ponctuel. */
   endDate?: string | null;
+  /** Mandat/fonction en cours : affiche le badge « en cours ». */
   active?: boolean;
 };
 
+/** Props injectées par la page Astro. */
 type Props = {
   events: TimelineEvent[];
   officialName: string;
 };
 
-const typeColors: Record<TimelineEvent['type'], string> = {
+const typeColors: Record<TimelineEventType, string> = {
   birth: 'bg-pink-500',
   death: 'bg-slate-800 dark:bg-slate-200',
   mandate: 'bg-indigo-500',
@@ -34,7 +61,7 @@ const typeColors: Record<TimelineEvent['type'], string> = {
   sponsorship: 'bg-rose-500',
 };
 
-const typeLabels: Record<TimelineEvent['type'], string> = {
+const typeLabels: Record<TimelineEventType, string> = {
   birth: 'Naissance',
   death: 'Décès',
   mandate: 'Mandat',
@@ -45,7 +72,7 @@ const typeLabels: Record<TimelineEvent['type'], string> = {
   sponsorship: 'Parrainage',
 };
 
-const typeBorderColors: Record<TimelineEvent['type'], string> = {
+const typeBorderColors: Record<TimelineEventType, string> = {
   birth: 'border-pink-300 dark:border-pink-700',
   death: 'border-slate-400 dark:border-slate-500',
   mandate: 'border-indigo-300 dark:border-indigo-700',
@@ -56,7 +83,7 @@ const typeBorderColors: Record<TimelineEvent['type'], string> = {
   sponsorship: 'border-rose-300 dark:border-rose-700',
 };
 
-const typeBgColors: Record<TimelineEvent['type'], string> = {
+const typeBgColors: Record<TimelineEventType, string> = {
   birth: 'bg-pink-50 dark:bg-pink-900/20',
   death: 'bg-slate-100 dark:bg-slate-700/30',
   mandate: 'bg-indigo-50 dark:bg-indigo-900/20',
@@ -67,102 +94,129 @@ const typeBgColors: Record<TimelineEvent['type'], string> = {
   sponsorship: 'bg-rose-50 dark:bg-rose-900/20',
 };
 
-function humanize(s: string): string {
-  const result = s.replace(/_/g, ' ').trim();
-  return result.charAt(0).toUpperCase() + result.slice(1).toLowerCase();
+/** Date de fin fictive des événements en cours, pour les comparaisons ISO. */
+const OPEN_ENDED_DATE = '9999-12-31';
+/** Année sentinelle du groupe « Date inconnue ». */
+const UNKNOWN_YEAR = 0;
+
+/** Événements affichés comme une carte à une date (sans durée). */
+function isPointEvent(event: TimelineEvent): boolean {
+  return (
+    event.type === 'birth' ||
+    event.type === 'death' ||
+    event.type === 'election' ||
+    event.type === 'sponsorship'
+  );
 }
 
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString('fr-FR', {
+/** `commission_des_lois` → « Commission des lois ». */
+function humanize(s: string): string {
+  const spaced = s.replace(/_/g, ' ').trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+}
+
+function formatDate(isoDate: string): string {
+  return new Date(isoDate).toLocaleDateString('fr-FR', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
 }
 
-function yearFromDate(d: string): number {
-  return new Date(d).getFullYear();
+function yearFromDate(isoDate: string): number {
+  return new Date(isoDate).getFullYear();
+}
+
+/** Partie AAAA-MM-JJ d'une date ISO ; '' si absente. */
+function dayOf(isoDate: string | null | undefined): string {
+  return isoDate?.slice(0, 10) ?? '';
 }
 
 type Lane = { event: TimelineEvent; col: number };
 
+/**
+ * Attribue une colonne (« couloir ») à chaque événement à durée, par
+ * balayage chronologique : un événement prend le premier couloir dont
+ * l'occupant précédent est terminé à sa date de début, sinon un nouveau
+ * couloir. Les événements en cours bloquent leur couloir jusqu'à
+ * `OPEN_ENDED_DATE`.
+ */
 function assignLanes(ranges: TimelineEvent[]): Lane[] {
   const sorted = [...ranges].sort((a, b) =>
     (a.startDate ?? '').localeCompare(b.startDate ?? ''),
   );
-  const cols: (string | null)[] = [];
-  const result: Lane[] = [];
+  // Date de fin de l'occupant courant de chaque couloir.
+  const laneEndDates: (string | null)[] = [];
+  const lanes: Lane[] = [];
 
-  for (const ev of sorted) {
-    const end = ev.endDate ?? '9999-12-31';
+  for (const event of sorted) {
+    const end = event.endDate ?? OPEN_ENDED_DATE;
     let assigned = -1;
-    for (let i = 0; i < cols.length; i++) {
-      if (!cols[i] || cols[i]! <= (ev.startDate ?? '')) {
-        cols[i] = end;
+    for (let i = 0; i < laneEndDates.length; i++) {
+      if (!laneEndDates[i] || laneEndDates[i]! <= (event.startDate ?? '')) {
+        laneEndDates[i] = end;
         assigned = i;
         break;
       }
     }
     if (assigned === -1) {
-      assigned = cols.length;
-      cols.push(end);
+      assigned = laneEndDates.length;
+      laneEndDates.push(end);
     }
-    result.push({ event: ev, col: assigned });
+    lanes.push({ event, col: assigned });
   }
 
-  return result;
+  return lanes;
 }
+
+/** Une date de la frise : éventuel événement ponctuel, couloirs qui y démarrent. */
+type DateEntry = {
+  date: string;
+  isPoint: boolean;
+  pointEvent?: TimelineEvent;
+  lanes: Lane[];
+};
 
 export default function TimelineDrawer({ events, officialName }: Props) {
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState<Set<TimelineEvent['type']>>(new Set());
+  // Types affichés ; vide = tous.
+  const [typeFilter, setTypeFilter] = useState<Set<TimelineEventType>>(
+    new Set(),
+  );
   const trapRef = useFocusTrap(open);
 
   useEffect(() => {
     if (!open) return;
-    function onKey(e: KeyboardEvent) {
+    function closeOnEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
     }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
   }, [open]);
 
   const allTypes = useMemo(() => {
-    const types = new Set<TimelineEvent['type']>();
-    for (const e of events) types.add(e.type);
+    const types = new Set<TimelineEventType>();
+    for (const event of events) types.add(event.type);
     return [...types].sort((a, b) =>
       typeLabels[a].localeCompare(typeLabels[b], 'fr'),
     );
   }, [events]);
 
   const filtered = useMemo(() => {
-    if (filter.size === 0) return events;
-    return events.filter((e) => filter.has(e.type));
-  }, [events, filter]);
+    if (typeFilter.size === 0) return events;
+    return events.filter((event) => typeFilter.has(event.type));
+  }, [events, typeFilter]);
 
   const pointEvents = useMemo(
     () =>
       filtered
-        .filter(
-          (e) =>
-            e.type === 'birth' ||
-            e.type === 'death' ||
-            e.type === 'election' ||
-            e.type === 'sponsorship',
-        )
+        .filter(isPointEvent)
         .sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? '')),
     [filtered],
   );
 
   const rangeEvents = useMemo(
-    () =>
-      filtered.filter(
-        (e) =>
-          e.type !== 'birth' &&
-          e.type !== 'death' &&
-          e.type !== 'election' &&
-          e.type !== 'sponsorship',
-      ),
+    () => filtered.filter((event) => !isPointEvent(event)),
     [filtered],
   );
 
@@ -172,61 +226,57 @@ export default function TimelineDrawer({ events, officialName }: Props) {
     [lanes],
   );
 
-  const allDates = useMemo(() => {
-    const dates: {
-      date: string;
-      isPoint: boolean;
-      pointEvent?: TimelineEvent;
-      lanes: Lane[];
-    }[] = [];
-    const dateMap = new Map<
-      string,
-      { isPoint: boolean; pointEvent?: TimelineEvent; lanes: Lane[] }
-    >();
+  // Toutes les dates à afficher (début/fin de couloir, événements ponctuels),
+  // de la plus récente à la plus ancienne. Si plusieurs événements ponctuels
+  // tombent le même jour, seul le dernier est affiché comme carte.
+  const allDates = useMemo<DateEntry[]>(() => {
+    const entryByDate = new Map<string, Omit<DateEntry, 'date'>>();
 
-    for (const pe of pointEvents) {
-      const d = pe.startDate?.slice(0, 10) ?? '';
-      if (!dateMap.has(d))
-        dateMap.set(d, { isPoint: true, pointEvent: pe, lanes: [] });
+    for (const pointEvent of pointEvents) {
+      const day = dayOf(pointEvent.startDate);
+      if (!entryByDate.has(day))
+        entryByDate.set(day, { isPoint: true, pointEvent, lanes: [] });
       else {
-        const entry = dateMap.get(d)!;
+        const entry = entryByDate.get(day)!;
         entry.isPoint = true;
-        entry.pointEvent = pe;
+        entry.pointEvent = pointEvent;
       }
     }
 
     for (const lane of lanes) {
-      const startD = lane.event.startDate?.slice(0, 10) ?? '';
-      if (!dateMap.has(startD))
-        dateMap.set(startD, { isPoint: false, lanes: [lane] });
-      else dateMap.get(startD)!.lanes.push(lane);
+      const startDay = dayOf(lane.event.startDate);
+      if (!entryByDate.has(startDay))
+        entryByDate.set(startDay, { isPoint: false, lanes: [lane] });
+      else entryByDate.get(startDay)!.lanes.push(lane);
 
       if (lane.event.endDate) {
-        const endD = lane.event.endDate.slice(0, 10);
-        if (!dateMap.has(endD))
-          dateMap.set(endD, { isPoint: false, lanes: [] });
+        const endDay = dayOf(lane.event.endDate);
+        if (!entryByDate.has(endDay))
+          entryByDate.set(endDay, { isPoint: false, lanes: [] });
       }
     }
 
-    for (const [date, data] of dateMap) {
-      dates.push({ date, ...data });
+    const dates: DateEntry[] = [];
+    for (const [date, entry] of entryByDate) {
+      dates.push({ date, ...entry });
     }
     dates.sort((a, b) => b.date.localeCompare(a.date));
     return dates;
   }, [pointEvents, lanes]);
 
+  // Années présentes, décroissantes, puis `UNKNOWN_YEAR` s'il y a des dates vides.
   const years = useMemo(() => {
-    const ySet = new Set<number>();
-    for (const d of allDates) {
-      if (d.date) ySet.add(yearFromDate(d.date));
+    const yearSet = new Set<number>();
+    for (const entry of allDates) {
+      if (entry.date) yearSet.add(yearFromDate(entry.date));
     }
-    const sorted = [...ySet].sort((a, b) => b - a);
-    if (allDates.some((d) => !d.date)) sorted.push(0);
+    const sorted = [...yearSet].sort((a, b) => b - a);
+    if (allDates.some((entry) => !entry.date)) sorted.push(UNKNOWN_YEAR);
     return sorted;
   }, [allDates]);
 
-  function toggleFilter(type: TimelineEvent['type']) {
-    setFilter((prev) => {
+  function toggleTypeFilter(type: TimelineEventType) {
+    setTypeFilter((prev) => {
       const next = new Set(prev);
       if (next.has(type)) next.delete(type);
       else next.add(type);
@@ -287,20 +337,22 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                 aria-label="Filtrer par type"
               >
                 {allTypes.map((type) => {
-                  const active = filter.size === 0 || filter.has(type);
+                  // Sans filtre actif, toutes les puces apparaissent « allumées ».
+                  const highlighted =
+                    typeFilter.size === 0 || typeFilter.has(type);
                   return (
                     <button
                       key={type}
-                      onClick={() => toggleFilter(type)}
-                      aria-pressed={filter.has(type)}
+                      onClick={() => toggleTypeFilter(type)}
+                      aria-pressed={typeFilter.has(type)}
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                        active
+                        highlighted
                           ? `${typeBgColors[type]} ${typeBorderColors[type]} border`
                           : 'bg-slate-100 text-slate-400 border border-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700'
                       }`}
                     >
                       <span
-                        className={`h-2 w-2 rounded-full ${active ? typeColors[type] : 'bg-slate-300 dark:bg-slate-600'}`}
+                        className={`h-2 w-2 rounded-full ${highlighted ? typeColors[type] : 'bg-slate-300 dark:bg-slate-600'}`}
                       />
                       {typeLabels[type]}
                     </button>
@@ -311,16 +363,16 @@ export default function TimelineDrawer({ events, officialName }: Props) {
 
             <div className="flex-1 overflow-y-auto px-6 py-6">
               {years.map((year) => {
-                const yearDates = allDates.filter((d) =>
-                  year === 0
-                    ? !d.date
-                    : d.date && yearFromDate(d.date) === year,
+                const yearDates = allDates.filter((entry) =>
+                  year === UNKNOWN_YEAR
+                    ? !entry.date
+                    : entry.date && yearFromDate(entry.date) === year,
                 );
                 return (
                   <div key={year} className="mb-6">
                     <div className="sticky top-0 z-10 mb-3">
                       <span className="inline-block rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white dark:bg-slate-100 dark:text-slate-900">
-                        {year === 0 ? 'Date inconnue' : year}
+                        {year === UNKNOWN_YEAR ? 'Date inconnue' : year}
                       </span>
                     </div>
 
@@ -329,19 +381,22 @@ export default function TimelineDrawer({ events, officialName }: Props) {
 
                       {yearDates.map((dateEntry) => {
                         const startingLanes = lanes.filter(
-                          (l) =>
-                            (l.event.startDate?.slice(0, 10) ?? '') ===
-                            dateEntry.date,
+                          (lane) =>
+                            dayOf(lane.event.startDate) === dateEntry.date,
                         );
                         const endingLanes = lanes.filter(
-                          (l) =>
-                            l.event.endDate?.slice(0, 10) === dateEntry.date,
+                          (lane) =>
+                            lane.event.endDate?.slice(0, 10) === dateEntry.date,
                         );
-                        const activeLanes = lanes.filter((l) => {
-                          const s = l.event.startDate?.slice(0, 10) ?? '';
-                          const e =
-                            l.event.endDate?.slice(0, 10) ?? '9999-12-31';
-                          return s <= dateEntry.date && e >= dateEntry.date;
+                        // Couloirs occupés à cette date (barres grises de contexte).
+                        const activeLanes = lanes.filter((lane) => {
+                          const laneStart = dayOf(lane.event.startDate);
+                          const laneEnd =
+                            lane.event.endDate?.slice(0, 10) ?? OPEN_ENDED_DATE;
+                          return (
+                            laneStart <= dateEntry.date &&
+                            laneEnd >= dateEntry.date
+                          );
                         });
 
                         return (
@@ -353,7 +408,7 @@ export default function TimelineDrawer({ events, officialName }: Props) {
 
                             {dateEntry.date && (
                               <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-1.5">
-                                {fmtDate(dateEntry.date)}
+                                {formatDate(dateEntry.date)}
                               </p>
                             )}
 
@@ -386,18 +441,20 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                                   >
                                     <div className="flex items-center gap-1 shrink-0 mt-0.5">
                                       {Array.from({ length: maxCol + 1 }).map(
-                                        (_, i) => {
-                                          const isThis = i === lane.col;
-                                          const isActive = activeLanes.some(
-                                            (l) => l.col === i && l !== lane,
+                                        (_, col) => {
+                                          const isThisLane = col === lane.col;
+                                          const isOccupied = activeLanes.some(
+                                            (other) =>
+                                              other.col === col &&
+                                              other !== lane,
                                           );
                                           return (
                                             <div
-                                              key={i}
+                                              key={col}
                                               className={`h-4 w-1 rounded-full ${
-                                                isThis
+                                                isThisLane
                                                   ? typeColors[lane.event.type]
-                                                  : isActive
+                                                  : isOccupied
                                                     ? 'bg-slate-300 dark:bg-slate-600'
                                                     : 'bg-transparent'
                                               }`}
@@ -428,6 +485,7 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                               </div>
                             )}
 
+                            {/* Les fins ne sont affichées que si rien ne démarre le même jour. */}
                             {endingLanes.length > 0 &&
                               startingLanes.length === 0 && (
                                 <div className="space-y-1.5">
@@ -438,18 +496,20 @@ export default function TimelineDrawer({ events, officialName }: Props) {
                                     >
                                       <div className="flex items-center gap-1 shrink-0 mt-0.5">
                                         {Array.from({ length: maxCol + 1 }).map(
-                                          (_, i) => {
-                                            const isThis = i === lane.col;
-                                            const isActive = activeLanes.some(
-                                              (l) => l.col === i && l !== lane,
+                                          (_, col) => {
+                                            const isThisLane = col === lane.col;
+                                            const isOccupied = activeLanes.some(
+                                              (other) =>
+                                                other.col === col &&
+                                                other !== lane,
                                             );
                                             return (
                                               <div
-                                                key={i}
+                                                key={col}
                                                 className={`h-4 w-1 rounded-full ${
-                                                  isThis
+                                                  isThisLane
                                                     ? `${typeColors[lane.event.type]} opacity-40`
-                                                    : isActive
+                                                    : isOccupied
                                                       ? 'bg-slate-300 dark:bg-slate-600'
                                                       : 'bg-transparent'
                                                 }`}

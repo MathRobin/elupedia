@@ -1,3 +1,23 @@
+/**
+ * Scrutins publics du Sénat et votes nominatifs des sénateurs, pour une
+ * session parlementaire (ex. « 2025 » = session 2025-2026).
+ *
+ * Sources (senat.fr/scrutin-public) :
+ *   1. la page index HTML `scr<session>.html`, parsée ligne à ligne par
+ *      regex : les titres de date (« 21 juillet 2026 ») précèdent les liens
+ *      « Scrutin N°340 : <intitulé>. Adoption|Rejet », et chaque scrutin hérite
+ *      de la dernière date rencontrée ;
+ *   2. un JSON par scrutin `<session>/scr<session>-<n>.json` avec la liste
+ *      `votes` (matricule, code de vote p/c/a/n, siège).
+ *
+ * Codes de vote Sénat : p = pour, c = contre, a = abstention, n = non-votant ;
+ * mapSenatVotePosition les traduit vers le vocabulaire commun (tout code
+ * inconnu → absent). Un JSON de scrutin en échec est logué et sauté ; seule
+ * la page index en erreur fait échouer l'appel. Appel séquentiel, sans pause,
+ * ~300 scrutins par session.
+ *
+ * Appelé par run-senat.ts, consommé par upsert/senat-votes.ts.
+ */
 import { logger } from '../logger.js';
 
 const SCRUTINS_INDEX_URL =
@@ -12,6 +32,7 @@ export interface SenatScrutin {
   number: number;
   title: string;
   date: string;
+  /** « Adoption », « Rejet » ou '' si non indiqué sur l'index. */
   result: string;
 }
 
@@ -31,12 +52,43 @@ const VOTE_MAP: Record<string, 'for' | 'against' | 'abstain' | 'absent'> = {
   n: 'absent',
 };
 
+/** Code de vote Sénat (p/c/a/n) → position commune ; tout code inconnu → « absent ». */
 export function mapSenatVotePosition(
   code: string,
 ): 'for' | 'against' | 'abstain' | 'absent' {
   return VOTE_MAP[code] ?? 'absent';
 }
 
+const FRENCH_MONTH_NUMBERS: Record<string, string> = {
+  janvier: '01',
+  février: '02',
+  mars: '03',
+  avril: '04',
+  mai: '05',
+  juin: '06',
+  juillet: '07',
+  août: '08',
+  septembre: '09',
+  octobre: '10',
+  novembre: '11',
+  décembre: '12',
+};
+
+/** Date en toutes lettres (« 21 juillet 2026 ») n'importe où dans une ligne. */
+const DATE_IN_LINE_RE =
+  /(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/i;
+
+/**
+ * Lien vers un scrutin suivi de son intitulé : `scr2025-340.html…>…N°340</a> : <titre>`.
+ * Le « ° » peut être encodé `&deg;` et le « : » précédé de `&nbsp;` dans le HTML réel.
+ */
+const SCRUTIN_LINK_RE =
+  /scr\d{4}-(\d+)\.html[^>]*>.*?N(?:°|&deg;)\s*(\d+)<\/a>\s*(?:&nbsp;)?:\s*(.*)/i;
+
+/**
+ * Parse la page index d'une session. Un scrutin rencontré avant tout titre de
+ * date est ignoré (pas de date à lui attribuer). Exporté pour les tests.
+ */
 export function parseScrutinsIndex(
   html: string,
   session: string,
@@ -47,51 +99,35 @@ export function parseScrutinsIndex(
   const lines = html.split('\n');
 
   for (const line of lines) {
-    const dateMatch = line.match(
-      /(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/i,
-    );
+    const dateMatch = line.match(DATE_IN_LINE_RE);
     if (dateMatch) {
       const day = dateMatch[1].padStart(2, '0');
       const monthName = dateMatch[2].toLowerCase();
       const year = dateMatch[3];
-      const monthMap: Record<string, string> = {
-        janvier: '01',
-        février: '02',
-        mars: '03',
-        avril: '04',
-        mai: '05',
-        juin: '06',
-        juillet: '07',
-        août: '08',
-        septembre: '09',
-        octobre: '10',
-        novembre: '11',
-        décembre: '12',
-      };
-      const month = monthMap[monthName];
+      const month = FRENCH_MONTH_NUMBERS[monthName];
       if (month) currentDate = `${year}-${month}-${day}`;
     }
 
-    const scrutinMatch = line.match(
-      /scr\d{4}-(\d+)\.html[^>]*>.*?N(?:°|&deg;)\s*(\d+)<\/a>\s*(?:&nbsp;)?:\s*(.*)/i,
-    );
+    const scrutinMatch = line.match(SCRUTIN_LINK_RE);
     if (scrutinMatch && currentDate) {
       const number = parseInt(scrutinMatch[1], 10);
-      let raw = scrutinMatch[3]
+      let title = scrutinMatch[3]
         .replace(/<[^>]+>/g, '')
         .replace(/\s+/g, ' ')
         .trim();
+      // L'intitulé se termine par « . Adoption » ou « . Rejet » : on l'isole
+      // comme résultat et on retire le point final restant.
       let result = '';
-      const resultMatch = raw.match(/\.\s*(Adoption|Rejet)\s*$/i);
+      const resultMatch = title.match(/\.\s*(Adoption|Rejet)\s*$/i);
       if (resultMatch) {
         result = resultMatch[1];
-        raw = raw.slice(0, resultMatch.index!).trim();
+        title = title.slice(0, resultMatch.index!).trim();
       }
-      if (raw.endsWith('.')) raw = raw.slice(0, -1);
+      if (title.endsWith('.')) title = title.slice(0, -1);
       results.push({
         session,
         number,
-        title: raw,
+        title,
         date: currentDate,
         result,
       });
@@ -101,6 +137,11 @@ export function parseScrutinsIndex(
   return results;
 }
 
+/**
+ * Télécharge l'index d'une session puis le JSON de chaque scrutin (1 + N GET).
+ * Retourne les scrutins dont les votes ont pu être chargés. Lève une erreur
+ * si l'index ne répond pas en 2xx.
+ */
 export async function fetchSenatScrutins(
   session: string = '2025',
   fetchFn: typeof fetch = fetch,
@@ -129,14 +170,15 @@ export async function fetchSenatScrutins(
         );
         continue;
       }
-      const data = (await voteRes.json()) as {
+      const payload = (await voteRes.json()) as {
         votes: { matricule: string; vote: string; siege: number }[];
       };
       results.push({
         ...scrutin,
-        votes: data.votes.map((v) => ({
-          matricule: v.matricule,
-          position: v.vote as 'p' | 'c' | 'a' | 'n',
+        // Le code est pris tel quel ; mapSenatVotePosition absorbe les valeurs inattendues en aval.
+        votes: payload.votes.map((vote) => ({
+          matricule: vote.matricule,
+          position: vote.vote as 'p' | 'c' | 'a' | 'n',
         })),
       });
     } catch {
