@@ -112,6 +112,8 @@ Petits volumes, largement avant le tick `press:maires` de 05:00.
   `mandates` : pas de contention avec les jobs RNE. Placé à 12:30, après la fin
   du tick `press:maires` de 10:00 (~11:15 au plus tard) et bien avant celui de
   15:00.
+- Enchaîne ensuite `yarn --cwd packages/shorts select` (sélection des scrutins
+  candidats à un short vidéo, quelques requêtes seulement, voir `docs/DOMAINS.md`).
 - Cron `30 12 * * *`.
 
 ## Créneau mensuel — 1er du mois, 06:30 UTC

@@ -219,6 +219,22 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Description** : Résultats complets par tour (inscrits, abstentions, votants, blancs, nuls, exprimés) avec le détail par candidat/liste (voix, ratios, élu). Les candidats sont liés aux `officials` quand le matching est possible.
 - **Pages** : fiche élu (sections résultats municipaux, législatifs, sénatoriaux avec drawer détaillé)
 
+## Shorts vidéo (scrutins récents)
+
+- **Tables** : `video_shorts`, `video_short_ballots`
+- **Package** : `packages/shorts` — `select-candidates.ts` (scoring + persistance), `main-select.ts` (CLI `yarn --cwd packages/shorts select`)
+- **Description** : pipeline de production de vidéos courtes (YouTube Shorts dans un premier temps) présentant un scrutin récent de façon factuelle. Première brique : la sélection automatique des scrutins candidats, déterministe et traçable (pas de LLM à cette étape). Chaque critère produit un sous-score conservé dans `score_details` :
+  - objet du scrutin, lu dans le titre : motion de censure (50), confiance/déclaration du Gouvernement/49.3 (45 — « article 49 » seul est ambigu, les textes examinés ayant eux aussi un article 49 : on cible l'alinéa 3 ou l'engagement de responsabilité), ensemble d'un texte (40), proposition de résolution (35), motion de rejet/renvoi (30), article (10), amendement (0), sous-amendement (−5), autre (15) ;
+  - type de scrutin : solennel ou motion de censure (+15) ;
+  - participation : part de l'assemblée ayant exprimé un vote (jusqu'à +20 ; effectif = somme des `member_count` des groupes, sinon nombre de votes enregistrés, sinon 577/348) ;
+  - écart pour/contre : jusqu'à +20 pour un vote à égalité, pondéré par le nombre de votants exprimés (saturation à 150 : un 25-25 en séance clairsemée ne vaut pas un 280-260) ;
+  - division interne : groupe le plus divisé (AN seulement, groupes de ≥ 10 votants), jusqu'à +15 pour 50 % de dissidents.
+- **Fenêtre et seuils** : `--days` (7), `--max-shorts` (2, pour pouvoir produire deux shorts une même semaine si deux votes le méritent), `--min-score` (50), `--dry-run`. Un scrutin déjà rattaché à un short (quel que soit son statut) n'est jamais resélectionné : l'exécution quotidienne est idempotente.
+- **Statuts** (`video_shorts.status`) : `candidate` (sélection automatique) → `draft` (script/rendu générés) → `approved` (validation humaine, seul gate manuel) → `published` ; `rejected` pour un candidat écarté. La jointure `video_short_ballots` (avec `position`) permet de couvrir plusieurs scrutins dans un même short, décision laissée à la relecture.
+- **Périmètre** : AN et Sénat. Les scrutins europarl sont exclus (délégation française seulement, résultat non déductible). Le Sénat n'ayant pas de `ballot_group_positions`, son sous-score de division est toujours 0.
+- **Orchestration** : étape `select-shorts` du DAG `ingest-votes` (quotidien, après l'ingestion des votes — voir `docs/INGESTION-SCHEDULE.md`).
+- **À venir** : génération du script (API Claude, faits de la base uniquement, contrôle que chaque chiffre du script existe dans les données), voix off, rendu Remotion (sous-titres sur bandeau, bandeau nom type JT, hémicycle réutilisé du site), publication YouTube.
+
 ## Candidatures sénatoriales 2026 (pré-scrutin)
 
 - **Tables** : `senatorial_elections`, `senatorial_candidates` (mêmes tables que les résultats rétrospectifs — voir "Résultats électoraux détaillés")

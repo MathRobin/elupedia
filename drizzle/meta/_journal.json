@@ -253,6 +253,13 @@
       "when": 1791815222626,
       "tag": "0035_ballots_result",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791824234972,
+      "tag": "0036_video_shorts",
+      "breakpoints": true
     }
   ]
 }

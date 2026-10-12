@@ -1,6 +1,7 @@
 # Ingestion quotidienne des scrutins AN + Sénat (étapes `votes` et `senat-votes`
 # seulement), pour disposer des votes récents sans attendre les passes complètes
-# hebdomadaires (ingest-an le lundi, ingest-senat le mardi).
+# hebdomadaires (ingest-an le lundi, ingest-senat le mardi), puis sélection des
+# scrutins candidats à un short vidéo (packages/shorts).
 # Cron en UTC — voir docs/INGESTION-SCHEDULE.md.
 name: Ingest — Votes AN + Sénat
 schedule: '30 12 * * *'
@@ -25,3 +26,7 @@ steps:
     command: yarn --cwd packages/ingest ingest:senat --only senat-votes
     depends:
       - votes-assemblee-nationale
+  - name: select-shorts
+    command: yarn --cwd packages/shorts select
+    depends:
+      - votes-senat

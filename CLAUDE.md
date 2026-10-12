@@ -17,6 +17,7 @@ elupedia/
 ├── packages/
 │   ├── shared/    # Types, helpers et schéma DB partagés
 │   ├── ingest/    # Scripts de collecte de données (APIs ouvertes)
+│   ├── shorts/    # Pipeline de shorts vidéo (sélection des scrutins, puis script/rendu/publication)
 │   ├── site/      # Site public Astro/React
 │   └── e2e/       # Tests end-to-end (Playwright)
 ├── docs/          # Documentation projet
@@ -68,6 +69,9 @@ yarn --cwd packages/ingest ingest:conseillers-arr
 
 # Ingestion membres des assemblées à statut particulier (RNE, Corse/Guyane/DOM-TOM/Métropole de Lyon, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:membres-assemblee
+
+# Sélection des scrutins candidats à un short vidéo (voir docs/DOMAINS.md)
+yarn --cwd packages/shorts select --dry-run   # classement seul, rien écrit ; --days, --max-shorts, --min-score
 
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile

@@ -1192,6 +1192,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@elupedia/shorts@workspace:packages/shorts":
+  version: 0.0.0-use.local
+  resolution: "@elupedia/shorts@workspace:packages/shorts"
+  dependencies:
+    "@elupedia/shared": "npm:*"
+    "@neondatabase/serverless": "npm:^1.1.0"
+    drizzle-orm: "npm:^0.45.3"
+    tsx: "npm:^4.23.15"
+    vitest: "npm:^5.0.2"
+    winston: "npm:^3.19.0"
+  languageName: unknown
+  linkType: soft
+
 "@elupedia/site@workspace:packages/site":
   version: 0.0.0-use.local
   resolution: "@elupedia/site@workspace:packages/site"
