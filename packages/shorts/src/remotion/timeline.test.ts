@@ -5,6 +5,8 @@ import {
   assignSeatsByAngle,
   assignSeatsByGroup,
   buildTimeline,
+  groupBreakdown,
+  orderGroups,
   chunkWords,
   estimateWordTimings,
 } from './timeline.js';
@@ -218,5 +220,58 @@ describe('assignSeatsByGroup', () => {
       seats,
     );
     expect(positions.filter((p) => p === 'absent')).toHaveLength(4);
+  });
+});
+
+describe('groupBreakdown / orderGroups', () => {
+  it('derives the non-voting members and caps at the group size', () => {
+    expect(
+      groupBreakdown({
+        name: 'g',
+        memberCount: 47,
+        for: 9,
+        against: 1,
+        abstain: 5,
+      }),
+    ).toEqual({ members: 47, for: 9, abstain: 5, grey: 32, against: 1 });
+    expect(
+      groupBreakdown({
+        name: 'g',
+        memberCount: 3,
+        for: 5,
+        against: 5,
+        abstain: 0,
+      }),
+    ).toEqual({ members: 3, for: 3, abstain: 0, grey: 0, against: 0 });
+  });
+
+  it('orders groups left to right and drops unknown sizes', () => {
+    const names = orderGroups([
+      {
+        name: 'Rassemblement National (RN)',
+        memberCount: 1,
+        for: 0,
+        against: 0,
+        abstain: 0,
+      },
+      {
+        name: 'Sans effectif',
+        memberCount: null,
+        for: 0,
+        against: 0,
+        abstain: 0,
+      },
+      {
+        name: 'Socialistes et apparentés (SOC)',
+        memberCount: 1,
+        for: 0,
+        against: 0,
+        abstain: 0,
+      },
+    ]).map((g) => g.name);
+    expect(names).toEqual([
+      'Socialistes et apparentés (SOC)',
+      'Rassemblement National (RN)',
+    ]);
   });
 });

@@ -6,7 +6,12 @@ import type { BallotFacts } from '../script-facts.js';
 import type { Scene } from '../script-schema.js';
 import { BigText, CountUp, Logo, useReveal } from './components.js';
 import { COLORS, FONT, POSITION_LABELS, shortGroupName } from './theme.js';
-import { assignSeatsByAngle, assignSeatsByGroup } from './timeline.js';
+import {
+  assignSeatsByAngle,
+  assignSeatsByGroup,
+  groupBreakdown,
+  orderGroups,
+} from './timeline.js';
 
 const Center: React.FC<{ children: React.ReactNode; top?: number }> = ({
   children,
@@ -188,77 +193,190 @@ export const HemicycleScene: React.FC<{ ballot: BallotFacts }> = ({
   );
 };
 
-const MAX_BARS = 8;
+const MAX_BARS = 12;
+/** Instant (s) où les barres de position se transforment en détail des voix. */
+const MORPH_AT_SEC = 3;
+const MORPH_DURATION_SEC = 0.9;
 
+/**
+ * Scène des groupes, en deux temps : d'abord une barre par groupe (longueur
+ * proportionnelle à l'effectif, couleur du groupe, position majoritaire),
+ * puis chaque barre se transforme en barre empilée pour / abstention / sans
+ * vote / contre, avec le même code couleur pour tous les groupes — chaque
+ * groupe est ainsi détaillé de la même façon, sans en isoler un.
+ */
 export const BarsScene: React.FC<{ ballot: BallotFacts }> = ({ ballot }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const groups = ballot.groups
-    .filter((g) => (g.memberCount ?? 0) > 0)
-    .slice(0, MAX_BARS);
+  const groups = orderGroups(ballot.groups).slice(0, MAX_BARS);
   const max = Math.max(1, ...groups.map((g) => g.memberCount ?? 0));
+  const morph = interpolate(
+    frame,
+    [MORPH_AT_SEC * fps, (MORPH_AT_SEC + MORPH_DURATION_SEC) * fps],
+    [0, 1],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const rowHeight = groups.length > 9 ? 18 : 24;
+  const fontSize = groups.length > 9 ? 28 : 32;
+
   return (
-    <Center top={280}>
+    <Center top={260}>
       <div
         style={{
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: 22,
+          gap: groups.length > 9 ? 14 : 20,
           fontFamily: FONT,
         }}
       >
         {groups.map((g, i) => {
-          const p = spring({
-            frame: frame - i * 4,
+          const enter = spring({
+            frame: frame - i * 3,
             fps,
             config: { damping: 200 },
           });
           const color = POLITICAL_GROUP_COLORS[g.name] ?? COLORS.muted;
+          const b = groupBreakdown(g);
+          const width = (b.members / max) * 100 * enter;
+          const segments = [
+            { key: 'for', n: b.for, color: SEAT_COLORS.for },
+            { key: 'abstain', n: b.abstain, color: SEAT_COLORS.abstain },
+            { key: 'grey', n: b.grey, color: SEAT_COLORS.absent },
+            { key: 'against', n: b.against, color: SEAT_COLORS.against },
+          ];
           const posColor =
-            SEAT_COLORS[
-              (Object.entries(POSITION_LABELS).find(
-                ([, label]) =>
-                  label.toLowerCase() === g.majorityPosition.toLowerCase(),
-              )?.[0] ?? 'absent') as keyof typeof SEAT_COLORS
-            ] ?? COLORS.muted;
+            g.majorityPosition === 'pour'
+              ? SEAT_COLORS.for
+              : g.majorityPosition === 'contre'
+                ? SEAT_COLORS.against
+                : SEAT_COLORS.abstain;
           return (
-            <div key={g.name} style={{ opacity: p }}>
+            <div key={g.name} style={{ opacity: enter }}>
               <div
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
+                  alignItems: 'baseline',
                   color: COLORS.text,
-                  fontSize: 34,
+                  fontSize,
                   fontWeight: 700,
-                  marginBottom: 8,
+                  marginBottom: 6,
                 }}
               >
                 <span>{shortGroupName(g.name)}</span>
-                <span style={{ color: posColor, textTransform: 'uppercase' }}>
-                  {g.majorityPosition}
+                <span style={{ position: 'relative', height: fontSize * 1.2 }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      opacity: 1 - morph,
+                      color: posColor,
+                      textTransform: 'uppercase',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {g.majorityPosition}
+                  </span>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      opacity: morph,
+                      whiteSpace: 'nowrap',
+                      fontSize: fontSize * 0.85,
+                    }}
+                  >
+                    {segments
+                      .filter((seg) => seg.n > 0)
+                      .map((seg, k) => (
+                        <span key={seg.key} style={{ color: seg.color }}>
+                          {k > 0 ? '  ' : ''}
+                          {seg.n}
+                        </span>
+                      ))}
+                  </span>
                 </span>
               </div>
               <div
                 style={{
-                  height: 26,
+                  height: rowHeight,
                   background: 'rgba(148,163,184,0.18)',
-                  borderRadius: 13,
+                  borderRadius: rowHeight / 2,
                   overflow: 'hidden',
                 }}
               >
                 <div
                   style={{
                     height: '100%',
-                    width: `${((g.memberCount ?? 0) / max) * 100 * p}%`,
-                    background: color,
-                    borderRadius: 13,
+                    width: `${width}%`,
+                    display: 'flex',
+                    borderRadius: rowHeight / 2,
+                    overflow: 'hidden',
                   }}
-                />
+                >
+                  {segments.map((seg) => (
+                    <div
+                      key={seg.key}
+                      style={{
+                        height: '100%',
+                        width: `${(seg.n / Math.max(1, b.members)) * 100}%`,
+                        // Avant le morphing, tous les segments portent la
+                        // couleur du groupe ; ils prennent ensuite celle du vote.
+                        background: color,
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: seg.color,
+                          opacity: morph,
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           );
         })}
+      </div>
+      <div
+        style={{
+          fontFamily: FONT,
+          fontSize: 26,
+          color: COLORS.muted,
+          opacity: morph,
+          display: 'flex',
+          gap: 28,
+        }}
+      >
+        {(
+          [
+            ['for', 'Pour'],
+            ['abstain', 'Abstention'],
+            ['absent', 'Sans vote'],
+            ['against', 'Contre'],
+          ] as const
+        ).map(([key, label]) => (
+          <span
+            key={key}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <span
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: 8,
+                background: SEAT_COLORS[key],
+                display: 'inline-block',
+              }}
+            />
+            {label}
+          </span>
+        ))}
       </div>
     </Center>
   );

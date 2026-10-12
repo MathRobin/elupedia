@@ -167,29 +167,56 @@ export interface GroupSeatCounts {
  * d'un groupe se lit ainsi dans son propre bloc. Sans effectifs de groupe
  * (Sénat), se rabattre sur `assignSeatsByAngle`.
  */
-export function assignSeatsByGroup(
-  groups: readonly GroupSeatCounts[],
-  seats: readonly (readonly [number, number])[],
-): SeatPosition[] {
-  const ordered = [...groups]
+/**
+ * Répartition des membres d'un groupe : pour, abstention, sans vote (membres
+ * n'ayant pas pris part au vote, par différence avec l'effectif), contre.
+ * Même découpage pour l'hémicycle et la scène des groupes.
+ */
+export function groupBreakdown(g: GroupSeatCounts): {
+  members: number;
+  for: number;
+  abstain: number;
+  grey: number;
+  against: number;
+} {
+  const members = g.memberCount ?? 0;
+  const forN = Math.min(g.for, members);
+  const abstainN = Math.min(g.abstain, members - forN);
+  const againstN = Math.min(g.against, members - forN - abstainN);
+  return {
+    members,
+    for: forN,
+    abstain: abstainN,
+    grey: members - forN - abstainN - againstN,
+    against: againstN,
+  };
+}
+
+/** Groupes triés de gauche à droite, sans ceux dont l'effectif est inconnu. */
+export function orderGroups<T extends GroupSeatCounts>(
+  groups: readonly T[],
+): T[] {
+  return [...groups]
     .filter((g) => (g.memberCount ?? 0) > 0)
     .sort(
       (a, b) =>
         politicalGroupRank(a.name) - politicalGroupRank(b.name) ||
         a.name.localeCompare(b.name, 'fr'),
     );
+}
+
+export function assignSeatsByGroup(
+  groups: readonly GroupSeatCounts[],
+  seats: readonly (readonly [number, number])[],
+): SeatPosition[] {
   const sequence: SeatPosition[] = [];
-  for (const g of ordered) {
-    const members = g.memberCount ?? 0;
-    const forN = Math.min(g.for, members);
-    const abstainN = Math.min(g.abstain, members - forN);
-    const againstN = Math.min(g.against, members - forN - abstainN);
-    const greyN = members - forN - abstainN - againstN;
+  for (const g of orderGroups(groups)) {
+    const b = groupBreakdown(g);
     sequence.push(
-      ...Array.from({ length: forN }, (): SeatPosition => 'for'),
-      ...Array.from({ length: abstainN }, (): SeatPosition => 'abstain'),
-      ...Array.from({ length: greyN }, (): SeatPosition => 'absent'),
-      ...Array.from({ length: againstN }, (): SeatPosition => 'against'),
+      ...Array.from({ length: b.for }, (): SeatPosition => 'for'),
+      ...Array.from({ length: b.abstain }, (): SeatPosition => 'abstain'),
+      ...Array.from({ length: b.grey }, (): SeatPosition => 'absent'),
+      ...Array.from({ length: b.against }, (): SeatPosition => 'against'),
     );
   }
   while (sequence.length < seats.length) sequence.push('absent');
