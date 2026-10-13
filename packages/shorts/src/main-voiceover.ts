@@ -1,64 +1,79 @@
 import { parseArgs } from 'node:util';
 import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
-import { ELEVENLABS_DEFAULT_MODEL, createElevenLabsProvider } from './tts.js';
-import { DEFAULT_OUTPUT_DIR, generateVoiceovers } from './voiceover.js';
+import {
+  DEFAULT_OUTPUT_DIR,
+  importRecordings,
+  loadReadingTargets,
+  storeVoiceover,
+  writeReadingSheet,
+  type SheetTarget,
+} from './voiceover.js';
 
-const { values } = parseArgs({
+const { values, positionals } = parseArgs({
+  allowPositionals: true,
   options: {
     id: { type: 'string' },
+    from: { type: 'string' },
     out: { type: 'string' },
-    force: { type: 'boolean', default: false },
-    'dry-run': { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
+const [command] = positionals;
 
-if (values.help) {
+if (values.help || !['sheet', 'import'].includes(command ?? '')) {
   console.log(
     [
-      'Usage: yarn --cwd packages/shorts voiceover [options]',
+      'Usage:',
+      '  yarn --cwd packages/shorts voiceover sheet [--id <uuid>]',
+      '  yarn --cwd packages/shorts voiceover import --id <uuid> [--from <dossier>]',
       '',
-      'Synthétise la voix off (ElevenLabs) des shorts au statut draft qui ont',
-      'un script : un MP3 par scène + horodatage des mots, enregistrés dans',
-      'video_shorts.voiceover. Nécessite ELEVENLABS_API_KEY et ELEVENLABS_VOICE_ID.',
+      'La voix off est enregistrée par l’équipe, une prise par scène.',
+      '  sheet   écrit la fiche de lecture (<out>/<id>/lecture.txt) et crée le dossier',
+      '          recordings/ ; sans --id, pour tous les shorts draft sans voix.',
+      '  import  recadre, normalise et horodate les prises scene-<id>.wav (ou mp3, m4a,',
+      '          flac) du dossier recordings/ (ou --from), puis enregistre la voix off.',
       '',
-      'Options:',
-      '  --id <uuid>    Un short précis (sinon tous les draft sans voix off)',
-      '  --force        Resynthétise même si une voix off existe déjà',
-      `  --out <dir>    Dossier de sortie (défaut : $SHORTS_OUTPUT_DIR ou ${DEFAULT_OUTPUT_DIR})`,
-      '  --dry-run      Affiche ce qui serait synthétisé, sans appel ni écriture',
+      `Options : --out <dir> (défaut : $SHORTS_OUTPUT_DIR ou ${DEFAULT_OUTPUT_DIR})`,
     ].join('\n'),
   );
-  process.exit(0);
+  process.exit(values.help ? 0 : 1);
 }
 
-const apiKey = process.env.ELEVENLABS_API_KEY;
-const voiceId = process.env.ELEVENLABS_VOICE_ID;
-if (!values['dry-run'] && (!apiKey || !voiceId)) {
-  logger.error('ELEVENLABS_API_KEY et ELEVENLABS_VOICE_ID sont requises');
-  process.exit(1);
+const outputDir =
+  values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR;
+const db = createDb();
+
+async function main(): Promise<void> {
+  if (command === 'sheet') {
+    const targets = await loadReadingTargets(db, values.id);
+    if (targets.length === 0) {
+      console.log('Aucun short en attente de voix off.');
+      return;
+    }
+    for (const t of targets) {
+      const { file, text } = await writeReadingSheet(t, outputDir);
+      console.log(`${text}\n→ fiche écrite dans ${file}\n`);
+    }
+    return;
+  }
+  if (!values.id) throw new Error('import attend --id <uuid>');
+  const [target] = (await loadReadingTargets(db, values.id)) as SheetTarget[];
+  if (!target) throw new Error(`video_short ${values.id} sans script`);
+  const voiceover = await importRecordings(target.id, target.script.script, {
+    from: values.from,
+    outputDir,
+  });
+  await storeVoiceover(db, target.id, voiceover);
+  const total = voiceover.scenes.reduce((n, s) => n + s.durationSec, 0);
+  logger.info(
+    `short ${target.id} : ${voiceover.scenes.length} prise(s) importée(s), ${total.toFixed(1)} s de voix`,
+  );
 }
 
-const provider = createElevenLabsProvider({
-  apiKey: apiKey ?? '',
-  voiceId: voiceId ?? '',
-  modelId: process.env.ELEVENLABS_MODEL_ID ?? ELEVENLABS_DEFAULT_MODEL,
-});
-
-generateVoiceovers(createDb(), provider, {
-  shortId: values.id,
-  force: values.force,
-  dryRun: values['dry-run'],
-  outputDir: values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR,
-})
-  .then(({ generated, failed }) => {
-    logger.info(
-      `${generated.length} voix off générée(s), ${failed.length} échec(s)${values['dry-run'] ? ' (dry-run : rien écrit)' : ''}`,
-    );
-    process.exit(failed.length > 0 ? 1 : 0);
-  })
+main()
+  .then(() => process.exit(0))
   .catch((error) => {
-    logger.error(`Voix off échouée : ${error}`);
+    logger.error(String(error));
     process.exit(1);
   });

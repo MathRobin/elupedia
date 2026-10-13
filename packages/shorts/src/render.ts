@@ -55,6 +55,8 @@ export interface RenderOptions {
   outputDir: string;
   /** Rendu accéléré pour vérifier la composition (basse qualité). */
   draft: boolean;
+  /** Inclut aussi les shorts sans voix (rendu muet, sous-titres estimés). */
+  silent?: boolean;
 }
 
 /**
@@ -110,7 +112,7 @@ export async function listBroll(dir: string): Promise<string[]> {
 }
 
 /**
- * Sans voix off (clés TTS absentes, démo) : sous-titres à horodatage estimé
+ * Sans voix off (démo, voix pas encore importée) : sous-titres à horodatage estimé
  * et vidéo muette, plutôt qu'une vidéo sans texte.
  */
 export function estimatedVoiceover(script: ShortScript): StoredVoiceover {
@@ -244,6 +246,9 @@ export async function renderShorts(
                 eq(videoShorts.status, 'draft'),
                 isNotNull(videoShorts.script),
                 isNull(videoShorts.videoKey),
+                // Sans option, seuls les shorts dont la voix est importée :
+                // la voix est enregistrée à la main, inutile de rendre muet.
+                options.silent ? undefined : isNotNull(videoShorts.voiceover),
               ),
         );
 

@@ -10,6 +10,7 @@ const { values } = parseArgs({
     out: { type: 'string' },
     force: { type: 'boolean', default: false },
     draft: { type: 'boolean', default: false },
+    silent: { type: 'boolean', default: false },
     'dry-run': { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
@@ -28,6 +29,7 @@ if (values.help) {
       '  --id <uuid>    Un short précis (sinon tous les draft sans vidéo)',
       '  --force        Rend à nouveau même si une vidéo existe déjà',
       '  --draft        Rendu rapide basse qualité (échelle 0.5) pour vérifier',
+      '  --silent       Inclut les shorts sans voix importée (muet, sous-titres estimés)',
       `  --out <dir>    Dossier de sortie (défaut : $SHORTS_OUTPUT_DIR ou ${DEFAULT_OUTPUT_DIR})`,
       '  --dry-run      Affiche la timeline sans rendre',
     ].join('\n'),
@@ -39,6 +41,7 @@ renderShorts(createDb(), {
   shortId: values.id,
   force: values.force,
   draft: values.draft,
+  silent: values.silent,
   dryRun: values['dry-run'],
   outputDir: values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR,
 })

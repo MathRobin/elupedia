@@ -1,6 +1,6 @@
 import type { Scene, ShortScript } from '../script-schema.js';
 import type { StoredVoiceover, VoiceoverScene } from '../voiceover.js';
-import type { WordTiming } from '../tts.js';
+import type { WordTiming } from '../words.js';
 import { politicalGroupRank } from '@elupedia/shared/src/political-group-order.js';
 
 /**
@@ -235,7 +235,7 @@ export const ESTIMATED_WORDS_PER_SEC = 2.6;
 
 /**
  * Horodatage estimé des mots d'un texte, quand aucune voix off n'existe
- * (démo, clés TTS absentes) : débit constant, pause un peu plus longue après
+ * (démo, voix pas encore importée) : débit constant, pause un peu plus longue après
  * une ponctuation forte. Les sous-titres restent affichables, sans audio.
  */
 export function estimateWordTimings(

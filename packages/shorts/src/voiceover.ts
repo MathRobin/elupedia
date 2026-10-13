@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
@@ -6,18 +6,19 @@ import { videoShorts } from '@elupedia/shared';
 import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
 import type { ShortScript } from './script-schema.js';
-import type { TtsProvider, WordTiming } from './tts.js';
+import { MAX_WORDS_PER_SEC, countWords } from './script-validate.js';
+import { processRecording, type ProcessedRecording } from './audio.js';
+import type { WordTiming } from './words.js';
 
 /**
- * Voix off d'un short : un fichier audio par scène (le rendu peut ainsi caler
- * chaque scène sur sa propre piste), horodatage des mots pour les sous-titres,
- * durée réelle (le rendu prend le max entre la durée prévue par le script et
- * la durée de l'audio).
+ * Voix off enregistrée par l'équipe : une fiche de lecture par short, un
+ * fichier audio par scène, importé (recadré, normalisé, horodaté) dans
+ * `video_shorts.voiceover`. Le rendu cale ensuite chaque scène sur son audio.
  */
 
 export interface VoiceoverScene {
   sceneId: string;
-  /** Chemin du MP3, relatif à `outputDir` ; vide = sous-titres sans audio. */
+  /** Chemin du WAV, relatif à `outputDir` ; vide = sous-titres sans audio. */
   file: string;
   durationSec: number;
   words: WordTiming[];
@@ -26,6 +27,7 @@ export interface VoiceoverScene {
 export interface StoredVoiceover {
   version: 1;
   generatedAt: string;
+  /** `recorded` (voix enregistrée) ou `estimated` (sous-titres seuls, rendu muet). */
   provider: string;
   voiceId: string;
   modelId: string;
@@ -34,125 +36,164 @@ export interface StoredVoiceover {
 }
 
 export const DEFAULT_OUTPUT_DIR = 'out';
+export const RECORDING_EXTENSIONS = ['wav', 'mp3', 'm4a', 'aac', 'flac', 'ogg'];
 
-export async function synthesizeScript(
-  shortId: string,
-  script: ShortScript,
-  provider: TtsProvider,
-  outputDir: string,
-): Promise<StoredVoiceover> {
-  const dir = path.join(outputDir, shortId);
-  await mkdir(dir, { recursive: true });
-
-  const scenes: VoiceoverScene[] = [];
-  for (const scene of script.scenes) {
-    const text = scene.voiceover.trim();
-    if (!text) continue;
-    const result = await provider.synthesize(text);
-    const file = path.join(shortId, `scene-${scene.id}.mp3`);
-    await writeFile(path.join(outputDir, file), result.audio);
-    scenes.push({
-      sceneId: scene.id,
-      file,
-      durationSec: Math.round(result.durationSec * 100) / 100,
-      words: result.words,
-    });
-    if (result.durationSec > scene.durationSec) {
-      logger.warn(
-        `scène ${scene.id} : audio de ${result.durationSec.toFixed(1)} s pour ${scene.durationSec} s prévues, le rendu allongera la scène`,
-      );
-    }
-  }
-
-  return {
-    version: 1,
-    generatedAt: new Date().toISOString(),
-    provider: provider.name,
-    voiceId: provider.voiceId,
-    modelId: provider.modelId,
-    outputDir: path.resolve(outputDir),
-    scenes,
-  };
+export function spokenScenes(script: ShortScript) {
+  return script.scenes.filter((s) => s.voiceover.trim().length > 0);
 }
 
-export interface VoiceoverOptions {
-  shortId?: string;
-  force: boolean;
-  dryRun: boolean;
+/** Fiche de lecture : ce qu'il faut lire, dans quel fichier, en combien de temps. */
+export function readingSheet(shortId: string, script: ShortScript): string {
+  const lines = [
+    `Fiche de lecture — ${script.title}`,
+    `Short ${shortId}`,
+    '',
+    `Enregistrer une prise par scène, nommée scene-<identifiant>.wav (mp3, m4a, flac acceptés),`,
+    `dans le dossier recordings/ du short. Débit visé : ${MAX_WORDS_PER_SEC} mots par seconde au plus,`,
+    'voix posée, une courte pause entre deux phrases (elle sert à caler les sous-titres).',
+    '',
+  ];
+  for (const scene of spokenScenes(script)) {
+    const words = countWords(scene.voiceover);
+    lines.push(
+      `── scene-${scene.id} · ${scene.durationSec} s prévues · ${words} mots`,
+      scene.voiceover,
+      '',
+    );
+  }
+  return lines.join('\n');
+}
+
+export function findRecording(
+  files: string[],
+  sceneId: string,
+): string | undefined {
+  const wanted = `scene-${sceneId}`.toLowerCase();
+  return files.find((f) => {
+    const ext = path.extname(f).slice(1).toLowerCase();
+    return (
+      RECORDING_EXTENSIONS.includes(ext) &&
+      path.basename(f, path.extname(f)).toLowerCase() === wanted
+    );
+  });
+}
+
+export interface ImportOptions {
+  /** Dossier des prises ; défaut : `<outputDir>/<shortId>/recordings`. */
+  from?: string;
   outputDir: string;
 }
 
-export async function generateVoiceovers(
-  db: NeonHttpDatabase,
-  provider: TtsProvider,
-  options: VoiceoverOptions,
-): Promise<{ generated: string[]; failed: string[] }> {
-  const generated: string[] = [];
-  const failed: string[] = [];
+export async function importRecordings(
+  shortId: string,
+  script: ShortScript,
+  options: ImportOptions,
+  process_: typeof processRecording = processRecording,
+): Promise<StoredVoiceover> {
+  const dir =
+    options.from ?? path.join(options.outputDir, shortId, 'recordings');
+  let files: string[];
+  try {
+    files = await readdir(dir);
+  } catch (error) {
+    throw new Error(`dossier des prises introuvable : ${dir}`, {
+      cause: error,
+    });
+  }
+  const scenes = spokenScenes(script);
+  const missing = scenes.filter((s) => !findRecording(files, s.id));
+  if (missing.length > 0) {
+    throw new Error(
+      `prises manquantes dans ${dir} : ${missing.map((s) => `scene-${s.id}`).join(', ')}`,
+    );
+  }
 
-  const targets = options.shortId
+  const outDir = path.join(options.outputDir, shortId);
+  await mkdir(outDir, { recursive: true });
+  const result: VoiceoverScene[] = [];
+  for (const scene of scenes) {
+    const src = path.join(dir, findRecording(files, scene.id)!);
+    const file = path.join(shortId, `scene-${scene.id}.wav`);
+    const processed: ProcessedRecording = await process_(
+      src,
+      path.join(options.outputDir, file),
+      scene.voiceover,
+    );
+    result.push({
+      sceneId: scene.id,
+      file,
+      durationSec: processed.durationSec,
+      words: processed.words,
+    });
+    if (processed.durationSec > scene.durationSec) {
+      logger.warn(
+        `scène ${scene.id} : ${processed.durationSec.toFixed(1)} s enregistrées pour ${scene.durationSec} s prévues, le rendu allongera la scène`,
+      );
+    }
+  }
+  return {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    provider: 'recorded',
+    voiceId: '',
+    modelId: '',
+    outputDir: path.resolve(options.outputDir),
+    scenes: result,
+  };
+}
+
+export interface SheetTarget {
+  id: string;
+  script: StoredScript;
+}
+
+/** Shorts à lire : script prêt (draft), pas encore de voix, ou un short précis. */
+export async function loadReadingTargets(
+  db: NeonHttpDatabase,
+  shortId?: string,
+): Promise<SheetTarget[]> {
+  const rows = shortId
     ? await db
         .select({ id: videoShorts.id, script: videoShorts.script })
         .from(videoShorts)
-        .where(eq(videoShorts.id, options.shortId))
+        .where(eq(videoShorts.id, shortId))
     : await db
         .select({ id: videoShorts.id, script: videoShorts.script })
         .from(videoShorts)
         .where(
-          options.force
-            ? and(
-                eq(videoShorts.status, 'draft'),
-                isNotNull(videoShorts.script),
-              )
-            : and(
-                eq(videoShorts.status, 'draft'),
-                isNotNull(videoShorts.script),
-                isNull(videoShorts.voiceover),
-              ),
+          and(
+            eq(videoShorts.status, 'draft'),
+            isNotNull(videoShorts.script),
+            isNull(videoShorts.voiceover),
+          ),
         );
-
-  if (options.shortId && targets.length === 0) {
-    throw new Error(`video_short ${options.shortId} introuvable`);
+  if (shortId && rows.length === 0) {
+    throw new Error(`video_short ${shortId} introuvable`);
   }
-  logger.info(`${targets.length} short(s) à sonoriser`);
+  return rows
+    .filter((r) => (r.script as StoredScript | null)?.script)
+    .map((r) => ({ id: r.id, script: r.script as StoredScript }));
+}
 
-  for (const target of targets) {
-    const stored = target.script as StoredScript | null;
-    if (!stored?.script) {
-      logger.warn(`short ${target.id} : pas de script, ignoré`);
-      failed.push(target.id);
-      continue;
-    }
-    const scenes = stored.script.scenes.filter((s) => s.voiceover.trim());
-    if (options.dryRun) {
-      const chars = scenes.reduce((n, s) => n + s.voiceover.length, 0);
-      logger.info(
-        `[dry-run] short ${target.id} : ${scenes.length} scène(s), ${chars} caractères à synthétiser`,
-      );
-      generated.push(target.id);
-      continue;
-    }
-    try {
-      const voiceover = await synthesizeScript(
-        target.id,
-        stored.script,
-        provider,
-        options.outputDir,
-      );
-      await db
-        .update(videoShorts)
-        .set({ voiceover, updatedAt: new Date() })
-        .where(eq(videoShorts.id, target.id));
-      const total = voiceover.scenes.reduce((n, s) => n + s.durationSec, 0);
-      logger.info(
-        `short ${target.id} : ${voiceover.scenes.length} fichier(s), ${total.toFixed(1)} s de voix off dans ${voiceover.outputDir}`,
-      );
-      generated.push(target.id);
-    } catch (error) {
-      logger.error(`short ${target.id} : voix off échouée — ${error}`);
-      failed.push(target.id);
-    }
-  }
+export async function writeReadingSheet(
+  target: SheetTarget,
+  outputDir: string,
+): Promise<{ file: string; text: string }> {
+  const text = readingSheet(target.id, target.script.script);
+  const dir = path.join(outputDir, target.id);
+  await mkdir(path.join(dir, 'recordings'), { recursive: true });
+  const file = path.join(dir, 'lecture.txt');
+  await writeFile(file, text);
+  return { file, text };
+}
 
-  return { generated, failed };
+export async function storeVoiceover(
+  db: NeonHttpDatabase,
+  shortId: string,
+  voiceover: StoredVoiceover,
+): Promise<void> {
+  await db
+    .update(videoShorts)
+    .set({ voiceover, updatedAt: new Date() })
+    .where(eq(videoShorts.id, shortId));
 }

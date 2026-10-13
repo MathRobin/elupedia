@@ -11,7 +11,7 @@ import {
 import { POLITICAL_GROUP_COLORS } from '@elupedia/shared/src/political-group-colors.js';
 import { COLORS, FONT } from './theme.js';
 import { activeChunk, chunkWords } from './timeline.js';
-import type { WordTiming } from '../tts.js';
+import type { WordTiming } from '../words.js';
 
 export const Background: React.FC<{ broll?: string }> = ({ broll }) => {
   const frame = useCurrentFrame();
