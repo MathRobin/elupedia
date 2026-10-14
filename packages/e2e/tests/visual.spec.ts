@@ -18,10 +18,7 @@ test.describe('Régression visuelle', () => {
 
     await expect(page).toHaveScreenshot('home.png', {
       fullPage: true,
-      mask: [
-        page.locator('main p').filter({ hasText: 'Élupedia consolide' }),
-        page.locator('section').filter({ hasText: 'Élections sénatoriales' }),
-      ],
+      mask: [page.locator('main p').filter({ hasText: 'Élupedia consolide' })],
     });
   });
 

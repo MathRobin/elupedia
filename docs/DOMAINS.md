@@ -266,7 +266,7 @@ Cartographie des domaines couverts par Elupedia, avec les tables DB et sources a
 - **Client** : `sources/senat-candidacies-2026.ts` (scraping HTML via `cheerio`, roster de circonscriptions figé en constante) → `upsert/senat-candidacies.ts`
 - **Commande** : `yarn --cwd packages/ingest ingest:senat:candidacies`
 - **Description** : Avant le scrutin du 27 septembre 2026, seules les candidatures sont connues (pas de résultats). Les lignes créées ont donc `inscrits`/`abstentions`/`votants`/`blancs`/`nuls`/`exprimes`/`voix`/`elected` à `null`, `round = 1`, et ciblent la même clé unique (`electionYear`, `departementCode`, `round`) que l'ingestion rétrospective des résultats — celle-ci complètera automatiquement ces lignes une fois le scrutin passé. Champs propres aux candidatures : `sieges_a_pourvoir`, `electeurs_senatoriaux` (par élection), `liste` et `sortant` (par candidat, scrutin proportionnel uniquement pour `liste`). `nuance` porte ici le libellé complet attribué par les préfets (pas le code court à 3 lettres des ingestions rétrospectives) — colonne élargie en conséquence.
-- **Pages** : page panorama `/elections/senatoriale/[year]-[round]` (répertoire alphabétique des candidats), hero d'accueil tant que l'élection 2026 est active
+- **Pages** : page panorama `/elections/senatoriale/[year]-[round]` (répertoire alphabétique des candidats), l'encart d'accueil, qui a laissé la place à l'élection présidentielle 2027 (le panorama reste accessible depuis `/elections`)
 
 ## Résultats sénatoriales 2026 (post-scrutin)
 
