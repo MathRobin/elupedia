@@ -18,7 +18,13 @@ test.describe('Régression visuelle', () => {
 
     await expect(page).toHaveScreenshot('home.png', {
       fullPage: true,
-      mask: [page.locator('main p').filter({ hasText: 'Élupedia consolide' })],
+      mask: [
+        page.locator('main p').filter({ hasText: 'Élupedia consolide' }),
+        // Badge qui bascule d'« à venir » à « récente » à la date du scrutin.
+        page
+          .locator('main span')
+          .filter({ hasText: /^Élection (à venir|récente)/ }),
+      ],
     });
   });
 
