@@ -8,6 +8,7 @@
     "script": "tsx --env-file-if-exists=../../.env src/main-script.ts",
     "voiceover": "tsx --env-file-if-exists=../../.env src/main-voiceover.ts",
     "render": "tsx --env-file-if-exists=../../.env src/main-render.ts",
+    "make": "tsx --env-file-if-exists=../../.env src/main-make.ts",
     "preview": "remotion studio src/remotion/index.ts",
     "review": "tsx --env-file-if-exists=../../.env src/main-review.ts",
     "publish": "tsx --env-file-if-exists=../../.env src/main-publish.ts",

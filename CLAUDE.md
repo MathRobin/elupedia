@@ -73,6 +73,7 @@ yarn --cwd packages/ingest ingest:membres-assemblee
 # Sélection des scrutins candidats à un short vidéo (voir docs/DOMAINS.md)
 yarn --cwd packages/shorts select --dry-run   # classement seul, rien écrit ; --days, --max-shorts, --min-score
 yarn --cwd packages/shorts script --dry-run   # script LLM des shorts candidate (ANTHROPIC_API_KEY requise) ; --id, --force, --model
+yarn --cwd packages/shorts make <id>   # un short de bout en bout : script (si absent) → import de la voix → rendu ; s'arrête avec la fiche de lecture si des prises manquent ; --rescript, --reimport, --force, --silent, --draft, --dry-run
 yarn --cwd packages/shorts voiceover sheet   # fiche de lecture des shorts draft sans voix (voix enregistrée par l'équipe, une prise par scène)
 yarn --cwd packages/shorts voiceover import --id <uuid>   # recadre, normalise et horodate les prises recordings/scene-<id>.wav
 yarn --cwd packages/shorts render --draft   # rendu Remotion (1080×1920) des shorts draft avec voix importée, dans packages/shorts/out/<id>/ ; --id, --force, --silent, --out, --dry-run
