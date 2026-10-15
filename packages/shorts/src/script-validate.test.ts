@@ -208,4 +208,32 @@ describe('validateScript', () => {
     };
     expect(validateScript(s, facts)).toEqual([]);
   });
+
+  it('requires the official result to be spoken', () => {
+    const s = script();
+    s.scenes[1].voiceover = '280 voix pour, 260 contre, 10 abstentions.';
+    expect(validateScript(s, facts).map((i) => i.code)).toContain(
+      'missing_result',
+    );
+    s.scenes[1].voiceover = 'Le texte est adopté : 280 voix pour.';
+    expect(validateScript(s, facts).map((i) => i.code)).not.toContain(
+      'missing_result',
+    );
+  });
+
+  it('rejects group acronyms spoken aloud and suggests the full name', () => {
+    const s = script();
+    s.scenes[2].voiceover = 'EPR a voté pour, Dem aussi.';
+    const issues = validateScript(s, facts).filter(
+      (i) => i.code === 'spoken_acronym',
+    );
+    expect(issues).toHaveLength(2);
+    expect(issues[0].message).toContain('Ensemble pour la République');
+    // Un mot qui contient le sigle n'est pas le sigle.
+    s.scenes[2].voiceover =
+      'Les Démocrates ont voté pour, dans un cadre démocratique.';
+    expect(
+      validateScript(s, facts).filter((i) => i.code === 'spoken_acronym'),
+    ).toEqual([]);
+  });
 });

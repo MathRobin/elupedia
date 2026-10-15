@@ -26,6 +26,8 @@ const POSITION_LABELS: Record<string, string> = {
 
 export interface GroupFacts {
   name: string;
+  /** Nom complet, sans le sigle entre parenthèses : celui qu'on prononce. */
+  spokenName: string;
   memberCount: number | null;
   majorityPosition: string;
   for: number;
@@ -88,6 +90,15 @@ export interface ShortFacts {
   ballots: BallotFacts[];
 }
 
+/** « Rassemblement National (RN) » → « Rassemblement National ». */
+export function spokenGroupName(name: string): string {
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name;
+}
+
+export function groupAcronym(name: string): string | null {
+  return name.match(/\(([^)]+)\)\s*$/)?.[1] ?? null;
+}
+
 export function formatDateLabel(isoDate: string): string {
   return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('fr-FR', {
     day: 'numeric',
@@ -144,6 +155,7 @@ export function buildBallotFacts(input: {
   const groups: GroupFacts[] = input.groups
     .map((g) => ({
       name: g.groupName,
+      spokenName: spokenGroupName(g.groupName),
       memberCount: g.memberCount,
       majorityPosition: POSITION_LABELS[g.position] ?? g.position,
       for: g.votesFor,

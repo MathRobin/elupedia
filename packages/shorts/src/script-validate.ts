@@ -1,4 +1,4 @@
-import type { ShortFacts } from './script-facts.js';
+import { groupAcronym, type ShortFacts } from './script-facts.js';
 import type { ShortScript } from './script-schema.js';
 
 /**
@@ -68,6 +68,8 @@ export interface ValidationIssue {
     | 'title_too_long'
     | 'duplicate_scene_id'
     | 'unknown_person'
+    | 'missing_result'
+    | 'spoken_acronym'
     | 'missing_source';
   message: string;
 }
@@ -215,6 +217,40 @@ export function validateScript(
         code: 'banned_word',
         message: `Titre : mot évaluatif proscrit « ${raw} »`,
       });
+    }
+  }
+
+  // Le résultat officiel est toujours énoncé en toutes lettres.
+  const spoken = normalizeWord(script.scenes.map((s) => s.voiceover).join(' '));
+  for (const result of new Set(facts.ballots.map((b) => b.result))) {
+    if (!result) continue;
+    const stem = normalizeWord(result.slice(0, -1)); // adopte / rejete
+    if (!new RegExp(`\\b${stem}e?s?\\b`).test(spoken)) {
+      issues.push({
+        code: 'missing_result',
+        message: `La voix doit énoncer le résultat du scrutin (« ${result} »)`,
+      });
+    }
+  }
+
+  // Les sigles de groupes sont pour l'écran : à voix haute, le nom complet.
+  for (const scene of script.scenes) {
+    for (const b of facts.ballots) {
+      for (const g of b.groups) {
+        const acronym = groupAcronym(g.name);
+        if (!acronym) continue;
+        const escaped = acronym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(
+          `(?<![\\p{L}\\p{N}-])${escaped}(?![\\p{L}\\p{N}-])`,
+          'u',
+        );
+        if (re.test(scene.voiceover)) {
+          issues.push({
+            code: 'spoken_acronym',
+            message: `Scène ${scene.id} : le sigle « ${acronym} » est prononcé, dire « ${g.spokenName} »`,
+          });
+        }
+      }
     }
   }
 
