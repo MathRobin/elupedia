@@ -17,21 +17,21 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
     "@elupedia/shared": "*",
-    "@neondatabase/serverless": "^1.1.0",
-    "@remotion/bundler": "4.0.532",
-    "@remotion/renderer": "4.0.532",
-    "drizzle-orm": "^0.45.3",
+    "@neondatabase/serverless": "^1.2.0",
+    "@remotion/bundler": "4.0.535",
+    "@remotion/renderer": "4.0.535",
+    "drizzle-orm": "^0.45.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "remotion": "4.0.532",
+    "remotion": "4.0.535",
     "winston": "^3.19.0",
     "zod": "^4.6.6"
   },
   "devDependencies": {
-    "@remotion/cli": "4.0.532",
+    "@remotion/cli": "4.0.535",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "tsx": "^4.23.15",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.4"
   }
 }
