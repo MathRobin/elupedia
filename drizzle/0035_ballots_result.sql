@@ -1,0 +1,1 @@
+ALTER TABLE "ballots" ADD COLUMN "result" varchar(20);

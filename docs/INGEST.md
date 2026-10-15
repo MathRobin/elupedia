@@ -4,6 +4,17 @@ Tous les scripts s'exécutent depuis la racine du monorepo avec `yarn --cwd pack
 
 La variable d'environnement `DATABASE_URL` doit être définie (fichier `.env` à la racine).
 
+## Organisation du code
+
+Chaque script suit la même convention (détail dans `docs/ARCHITECTURE.md`, « Guide de lecture du code ») :
+
+- `src/main-<domaine>.ts` : point d'entrée CLI (arguments, connexion DB, rapport, code de sortie) ;
+- `src/run-<domaine>.ts` : orchestration testable des étapes `runStep({ fetch, upsert })` ;
+- `src/sources/` : lecture des sources ouvertes, sans écriture en base ;
+- `src/upsert/` : écriture en base, idempotente, avec la clé de rapprochement documentée en en-tête.
+
+Pour comprendre un script : lire l'en-tête du `main-*`, puis le `run-*` qui liste les étapes, puis les `sources/` et `upsert/` de chaque étape.
+
 ## Commandes
 
 ### `ingest` — Ingestion complète (AN + Sénat + Maires)
@@ -31,7 +42,7 @@ yarn --cwd packages/ingest ingest:an --only deputes
 yarn --cwd packages/ingest ingest:an --only deputes,collaborateurs,activity
 ```
 
-6 étapes : `deputes`, `collaborateurs`, `addresses`, `activity`, `committees`, `votes`
+8 étapes (`AN_STEP_NAMES` dans `src/cli.ts`) : `deputes`, `affiliations`, `collaborateurs`, `addresses`, `activity`, `committees`, `votes`, `elections`
 
 Accepte `--only`, `--skip`, `--help`.
 
@@ -61,7 +72,7 @@ yarn --cwd packages/ingest ingest:maires
 yarn --cwd packages/ingest ingest:maires --only maires
 ```
 
-3 étapes : `maires`, `maires-addresses`, `maires-social-scrape`
+5 étapes (`MAIRES_STEP_NAMES` dans `src/cli.ts`) : `maires`, `maires-addresses`, `maires-photos`, `maires-elections`, `maires-social-scrape`
 
 Accepte `--only`, `--skip`, `--help`.
 
@@ -106,18 +117,67 @@ yarn --cwd packages/ingest ingest:rip
 
 Pas d'options. Ingère les 3 propositions RIP configurées (ADP 2019, retraites 2023 ×2).
 
-## Cron GitHub Actions
+### `ingest:europe` — Parlement européen
 
-| Workflow                  | Cron                           | Script                |
-| ------------------------- | ------------------------------ | --------------------- |
-| `ingest-an.yml`           | 1er dimanche du mois 21:00 UTC | `ingest:an`           |
-| `ingest-an-partial.yml`   | mardi/samedi 02:00 UTC         | `ingest:an:partial`   |
-| `ingest-senat.yml`        | mardi/samedi 03:00 UTC         | `ingest:senat`        |
-| `ingest-maires.yml`       | 1er du mois 04:00 UTC          | `ingest:maires`       |
-| `ingest-interests.yml`    | 1er et 15 du mois 04:00 UTC    | `ingest:interests`    |
-| `ingest-social-links.yml` | quotidien 03:30 UTC            | `ingest:social-links` |
-| `ingest-press.yml`        | lundi 05:00 UTC                | `ingest:press`        |
+```bash
+yarn --cwd packages/ingest ingest:europe
+```
 
-Les parrainages et signatures RIP sont des ingestions one-shot manuelles (pas de cron).
+Eurodéputés français, votes nominatifs et questions écrites (API open data du Parlement européen). Curseur de pagination des questions stocké dans `data_provenance`.
 
-Chaque workflow supporte `workflow_dispatch` pour un déclenchement manuel depuis GitHub.
+### `ingest:conseillers-dep`, `ingest:conseillers-reg`, `ingest:conseillers-arr`, `ingest:conseillers-fde`, `ingest:membres-assemblee`, `ingest:membres-afe` — RNE
+
+```bash
+yarn --cwd packages/ingest ingest:conseillers-dep
+yarn --cwd packages/ingest ingest:membres-afe
+```
+
+Une étape chacun : lecture du Répertoire national des élus (data.gouv.fr) et historisation des mandats (règles dans `docs/ARCHITECTURE.md`).
+
+### `ingest:senat:candidacies`, `ingest:senat:resultats` — Sénatoriales 2026
+
+```bash
+yarn --cwd packages/ingest ingest:senat:candidacies   # pré-scrutin : candidatures
+yarn --cwd packages/ingest ingest:senat:resultats     # post-scrutin : résultats, nouvelles fiches, mandats
+```
+
+Chaîne : candidatures (tour 1) → résultats (tour 2 + élus) → ouverture des mandats au 1er octobre et clôture des sortants → `ingest:senat` complète ensuite matricule et date de naissance.
+
+### `ingest:press:maires`, `ingest:press:conseillers-dep` — Presse, tous mandats
+
+```bash
+yarn --cwd packages/ingest ingest:press:maires --limit 1500
+yarn --cwd packages/ingest ingest:press:maires --department 94
+yarn --cwd packages/ingest ingest:press:maires --type conseiller_departemental
+```
+
+Malgré son nom, couvre tous les types de mandat (1500 élus vivants aléatoires par défaut, les moins récemment vérifiés d'abord via `officials.press_checked_at`).
+
+### `ingest:photos`, `ingest:hatvp-status`, `ingest:decorations`, `ingest:factchecks`, `ingest:madada`, `ingest:wikipedia`
+
+```bash
+yarn --cwd packages/ingest ingest:photos        # sauvegarde S3 des photos officielles
+yarn --cwd packages/ingest ingest:hatvp-status  # statut de publication des déclarations HATVP (scraping)
+yarn --cwd packages/ingest ingest:decorations   # Légion d'honneur, ONM, Médaille militaire (base Léonore)
+yarn --cwd packages/ingest ingest:factchecks    # Google Fact Check API (clé GOOGLE_FACTCHECK_API_KEY requise)
+yarn --cwd packages/ingest ingest:madada        # demandes CADA par commune via MaDaDa.fr (cache madada-cache.json)
+yarn --cwd packages/ingest ingest:wikipedia     # lien Wikipédia via Wikidata
+```
+
+### Outils de maintenance
+
+```bash
+yarn --cwd packages/ingest reconcile                     # rattache les candidats aux élus (official_id manquants)
+yarn --cwd packages/ingest dedupe:committees --dry-run   # fusionne « nom » et « nom (abrégé) »
+yarn --cwd packages/ingest check:coherence               # contrôles métier, lecture seule
+yarn --cwd packages/ingest merge:duplicate-officials     # dry-run : fiches AN/Sénat en doublon (même nom + naissance)
+yarn --cwd packages/ingest merge:duplicate-officials --apply   # fusionne : garde la fiche Sénat, supprime la fiche AN
+```
+
+`merge:duplicate-officials` corrige un héritage : avant le rapprochement nom + prénom + date de naissance entre sources, un sénateur décrit à la fois par l'open data Sénat et par le jeu AMO30 de l'AN recevait deux fiches. La fiche Sénat est conservée ; elle reçoit l'`an_id`, les champs qu'elle n'avait pas et toutes les lignes dépendantes de la fiche AN, sauf celles qu'elle possède déjà (même clé naturelle par table, voir `NATURAL_KEYS` dans `src/merge-duplicate-officials.ts`). Le slug de la fiche AN disparaît.
+
+## Planification
+
+L'ingestion est planifiée par des DAGs Dagu (`dagu-dags/`), voir `docs/INGESTION-SCHEDULE.md`. Il n'y a plus de cron GitHub Actions d'ingestion.
+
+Les parrainages et signatures RIP sont des ingestions one-shot manuelles.

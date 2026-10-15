@@ -1,9 +1,32 @@
+/**
+ * Upsert des conseillers départementaux à partir du Répertoire national des
+ * élus (`sources/rne-conseillers-dep.ts`). Appelé par
+ * `run-conseillers-dep.ts`.
+ *
+ * Tables écrites : `officials` (création uniquement, jamais de mise à jour
+ * d'une fiche existante) et `mandates` (type 'conseiller_departemental',
+ * `district` = canton, `department` = département).
+ * Clé de rapprochement official : (prénom, nom, date de naissance), en
+ * minuscules — le RNE ne fournit aucun identifiant stable. Mandat :
+ * (official_id, type, district) actif (end_date NULL).
+ * Idempotent : un mandat dont la date de début est inchangée est simplement
+ * réécrit en place ; une date de prise de fonction plus récente clôture
+ * l'ancien mandat et en ouvre un nouveau (historisation) ; les mandats
+ * actifs dont le titulaire a disparu du RNE pour son canton sont clôturés à
+ * la date du run. Une violation de l'index unique
+ * (official_id, type, start_date) est absorbée et comptée en `skipped`
+ * (homonyme ou donnée source douteuse) plutôt que d'interrompre le run.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { RneConseillerDep } from '../sources/rne-conseillers-dep.js';
 import { logger } from '../logger.js';
 
+const MANDATE_TYPE = 'conseiller_departemental' as const;
+
+// Code SQLSTATE Postgres "unique_violation", éventuellement enveloppé dans
+// `cause` par le driver Neon HTTP.
 function isUniqueViolation(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
   if ('code' in error && (error as { code?: unknown }).code === '23505') {
@@ -25,10 +48,38 @@ function slugify(firstName: string, lastName: string): string {
     .replace(/^-|-$/g, '');
 }
 
+// Clé d'identité d'une personne, faute d'identifiant RNE stable.
+function officialKey(
+  firstName: string,
+  lastName: string,
+  birthDate: string | null,
+): string {
+  return `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${birthDate ?? ''}`;
+}
+
+// Suffixe numérique en cas de collision de slug (homonymes). `usedSlugs` est
+// mis à jour pour que deux créations du même run ne se percutent pas.
+function uniqueSlug(usedSlugs: Set<string>, base: string): string {
+  if (!usedSlugs.has(base)) {
+    usedSlugs.add(base);
+    return base;
+  }
+  let suffix = 1;
+  while (usedSlugs.has(`${base}-${suffix}`)) suffix++;
+  const candidate = `${base}-${suffix}`;
+  usedSlugs.add(candidate);
+  return candidate;
+}
+
 function cantonKey(departmentName: string, cantonName: string): string {
   return `${departmentName}|${cantonName}`;
 }
 
+/**
+ * Crée les officials manquants puis synchronise leurs mandats de conseiller
+ * départemental avec le RNE (écriture DB). Retourne les compteurs officials
+ * créés / mandates upsertés / ended / replaced / skipped.
+ */
 export async function upsertConseillersDep(
   db: NeonHttpDatabase,
   conseillers: RneConseillerDep[],
@@ -52,26 +103,18 @@ export async function upsertConseillersDep(
     .from(officials);
 
   const officialByKey = new Map<string, { id: string; slug: string | null }>();
-  for (const o of allOfficials) {
-    const key = `${o.firstName.toLowerCase()}|${o.lastName.toLowerCase()}|${o.birthDate ?? ''}`;
-    officialByKey.set(key, { id: o.id, slug: o.slug });
+  for (const official of allOfficials) {
+    officialByKey.set(
+      officialKey(official.firstName, official.lastName, official.birthDate),
+      { id: official.id, slug: official.slug },
+    );
   }
 
-  const slugSet = new Set(
-    allOfficials.filter((o) => o.slug).map((o) => o.slug!),
+  const usedSlugs = new Set(
+    allOfficials
+      .filter((official) => official.slug)
+      .map((official) => official.slug!),
   );
-
-  function uniqueSlug(base: string): string {
-    if (!slugSet.has(base)) {
-      slugSet.add(base);
-      return base;
-    }
-    let i = 1;
-    while (slugSet.has(`${base}-${i}`)) i++;
-    const s = `${base}-${i}`;
-    slugSet.add(s);
-    return s;
-  }
 
   // Chaque canton élit un binôme (2 sièges) : contrairement aux maires (poste à
   // titulaire unique), on ne peut pas fermer "l'ancien titulaire" d'un canton en
@@ -79,18 +122,25 @@ export async function upsertConseillersDep(
   // puis on ferme les mandats dont le titulaire n'apparaît plus dans le fichier
   // RNE pour son canton.
   const resolved: Array<{ row: RneConseillerDep; officialId: string }> = [];
-  for (const c of conseillers) {
-    const key = `${c.firstName.toLowerCase()}|${c.lastName.toLowerCase()}|${c.birthDate}`;
+  for (const conseiller of conseillers) {
+    const key = officialKey(
+      conseiller.firstName,
+      conseiller.lastName,
+      conseiller.birthDate,
+    );
     let official = officialByKey.get(key);
 
     if (!official) {
-      const slug = uniqueSlug(slugify(c.firstName, c.lastName));
+      const slug = uniqueSlug(
+        usedSlugs,
+        slugify(conseiller.firstName, conseiller.lastName),
+      );
       const [inserted] = await db
         .insert(officials)
         .values({
-          firstName: c.firstName,
-          lastName: c.lastName,
-          birthDate: c.birthDate,
+          firstName: conseiller.firstName,
+          lastName: conseiller.lastName,
+          birthDate: conseiller.birthDate,
           slug,
         })
         .returning({ id: officials.id });
@@ -99,7 +149,7 @@ export async function upsertConseillersDep(
       summary.officials++;
     }
 
-    resolved.push({ row: c, officialId: official.id });
+    resolved.push({ row: conseiller, officialId: official.id });
   }
 
   const currentPairs = new Set(
@@ -117,50 +167,48 @@ export async function upsertConseillersDep(
       department: mandates.department,
     })
     .from(mandates)
-    .where(
-      and(
-        eq(mandates.type, 'conseiller_departemental'),
-        isNull(mandates.endDate),
-      ),
-    );
+    .where(and(eq(mandates.type, MANDATE_TYPE), isNull(mandates.endDate)));
 
   const today = new Date().toISOString().split('T')[0];
 
-  for (const m of activeMandates) {
-    const pair = `${cantonKey(m.department ?? '', m.district ?? '')}|${m.officialId}`;
+  for (const mandate of activeMandates) {
+    const pair = `${cantonKey(mandate.department ?? '', mandate.district ?? '')}|${mandate.officialId}`;
     if (!currentPairs.has(pair)) {
       await db
         .update(mandates)
         .set({ endDate: today, updatedAt: new Date() })
-        .where(eq(mandates.id, m.id));
+        .where(eq(mandates.id, mandate.id));
       summary.ended++;
     }
   }
 
-  for (const { row: c, officialId } of resolved) {
-    const existingMandate = await db
+  for (const { row: conseiller, officialId } of resolved) {
+    const activeMandateRows = await db
       .select({ id: mandates.id, startDate: mandates.startDate })
       .from(mandates)
       .where(
         and(
           eq(mandates.officialId, officialId),
-          eq(mandates.type, 'conseiller_departemental'),
-          eq(mandates.district, c.cantonName),
+          eq(mandates.type, MANDATE_TYPE),
+          eq(mandates.district, conseiller.cantonName),
           isNull(mandates.endDate),
         ),
       )
       .limit(1);
-    const current = existingMandate[0];
+    const activeMandate = activeMandateRows[0];
 
     // functionStartDate (prise de fonction de CET élu) plutôt que
     // mandateStartDate (élection du conseil, inchangée lors d'un
     // remplacement en cours de mandat) : sinon un remplacement se voit
     // attribuer la date de début du prédécesseur.
-    const newStartDate = c.functionStartDate || c.mandateStartDate;
+    const newStartDate =
+      conseiller.functionStartDate || conseiller.mandateStartDate;
+
+    const label = `${conseiller.firstName} ${conseiller.lastName} (${conseiller.cantonName}, ${conseiller.departmentName})`;
 
     if (!newStartDate) {
       logger.warn(
-        `  Skipping mandate for ${c.firstName} ${c.lastName} (${c.cantonName}, ${c.departmentName}): ` +
+        `  Skipping mandate for ${label}: ` +
           `no mandate/function start date in source data`,
       );
       summary.skipped++;
@@ -169,9 +217,9 @@ export async function upsertConseillersDep(
 
     const mandateValues = {
       officialId,
-      type: 'conseiller_departemental' as const,
-      district: c.cantonName,
-      department: c.departmentName,
+      type: MANDATE_TYPE,
+      district: conseiller.cantonName,
+      department: conseiller.departmentName,
       startDate: newStartDate,
     };
 
@@ -180,17 +228,18 @@ export async function upsertConseillersDep(
     // nouveau plutôt que d'écraser la ligne existante, pour ne pas perdre
     // l'historique. Une date antérieure est une simple correction de la
     // période en cours : on met à jour la ligne existante sans l'historiser.
-    const isReplacement = !!current && newStartDate > current.startDate;
+    const isReplacement =
+      !!activeMandate && newStartDate > activeMandate.startDate;
 
-    if (!current) {
+    if (!activeMandate) {
       try {
         await db.insert(mandates).values(mandateValues);
         summary.mandates++;
       } catch (error) {
         if (isUniqueViolation(error)) {
           logger.warn(
-            `  Skipping mandate for ${c.firstName} ${c.lastName} (${c.cantonName}, ${c.departmentName}): ` +
-              `official already has a "conseiller_departemental" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
+            `  Skipping mandate for ${label}: ` +
+              `official already has a "${MANDATE_TYPE}" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
           );
           summary.skipped++;
         } else {
@@ -205,7 +254,7 @@ export async function upsertConseillersDep(
           db
             .update(mandates)
             .set({ endDate: newStartDate, updatedAt: new Date() })
-            .where(eq(mandates.id, current.id)),
+            .where(eq(mandates.id, activeMandate.id)),
           db.insert(mandates).values(mandateValues),
         ]);
         summary.mandates++;
@@ -213,8 +262,8 @@ export async function upsertConseillersDep(
       } catch (error) {
         if (isUniqueViolation(error)) {
           logger.warn(
-            `  Skipping mandate for ${c.firstName} ${c.lastName} (${c.cantonName}, ${c.departmentName}): ` +
-              `official already has a "conseiller_departemental" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
+            `  Skipping mandate for ${label}: ` +
+              `official already has a "${MANDATE_TYPE}" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
           );
           summary.skipped++;
         } else {
@@ -226,18 +275,18 @@ export async function upsertConseillersDep(
         await db
           .update(mandates)
           .set({
-            department: c.departmentName,
+            department: conseiller.departmentName,
             startDate: newStartDate,
             endDate: null,
             updatedAt: new Date(),
           })
-          .where(eq(mandates.id, current.id));
+          .where(eq(mandates.id, activeMandate.id));
         summary.mandates++;
       } catch (error) {
         if (isUniqueViolation(error)) {
           logger.warn(
-            `  Skipping mandate update for ${c.firstName} ${c.lastName} (${c.cantonName}, ${c.departmentName}): ` +
-              `official already has a "conseiller_departemental" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
+            `  Skipping mandate update for ${label}: ` +
+              `official already has a "${MANDATE_TYPE}" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
           );
           summary.skipped++;
         } else {

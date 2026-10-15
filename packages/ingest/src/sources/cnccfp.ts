@@ -1,3 +1,24 @@
+/**
+ * Comptes de campagne des candidats (CNCCFP, via data.gouv.fr).
+ *
+ * Source : un CSV par élection (voir CNCCFP_ELECTIONS), encodé en latin1,
+ * séparateur « ; ». Le fichier commence par quelques lignes de préambule :
+ * l'en-tête réel est la première ligne commençant par `candidat;`.
+ *
+ * Extrait : une `CnccfpRow` par candidat ayant une décision de la
+ * Commission, avec les montants déclarés / retenus (dépenses, recettes, dons,
+ * apport personnel, concours des partis) et le remboursement forfaitaire.
+ *
+ * Pièges :
+ * - Les intitulés de colonnes varient d'une édition à l'autre (avec ou sans
+ *   accents) : findHeader essaie plusieurs variantes.
+ * - Les montants utilisent l'espace comme séparateur de milliers et la
+ *   virgule décimale ; ils sont arrondis à l'euro.
+ * - Le nom est au format « M. NOM Prénom » : parseCandidateName sépare les
+ *   mots entièrement en majuscules (nom) du reste (prénom).
+ *
+ * Appelé par run.ts via upsert/campaign-accounts.ts.
+ */
 import { logger } from '../logger.js';
 
 export interface CnccfpElection {
@@ -51,34 +72,44 @@ export interface CnccfpRow {
   decision: string;
 }
 
+/** Préfixe de la ligne d'en-tête dans le CSV. */
+const HEADER_LINE_PREFIX = 'candidat;';
+const CSV_SEPARATOR = ';';
+
+/** Montant « 12 345,67 » → 12346 ; null si vide, « - » ou non numérique. */
 function parseAmount(raw: string | undefined): number | null {
   if (!raw || raw === '-' || raw.trim() === '') return null;
   const cleaned = raw.replace(/\s/g, '').replace(',', '.');
-  const n = Number(cleaned);
-  return Number.isNaN(n) ? null : Math.round(n);
+  const amount = Number(cleaned);
+  return Number.isNaN(amount) ? null : Math.round(amount);
 }
 
+/**
+ * Sépare « M. BRETON Xavier » en nom (mots tout en majuscules) et prénom.
+ * Sans mot en majuscules, le premier mot est pris comme nom.
+ */
 export function parseCandidateName(raw: string): {
   lastName: string;
   firstName: string;
 } {
   const withoutTitle = raw.replace(/^(?:M\.|Mme|Mlle)\s+/i, '');
-  const parts = withoutTitle.split(/\s+/);
-  const upperParts: string[] = [];
-  const rest: string[] = [];
-  for (const p of parts) {
-    if (p === p.toUpperCase() && p.length > 1) {
-      upperParts.push(p);
+  const words = withoutTitle.split(/\s+/);
+  const upperWords: string[] = [];
+  const otherWords: string[] = [];
+  for (const word of words) {
+    // `length > 1` évite de prendre une initiale (« J. ») pour un nom.
+    if (word === word.toUpperCase() && word.length > 1) {
+      upperWords.push(word);
     } else {
-      rest.push(p);
+      otherWords.push(word);
     }
   }
-  if (upperParts.length === 0) {
-    return { lastName: parts[0] ?? '', firstName: parts.slice(1).join(' ') };
+  if (upperWords.length === 0) {
+    return { lastName: words[0] ?? '', firstName: words.slice(1).join(' ') };
   }
   return {
-    lastName: upperParts.join(' '),
-    firstName: rest.join(' '),
+    lastName: upperWords.join(' '),
+    firstName: otherWords.join(' '),
   };
 }
 
@@ -93,16 +124,21 @@ function parseCsvRow(
   return row;
 }
 
+/** Première colonne existante parmi plusieurs intitulés possibles. */
 function findHeader(
   row: Record<string, string>,
   ...candidates: string[]
 ): string | undefined {
-  for (const c of candidates) {
-    if (row[c] !== undefined) return row[c];
+  for (const candidate of candidates) {
+    if (row[candidate] !== undefined) return row[candidate];
   }
   return undefined;
 }
 
+/**
+ * Télécharge et parse le CSV d'une élection. Lève si le téléchargement
+ * échoue ou si la ligne d'en-tête est introuvable.
+ */
 export async function fetchCnccfpAccounts(
   election: CnccfpElection,
   fetchFn: typeof fetch = fetch,
@@ -119,73 +155,81 @@ export async function fetchCnccfpAccounts(
   const text = new TextDecoder('latin1').decode(buffer);
   const lines = text.split(/\r?\n/);
 
-  const headerIdx = lines.findIndex((l) => l.startsWith('candidat;'));
-  if (headerIdx === -1) {
+  const headerIndex = lines.findIndex((line) =>
+    line.startsWith(HEADER_LINE_PREFIX),
+  );
+  if (headerIndex === -1) {
     throw new Error('CNCCFP CSV: header line not found');
   }
 
-  const headers = lines[headerIdx].split(';');
+  const headers = lines[headerIndex].split(CSV_SEPARATOR);
   const rows: CnccfpRow[] = [];
 
-  for (let i = headerIdx + 1; i < lines.length; i++) {
+  for (let i = headerIndex + 1; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (!line || line.startsWith(';')) continue;
+    // Lignes vides ou de totaux (première colonne vide) ignorées.
+    if (!line || line.startsWith(CSV_SEPARATOR)) continue;
 
-    const values = line.split(';');
-    const r = parseCsvRow(headers, values);
+    const values = line.split(CSV_SEPARATOR);
+    const row = parseCsvRow(headers, values);
 
-    const cnccfpId = r['candidat'];
+    const cnccfpId = row['candidat'];
     if (!cnccfpId) continue;
 
-    const decision = r['decision']?.trim();
+    const decision = row['decision']?.trim();
     if (!decision) continue;
 
-    const name = r['nom'] ?? '';
-    const parsed = parseCandidateName(name);
+    const name = row['nom'] ?? '';
+    const parsedName = parseCandidateName(name);
 
     rows.push({
       cnccfpId,
       candidateName: name,
-      lastName: parsed.lastName,
-      firstName: parsed.firstName,
-      constituency: r['circonscription'] ?? '',
-      department: findHeader(r, 'département', 'departement') ?? '',
+      lastName: parsedName.lastName,
+      firstName: parsedName.firstName,
+      constituency: row['circonscription'] ?? '',
+      department: findHeader(row, 'département', 'departement') ?? '',
       departmentCode:
-        findHeader(r, 'code département', 'code departement') ?? '',
-      politicalLabel: r['nuance'] || null,
+        findHeader(row, 'code département', 'code departement') ?? '',
+      politicalLabel: row['nuance'] || null,
       expensesDeclared: parseAmount(
         findHeader(
-          r,
+          row,
           'dépenses totales déclarées',
           'depenses totales declarees',
         ),
       ),
-      expensesRetained: parseAmount(findHeader(r, 'depenses totales retenues')),
+      expensesRetained: parseAmount(
+        findHeader(row, 'depenses totales retenues'),
+      ),
       revenueDeclared: parseAmount(
         findHeader(
-          r,
+          row,
           'recettes totales déclarées',
           'recettes totales declarees',
         ),
       ),
-      revenueRetained: parseAmount(findHeader(r, 'recettes totales retenues')),
-      donationsDeclared: parseAmount(
-        findHeader(r, 'dons déclarés', 'dons declares'),
+      revenueRetained: parseAmount(
+        findHeader(row, 'recettes totales retenues'),
       ),
-      donationsRetained: parseAmount(findHeader(r, 'dons retenus')),
+      donationsDeclared: parseAmount(
+        findHeader(row, 'dons déclarés', 'dons declares'),
+      ),
+      donationsRetained: parseAmount(findHeader(row, 'dons retenus')),
       personalContributionDeclared: parseAmount(
-        findHeader(r, 'apport personnel déclaré', 'apport personnel declare'),
+        findHeader(row, 'apport personnel déclaré', 'apport personnel declare'),
       ),
       personalContributionRetained: parseAmount(
-        findHeader(r, 'apport personnel retenu'),
+        findHeader(row, 'apport personnel retenu'),
       ),
       partyContributionsDeclared: parseAmount(
-        findHeader(r, 'concours déclarés', 'concours declares'),
+        findHeader(row, 'concours déclarés', 'concours declares'),
       ),
       partyContributionsRetained: parseAmount(
-        findHeader(r, 'concours retenus'),
+        findHeader(row, 'concours retenus'),
       ),
-      reimbursement: parseAmount(r['RFE']),
+      // RFE = remboursement forfaitaire de l'État.
+      reimbursement: parseAmount(row['RFE']),
       decision,
     });
   }

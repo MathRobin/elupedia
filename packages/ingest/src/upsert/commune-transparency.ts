@@ -1,3 +1,16 @@
+/**
+ * Upsert des statistiques de transparence par commune issues de MaDaDa
+ * (nombre de demandes CADA, réussies, en retard, « document non détenu »).
+ * Données issues de `sources/madada.ts`, appelé par `main-madada.ts`
+ * (étape 1, avant le détail des demandes dans `madada-requests.ts`).
+ *
+ * Table écrite : `commune_transparency`, clé primaire `commune_code`, avec
+ * un second index unique sur `madada_url_name`.
+ * Idempotent : ON CONFLICT (commune_code) DO UPDATE réécrit tous les
+ * compteurs. Un même `url_name` MaDaDa partagé par plusieurs communes
+ * (fusions) n'est conservé que pour la première commune rencontrée dans
+ * l'itération de la Map ; les autres sont comptées en « skipped ».
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import { communeTransparency } from '@elupedia/shared';
@@ -5,7 +18,14 @@ import { type MadadaBody } from '../sources/madada.js';
 import { logger } from '../logger.js';
 
 const BATCH_SIZE = 100;
+// Un log de progression toutes les N lignes upsertées.
+const PROGRESS_LOG_EVERY_ROWS = 5000;
 
+/**
+ * Upsert en base des stats MaDaDa (écriture DB). `data` est indexée par code
+ * INSEE de commune. Retourne le nombre de lignes upsertées (créées ou mises
+ * à jour, sans distinction) sous la clé `created`.
+ */
 export async function upsertCommuneTransparency(
   db: NeonHttpDatabase,
   data: Map<string, MadadaBody>,
@@ -53,7 +73,9 @@ export async function upsertCommuneTransparency(
     await db.execute(sql`
       DELETE FROM commune_transparency ct
       USING (VALUES ${sql.join(
-        batch.map((e) => sql`(${e.madadaUrlName}, ${e.communeCode})`),
+        batch.map(
+          (entry) => sql`(${entry.madadaUrlName}, ${entry.communeCode})`,
+        ),
         sql`, `,
       )}) AS v(url_name, commune_code)
       WHERE ct.madada_url_name = v.url_name AND ct.commune_code <> v.commune_code
@@ -75,7 +97,7 @@ export async function upsertCommuneTransparency(
       });
     total += batch.length;
 
-    if (total % 5000 === 0 || total === entries.length) {
+    if (total % PROGRESS_LOG_EVERY_ROWS === 0 || total === entries.length) {
       logger.info(`Commune transparency: ${total}/${entries.length} upserted`);
     }
   }

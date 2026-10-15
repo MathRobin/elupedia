@@ -1,3 +1,20 @@
+/**
+ * Upsert des candidatures aux sénatoriales 2026 (pré-scrutin, listes du
+ * ministère de l'Intérieur via `sources/senat-candidacies-2026.ts`), appelé
+ * par `run-senat-candidacies.ts` (`ingest:senat:candidacies`).
+ *
+ * Tables écrites : `senatorial_elections` (une ligne par département,
+ * round 1) et `senatorial_candidates`.
+ *
+ * Clés de rapprochement (ON CONFLICT) :
+ * - élection : (election_year, departement_code, round) ;
+ * - candidat : (election_id, nom, prenom).
+ * Rattachement candidat → `officials` par nom + prénom normalisés (pas de date
+ * de naissance dans la source) : approximatif, réécrit à chaque passage.
+ *
+ * Idempotent : tout est réécrit ; les résultats chiffrés (inscrits, votants)
+ * ne sont pas touchés ici, ils arrivent par `upsert/senatorial-elections.ts`.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import {
   officials,
@@ -7,8 +24,9 @@ import {
 import type { SenatorialCandidacyDepartement } from '../sources/senat-candidacies-2026.js';
 import { logger } from '../logger.js';
 
-function normalize(s: string): string {
-  return s
+/** Minuscules, sans accents, séparateurs uniformisés : clé de rapprochement. */
+function normalize(name: string): string {
+  return name
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
@@ -23,6 +41,11 @@ function normalize(s: string): string {
 // complètera avec inscrits/votants/etc. une fois le scrutin passé.
 const CANDIDACY_ROUND = 1;
 
+/**
+ * Upsert des candidatures par département. Écrit dans `senatorial_elections`
+ * et `senatorial_candidates`. Retourne des compteurs (circonscriptions,
+ * candidats, candidats rattachés à une fiche).
+ */
 export async function upsertSenatorialCandidacies(
   db: NeonHttpDatabase,
   departements: SenatorialCandidacyDepartement[],
@@ -38,23 +61,23 @@ export async function upsertSenatorialCandidacies(
     .from(officials);
 
   const officialByName = new Map<string, string>();
-  for (const o of allOfficials) {
-    const key = `${normalize(o.lastName)}|${normalize(o.firstName)}`;
-    officialByName.set(key, o.id);
+  for (const official of allOfficials) {
+    const key = `${normalize(official.lastName)}|${normalize(official.firstName)}`;
+    officialByName.set(key, official.id);
   }
 
-  for (const d of departements) {
+  for (const departement of departements) {
     const [election] = await db
       .insert(senatorialElections)
       .values({
-        electionYear: d.electionYear,
-        departementCode: d.departementCode,
-        departementName: d.departementName,
-        scrutinType: d.scrutinType,
+        electionYear: departement.electionYear,
+        departementCode: departement.departementCode,
+        departementName: departement.departementName,
+        scrutinType: departement.scrutinType,
         round: CANDIDACY_ROUND,
-        electionDate: d.electionDate,
-        siegesAPourvoir: d.siegesAPourvoir,
-        electeursSenatoriaux: d.electeursSenatoriaux,
+        electionDate: departement.electionDate,
+        siegesAPourvoir: departement.siegesAPourvoir,
+        electeursSenatoriaux: departement.electeursSenatoriaux,
       })
       .onConflictDoUpdate({
         target: [
@@ -63,11 +86,11 @@ export async function upsertSenatorialCandidacies(
           senatorialElections.round,
         ],
         set: {
-          departementName: d.departementName,
-          scrutinType: d.scrutinType,
-          electionDate: d.electionDate,
-          siegesAPourvoir: d.siegesAPourvoir,
-          electeursSenatoriaux: d.electeursSenatoriaux,
+          departementName: departement.departementName,
+          scrutinType: departement.scrutinType,
+          electionDate: departement.electionDate,
+          siegesAPourvoir: departement.siegesAPourvoir,
+          electeursSenatoriaux: departement.electeursSenatoriaux,
           updatedAt: new Date(),
         },
       })
@@ -75,8 +98,8 @@ export async function upsertSenatorialCandidacies(
 
     summary.elections++;
 
-    for (const c of d.candidates) {
-      const officialKey = `${normalize(c.nom)}|${normalize(c.prenom)}`;
+    for (const candidate of departement.candidates) {
+      const officialKey = `${normalize(candidate.nom)}|${normalize(candidate.prenom)}`;
       const officialId = officialByName.get(officialKey) ?? null;
       if (officialId) summary.matched++;
 
@@ -84,11 +107,11 @@ export async function upsertSenatorialCandidacies(
         .insert(senatorialCandidates)
         .values({
           electionId: election.id,
-          nom: c.nom,
-          prenom: c.prenom,
-          nuance: c.nuance,
-          liste: c.liste,
-          sortant: c.sortant,
+          nom: candidate.nom,
+          prenom: candidate.prenom,
+          nuance: candidate.nuance,
+          liste: candidate.liste,
+          sortant: candidate.sortant,
           officialId,
         })
         .onConflictDoUpdate({
@@ -98,9 +121,9 @@ export async function upsertSenatorialCandidacies(
             senatorialCandidates.prenom,
           ],
           set: {
-            nuance: c.nuance,
-            liste: c.liste,
-            sortant: c.sortant,
+            nuance: candidate.nuance,
+            liste: candidate.liste,
+            sortant: candidate.sortant,
             officialId,
             updatedAt: new Date(),
           },

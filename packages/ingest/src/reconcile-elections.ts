@@ -1,3 +1,16 @@
+/**
+ * Réconciliation candidats–élus : les tables de candidats (municipales,
+ * législatives, sénatoriales) sont ingérées depuis des résultats électoraux
+ * qui n'ont pas d'identifiant commun avec `officials`. Ce module rattache
+ * a posteriori, par « nom|prénom » normalisé, chaque candidat encore sans
+ * `official_id` à une fiche existante. Les candidats déjà rattachés ne sont
+ * jamais retouchés ; les rattachements manquants (homonymes, orthographes
+ * différentes) restent à NULL.
+ *
+ * Lancé par main-reconcile.ts (`yarn --cwd packages/ingest reconcile`),
+ * typiquement après chaque ingestion d'élections ou de nouvelles fiches.
+ * Écrit en base (UPDATE des colonnes official_id / updated_at).
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import {
@@ -17,6 +30,7 @@ import { logger } from './logger.js';
 // "official_id IS NULL" sans décaler les pages suivantes.
 const BATCH_SIZE = 5000;
 
+/** Forme comparable d'un nom : sans accents, minuscule, espaces/tirets unifiés. */
 function normalize(s: string): string {
   return s
     .normalize('NFD')
@@ -31,6 +45,11 @@ type CandidateTable =
   | typeof legislativeCandidates
   | typeof senatorialCandidates;
 
+/**
+ * Rattache les candidats sans official_id d'une table. `officialByName`
+ * associe « nom|prénom » normalisé → id de fiche. Renvoie le nombre de
+ * lignes rattachées et le nombre de lignes non rattachées parcourues.
+ */
 async function reconcileTable(
   db: NeonHttpDatabase,
   table: CandidateTable,
@@ -59,16 +78,16 @@ async function reconcileTable(
 
     if (page.length === 0) break;
 
-    for (const c of page) {
+    for (const candidate of page) {
       total++;
-      const key = `${normalize(c.nom)}|${normalize(c.prenom)}`;
+      const key = `${normalize(candidate.nom)}|${normalize(candidate.prenom)}`;
       const officialId = officialByName.get(key);
       if (!officialId) continue;
 
       await db
         .update(table)
         .set({ officialId, updatedAt: new Date() })
-        .where(eq(table.id, c.id));
+        .where(eq(table.id, candidate.id));
       updated++;
     }
 
@@ -79,6 +98,11 @@ async function reconcileTable(
   return { updated, total };
 }
 
+/**
+ * Rattache les candidats des trois tables et affiche le taux de couverture
+ * final. Renvoie les compteurs par table (`muni`, `legi`, `sena`, noms
+ * figés : utilisés par les tests).
+ */
 export async function reconcileElections(db: NeonHttpDatabase) {
   logger.info('=== Election candidate reconciliation ===\n');
 
@@ -90,10 +114,12 @@ export async function reconcileElections(db: NeonHttpDatabase) {
     })
     .from(officials);
 
+  // Index « nom|prénom » → id. En cas d'homonymie parfaite, le dernier lu
+  // gagne : les deux candidats homonymes iront sur la même fiche.
   const officialByName = new Map<string, string>();
-  for (const o of allOfficials) {
-    const key = `${normalize(o.lastName)}|${normalize(o.firstName)}`;
-    officialByName.set(key, o.id);
+  for (const official of allOfficials) {
+    const key = `${normalize(official.lastName)}|${normalize(official.firstName)}`;
+    officialByName.set(key, official.id);
   }
 
   logger.info(`${officialByName.size} officials loaded for matching\n`);
@@ -119,6 +145,7 @@ export async function reconcileElections(db: NeonHttpDatabase) {
 
   const totalUpdated = muni.updated + legi.updated + sena.updated;
 
+  // Couverture globale après passage (pas seulement ce run).
   const counts = await db.execute(sql`
     SELECT
       (SELECT COUNT(*) FROM municipal_candidates WHERE official_id IS NOT NULL) as muni_linked,

@@ -1,3 +1,17 @@
+/**
+ * Diff des collaborateurs parlementaires des députés (open data AN,
+ * `sources/an-collaborateurs.ts`), appelé par `run-an.ts` (`ingest:an`).
+ * Pendant AN de `upsert/senat-staffers-diff.ts`.
+ *
+ * Tables écrites : `staffers` et `data_provenance` (une entrée par député).
+ * Clé de rapprochement : official (via `an_id`) + prénom|nom exacts (casse
+ * comprise) parmi les collaborateurs actifs (`end_date IS NULL`).
+ *
+ * La source est une photo instantanée sans dates : un collaborateur inconnu
+ * est ouvert à la date du jour, un collaborateur actif absent de la photo est
+ * clos à la date du jour. Les dates réelles ne sont donc connues qu'à la
+ * précision de la fréquence d'ingestion. Idempotent.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, staffers } from '@elupedia/shared';
 import { eq, isNull } from 'drizzle-orm';
@@ -9,6 +23,11 @@ const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
   'Données publiques de collaborateurs parlementaires (art. L311-1 CRPA)';
 
+/**
+ * Ouvre les nouveaux collaborateurs, clôt les disparus, écrit la provenance.
+ * Écrit dans `staffers` et `data_provenance`. Retourne créés / clos /
+ * inchangés.
+ */
 export async function diffStaffers(
   db: NeonHttpDatabase,
   deputeCollabs: CollaborateursDepute[],
@@ -20,8 +39,8 @@ export async function diffStaffers(
     .select({ id: officials.id, anId: officials.anId })
     .from(officials);
   const officialByAnId = new Map<string, string>();
-  for (const o of allOfficials) {
-    if (o.anId) officialByAnId.set(o.anId, o.id);
+  for (const official of allOfficials) {
+    if (official.anId) officialByAnId.set(official.anId, official.id);
   }
 
   const activeStaffers = await db
@@ -32,10 +51,10 @@ export async function diffStaffers(
     string,
     (typeof staffers.$inferSelect)[]
   >();
-  for (const s of activeStaffers) {
-    const list = staffersByOfficialId.get(s.officialId) ?? [];
-    list.push(s);
-    staffersByOfficialId.set(s.officialId, list);
+  for (const staffer of activeStaffers) {
+    const list = staffersByOfficialId.get(staffer.officialId) ?? [];
+    list.push(staffer);
+    staffersByOfficialId.set(staffer.officialId, list);
   }
 
   const newRows: (typeof staffers.$inferInsert)[] = [];
@@ -48,11 +67,13 @@ export async function diffStaffers(
     const currentStaffers = staffersByOfficialId.get(officialId) ?? [];
 
     const incomingNames = new Set(
-      depute.collaborateurs.map((c) => `${c.prenom}|${c.nom}`),
+      depute.collaborateurs.map((collab) => `${collab.prenom}|${collab.nom}`),
     );
 
     const existingNames = new Set(
-      currentStaffers.map((s) => `${s.firstName}|${s.lastName}`),
+      currentStaffers.map(
+        (staffer) => `${staffer.firstName}|${staffer.lastName}`,
+      ),
     );
 
     for (const collab of depute.collaborateurs) {

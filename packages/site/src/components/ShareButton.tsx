@@ -1,11 +1,31 @@
+/**
+ * Bouton « Partager » avec menu déroulant : email, Facebook, X, copie du
+ * lien et QR code (voir `QrCodeModal`).
+ *
+ * Rendu en haut de chaque page par `layouts/BaseLayout.astro` (sauf
+ * `hideShare`) avec `client:load` : le menu et le presse-papiers exigent du
+ * JavaScript, et le bouton est visible dès le chargement.
+ *
+ * L'URL partagée est `window.location.href` lue au rendu : au SSR elle vaut
+ * '' et les liens sont complétés après hydratation. `buildShareUrl` est
+ * exporté pour les tests unitaires (`ShareButton.test.ts`).
+ */
 import { useState, useRef, useEffect } from 'react';
 import QrCodeModal from './QrCodeModal';
 
+/** Props fournies par BaseLayout (titre et description de la page). */
 type ShareButtonProps = {
   title: string;
   description?: string;
 };
 
+/** Durée d'affichage du retour « Lien copié ! » avant retour à la normale. */
+const COPIED_FEEDBACK_MS = 2000;
+
+/**
+ * Construit l'URL de partage d'une plateforme (`email`, `facebook`, `x`).
+ * Retourne `#` pour une plateforme inconnue.
+ */
 function buildShareUrl(platform: string, url: string, title: string): string {
   const encoded = encodeURIComponent(url);
   const encodedTitle = encodeURIComponent(title);
@@ -24,19 +44,24 @@ function buildShareUrl(platform: string, url: string, title: string): string {
 export { buildShareUrl };
 
 export default function ShareButton({ title, description }: ShareButtonProps) {
-  const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showQr, setShowQr] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
 
+  // Ferme le menu sur clic en dehors du bouton et de sa liste.
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
+    function closeMenuOnOutsideClick(e: MouseEvent) {
+      if (
+        menuContainerRef.current &&
+        !menuContainerRef.current.contains(e.target as Node)
+      ) {
+        setMenuOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('mousedown', closeMenuOnOutsideClick);
+    return () =>
+      document.removeEventListener('mousedown', closeMenuOnOutsideClick);
   }, []);
 
   const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -47,13 +72,13 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
     } catch {
-      /* noop */
+      /* Presse-papiers indisponible (contexte non sécurisé, refus) : on ignore. */
     }
   }
 
-  const items = [
+  const shareTargets = [
     {
       key: 'email',
       label: 'Email',
@@ -78,39 +103,39 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
   ];
 
   return (
-    <div ref={ref} className="relative inline-block">
+    <div ref={menuContainerRef} className="relative inline-block">
       <button
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => setMenuOpen((prev) => !prev)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-white"
         aria-label="Partager cette page"
-        aria-expanded={open}
+        aria-expanded={menuOpen}
         aria-haspopup="true"
       >
         <i className="fa-solid fa-share-nodes text-sm" aria-hidden="true" />
         Partager
       </button>
 
-      {open && (
+      {menuOpen && (
         <div
           role="menu"
           aria-label="Options de partage"
           className="absolute right-0 z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-800"
         >
-          {items.map((item) => (
+          {shareTargets.map((target) => (
             <a
-              key={item.key}
-              href={item.href}
-              target={item.external ? '_blank' : undefined}
-              rel={item.external ? 'noopener noreferrer' : undefined}
+              key={target.key}
+              href={target.href}
+              target={target.external ? '_blank' : undefined}
+              rel={target.external ? 'noopener noreferrer' : undefined}
               role="menuitem"
               className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 no-underline transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
-              onClick={() => setOpen(false)}
+              onClick={() => setMenuOpen(false)}
             >
               <i
-                className={`${item.faClass} shrink-0 text-slate-400 text-sm`}
+                className={`${target.faClass} shrink-0 text-slate-400 text-sm`}
                 aria-hidden="true"
               />
-              {item.label}
+              {target.label}
             </a>
           ))}
           <button
@@ -127,8 +152,8 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
           <button
             role="menuitem"
             onClick={() => {
-              setOpen(false);
-              setShowQr(true);
+              setMenuOpen(false);
+              setQrModalOpen(true);
             }}
             className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/50"
           >
@@ -141,7 +166,9 @@ export default function ShareButton({ title, description }: ShareButtonProps) {
         </div>
       )}
 
-      {showQr && <QrCodeModal url={url} onClose={() => setShowQr(false)} />}
+      {qrModalOpen && (
+        <QrCodeModal url={url} onClose={() => setQrModalOpen(false)} />
+      )}
     </div>
   );
 }

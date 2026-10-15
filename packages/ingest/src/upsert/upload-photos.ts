@@ -1,3 +1,18 @@
+/**
+ * Copie sur S3 des photos officielles des élus (`officials.photo_url`,
+ * hébergées par l'AN, le Sénat, le PE...), étape `photos` de `run.ts` et
+ * script `ingest:photos` (`main-photos.ts`). Le site sert `s3_photo_url`
+ * pour ne pas dépendre de la disponibilité des sites sources.
+ *
+ * Table écrite : `officials` (colonne `s3_photo_url` uniquement).
+ * Objets S3 : `elus/pp/<official id>.jpg` dans MAPS_S3_BUCKET (bucket
+ * partagé avec les cartes).
+ *
+ * Idempotent : une photo déjà sur S3 (HEAD) n'est pas re-téléchargée, mais
+ * `s3_photo_url` est tout de même (ré)écrite pour rattraper une fiche dont
+ * la colonne serait vide. Une photo source qui change n'est donc jamais
+ * rafraîchie : il faut supprimer l'objet S3 pour la mettre à jour.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import {
   S3Client,
@@ -8,8 +23,12 @@ import { officials } from '@elupedia/shared';
 import { isNotNull, eq } from 'drizzle-orm';
 import { logger } from '../logger.js';
 
+/** Nombre de fiches par lot (sert uniquement au log d'avancement). */
 const BATCH_SIZE = 20;
+/** Pause entre deux téléchargements, pour ménager les sites sources. */
 const DELAY_MS = 200;
+/** En dessous de cette taille, le corps est une page d'erreur, pas une image. */
+const MIN_PHOTO_BYTES = 100;
 
 function getS3Config() {
   const bucket = process.env.MAPS_S3_BUCKET;
@@ -40,6 +59,10 @@ function s3PublicUrl(bucket: string, region: string, key: string): string {
   return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 }
 
+/**
+ * Télécharge chaque photo source absente de S3, l'y dépose et renseigne
+ * `officials.s3_photo_url`. Retourne envoyées / déjà présentes / échouées.
+ */
 export async function uploadPhotos(db: NeonHttpDatabase) {
   const { bucket, region } = getS3Config();
   const s3 = new S3Client({ region });
@@ -78,21 +101,24 @@ export async function uploadPhotos(db: NeonHttpDatabase) {
       }
 
       try {
-        const res = await fetch(row.photoUrl!, {
+        const response = await fetch(row.photoUrl!, {
           headers: { 'User-Agent': 'Elupedia/1.0 (photo-sync)' },
           redirect: 'follow',
         });
 
-        if (!res.ok) {
-          logger.warn(`  HTTP ${res.status} for ${row.id}: ${row.photoUrl}`);
+        if (!response.ok) {
+          logger.warn(
+            `  HTTP ${response.status} for ${row.id}: ${row.photoUrl}`,
+          );
           failed++;
           continue;
         }
 
-        const contentType = res.headers.get('content-type') ?? 'image/jpeg';
-        const buf = Buffer.from(await res.arrayBuffer());
+        const contentType =
+          response.headers.get('content-type') ?? 'image/jpeg';
+        const photo = Buffer.from(await response.arrayBuffer());
 
-        if (buf.length < 100) {
+        if (photo.length < MIN_PHOTO_BYTES) {
           logger.warn(`  Empty body for ${row.id}`);
           failed++;
           continue;
@@ -102,7 +128,7 @@ export async function uploadPhotos(db: NeonHttpDatabase) {
           new PutObjectCommand({
             Bucket: bucket,
             Key: key,
-            Body: buf,
+            Body: photo,
             ContentType: contentType,
             CacheControl: 'public, max-age=604800',
           }),
@@ -115,12 +141,12 @@ export async function uploadPhotos(db: NeonHttpDatabase) {
           .where(eq(officials.id, row.id));
 
         uploaded++;
-      } catch (err) {
-        logger.error(`  Failed for ${row.id}: ${err}`);
+      } catch (error) {
+        logger.error(`  Failed for ${row.id}: ${error}`);
         failed++;
       }
 
-      await new Promise((r) => setTimeout(r, DELAY_MS));
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
     }
   }
 

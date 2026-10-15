@@ -1,3 +1,17 @@
+/**
+ * Point d'entrée CLI de l'ingestion des décorations (Légion d'honneur, Ordre
+ * national du Mérite, Médaille militaire) depuis la base Léonore.
+ *
+ * Commande : `yarn --cwd packages/ingest ingest:decorations`
+ *
+ * Exception à la convention main/run du package : la logique est ici, sans
+ * `run-decorations.ts` (script ancien, jamais découpé). Stratégie : Léonore
+ * ne se cherche que par nom de famille, on fait donc une recherche par nom
+ * distinct (et non par élu), puis on ne garde que les fiches dont le nom
+ * correspond exactement et dont le prénom commence par celui d'un élu
+ * portant ce nom. Les fiches retenues sont rattachées par
+ * upsert/decorations.ts via la clé « nom|prénom » normalisée.
+ */
 import { createDb } from '@elupedia/shared';
 import { officials } from '@elupedia/shared';
 import { logger } from './logger.js';
@@ -7,6 +21,12 @@ import {
 } from './sources/legion-honneur.js';
 import { upsertDecorations } from './upsert/decorations.js';
 
+// Pause entre deux recherches Léonore, pour ne pas saturer le service.
+const DELAY_BETWEEN_SEARCHES_MS = 50;
+// Fréquence (en nombre de noms traités) des lignes de progression.
+const PROGRESS_LOG_EVERY = 200;
+
+/** Forme comparable d'un nom : sans accents, minuscule, espaces/tirets unifiés. */
 function normalize(s: string): string {
   return s
     .normalize('NFD')
@@ -29,20 +49,23 @@ async function main() {
 
   logger.info(`${allOfficials.length} officials to look up`);
 
+  // Regroupement par nom normalisé : une seule recherche Léonore par nom.
   const byLastName = new Map<string, typeof allOfficials>();
-  for (const o of allOfficials) {
-    const key = normalize(o.lastName);
+  for (const official of allOfficials) {
+    const key = normalize(official.lastName);
     const list = byLastName.get(key) ?? [];
-    list.push(o);
+    list.push(official);
     byLastName.set(key, list);
   }
 
   logger.info(`${byLastName.size} unique last names`);
 
+  // Index « nom|prénom » → id, consommé par upsertDecorations pour le
+  // rattachement. En cas d'homonymie parfaite, le dernier lu gagne.
   const officialByName = new Map<string, string>();
-  for (const o of allOfficials) {
-    const key = `${normalize(o.lastName)}|${normalize(o.firstName)}`;
-    officialByName.set(key, o.id);
+  for (const official of allOfficials) {
+    const key = `${normalize(official.lastName)}|${normalize(official.firstName)}`;
+    officialByName.set(key, official.id);
   }
 
   let searched = 0;
@@ -51,28 +74,37 @@ async function main() {
 
   let errors = 0;
 
-  for (const [normalLast, group] of byLastName) {
+  for (const [normalizedLastName, officialsWithThisName] of byLastName) {
     try {
-      const { results } = await searchDecorations(group[0].lastName);
+      const { results } = await searchDecorations(
+        officialsWithThisName[0].lastName,
+      );
 
-      const firstNames = new Set(group.map((o) => normalize(o.firstName)));
+      const firstNames = new Set(
+        officialsWithThisName.map((official) => normalize(official.firstName)),
+      );
 
       const batch: Parameters<typeof upsertDecorations>[1] = [];
 
-      for (const r of results) {
-        const resultName = normalize(r.intitule);
-        if (!resultName.startsWith(normalLast)) continue;
+      for (const searchResult of results) {
+        // La recherche Léonore est floue : pré-filtre sur l'intitulé avant
+        // de payer un appel détail par fiche.
+        const resultName = normalize(searchResult.intitule);
+        if (!resultName.startsWith(normalizedLastName)) continue;
 
-        const detail = await fetchFicheDetail(r.refUnique);
+        const detail = await fetchFicheDetail(searchResult.refUnique);
         if (!detail || detail.decorations.length === 0) continue;
 
         const detailLast = normalize(detail.lastName);
-        if (detailLast !== normalLast) continue;
+        if (detailLast !== normalizedLastName) continue;
 
+        // Les fiches Léonore portent souvent tous les prénoms d'état civil
+        // (« Jean Pierre Marie ») : on compare sur le premier prénom de l'élu
+        // en préfixe. Un prénom vide des deux côtés est accepté.
         const detailFirst = normalize(detail.firstName ?? '');
-        const matched = [...firstNames].some((f) => {
-          if (!f || !detailFirst) return !f && !detailFirst;
-          return detailFirst.startsWith(f.split(' ')[0]);
+        const matched = [...firstNames].some((firstName) => {
+          if (!firstName || !detailFirst) return !firstName && !detailFirst;
+          return detailFirst.startsWith(firstName.split(' ')[0]);
         });
         if (!matched) continue;
 
@@ -84,19 +116,23 @@ async function main() {
       if (batch.length > 0) {
         await upsertDecorations(db, batch, officialByName);
       }
-    } catch (e) {
+    } catch (error) {
       errors++;
-      logger.warn(`  Error for "${group[0].lastName}": ${e}`);
+      logger.warn(
+        `  Error for "${officialsWithThisName[0].lastName}": ${error}`,
+      );
     }
 
     searched++;
-    if (searched % 200 === 0) {
+    if (searched % PROGRESS_LOG_EVERY === 0) {
       logger.info(
         `  Progress: ${searched}/${byLastName.size} names, ${found} matched, ${totalDecorations} decorations`,
       );
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) =>
+      setTimeout(resolve, DELAY_BETWEEN_SEARCHES_MS),
+    );
   }
 
   logger.info(

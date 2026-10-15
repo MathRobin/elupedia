@@ -1,3 +1,19 @@
+/**
+ * Site officiel de chaque groupe parlementaire ou parti, pour le lien
+ * affiché à côté du groupe sur la fiche élu.
+ *
+ * Deux familles de clés coexistent, car les deux tables n'écrivent pas le
+ * même libellé pour un même groupe :
+ * - « Nom complet (SIGLE) » : valeur de `mandates.political_group` (AN et
+ *   Sénat) ;
+ * - « Groupe ... » : valeur de `affiliations.party_or_group` telle que
+ *   produite par l'ingestion Sénat (`senat-groupes.ts`).
+ * La correspondance est stricte sur la chaîne ; un libellé absent n'a
+ * simplement pas de lien.
+ *
+ * Choix : LFI et RN pointent vers le site du parti (pas de page de groupe
+ * dédiée), les autres vers la page du groupe sur le site de l'assemblée.
+ */
 export const POLITICAL_GROUP_URLS: Record<string, string> = {
   // Assemblée nationale — groupes parlementaires
   'La France insoumise - Nouveau Front Populaire (LFI-NFP)':
@@ -17,6 +33,7 @@ export const POLITICAL_GROUP_URLS: Record<string, string> = {
     'https://www.assemblee-nationale.fr/dyn/groupe/LIOT',
   'Droite Républicaine (DR)':
     'https://www.assemblee-nationale.fr/dyn/groupe/DR',
+  // Le groupe « À Droite ! » a conservé le code AN de son ancien nom (UDR).
   'À Droite ! (AD)': 'https://www.assemblee-nationale.fr/dyn/groupe/UDR',
   'Rassemblement National (RN)': 'https://rassemblementnational.fr',
 

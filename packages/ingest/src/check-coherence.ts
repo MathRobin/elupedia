@@ -16,10 +16,19 @@ import { logger } from './logger.js';
  * dernier jour du mandat courant. Deux mandats consécutifs qui se touchent
  * exactement à cette date (fin de l'un = début de l'autre) ne doivent donc
  * pas remonter comme un chevauchement.
+ *
+ * Lancé par main-check-coherence.ts (`yarn --cwd packages/ingest
+ * check:coherence`). Pour ajouter un contrôle : une interface de ligne, une
+ * entrée dans `checks` (clé stable, description, requête limitée à
+ * SAMPLE_LIMIT, formateur d'exemple).
  */
 
+// Nombre maximal de lignes remontées par contrôle ; au-delà, `truncated`.
 const SAMPLE_LIMIT = 200;
+// Nombre d'exemples imprimés par contrôle dans printCoherenceReport.
+const PRINTED_SAMPLES = 10;
 
+/** Résultat d'un contrôle : nombre de cas et exemples formatés (≤ SAMPLE_LIMIT). */
 export interface CoherenceCheckResult {
   key: string;
   description: string;
@@ -28,6 +37,7 @@ export interface CoherenceCheckResult {
   samples: string[];
 }
 
+/** Résultat de tous les contrôles ; `totalIssues` = somme des `count`. */
 export interface CoherenceReport {
   results: CoherenceCheckResult[];
   totalIssues: number;
@@ -159,8 +169,8 @@ const checks: {
       order by m1.official_id
       limit ${SAMPLE_LIMIT}
     `,
-    format: (r) =>
-      `${r.first_name} ${r.last_name} (${r.type}) : ${r.start_a} → ${r.end_a ?? 'en cours'} et ${r.start_b} → ${r.end_b ?? 'en cours'}`,
+    format: (row) =>
+      `${row.first_name} ${row.last_name} (${row.type}) : ${row.start_a} → ${row.end_a ?? 'en cours'} et ${row.start_b} → ${row.end_b ?? 'en cours'}`,
   },
 
   mandateChronology: {
@@ -173,8 +183,8 @@ const checks: {
       where m.end_date is not null and m.end_date <= m.start_date
       limit ${SAMPLE_LIMIT}
     `,
-    format: (r) =>
-      `${r.first_name} ${r.last_name} (${r.type}) : fin ${r.end_date} ${r.end_date === r.start_date ? '= début (plage vide)' : 'avant début'} ${r.start_date}`,
+    format: (row) =>
+      `${row.first_name} ${row.last_name} (${row.type}) : fin ${row.end_date} ${row.end_date === row.start_date ? '= début (plage vide)' : 'avant début'} ${row.start_date}`,
   },
 
   activeMandateAfterDeath: {
@@ -188,10 +198,11 @@ const checks: {
         and (m.end_date is null or m.end_date > o.death_date)
       limit ${SAMPLE_LIMIT}
     `,
-    format: (r) =>
-      `${r.first_name} ${r.last_name} (${r.type}) : décès le ${r.death_date}, mandat ${r.end_date ? `clos le ${r.end_date}` : 'toujours actif'}`,
+    format: (row) =>
+      `${row.first_name} ${row.last_name} (${row.type}) : décès le ${row.death_date}, mandat ${row.end_date ? `clos le ${row.end_date}` : 'toujours actif'}`,
   },
 
+  // m2.id > m1.id évite de remonter chaque paire deux fois.
   communeConflict: {
     key: 'commune_conflict',
     description:
@@ -215,8 +226,8 @@ const checks: {
         and m1.commune_code is not null
       limit ${SAMPLE_LIMIT}
     `,
-    format: (r) =>
-      `Commune ${r.commune_code} : ${r.first_a} ${r.last_a} et ${r.first_b} ${r.last_b} tous deux maires actifs`,
+    format: (row) =>
+      `Commune ${row.commune_code} : ${row.first_a} ${row.last_a} et ${row.first_b} ${row.last_b} tous deux maires actifs`,
   },
 
   sponsorshipWithoutMandate: {
@@ -237,8 +248,8 @@ const checks: {
         )
       limit ${SAMPLE_LIMIT}
     `,
-    format: (r) =>
-      `${r.first_name} ${r.last_name} : parrainage ${r.type} ${r.election_year} le ${r.publication_date}, aucun mandat à cette date`,
+    format: (row) =>
+      `${row.first_name} ${row.last_name} : parrainage ${row.type} ${row.election_year} le ${row.publication_date}, aucun mandat à cette date`,
   },
 
   sponsorshipDepartmentMismatch: {
@@ -269,8 +280,8 @@ const checks: {
         and lower(m.department) <> lower(s.raw_department)
       limit ${SAMPLE_LIMIT}
     `,
-    format: (r) =>
-      `${r.first_name} ${r.last_name} : parrainage déclaré "${r.raw_department}" vs mandat "${r.mandate_department}" (${r.publication_date})`,
+    format: (row) =>
+      `${row.first_name} ${row.last_name} : parrainage déclaré "${row.raw_department}" vs mandat "${row.mandate_department}" (${row.publication_date})`,
   },
 
   decorationOutsideLifetime: {
@@ -294,11 +305,12 @@ const checks: {
         )
       limit ${SAMPLE_LIMIT}
     `,
-    format: (r) =>
-      `${r.first_name} ${r.last_name} : ${r.order_name} décrétée le ${r.decree_date} (naissance ${r.birth_date ?? '?'}, décès ${r.death_date ?? '?'})`,
+    format: (row) =>
+      `${row.first_name} ${row.last_name} : ${row.order_name} décrétée le ${row.decree_date} (naissance ${row.birth_date ?? '?'}, décès ${row.death_date ?? '?'})`,
   },
 };
 
+/** Exécute tous les contrôles en parallèle (lecture seule). */
 export async function checkCoherence(
   db: NeonHttpDatabase,
 ): Promise<CoherenceReport> {
@@ -312,6 +324,7 @@ export async function checkCoherence(
   };
 }
 
+/** Affiche le rapport ; `log` est injectable pour les tests. */
 export function printCoherenceReport(
   report: CoherenceReport,
   log: Pick<typeof logger, 'info' | 'warn'> = logger,
@@ -327,11 +340,11 @@ export function printCoherenceReport(
     log.warn(
       `✗ ${result.description} : ${result.count}${result.truncated ? '+' : ''} cas`,
     );
-    for (const sample of result.samples.slice(0, 10)) {
+    for (const sample of result.samples.slice(0, PRINTED_SAMPLES)) {
       log.warn(`    - ${sample}`);
     }
-    if (result.samples.length > 10) {
-      log.warn(`    … et ${result.samples.length - 10} de plus`);
+    if (result.samples.length > PRINTED_SAMPLES) {
+      log.warn(`    … et ${result.samples.length - PRINTED_SAMPLES} de plus`);
     }
   }
 

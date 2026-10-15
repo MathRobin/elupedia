@@ -1,3 +1,22 @@
+/**
+ * Coordonnées des mairies (Annuaire de l'administration, DILA).
+ *
+ * Source : API Opendatasoft « api-lannuaire-administration » (explore v2.1),
+ * filtrée sur `pivot like "mairie"`. Chaque enregistrement est une mairie
+ * avec son code INSEE, son adresse, téléphone, e-mail et site.
+ *
+ * Extrait : une `MairieData` par enregistrement ayant un code commune.
+ *
+ * Pièges :
+ * - Plusieurs champs (`adresse`, `telephone`, `site_internet`, `pivot`) sont
+ *   des chaînes JSON imbriquées dans le JSON : à re-parser.
+ * - L'API refuse un offset > 10 000 : on partitionne les requêtes par
+ *   préfixe de code INSEE (département) pour rester sous la limite.
+ * - `code_insee_commune` est parfois null ; on retombe alors sur le premier
+ *   code du `pivot`.
+ *
+ * Appelé par run-maires.ts via upsert/mayor-addresses.ts.
+ */
 import { logger } from '../logger.js';
 
 const API_BASE =
@@ -23,10 +42,14 @@ interface ApiAddress {
 
 interface ApiRecord {
   code_insee_commune: string | null;
+  /** Chaîne JSON : ApiAddress[]. */
   adresse: string | null;
+  /** Chaîne JSON : { valeur: string }[]. */
   telephone: string | null;
   adresse_courriel: string | null;
+  /** Chaîne JSON : { valeur: string }[]. */
   site_internet: string | null;
+  /** Chaîne JSON : { code_insee_commune?: string[] }[]. */
   pivot: string | null;
 }
 
@@ -43,11 +66,15 @@ function extractCommuneCode(record: ApiRecord): string | undefined {
   }
 }
 
+/** Adresse physique (type « Adresse ») de préférence à l'adresse postale. */
 function parseAddress(raw: string | null): ApiAddress | undefined {
   if (!raw) return undefined;
   try {
-    const addrs = JSON.parse(raw) as ApiAddress[];
-    return addrs.find((a) => a.type_adresse === 'Adresse') ?? addrs[0];
+    const addresses = JSON.parse(raw) as ApiAddress[];
+    return (
+      addresses.find((address) => address.type_adresse === 'Adresse') ??
+      addresses[0]
+    );
   } catch {
     return undefined;
   }
@@ -73,7 +100,8 @@ function parseWebsite(raw: string | null): string | undefined {
   }
 }
 
-// API offset limit is 10 000 — partition by department prefix to stay under
+// L'API limite l'offset à 10 000 : on partitionne par préfixe de code INSEE
+// (01..96, Corse 2A/2B, DOM 971-976) pour rester en dessous.
 const DEPT_PREFIXES = [
   ...Array.from({ length: 96 }, (_, i) => String(i + 1).padStart(2, '0')),
   '2A',
@@ -81,6 +109,7 @@ const DEPT_PREFIXES = [
   ...['971', '972', '973', '974', '976'],
 ];
 
+/** Toutes les mairies dont le code INSEE commence par `prefix` (paginé). */
 async function fetchPartition(
   prefix: string,
   fetchFn: typeof fetch,
@@ -96,28 +125,30 @@ async function fetchPartition(
   while (offset < total) {
     const url = `${API_BASE}?where=${whereClause}&limit=${PAGE_SIZE}&offset=${offset}&select=code_insee_commune,adresse,telephone,adresse_courriel,site_internet,pivot`;
 
-    const res = await fetchFn(url);
-    if (!res.ok) {
-      throw new Error(`DILA API error: ${res.status} ${res.statusText}`);
+    const response = await fetchFn(url);
+    if (!response.ok) {
+      throw new Error(
+        `DILA API error: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = (await res.json()) as {
+    const page = (await response.json()) as {
       total_count: number;
       results: ApiRecord[];
     };
-    total = data.total_count;
+    total = page.total_count;
 
-    for (const record of data.results) {
+    for (const record of page.results) {
       const communeCode = extractCommuneCode(record);
       if (!communeCode) continue;
 
-      const addr = parseAddress(record.adresse);
+      const address = parseAddress(record.adresse);
 
       results.push({
         communeCode,
-        street: addr?.numero_voie ?? '',
-        postalCode: addr?.code_postal ?? '',
-        city: addr?.nom_commune ?? '',
+        street: address?.numero_voie ?? '',
+        postalCode: address?.code_postal ?? '',
+        city: address?.nom_commune ?? '',
         phone: parsePhone(record.telephone),
         email: record.adresse_courriel || undefined,
         website: parseWebsite(record.site_internet),
@@ -130,14 +161,18 @@ async function fetchPartition(
   return results;
 }
 
+/**
+ * Récupère toutes les mairies de France, département par département.
+ * Lève à la première erreur HTTP.
+ */
 export async function fetchDilaMairies(
   fetchFn: typeof fetch = fetch,
 ): Promise<MairieData[]> {
   const results: MairieData[] = [];
 
   for (const prefix of DEPT_PREFIXES) {
-    const batch = await fetchPartition(prefix, fetchFn);
-    results.push(...batch);
+    const partition = await fetchPartition(prefix, fetchFn);
+    results.push(...partition);
   }
 
   logger.info(`DILA mairies: ${results.length} mairies fetched`);

@@ -1,15 +1,32 @@
+/**
+ * Tiroir latéral listant les demandes d'accès aux documents administratifs
+ * (CADA) adressées à une commune via MaDada.fr.
+ *
+ * Rendu sur `pages/elus/[slug]/index.astro` (fiche d'un maire) avec
+ * `client:idle` : invisible tant qu'il n'est pas ouvert, donc hydratation
+ * différée. Il s'ouvre sur l'événement `open-madada-drawer` dispatché sur
+ * `window` par un bouton inline de la page (pas de prop d'ouverture).
+ *
+ * Deux cas de données : la liste détaillée des demandes si l'ingestion l'a
+ * déjà récupérée, sinon seulement un compteur agrégé (`aggregateCount`) et un
+ * lien vers MaDada.
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 export interface MadadaRequestItem {
   madadaId: number;
+  /** Segment d'URL de la demande sur madada.fr (`/request/<urlTitle>`). */
   urlTitle: string;
   title: string;
+  /** Statut brut MaDada (clé de `STATUS_BADGES`). */
   status: string;
+  /** Date ISO. */
   createdAt: string;
 }
 
-const statusLabels: Record<string, { label: string; color: string }> = {
+/** Libellé et couleurs de badge par statut MaDada (Alaveteli). */
+const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   successful: {
     label: 'Aboutie',
     color:
@@ -80,8 +97,12 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   },
 };
 
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('fr-FR', {
+/** Badge neutre pour un statut MaDada inconnu : on affiche la clé brute. */
+const UNKNOWN_STATUS_COLOR =
+  'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
+
+function formatDate(isoDate: string): string {
+  return new Date(isoDate).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -89,39 +110,45 @@ function formatDate(d: string): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const info = statusLabels[status] ?? {
+  const badge = STATUS_BADGES[status] ?? {
     label: status,
-    color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+    color: UNKNOWN_STATUS_COLOR,
   };
   return (
     <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${info.color}`}
+      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${badge.color}`}
     >
-      {info.label}
+      {badge.label}
     </span>
   );
 }
+
+/** Props injectées par la page Astro. */
+type Props = {
+  /** Demandes détaillées ; vide si seul l'agrégat est connu. */
+  requests: MadadaRequestItem[];
+  /** Identifiant de la commune sur madada.fr (`/body/<madadaUrlName>`). */
+  madadaUrlName: string;
+  /** Nombre total de demandes connu par l'agrégat, utilisé si `requests` est vide. */
+  aggregateCount: number;
+};
 
 export default function MadadaRequestsDrawer({
   requests,
   madadaUrlName,
   aggregateCount,
-}: {
-  requests: MadadaRequestItem[];
-  madadaUrlName: string;
-  aggregateCount: number;
-}) {
+}: Props) {
   const [open, setOpen] = useState(false);
   const trapRef = useFocusTrap(open);
 
   const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
-    function handler() {
+    function openDrawer() {
       setOpen(true);
     }
-    window.addEventListener('open-madada-drawer', handler);
-    return () => window.removeEventListener('open-madada-drawer', handler);
+    window.addEventListener('open-madada-drawer', openDrawer);
+    return () => window.removeEventListener('open-madada-drawer', openDrawer);
   }, []);
 
   useEffect(() => {
@@ -189,21 +216,21 @@ export default function MadadaRequestsDrawer({
               </div>
             ) : (
               <ul className="space-y-3">
-                {requests.map((req) => (
-                  <li key={req.madadaId}>
+                {requests.map((request) => (
+                  <li key={request.madadaId}>
                     <a
-                      href={`https://madada.fr/request/${req.urlTitle}`}
+                      href={`https://madada.fr/request/${request.urlTitle}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block rounded-lg border border-slate-200 p-3 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors dark:border-slate-700 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/30"
                     >
                       <p className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2">
-                        {req.title}
+                        {request.title}
                       </p>
                       <div className="mt-2 flex items-center gap-3">
-                        <StatusBadge status={req.status} />
+                        <StatusBadge status={request.status} />
                         <span className="text-xs text-slate-400 dark:text-slate-500">
-                          {formatDate(req.createdAt)}
+                          {formatDate(request.createdAt)}
                         </span>
                       </div>
                     </a>

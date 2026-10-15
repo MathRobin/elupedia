@@ -1,3 +1,13 @@
+/**
+ * Liste filtrable des élections (municipales, législatives, sénatoriales)
+ * avec recherche texte, filtres par type / statut (à venir ou passée) /
+ * année, panneau latéral sur desktop et tiroir bas sur mobile.
+ *
+ * Rendue sur `pages/elections/index.astro` avec `client:load` : tout le
+ * filtrage est local sur la liste passée en props. Contrairement à
+ * `OfficialsList` et `BallotsList`, les filtres ne sont pas reflétés dans
+ * l'URL.
+ */
 import { useMemo, useState } from 'react';
 import { useFocusTrap } from '../lib/use-focus-trap.js';
 import type { ElectionEvent, ElectionType } from '../lib/election-types.js';
@@ -17,11 +27,20 @@ const TYPE_COLORS: Record<ElectionType, string> = {
     'bg-purple-50 text-purple-700 ring-purple-600/10 dark:bg-purple-900/20 dark:text-purple-300',
 };
 
+type StatusFilter = 'all' | 'upcoming' | 'past';
+
+const STATUS_OPTIONS: [StatusFilter, string][] = [
+  ['all', 'Toutes'],
+  ['upcoming', 'À venir'],
+  ['past', 'Passées'],
+];
+
+/** « À venir » = date strictement postérieure à l'instant du rendu. */
 function isUpcoming(dateStr: string): boolean {
   return new Date(dateStr).getTime() > Date.now();
 }
 
-function fmtDate(dateStr: string): string {
+function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
@@ -29,45 +48,60 @@ function fmtDate(dateStr: string): string {
   });
 }
 
-type StatusFilter = 'all' | 'upcoming' | 'past';
+/** Année (AAAA) d'une date ISO, utilisée comme clé de filtre. */
+function yearOf(dateStr: string): string {
+  return dateStr.slice(0, 4);
+}
 
-export default function ElectionsList({ events }: { events: ElectionEvent[] }) {
+/** Props injectées par la page Astro. */
+type Props = {
+  events: ElectionEvent[];
+};
+
+export default function ElectionsList({ events }: Props) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<Set<ElectionType>>(new Set());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [yearFilter, setYearFilter] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const drawerRef = useFocusTrap(mobileFiltersOpen);
 
+  // Années présentes, de la plus récente à la plus ancienne.
   const years = useMemo(
     () =>
-      [...new Set(events.map((e) => e.electionDate.slice(0, 4)))].sort((a, b) =>
-        b.localeCompare(a),
+      [...new Set(events.map((event) => yearOf(event.electionDate)))].sort(
+        (a, b) => b.localeCompare(a),
       ),
     [events],
   );
-  const [yearFilter, setYearFilter] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return events.filter((e) => {
-      if (q && !e.label.toLowerCase().includes(q)) return false;
-      if (typeFilter.size > 0 && !typeFilter.has(e.type)) return false;
-      if (yearFilter && e.electionDate.slice(0, 4) !== yearFilter) return false;
-      if (statusFilter === 'upcoming' && !isUpcoming(e.electionDate))
+    const normalizedSearch = search.trim().toLowerCase();
+    return events.filter((event) => {
+      if (
+        normalizedSearch &&
+        !event.label.toLowerCase().includes(normalizedSearch)
+      )
         return false;
-      if (statusFilter === 'past' && isUpcoming(e.electionDate)) return false;
+      if (typeFilter.size > 0 && !typeFilter.has(event.type)) return false;
+      if (yearFilter && yearOf(event.electionDate) !== yearFilter) return false;
+      if (statusFilter === 'upcoming' && !isUpcoming(event.electionDate))
+        return false;
+      if (statusFilter === 'past' && isUpcoming(event.electionDate))
+        return false;
       return true;
     });
   }, [events, search, typeFilter, yearFilter, statusFilter]);
 
+  // Le champ de recherche n'est pas compté comme un filtre « actif ».
   const activeFilterCount =
     typeFilter.size + (yearFilter ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
 
-  function toggleType(t: ElectionType) {
+  function toggleType(type: ElectionType) {
     setTypeFilter((prev) => {
       const next = new Set(prev);
-      if (next.has(t)) next.delete(t);
-      else next.add(t);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
       return next;
     });
   }
@@ -79,6 +113,7 @@ export default function ElectionsList({ events }: { events: ElectionEvent[] }) {
     setSearch('');
   }
 
+  // Panneau de filtres partagé entre la barre latérale desktop et le tiroir mobile.
   const filterPanel = (
     <div className="space-y-6">
       <fieldset>
@@ -86,18 +121,18 @@ export default function ElectionsList({ events }: { events: ElectionEvent[] }) {
           Type d'élection
         </legend>
         <div className="mt-2 space-y-1.5">
-          {(Object.keys(TYPE_LABELS) as ElectionType[]).map((t) => (
+          {(Object.keys(TYPE_LABELS) as ElectionType[]).map((type) => (
             <label
-              key={t}
+              key={type}
               className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400"
             >
               <input
                 type="checkbox"
-                checked={typeFilter.has(t)}
-                onChange={() => toggleType(t)}
+                checked={typeFilter.has(type)}
+                onChange={() => toggleType(type)}
                 className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
               />
-              {TYPE_LABELS[t]}
+              {TYPE_LABELS[type]}
             </label>
           ))}
         </div>
@@ -108,13 +143,7 @@ export default function ElectionsList({ events }: { events: ElectionEvent[] }) {
           Statut
         </legend>
         <div className="mt-2 space-y-1.5">
-          {(
-            [
-              ['all', 'Toutes'],
-              ['upcoming', 'À venir'],
-              ['past', 'Passées'],
-            ] as [StatusFilter, string][]
-          ).map(([value, label]) => (
+          {STATUS_OPTIONS.map(([value, label]) => (
             <label
               key={value}
               className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400"
@@ -142,9 +171,9 @@ export default function ElectionsList({ events }: { events: ElectionEvent[] }) {
           className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
         >
           <option value="">Toutes les années</option>
-          {years.map((y) => (
-            <option key={y} value={y}>
-              {y}
+          {years.map((year) => (
+            <option key={year} value={year}>
+              {year}
             </option>
           ))}
         </select>
@@ -200,35 +229,35 @@ export default function ElectionsList({ events }: { events: ElectionEvent[] }) {
         </p>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {filtered.map((e) => (
+          {filtered.map((event) => (
             <a
-              key={`${e.type}-${e.id}`}
-              href={`/elections/${e.type}/${e.id}`}
+              key={`${event.type}-${event.id}`}
+              href={`/elections/${event.type}/${event.id}`}
               className="group flex flex-col rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/50 p-5 shadow-sm transition-all hover:border-indigo-300/60 hover:shadow-lg hover:-translate-y-0.5 no-underline dark:border-slate-700 dark:from-slate-800 dark:to-slate-800/80 dark:hover:border-indigo-500/40"
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${TYPE_COLORS[e.type]}`}
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${TYPE_COLORS[event.type]}`}
                 >
-                  {TYPE_LABELS[e.type]}
+                  {TYPE_LABELS[event.type]}
                 </span>
-                {isUpcoming(e.electionDate) && (
+                {isUpcoming(event.electionDate) && (
                   <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/10 dark:bg-amber-900/20 dark:text-amber-300">
                     À venir
                   </span>
                 )}
               </div>
               <h2 className="mt-3 font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors dark:text-slate-100 dark:group-hover:text-indigo-400">
-                {e.label}
+                {event.label}
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {fmtDate(e.electionDate)}
+                {formatDate(event.electionDate)}
               </p>
               <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                {e.candidateCount > 0 &&
-                  `${e.candidateCount.toLocaleString('fr-FR')} candidat(e)s · `}
-                {e.scopeCount.toLocaleString('fr-FR')}{' '}
-                {e.type === 'senatoriale' ? 'départements' : 'communes'}
+                {event.candidateCount > 0 &&
+                  `${event.candidateCount.toLocaleString('fr-FR')} candidat(e)s · `}
+                {event.scopeCount.toLocaleString('fr-FR')}{' '}
+                {event.type === 'senatoriale' ? 'départements' : 'communes'}
               </p>
             </a>
           ))}

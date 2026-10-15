@@ -1,3 +1,10 @@
+/**
+ * Tests de upsertEuropeQuestions : rattachement des auteurs français,
+ * dédoublonnage, persistance du curseur et résilience au rate limit de
+ * l'API europarl. Le mock DB sert le contenu courant de `store[table]`
+ * quelle que soit la condition SQL ; `fetchFn` est simulé réponse par
+ * réponse.
+ */
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../logger.js', () => ({
@@ -52,11 +59,12 @@ function createMockDb(
   return { db, store };
 }
 
+// Sert `responses` dans l'ordre, puis répète la dernière indéfiniment.
 function mockFetchSequence(responses: unknown[]) {
-  let i = 0;
+  let callIndex = 0;
   return vi.fn().mockImplementation(async () => {
-    const body = responses[Math.min(i, responses.length - 1)];
-    i++;
+    const body = responses[Math.min(callIndex, responses.length - 1)];
+    callIndex++;
     return {
       ok: true,
       status: 200,

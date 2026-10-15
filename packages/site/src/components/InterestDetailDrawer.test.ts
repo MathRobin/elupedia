@@ -1,3 +1,9 @@
+/**
+ * Tests de `InterestDetailDrawer` par inspection du code source (pas de
+ * rendu React) : présence des champs du type, des libellés de sections et
+ * des gardes `interest.<champ> &&`. Toute reformulation de ces chaînes
+ * dans le composant doit être répercutée ici.
+ */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -7,8 +13,8 @@ const source = readFileSync(componentPath, 'utf-8');
 
 describe('InterestDetailDrawer', () => {
   it('exports a default function component', async () => {
-    const mod = await import('./InterestDetailDrawer.js');
-    expect(typeof mod.default).toBe('function');
+    const componentModule = await import('./InterestDetailDrawer.js');
+    expect(typeof componentModule.default).toBe('function');
   });
 
   it('exports InterestDetail type with expected fields', () => {

@@ -1,3 +1,5 @@
+// Tests de rne-conseillers-fde : parsing du CSV RNE à champs entre guillemets
+// (14 colonnes) et saut de l'en-tête au fetch.
 import { describe, it, expect, vi } from 'vitest';
 import { parseCsvRow, fetchRneConseillersFde } from './rne-conseillers-fde.js';
 

@@ -1,3 +1,17 @@
+/**
+ * Génération et envoi sur S3 des cartes statiques des permanences
+ * (`services/static-map.ts`), étape `maps` de `run.ts`.
+ *
+ * Aucune table écrite : lit `addresses` (lignes géocodées) et écrit des PNG
+ * sous `maps/<clé>.png` dans le bucket MAPS_S3_BUCKET. La clé est dérivée
+ * des coordonnées + paramètres de rendu (`mapCacheKey`), donc deux adresses
+ * au même point partagent la même image. Le site reconstruit l'URL à partir
+ * de la même clé.
+ *
+ * Idempotent : une image déjà présente sur S3 (HEAD) n'est jamais régénérée
+ * ni écrasée (objets `immutable`). Un délai entre deux rendus ménage le
+ * fournisseur de tuiles.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import {
   S3Client,
@@ -9,8 +23,19 @@ import { isNotNull, and } from 'drizzle-orm';
 import { generateStaticMap, mapCacheKey } from '../services/static-map.js';
 import { logger } from '../logger.js';
 
+/** Nombre d'adresses par lot (sert uniquement au log d'avancement). */
 const BATCH_SIZE = 20;
+/** Pause entre deux rendus, pour ne pas saturer le fournisseur de tuiles. */
 const DELAY_MS = 250;
+
+/**
+ * Paramètres de rendu : doivent rester identiques aux STATIC_MAP_* du site
+ * (pages/elus/[slug]/index.astro) qui recalcule la même clé MD5, et aux
+ * défauts de generateStaticMap (cache disque local).
+ */
+const MAP_ZOOM = 13;
+const MAP_WIDTH = 400;
+const MAP_HEIGHT = 200;
 
 function getS3Config() {
   const bucket = process.env.MAPS_S3_BUCKET;
@@ -33,6 +58,11 @@ async function existsOnS3(
   }
 }
 
+/**
+ * Génère et envoie sur S3 la carte de chaque adresse géocodée absente du
+ * bucket. Lit `addresses`, n'écrit rien en base. Retourne envoyées /
+ * déjà présentes / échouées.
+ */
 export async function uploadMaps(db: NeonHttpDatabase) {
   const { bucket, region } = getS3Config();
   const s3 = new S3Client({ region });
@@ -62,9 +92,9 @@ export async function uploadMaps(db: NeonHttpDatabase) {
       const key = mapCacheKey({
         latitude: row.latitude!,
         longitude: row.longitude!,
-        zoom: 13,
-        width: 400,
-        height: 200,
+        zoom: MAP_ZOOM,
+        width: MAP_WIDTH,
+        height: MAP_HEIGHT,
       });
       const s3Key = `maps/${key}.png`;
 
@@ -74,12 +104,12 @@ export async function uploadMaps(db: NeonHttpDatabase) {
       }
 
       try {
-        const buf = await generateStaticMap({
+        const png = await generateStaticMap({
           latitude: row.latitude!,
           longitude: row.longitude!,
         });
 
-        if (!buf) {
+        if (!png) {
           failed++;
           continue;
         }
@@ -88,18 +118,18 @@ export async function uploadMaps(db: NeonHttpDatabase) {
           new PutObjectCommand({
             Bucket: bucket,
             Key: s3Key,
-            Body: buf,
+            Body: png,
             ContentType: 'image/png',
             CacheControl: 'public, max-age=31536000, immutable',
           }),
         );
         uploaded++;
-      } catch (err) {
-        logger.error(`  Failed for ${row.id}: ${err}`);
+      } catch (error) {
+        logger.error(`  Failed for ${row.id}: ${error}`);
         failed++;
       }
 
-      await new Promise((r) => setTimeout(r, DELAY_MS));
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
     }
   }
 

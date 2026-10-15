@@ -3,3 +3,4 @@ dist/
 .yarn/
 .astro/
 **/public/tarteaucitron/
+packages/shorts/out/

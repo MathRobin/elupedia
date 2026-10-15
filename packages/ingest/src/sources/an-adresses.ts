@@ -1,3 +1,23 @@
+/**
+ * Adresses de contact des députés en exercice (open data AN, jeu AMO10).
+ *
+ * Source : ZIP `AMO10_deputes_actifs_mandats_actifs_organes.json.zip`, dossier
+ * `json/acteur/` avec un fichier par député (`{ acteur: {...} }`).
+ *
+ * Extrait : une `AddressData` par adresse postale de type « officielle »
+ * (bureau à l'Assemblée) ou « publiée de circonscription », enrichie du
+ * téléphone rattaché à cette adresse et de l'e-mail général du député.
+ *
+ * Pièges :
+ * - `adresses.adresse` est tantôt un objet, tantôt un tableau (conversion
+ *   XML→JSON) : voir normalizeArray.
+ * - Le téléphone est une « adresse » à part (type 11) reliée à l'adresse
+ *   postale par `adresseDeRattachement`. Plusieurs numéros peuvent être
+ *   concaténés avec « / » : on ne garde que le premier.
+ * - Les parties de rue se terminent parfois par une virgule parasite.
+ *
+ * Appelé par run-an.ts via upsert/addresses.ts.
+ */
 import { Readable } from 'node:stream';
 import { Extract } from 'unzipper';
 import { tmpdir } from 'node:os';
@@ -17,6 +37,19 @@ export interface AddressData {
 export const DATASET_URL =
   'https://data.assemblee-nationale.fr/static/openData/repository/17/amo/deputes_actifs_mandats_actifs_organes/AMO10_deputes_actifs_mandats_actifs_organes.json.zip';
 
+// Codes `type` du référentiel AN pour les entrées de `adresses.adresse`.
+/** Adresse officielle (bureau à l'Assemblée nationale). */
+const ADDRESS_TYPE_ASSEMBLY = '0';
+/** Adresse publiée de circonscription (permanence). */
+const ADDRESS_TYPE_CONSTITUENCY = '2';
+/** Numéro de téléphone, rattaché à une adresse postale. */
+const ADDRESS_TYPE_PHONE = '11';
+/** Adresse e-mail. */
+const ADDRESS_TYPE_EMAIL = '15';
+
+/** Taille de la colonne `phone` en base. */
+const MAX_PHONE_LENGTH = 50;
+
 interface RawAddress {
   uid: string;
   type: string;
@@ -26,26 +59,33 @@ interface RawAddress {
   complementAdresse?: string | null;
   codePostal?: string | null;
   ville?: string | null;
+  /** Valeur « électronique » : numéro de téléphone ou e-mail selon `type`. */
   valElec?: string | null;
 }
 
-function buildStreet(addr: RawAddress): string | undefined {
-  const parts = [addr.numeroRue, addr.nomRue, addr.complementAdresse]
-    .filter((p): p is string => p != null && p.trim() !== '')
-    .map((p) => p.trim().replace(/,\s*$/, ''));
+/** Concatène numéro, rue et complément en supprimant les virgules finales. */
+function buildStreet(address: RawAddress): string | undefined {
+  const parts = [address.numeroRue, address.nomRue, address.complementAdresse]
+    .filter((part): part is string => part != null && part.trim() !== '')
+    .map((part) => part.trim().replace(/,\s*$/, ''));
   return parts.length > 0 ? parts.join(' ') : undefined;
 }
 
+/** Ne garde que le premier numéro d'une liste « 01 .. / 02 .. ». */
 function cleanPhone(raw: string): string {
-  const first = raw.split('/')[0].trim();
-  return first.substring(0, 50);
+  const firstNumber = raw.split('/')[0].trim();
+  return firstNumber.substring(0, MAX_PHONE_LENGTH);
 }
 
-function normalizeArray<T>(val: T | T[] | undefined | null): T[] {
-  if (!val) return [];
-  return Array.isArray(val) ? val : [val];
+function normalizeArray<T>(value: T | T[] | undefined | null): T[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
 }
 
+/**
+ * Télécharge le ZIP AMO10 et renvoie toutes les adresses de bureau des
+ * députés actifs. Lève une erreur si le téléchargement échoue.
+ */
 export async function fetchAddresses(
   fetchFn: typeof fetch = fetch,
 ): Promise<AddressData[]> {
@@ -103,39 +143,54 @@ async function loadAddresses(extractDir: string): Promise<AddressData[]> {
     const adressesObj = acteur?.adresses as Record<string, unknown> | undefined;
     if (!adressesObj) continue;
 
-    const rawAddrs: RawAddress[] = normalizeArray(
+    const rawAddresses: RawAddress[] = normalizeArray(
       adressesObj.adresse as RawAddress | RawAddress[],
     );
-    if (rawAddrs.length === 0) continue;
+    if (rawAddresses.length === 0) continue;
 
+    // Première passe : indexer les téléphones par adresse de rattachement et
+    // retenir le premier e-mail (commun à toutes les adresses du député).
     const phoneByRattachement = new Map<string, string>();
     let generalEmail: string | undefined;
 
-    for (const addr of rawAddrs) {
-      if (addr.type === '11' && addr.valElec && addr.adresseDeRattachement) {
+    for (const address of rawAddresses) {
+      if (
+        address.type === ADDRESS_TYPE_PHONE &&
+        address.valElec &&
+        address.adresseDeRattachement
+      ) {
         phoneByRattachement.set(
-          addr.adresseDeRattachement,
-          cleanPhone(addr.valElec),
+          address.adresseDeRattachement,
+          cleanPhone(address.valElec),
         );
       }
-      if (addr.type === '15' && addr.valElec && !generalEmail) {
-        generalEmail = addr.valElec;
+      if (
+        address.type === ADDRESS_TYPE_EMAIL &&
+        address.valElec &&
+        !generalEmail
+      ) {
+        generalEmail = address.valElec;
       }
     }
 
-    for (const addr of rawAddrs) {
+    // Seconde passe : émettre les adresses postales.
+    for (const address of rawAddresses) {
       let addressType: 'assembly_office' | 'constituency_office' | undefined;
-      if (addr.type === '0') addressType = 'assembly_office';
-      else if (addr.type === '2') addressType = 'constituency_office';
-      else continue;
+      if (address.type === ADDRESS_TYPE_ASSEMBLY) {
+        addressType = 'assembly_office';
+      } else if (address.type === ADDRESS_TYPE_CONSTITUENCY) {
+        addressType = 'constituency_office';
+      } else {
+        continue;
+      }
 
       results.push({
         id_an: anId,
         type: addressType,
-        street: buildStreet(addr),
-        postal_code: addr.codePostal ?? undefined,
-        city: addr.ville ?? undefined,
-        phone: phoneByRattachement.get(addr.uid) ?? undefined,
+        street: buildStreet(address),
+        postal_code: address.codePostal ?? undefined,
+        city: address.ville ?? undefined,
+        phone: phoneByRattachement.get(address.uid) ?? undefined,
         email: generalEmail,
       });
     }

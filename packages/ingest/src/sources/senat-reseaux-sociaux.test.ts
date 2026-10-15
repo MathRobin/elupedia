@@ -1,3 +1,5 @@
+// Tests de senat-reseaux-sociaux : normalisation Twitter/Facebook depuis l'API
+// et extraction du « Site perso » sur une fiche HTML simulée.
 import { describe, it, expect, vi } from 'vitest';
 import { fetchSenatSocialLinks } from './senat-reseaux-sociaux.js';
 

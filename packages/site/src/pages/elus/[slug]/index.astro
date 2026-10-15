@@ -1,4 +1,24 @@
 ---
+/**
+ * Fiche d'un élu (route /elus/[slug]), la page la plus lourde du site.
+ *
+ * Rendu à la demande (SSR, `prerender = false`, cache CDN 1 h). Le paramètre
+ * est le slug de l'élu ou, à défaut, son UUID. Le frontmatter charge en une
+ * vingtaine de requêtes tout ce qui concerne l'élu (mandats, votes,
+ * affiliations, collaborateurs, intérêts HATVP, presse, adresses, liens,
+ * activité, commissions, résultats électoraux, comptes de campagne,
+ * parrainages, décorations, fact-checks, et pour les maires : transparence
+ * MaDada, budget Bursae, élections municipales), puis construit les libellés,
+ * le JSON-LD Person et la chronologie.
+ *
+ * Pièges :
+ * - `deputy` désigne l'élu quel que soit son mandat (député, sénateur, maire…),
+ *   de même que le préfixe `deputyXxx` des jeux de données. Ces noms sont
+ *   vérifiés tels quels par tests/site-deputy-page.test.js, ne pas renommer.
+ * - Règle d'affichage : aucune section vide ; chaque section est conditionnée
+ *   au type de mandat (isParliamentary, isEurodepute, isMaire) et à la
+ *   présence de données.
+ */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getDb } from '../../../lib/db.js';
 import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText, MANDATE_TYPE_LABELS } from '@elupedia/shared';
@@ -15,14 +35,30 @@ import { fetchBursaeEmbed } from '../../../lib/bursae.js';
 
 export const prerender = false;
 
+// Nombre d'éléments affichés dans les sections « derniers … » (votes, presse,
+// activité) : le reste est accessible via les liens vers les sources.
+const RECENT_ITEMS_LIMIT = 20;
+
+// Paramètres des cartes statiques générées à l'ingestion (upload-maps) : la
+// clé S3 est le md5 de `lat_lon_zoom_WxH`, à garder alignée avec
+// packages/ingest/src/services/static-map.ts.
+const STATIC_MAP_ZOOM = 13;
+const STATIC_MAP_WIDTH = 400;
+const STATIC_MAP_HEIGHT = 200;
+
 const { slug } = Astro.params;
 const db = getDb();
 
+// --- Résolution de l'élu ---------------------------------------------------
+// Le paramètre est normalement le slug ; on accepte aussi l'UUID (anciens
+// liens, fiches sans slug).
 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(slug!);
 const slugFilter = isUuid
   ? or(eq(officials.slug, slug!), eq(officials.id, slug!))
   : eq(officials.slug, slug!);
 
+// Une ligne par mandat de l'élu, mandat actif (end_date NULL) en premier puis
+// du plus récent au plus ancien : la première ligne est le mandat mis en avant.
 const mandateRows = await db
   .select({
     id: officials.id,
@@ -52,12 +88,16 @@ const mandateRows = await db
   .where(slugFilter)
   .orderBy(mandates.endDate, desc(mandates.startDate));
 
-const row = mandateRows.find((r) => !r.endDate) ?? mandateRows[0] ?? null;
+// Élu + mandat principal (en cours, sinon le plus récent). Un élu sans aucun
+// mandat n'a pas de fiche : retour à l'annuaire.
+const primaryMandateRow = mandateRows.find((r) => !r.endDate) ?? mandateRows[0] ?? null;
 
-if (!row) return Astro.redirect('/elus');
+if (!primaryMandateRow) return Astro.redirect('/elus');
 
-const officialId = row.id;
-const isMaire = row.mandateType === 'maire';
+const officialId = primaryMandateRow.id;
+const isMaire = primaryMandateRow.mandateType === 'maire';
+
+// --- Jeux de données par section (une requête par table) -------------------
 
 const deputyMandates = await db
   .select({
@@ -74,7 +114,9 @@ const deputyMandates = await db
   .where(eq(mandates.officialId, officialId))
   .orderBy(desc(mandates.startDate));
 
-const votesRaw = await db
+// Votes : la jointure est faite en mémoire pour ne charger que les scrutins
+// concernés, puis on ne garde que les plus récents.
+const voteRows = await db
   .select({
     ballotId: votes.ballotId,
     position: votes.position,
@@ -83,21 +125,21 @@ const votesRaw = await db
   .from(votes)
   .where(eq(votes.officialId, officialId));
 
-const ballotIds = [...new Set(votesRaw.map((v) => v.ballotId))];
+const ballotIds = [...new Set(voteRows.map((v) => v.ballotId))];
 const ballotRows = ballotIds.length > 0
   ? await db.select({ id: ballots.id, title: ballots.title, date: ballots.date }).from(ballots).where(inArray(ballots.id, ballotIds))
   : [];
 const ballotMap = new Map(ballotRows.map((b) => [b.id, b]));
 
-const deputyVotes = votesRaw
+const deputyVotes = voteRows
   .map((v) => {
-    const b = ballotMap.get(v.ballotId);
-    if (!b) return null;
-    return { officialId, ballotId: v.ballotId, position: v.position, ballotTitle: b.title, ballotDate: b.date, updatedAt: v.updatedAt };
+    const ballot = ballotMap.get(v.ballotId);
+    if (!ballot) return null;
+    return { officialId, ballotId: v.ballotId, position: v.position, ballotTitle: ballot.title, ballotDate: ballot.date, updatedAt: v.updatedAt };
   })
   .filter(Boolean)
   .sort((a, b) => b!.ballotDate.localeCompare(a!.ballotDate))
-  .slice(0, 20) as { officialId: string; ballotId: string; position: string; ballotTitle: string; ballotDate: string; updatedAt: Date }[];
+  .slice(0, RECENT_ITEMS_LIMIT) as { officialId: string; ballotId: string; position: string; ballotTitle: string; ballotDate: string; updatedAt: Date }[];
 
 const deputyAffiliations = await db
   .select({ officialId: affiliations.officialId, partyOrGroup: affiliations.partyOrGroup, kind: affiliations.kind, startDate: affiliations.startDate, endDate: affiliations.endDate, updatedAt: affiliations.updatedAt })
@@ -133,8 +175,10 @@ const deputyPress = await db
   .from(pressMentions)
   .where(eq(pressMentions.officialId, officialId))
   .orderBy(desc(pressMentions.publishedDate))
-  .limit(20);
+  .limit(RECENT_ITEMS_LIMIT);
 
+// Adresses, enrichies de l'URL de leur carte statique (CDN) quand
+// MAPS_BASE_URL est défini et que l'adresse est géocodée.
 const mapsBaseUrl = process.env.MAPS_BASE_URL;
 const rawAddresses = await db
   .select({ officialId: addresses.officialId, type: addresses.type, street: addresses.street, postalCode: addresses.postalCode, city: addresses.city, phone: addresses.phone, email: addresses.email, latitude: addresses.latitude, longitude: addresses.longitude, updatedAt: addresses.updatedAt })
@@ -144,12 +188,15 @@ const rawAddresses = await db
 const deputyAddresses = rawAddresses.map((addr) => {
   let mapUrl: string | null = null;
   if (mapsBaseUrl && addr.latitude != null && addr.longitude != null) {
-    const hash = createHash('md5').update(`${addr.latitude}_${addr.longitude}_13_400x200`).digest('hex');
-    mapUrl = `${mapsBaseUrl}/maps/${hash}.png`;
+    const mapCacheKey = createHash('md5')
+      .update(`${addr.latitude}_${addr.longitude}_${STATIC_MAP_ZOOM}_${STATIC_MAP_WIDTH}x${STATIC_MAP_HEIGHT}`)
+      .digest('hex');
+    mapUrl = `${mapsBaseUrl}/maps/${mapCacheKey}.png`;
   }
   return { ...addr, mapUrl };
 });
 
+// Seuls les liens validés par la modération (status = published) sont affichés.
 const deputyLinks = await db
   .select({ officialId: externalLinks.officialId, platform: externalLinks.platform, url: externalLinks.url, source: externalLinks.source, updatedAt: externalLinks.updatedAt })
   .from(externalLinks)
@@ -160,7 +207,7 @@ const deputyActivities = await db
   .from(parliamentaryActivity)
   .where(eq(parliamentaryActivity.officialId, officialId))
   .orderBy(desc(parliamentaryActivity.date))
-  .limit(20);
+  .limit(RECENT_ITEMS_LIMIT);
 
 const deputyCommittees = await db
   .select({ officialId: committees.officialId, name: committees.name, type: committees.type, startDate: committees.startDate, endDate: committees.endDate, updatedAt: committees.updatedAt })
@@ -204,11 +251,14 @@ const deputyFactChecks = await db
   .where(eq(factChecks.officialId, officialId))
   .orderBy(desc(factChecks.datePublished));
 
-const madadaMeta = isMaire && row.communeCode
+// --- Données propres aux maires : transparence (MaDada), budget (Bursae) ---
+// Identité MaDada de la commune (nom d'URL) ; null si la commune n'est pas
+// suivie ou si l'élu n'est pas maire.
+const madadaMeta = isMaire && primaryMandateRow.communeCode
   ? (await db
       .select({ madadaUrlName: communeTransparency.madadaUrlName, updatedAt: communeTransparency.updatedAt })
       .from(communeTransparency)
-      .where(eq(communeTransparency.communeCode, row.communeCode))
+      .where(eq(communeTransparency.communeCode, primaryMandateRow.communeCode))
       .limit(1))[0] ?? null
   : null;
 
@@ -216,21 +266,24 @@ const madadaMeta = isMaire && row.communeCode
 // renvoie null si Bursae ne couvre pas la commune ou ne répond pas : la section
 // est alors simplement absente.
 const bursaeEmbed =
-  isMaire && row.communeCode ? await fetchBursaeEmbed(row.communeCode) : null;
+  isMaire && primaryMandateRow.communeCode ? await fetchBursaeEmbed(primaryMandateRow.communeCode) : null;
 
+// Mandat de maire de référence (en cours, sinon le plus récent) : borne la
+// période sur laquelle on compte les demandes CADA imputables à cet élu.
 const maireMandate = isMaire
   ? deputyMandates.find((m) => m.type === 'maire' && !m.endDate) ?? deputyMandates.find((m) => m.type === 'maire')
   : null;
 
-const mandateFilters = isMaire && row.communeCode
+const madadaRequestFilters = isMaire && primaryMandateRow.communeCode
   ? [
-      eq(madadaRequests.communeCode, row.communeCode),
+      eq(madadaRequests.communeCode, primaryMandateRow.communeCode),
       ...(maireMandate?.startDate ? [gte(madadaRequests.createdAt, new Date(maireMandate.startDate))] : []),
       ...(maireMandate?.endDate ? [lte(madadaRequests.createdAt, new Date(maireMandate.endDate))] : []),
     ]
   : [];
 
-const madadaStats = mandateFilters.length > 0
+// Statistiques des demandes CADA sur la durée du mandat.
+const madadaStats = madadaRequestFilters.length > 0
   ? (await db
       .select({
         requestsCount: count(),
@@ -239,10 +292,11 @@ const madadaStats = mandateFilters.length > 0
         requestsNotHeld: count(sql`CASE WHEN ${madadaRequests.status} = 'not_held' THEN 1 END`),
       })
       .from(madadaRequests)
-      .where(and(...mandateFilters)))[0] ?? null
+      .where(and(...madadaRequestFilters)))[0] ?? null
   : null;
 
-const madadaRequestRows = mandateFilters.length > 0
+// Liste détaillée des demandes, pour le tiroir MadadaRequestsDrawer.
+const madadaRequestRows = madadaRequestFilters.length > 0
   ? await db
       .select({
         madadaId: madadaRequests.madadaId,
@@ -252,10 +306,13 @@ const madadaRequestRows = mandateFilters.length > 0
         createdAt: madadaRequests.createdAt,
       })
       .from(madadaRequests)
-      .where(and(...mandateFilters))
+      .where(and(...madadaRequestFilters))
       .orderBy(desc(madadaRequests.createdAt))
   : [];
 
+// Bloc « Transparence » : les compteurs calculés sur le mandat priment ; si
+// aucune demande ne tombe dans la période, on retombe sur les agrégats
+// toutes périodes stockés dans commune_transparency.
 const transparencyRow = madadaStats && madadaStats.requestsCount > 0 && madadaMeta
   ? { ...madadaStats, madadaUrlName: madadaMeta.madadaUrlName, updatedAt: madadaMeta.updatedAt }
   : madadaMeta
@@ -269,18 +326,22 @@ const transparencyRow = madadaStats && madadaStats.requestsCount > 0 && madadaMe
           updatedAt: communeTransparency.updatedAt,
         })
         .from(communeTransparency)
-        .where(eq(communeTransparency.communeCode, row.communeCode!))
+        .where(eq(communeTransparency.communeCode, primaryMandateRow.communeCode!))
         .limit(1))[0] ?? null
     : null;
 
-// For maires: elections in their commune. For others: elections where they appear as candidate.
-const candidateElectionIds = await db
+// --- Élections municipales -------------------------------------------------
+// Scrutins municipaux où l'élu figure comme candidat (rattachement fait par le
+// script `reconcile`). Pour un maire, on part des scrutins de sa commune ; pour
+// les autres élus, des scrutins où ils ont été candidats. Dans les deux cas,
+// seuls les scrutins où l'élu est effectivement candidat sont conservés.
+const candidateElectionIdRows = await db
   .select({ electionId: municipalCandidates.electionId })
   .from(municipalCandidates)
   .where(eq(municipalCandidates.officialId, officialId));
-const candidateElectionIdSet = new Set(candidateElectionIds.map((r) => r.electionId));
+const candidateElectionIdSet = new Set(candidateElectionIdRows.map((r) => r.electionId));
 
-const communeElectionRows = row.mandateType === 'maire' && row.communeCode
+const communeElectionRows = primaryMandateRow.mandateType === 'maire' && primaryMandateRow.communeCode
   ? await db
       .select({
         id: municipalElections.id,
@@ -297,13 +358,13 @@ const communeElectionRows = row.mandateType === 'maire' && row.communeCode
         updatedAt: municipalElections.updatedAt,
       })
       .from(municipalElections)
-      .where(eq(municipalElections.communeCode, row.communeCode))
+      .where(eq(municipalElections.communeCode, primaryMandateRow.communeCode))
       .orderBy(desc(municipalElections.electionDate))
   : [];
 
-// Merge: commune elections + elections where the official ran as candidate elsewhere
-const communeIds = new Set(communeElectionRows.map((e) => e.id));
-const extraElectionIds = [...candidateElectionIdSet].filter((id) => !communeIds.has(id));
+// Complément : scrutins où l'élu a été candidat hors de sa commune actuelle.
+const communeElectionIdSet = new Set(communeElectionRows.map((e) => e.id));
+const extraElectionIds = [...candidateElectionIdSet].filter((id) => !communeElectionIdSet.has(id));
 const extraElectionRows = extraElectionIds.length > 0
   ? await db
       .select({
@@ -328,6 +389,8 @@ const municipalElectionRows = [...communeElectionRows, ...extraElectionRows]
   .filter((e) => candidateElectionIdSet.has(e.id))
   .sort((a, b) => b.electionDate.localeCompare(a.electionDate));
 
+// Tous les candidats de ces scrutins (pas seulement l'élu), avec le slug de
+// ceux qui ont une fiche, pour le tableau des résultats.
 const municipalElectionIds = municipalElectionRows.map((e) => e.id);
 const municipalCandidateRows = municipalElectionIds.length > 0
   ? await db
@@ -357,6 +420,7 @@ const candidateOfficials = candidateOfficialIds.length > 0
   : [];
 const candidateSlugMap = new Map(candidateOfficials.map((o) => [o.id, o.slug]));
 
+// Scrutins avec leurs candidats triés par voix décroissantes.
 const municipalElectionsData = municipalElectionRows.map((e) => ({
   ...e,
   candidates: municipalCandidateRows
@@ -370,20 +434,26 @@ const municipalElectionsData = municipalElectionRows.map((e) => ({
     })),
 }));
 
-const allItems: { updatedAt: Date }[] = [
+// --- Date de dernière mise à jour affichée en tête de fiche ----------------
+// Maximum des updated_at de toutes les sections ; à défaut, début du mandat.
+const allDatedItems: { updatedAt: Date }[] = [
   ...deputyMandates, ...deputyAffiliations, ...deputyStaffers, ...deputyVotes,
   ...deputyInterests, ...deputyPress, ...deputyActivities, ...deputyCommittees,
   ...deputyElectoralResults, ...deputyAddresses, ...deputyLinks,
   ...deputyCampaignAccounts, ...deputySponsorships, ...deputyFactChecks,
   ...municipalElectionRows,
 ];
-const lastUpdated = allItems.length > 0
-  ? allItems.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, allItems[0].updatedAt)
-  : new Date(row.startDate);
+const lastUpdated = allDatedItems.length > 0
+  ? allDatedItems.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, allDatedItems[0].updatedAt)
+  : new Date(primaryMandateRow.startDate);
 
-const deputy = row;
+// Alias historique utilisé par tout le template et par les tests racine.
+const deputy = primaryMandateRow;
 
+// 1 h en cache CDN, réponse périmée servie jusqu'à 24 h pendant la régénération.
 Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+
+// --- Libellés, couleurs et constantes d'affichage --------------------------
 
 const addressTypeLabels: Record<string, string> = {
   constituency_office: 'Permanence',
@@ -391,6 +461,7 @@ const addressTypeLabels: Record<string, string> = {
   town_hall: 'Mairie',
 };
 
+// Illustration de chaque type d'adresse (Wikimedia Commons, crédit affiché).
 const addressImages: Record<string, { src: string; alt: string; credit: string }> = {
   assembly_office: deputy.mandateType === 'senateur'
     ? {
@@ -432,6 +503,7 @@ const roundLabels: Record<number, string> = {
   2: '2nd tour',
 };
 
+// Codes de décision de la CNCCFP sur les comptes de campagne.
 const decisionLabels: Record<string, { label: string; color: string; tooltip: string }> = {
   A: { label: 'Approuvé', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200', tooltip: 'Le compte de campagne a été validé par la CNCCFP' },
   AR: { label: 'Approuvé après réformation', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200', tooltip: 'Le compte a été corrigé par la CNCCFP puis validé' },
@@ -487,6 +559,8 @@ const interestCategoryLabels: Record<string, string> = {
   financial_participation: 'Participations financières',
 };
 
+// Ordre d'affichage des catégories d'intérêts HATVP ; les types inconnus
+// sont regroupés sous « Autres » (voir interestGroups).
 const interestCategoryOrder = [
   'professional_activity',
   'consulting_activity',
@@ -506,6 +580,7 @@ const interestCategoryColors: Record<string, string> = {
 };
 const mandateTypeLabels = MANDATE_TYPE_LABELS;
 
+// --- Dérivés pour le template ----------------------------------------------
 type InterestGroup = { category: string; label: string; items: Interest[] };
 const interestGroups: InterestGroup[] = interestCategoryOrder
   .map((cat) => ({
@@ -534,6 +609,7 @@ const sameAs = deputyLinks
   .map((l) => l.url)
   .filter((u) => u.startsWith('http'));
 
+// Employeur au sens schema.org : l'assemblée, ou la commune pour un maire.
 const worksForName = deputy.mandateType === 'depute'
   ? 'Assemblée nationale'
   : deputy.mandateType === 'senateur'
@@ -557,6 +633,7 @@ const constituencyAddress = deputyAddresses.find((a) =>
   isMaire ? a.type === 'town_hall' : a.type === 'constituency_office',
 );
 
+// Description SEO : « Nom, mandat — circonscription (département) — groupe G ».
 const metaDescription = [
   `${fullName}, ${mandateLabel}`,
   deputy.district && deputy.department ? `${deputy.district} (${deputy.department})` : null,
@@ -565,29 +642,35 @@ const metaDescription = [
 
 const personUrl = `https://www.elupedia.fr/elus/${deputy.slug ?? deputy.id}`;
 
-const [civilityRow] = await db
+// --- Civilité et lieu de naissance, lus dans le JSON brut de la source -----
+// `officials.full` est le document source tel quel : chemin
+// acteur.etatCivil.ident.civ / infoNaissance pour l'open data AN, champ
+// « Qualite » pour le RNE et le Sénat. Chargé à part : la colonne est lourde.
+const [officialFullRow] = await db
   .select({ full: officials.full })
   .from(officials)
   .where(eq(officials.id, officialId))
   .limit(1);
-const fullJson = civilityRow?.full as Record<string, unknown> | null;
+const officialFullJson = officialFullRow?.full as Record<string, unknown> | null;
 const civility = (
-  (fullJson?.acteur as Record<string, unknown>)?.etatCivil as Record<string, unknown>
+  (officialFullJson?.acteur as Record<string, unknown>)?.etatCivil as Record<string, unknown>
 )?.ident as Record<string, unknown> | undefined;
 const honorificPrefix = (civility?.civ as string)
-  ?? (fullJson?.Qualite as string)
+  ?? (officialFullJson?.Qualite as string)
   ?? null;
 const birthPlace = (
-  (fullJson?.acteur as Record<string, unknown>)?.etatCivil as Record<string, unknown>
+  (officialFullJson?.acteur as Record<string, unknown>)?.etatCivil as Record<string, unknown>
 )?.infoNaissance as Record<string, unknown> | undefined;
 const gender = honorificPrefix === 'Mme' ? 'Female'
   : honorificPrefix === 'M.' ? 'Male'
   : undefined;
 
+// MANDATE_TYPE_LABELS ne connaît pas le féminin : seul le cas eurodéputé est accordé ici.
 if (deputy.mandateType === 'eurodepute' && gender) {
   mandateLabel = gender === 'Female' ? 'Députée européenne' : 'Député européen';
 }
 
+// --- JSON-LD Person (schema.org) ------------------------------------------
 const memberOfEntries: Record<string, unknown>[] = [];
 if (deputy.politicalGroup) {
   memberOfEntries.push({
@@ -595,6 +678,7 @@ if (deputy.politicalGroup) {
     name: deputy.politicalGroup,
   });
 }
+// Groupes d'études et d'amitié exclus du memberOf : trop nombreux et peu signifiants.
 const jsonLdCommitteeTypes = new Set(['standing_committee', 'special_committee', 'delegation']);
 for (const c of deputyCommittees.filter((c) => !c.endDate && jsonLdCommitteeTypes.has(c.type))) {
   memberOfEntries.push({
@@ -707,6 +791,7 @@ const positionColors: Record<string, string> = {
   absent: 'text-slate-500 bg-slate-50 dark:text-slate-400 dark:bg-slate-700',
 };
 
+// --- Sources affichées en bas de section ----------------------------------
 const parliamentSource = deputy.mandateType === 'depute'
   ? { name: 'Assemblée nationale', url: 'https://data.assemblee-nationale.fr' }
   : deputy.mandateType === 'senateur'
@@ -715,6 +800,8 @@ const parliamentSource = deputy.mandateType === 'depute'
       ? { name: 'Parlement européen', url: 'https://data.europarl.europa.eu' }
       : { name: 'RNE', url: 'https://www.data.gouv.fr/fr/datasets/repertoire-national-des-elus-1/' };
 
+// Le Sénat n'expose pas d'identifiant stable hors de l'URL de la photo
+// (…/senimg/<slug>_carre.jpg) : on en extrait le slug pour le lien nominatif.
 const senatSlug = deputy.photoUrl?.match(/senimg\/(.+)_carre\.jpg/)?.[1];
 const nominativeUrl = deputy.mandateType === 'depute' && deputy.anId
   ? `https://www.assemblee-nationale.fr/dyn/deputes/${deputy.anId}`
@@ -728,6 +815,7 @@ const contactSource = deputy.mandateType === 'maire'
   ? { name: 'DILA', url: 'https://api-lannuaire.service-public.fr' }
   : parliamentSource;
 
+// Carte de juridiction (JurisdictionMap) : centrée sur la permanence ou la mairie.
 const jurisdictionCoords = constituencyAddress?.latitude != null && constituencyAddress?.longitude != null
   ? { lat: Number(constituencyAddress.latitude), lon: Number(constituencyAddress.longitude) }
   : null;
@@ -745,6 +833,7 @@ const groupUrl = deputy.politicalGroup
 
 const wikipediaLink = deputyLinks.find((l) => l.platform === 'wikipedia_fr');
 
+// Date de dernière récupération par section (mention « Source … »).
 function maxUpdatedAt(items: { updatedAt: Date }[]): Date | null {
   if (items.length === 0) return null;
   return items.reduce((max, item) => item.updatedAt > max ? item.updatedAt : max, items[0].updatedAt);
@@ -773,13 +862,16 @@ function fmtRetrieval(date: Date | null): string {
   return ` — dernière récupération le ${date.toLocaleDateString('fr-FR')}`;
 }
 
+// Horodatage des vérifications (presse, fact-checks) : affiché même sans résultat.
 function fmtCheckedAt(date: Date | null): string {
   if (!date) return '';
-  const d = date.toLocaleDateString('fr-FR');
-  const h = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  return `Dernière actualisation le ${d} à ${h}`;
+  const dayPart = date.toLocaleDateString('fr-FR');
+  const timePart = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `Dernière actualisation le ${dayPart} à ${timePart}`;
 }
 
+// Notes de couverture des sources : expliquent au lecteur pourquoi l'historique
+// peut être incomplet avant une certaine date.
 const openDataNote = deputy.mandateType === 'depute'
   ? 'L\'open data de l\'Assemblée nationale couvre la XIVe législature et les suivantes (depuis juin 2012). Les mandats antérieurs peuvent être incomplets.'
   : deputy.mandateType === 'senateur'
@@ -806,6 +898,9 @@ const openDataElectoralNote = deputy.mandateType === 'depute'
 const openDataMunicipalNote = 'Les résultats des élections municipales sont disponibles sur data.gouv.fr à partir du scrutin de 2020.';
 const openDataCnccfpNote = 'Les comptes de campagne sont publiés par la CNCCFP depuis les élections législatives de 2012.';
 
+// --- Chronologie (TimelineDrawer) ------------------------------------------
+// Tous les événements datés de la fiche, aplatis ; le tri est fait par le
+// composant.
 type TimelineEvent = {
   type: 'birth' | 'death' | 'mandate' | 'affiliation' | 'committee' | 'election' | 'staffer' | 'sponsorship';
   label: string;

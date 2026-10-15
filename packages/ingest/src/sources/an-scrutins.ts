@@ -1,3 +1,22 @@
+/**
+ * Scrutins publics de l'Assemblée nationale et votes nominatifs des députés.
+ *
+ * Source : ZIP `Scrutins.json.zip` (open data AN, législature 17), dossier
+ * `json/` avec un fichier par scrutin (`{ scrutin: {...} }`).
+ *
+ * Extrait : pour chaque scrutin, ses métadonnées (numéro, titre, date, type
+ * de vote, sort) plus :
+ * - `votants` : la position de chaque député (pour/contre/abstention/
+ *   non-votant) avec son numéro de siège ;
+ * - `groupPositions` : la position majoritaire et le décompte par groupe.
+ *
+ * Structure brute : `ventilationVotes.organe.groupes.groupe[]`, chaque groupe
+ * portant `vote.decompteNominatif.{pours,contres,abstentions,nonVotants}.votant[]`
+ * et `vote.decompteVoix` (totaux). Comme pour tous les JSON de l'AN, un
+ * élément unique n'est pas enveloppé dans un tableau : voir toArray.
+ *
+ * Appelé par run-an.ts via upsert/an-votes.ts.
+ */
 import { Readable } from 'node:stream';
 import { Extract } from 'unzipper';
 import { tmpdir } from 'node:os';
@@ -31,46 +50,62 @@ export interface Scrutin {
   date: string;
   type: string;
   sort: string;
+  dossierRef: string | null;
+  requestedBy: string | null;
   votants: ScrutinVotant[];
   groupPositions: ScrutinGroupPosition[];
 }
 
+/** Clé du `decompteNominatif` AN pour chaque position Elupedia. */
+const DECOMPTE_KEY_BY_POSITION: Record<ScrutinVotant['position'], string> = {
+  pour: 'pours',
+  contre: 'contres',
+  abstention: 'abstentions',
+  'non-votant': 'nonVotants',
+};
+
+/** Type de vote par défaut quand `typeVote.libelleTypeVote` est absent. */
+const DEFAULT_VOTE_TYPE = 'ordinaire';
+
+/** Les JSON de l'AN n'enveloppent pas un élément unique dans un tableau. */
+function toArray<T>(value: T | T[] | null | undefined): T[] {
+  if (Array.isArray(value)) return value;
+  return value ? [value] : [];
+}
+
+/** Votants d'un groupe pour une position donnée. */
 function extractVotants(
   decompteNominatif: Record<string, unknown> | null | undefined,
   position: ScrutinVotant['position'],
 ): ScrutinVotant[] {
   if (!decompteNominatif) return [];
-  const bucket = decompteNominatif as Record<
+  const buckets = decompteNominatif as Record<
     string,
     { votant?: unknown } | null
   >;
-  const posKey =
-    position === 'pour'
-      ? 'pours'
-      : position === 'contre'
-        ? 'contres'
-        : position === 'abstention'
-          ? 'abstentions'
-          : 'nonVotants';
-  const container = bucket[posKey];
-  if (!container?.votant) return [];
+  const bucket = buckets[DECOMPTE_KEY_BY_POSITION[position]];
+  if (!bucket?.votant) return [];
 
-  const votants = Array.isArray(container.votant)
-    ? container.votant
-    : [container.votant];
+  const votants = Array.isArray(bucket.votant)
+    ? bucket.votant
+    : [bucket.votant];
 
   return votants
-    .filter((v: unknown): v is { acteurRef: string; numPlace?: string } => {
-      const obj = v as Record<string, unknown>;
-      return typeof obj?.acteurRef === 'string';
+    .filter((raw: unknown): raw is { acteurRef: string; numPlace?: string } => {
+      const votant = raw as Record<string, unknown>;
+      return typeof votant?.acteurRef === 'string';
     })
-    .map((v) => ({
-      acteurRef: v.acteurRef,
+    .map((votant) => ({
+      acteurRef: votant.acteurRef,
       position,
-      seatNumber: v.numPlace ? parseInt(v.numPlace, 10) : null,
+      seatNumber: votant.numPlace ? parseInt(votant.numPlace, 10) : null,
     }));
 }
 
+/**
+ * Télécharge le ZIP des scrutins et renvoie un `Scrutin` par fichier valide
+ * (uid, date et titre obligatoires). Lève si le téléchargement échoue.
+ */
 export async function fetchScrutins(
   fetchFn: typeof fetch = fetch,
 ): Promise<Scrutin[]> {
@@ -117,77 +152,87 @@ export async function fetchScrutins(
         continue;
       }
 
-      const uid = scrutin.uid as string | undefined;
-      const numero = scrutin.numero as string | undefined;
-      const dateScrutin = scrutin.dateScrutin as string | undefined;
-      const titre = scrutin.titre as string | undefined;
-      if (!uid || !dateScrutin || !titre) continue;
-
-      const typeVote = scrutin.typeVote as Record<string, string> | undefined;
-      const sort = scrutin.sort as Record<string, string> | undefined;
-
-      const ventilation = scrutin.ventilationVotes as
-        Record<string, unknown> | undefined;
-      const organe = ventilation?.organe as Record<string, unknown> | undefined;
-      const groupes = organe?.groupes as Record<string, unknown> | undefined;
-      const groupeList = groupes?.groupe;
-      const groupeArr = Array.isArray(groupeList)
-        ? groupeList
-        : groupeList
-          ? [groupeList]
-          : [];
-
-      const votants: ScrutinVotant[] = [];
-      const groupPositions: ScrutinGroupPosition[] = [];
-
-      for (const groupe of groupeArr) {
-        const g = groupe as Record<string, unknown>;
-        const vote = g.vote as Record<string, unknown> | undefined;
-        const decompte = vote?.decompteNominatif as
-          Record<string, unknown> | undefined;
-
-        votants.push(
-          ...extractVotants(decompte, 'pour'),
-          ...extractVotants(decompte, 'contre'),
-          ...extractVotants(decompte, 'abstention'),
-          ...extractVotants(decompte, 'non-votant'),
-        );
-
-        const organeRef = g.organeRef as string | undefined;
-        const positionMajoritaire = vote?.positionMajoritaire as
-          string | undefined;
-        if (organeRef && positionMajoritaire) {
-          const decompteVoix = vote?.decompteVoix as
-            Record<string, string> | undefined;
-          groupPositions.push({
-            organeRef,
-            positionMajoritaire,
-            memberCount: parseInt((g.nombreMembresGroupe as string) ?? '0', 10),
-            votesFor: parseInt(decompteVoix?.pour ?? '0', 10),
-            votesAgainst: parseInt(decompteVoix?.contre ?? '0', 10),
-            votesAbstain: parseInt(decompteVoix?.abstentions ?? '0', 10),
-            votesAbsent: parseInt(decompteVoix?.nonVotants ?? '0', 10),
-          });
-        }
-      }
-
-      results.push({
-        uid,
-        numero: numero ?? uid,
-        titre,
-        date: dateScrutin,
-        type: typeVote?.libelleTypeVote ?? 'ordinaire',
-        sort: sort?.code ?? '',
-        votants,
-        groupPositions,
-      });
+      const parsed = parseScrutin(scrutin);
+      if (parsed) results.push(parsed);
     }
 
     logger.info(
-      `AN scrutins: ${results.length} scrutins parsed, ${results.reduce((s, r) => s + r.votants.length, 0)} votes`,
+      `AN scrutins: ${results.length} scrutins parsed, ${results.reduce((total, scrutin) => total + scrutin.votants.length, 0)} votes`,
     );
     return results;
   } finally {
     await rm(extractDir, { recursive: true, force: true });
   }
+}
+
+/** Convertit un scrutin brut ; undefined s'il manque uid, date ou titre. */
+function parseScrutin(scrutin: Record<string, unknown>): Scrutin | undefined {
+  const uid = scrutin.uid as string | undefined;
+  const numero = scrutin.numero as string | undefined;
+  const dateScrutin = scrutin.dateScrutin as string | undefined;
+  const titre = scrutin.titre as string | undefined;
+  if (!uid || !dateScrutin || !titre) return undefined;
+
+  const typeVote = scrutin.typeVote as Record<string, string> | undefined;
+  const sort = scrutin.sort as Record<string, string> | undefined;
+  const objet = scrutin.objet as
+    { dossierLegislatif?: { dossierRef?: string } | null } | undefined;
+  const demandeur = scrutin.demandeur as { texte?: string } | undefined;
+
+  const ventilation = scrutin.ventilationVotes as
+    Record<string, unknown> | undefined;
+  const organe = ventilation?.organe as Record<string, unknown> | undefined;
+  const groupes = organe?.groupes as Record<string, unknown> | undefined;
+  const groupeList = toArray(groupes?.groupe);
+
+  const votants: ScrutinVotant[] = [];
+  const groupPositions: ScrutinGroupPosition[] = [];
+
+  for (const rawGroupe of groupeList) {
+    const groupe = rawGroupe as Record<string, unknown>;
+    const vote = groupe.vote as Record<string, unknown> | undefined;
+    const decompte = vote?.decompteNominatif as
+      Record<string, unknown> | undefined;
+
+    votants.push(
+      ...extractVotants(decompte, 'pour'),
+      ...extractVotants(decompte, 'contre'),
+      ...extractVotants(decompte, 'abstention'),
+      ...extractVotants(decompte, 'non-votant'),
+    );
+
+    const organeRef = groupe.organeRef as string | undefined;
+    const positionMajoritaire = vote?.positionMajoritaire as string | undefined;
+    if (organeRef && positionMajoritaire) {
+      const decompteVoix = vote?.decompteVoix as
+        Record<string, string> | undefined;
+      groupPositions.push({
+        organeRef,
+        positionMajoritaire,
+        memberCount: parseInt(
+          (groupe.nombreMembresGroupe as string) ?? '0',
+          10,
+        ),
+        votesFor: parseInt(decompteVoix?.pour ?? '0', 10),
+        votesAgainst: parseInt(decompteVoix?.contre ?? '0', 10),
+        votesAbstain: parseInt(decompteVoix?.abstentions ?? '0', 10),
+        votesAbsent: parseInt(decompteVoix?.nonVotants ?? '0', 10),
+      });
+    }
+  }
+
+  return {
+    uid,
+    // Certains scrutins n'ont pas de numéro : l'uid sert alors d'identifiant
+    // affichable.
+    numero: numero ?? uid,
+    titre,
+    date: dateScrutin,
+    type: typeVote?.libelleTypeVote ?? DEFAULT_VOTE_TYPE,
+    sort: sort?.code ?? '',
+    dossierRef: objet?.dossierLegislatif?.dossierRef ?? null,
+    requestedBy: demandeur?.texte?.trim() || null,
+    votants,
+    groupPositions,
+  };
 }

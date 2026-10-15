@@ -1,9 +1,33 @@
+/**
+ * Candidatures aux élections sénatoriales du 27 septembre 2026 (pré-scrutin).
+ *
+ * Source : senatoriales2026.senat.fr, site officiel du Sénat, une page HTML
+ * par circonscription (`/departement/<slug>`). Pas d'API ni de sitemap : la
+ * page d'accueil construit ses liens en JS, d'où le roster figé
+ * DEPARTEMENT_SLUGS. Scraping cheerio avec un délai entre pages.
+ *
+ * Deux mises en page selon le mode de scrutin (déduit du libellé
+ * `#election-type-toggle`) :
+ *   - proportionnel (3 sièges et plus) : `table.district-listing`, une ligne
+ *     par liste, les candidats dans `ol.candidates-list li` ;
+ *   - majoritaire : `table.district-simple`, une ligne par candidat.
+ * Les noms sont au format « Prénom NOM », suffixés « (sortant) » le cas
+ * échéant ; la nuance politique est dans `td.candidates-party`.
+ *
+ * Une page sans candidat (HTTP KO, balisage changé, page vide) est loguée et
+ * ignorée : le run ne s'arrête pas. Appelé par run-senat-candidacies.ts,
+ * consommé par upsert/senat-candidacies.ts. DEPARTEMENT_SLUGS, parseCount et
+ * splitNomPrenom sont réutilisés par senat-resultats-2026.ts.
+ */
 import * as cheerio from 'cheerio';
 import { logger } from '../logger.js';
 
 const BASE_URL = 'https://senatoriales2026.senat.fr';
 const ELECTION_YEAR = '2026';
 const ELECTION_DATE = '2026-09-27';
+/** Pause entre deux pages, par courtoisie envers le site du Sénat. */
+const DELAY_BETWEEN_PAGES_MS = 300;
+const USER_AGENT = 'Mozilla/5.0 (elupedia ingest bot)';
 
 // Roster fixe des 63 départements renouvelés en 2026 + les Français établis
 // hors de France (code ZZ), tel que publié sur senatoriales2026.senat.fr.
@@ -82,6 +106,7 @@ export interface SenatorialCandidacy {
   nom: string;
   prenom: string;
   nuance: string | null;
+  /** Nom de la liste (scrutin proportionnel uniquement). */
   liste: string | null;
   sortant: boolean;
 }
@@ -97,12 +122,22 @@ export interface SenatorialCandidacyDepartement {
   candidates: SenatorialCandidacy[];
 }
 
+/** Marqueur « (sortant) » / « (sortante) » accolé au nom d'un candidat déjà en poste. */
+const SORTANT_RE = /\(sortant(e)?\)/i;
+
+/** « 3 743 » → 3743 ; null si vide ou sans chiffre. Tolère les espaces de milliers (insécables inclus). */
 export function parseCount(raw: string | undefined): number | null {
   if (!raw) return null;
   const n = parseInt(raw.replace(/[^\d]/g, ''), 10);
   return isNaN(n) ? null : n;
 }
 
+/**
+ * Sépare « Prénom NOM » (format du site et de data.gouv) en prénom(s) et nom.
+ * Le nom commence au premier mot tout en capitales ; une particule en
+ * minuscules reste donc dans le prénom. Si aucun mot n'est en capitales (ou si
+ * le premier l'est déjà), on prend le dernier mot comme nom par défaut.
+ */
 export function splitNomPrenom(fullName: string): {
   nom: string;
   prenom: string;
@@ -126,6 +161,7 @@ export function splitNomPrenom(fullName: string): {
   };
 }
 
+/** Parse une page de circonscription ; null si aucun candidat n'y est trouvé. */
 function parseDepartementPage(
   html: string,
   code: string,
@@ -143,9 +179,9 @@ function parseDepartementPage(
 
   let siegesAPourvoir: number | null = null;
   let electeursSenatoriaux: number | null = null;
-  $('.district-header li').each((_, el) => {
-    const text = $(el).text();
-    const count = $(el).find('.district-count').text();
+  $('.district-header li').each((_, headerItem) => {
+    const text = $(headerItem).text();
+    const count = $(headerItem).find('.district-count').text();
     // "siège(s) pourvu(s)" — singulier pour les circonscriptions à un seul
     // siège (Corse, plusieurs COM/DOM-TOM) : bug découvert lors de la
     // vérification du scraper post-scrutin (mêmes pages), qui ratait
@@ -170,11 +206,11 @@ function parseDepartementPage(
           .text()
           .replace(/\s+/g, ' ')
           .trim();
-        listItems.each((_, li) => {
-          const raw = $(li).text().replace(/\s+/g, ' ').trim();
-          const sortant = /\(sortant(e)?\)/i.test(raw);
+        listItems.each((_, listItem) => {
+          const rawName = $(listItem).text().replace(/\s+/g, ' ').trim();
+          const sortant = SORTANT_RE.test(rawName);
           const { nom, prenom } = splitNomPrenom(
-            raw.replace(/\(sortant(e)?\)/i, '').trim(),
+            rawName.replace(SORTANT_RE, '').trim(),
           );
           if (nom && prenom) {
             candidates.push({
@@ -188,11 +224,11 @@ function parseDepartementPage(
         });
       } else {
         // Scrutin majoritaire : une ligne = un candidat individuel.
-        const raw = namesCell.text().replace(/\s+/g, ' ').trim();
-        if (raw) {
-          const sortant = /\(sortant(e)?\)/i.test(raw);
+        const rawName = namesCell.text().replace(/\s+/g, ' ').trim();
+        if (rawName) {
+          const sortant = SORTANT_RE.test(rawName);
           const { nom, prenom } = splitNomPrenom(
-            raw.replace(/\(sortant(e)?\)/i, '').trim(),
+            rawName.replace(SORTANT_RE, '').trim(),
           );
           if (nom && prenom) {
             candidates.push({
@@ -222,35 +258,42 @@ function parseDepartementPage(
   };
 }
 
+/**
+ * Scrape toutes les circonscriptions de DEPARTEMENT_SLUGS (un GET par page,
+ * séquentiel, avec pause) et retourne celles où des candidats ont été lus.
+ * Ne lève jamais : les pages en échec sont loguées en warn et sautées.
+ * Utilise le `fetch` global (non injectable).
+ */
 export async function fetchSenatorialCandidacies2026(): Promise<
   SenatorialCandidacyDepartement[]
 > {
   const results: SenatorialCandidacyDepartement[] = [];
 
   for (const slug of DEPARTEMENT_SLUGS) {
+    // Le code de circonscription est le préfixe du slug (« 2A », « 973 », « ZZ »).
     const code = slug.split('-')[0];
     const url = `${BASE_URL}/departement/${slug}`;
     try {
-      const res = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (elupedia ingest bot)' },
+      const response = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT },
       });
-      if (!res.ok) {
-        logger.warn(`  ${slug}: HTTP ${res.status}`);
+      if (!response.ok) {
+        logger.warn(`  ${slug}: HTTP ${response.status}`);
         continue;
       }
-      const html = await res.text();
+      const html = await response.text();
       const parsed = parseDepartementPage(html, code);
       if (parsed) {
         results.push(parsed);
       } else {
         logger.warn(`  ${slug}: aucun candidat trouvé (page mal parsée ?)`);
       }
-    } catch (e) {
+    } catch (error) {
       logger.warn(
-        `  ${slug}: erreur — ${e instanceof Error ? e.message : String(e)}`,
+        `  ${slug}: erreur — ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_PAGES_MS));
   }
 
   return results;
