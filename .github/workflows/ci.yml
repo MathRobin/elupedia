@@ -46,7 +46,7 @@ jobs:
     # Image officielle Playwright : même rendu de police que les baselines
     # committées (générées via cette même image, voir packages/e2e/README.md).
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      image: mcr.microsoft.com/playwright:v1.64.0-noble
     permissions:
       pull-requests: write
     env:
