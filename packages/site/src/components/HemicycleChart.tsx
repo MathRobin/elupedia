@@ -1,3 +1,19 @@
+/**
+ * Hémicycle en SVG : un point par votant, coloré selon sa position
+ * (pour / contre / abstention / absent), avec info-bulle au survol et légende.
+ *
+ * Rendu sur `pages/scrutins/[id].astro` avec `client:load` (info-bulle
+ * interactive). Deux modes de placement :
+ * - plan de salle réel (`lib/hemicycle-seats.json`, Assemblée nationale) dès
+ *   qu'au moins un votant a un `seatNumber` connu ; les votants sans siège
+ *   connu sont alors posés sur les sièges restés libres, et les sièges vides
+ *   dessinés en creux ;
+ * - disposition générique (`generateHemicycleSeats`) sinon (Sénat, Parlement
+ *   européen), où l'ordre des points suit l'ordre de `seats`.
+ *
+ * Le viewBox est calculé une fois, à l'import, à partir des coordonnées du
+ * plan de salle ; la disposition générique partage le même repère.
+ */
 import { useState, useMemo, useCallback } from 'react';
 import seatPositions from '../lib/hemicycle-seats.json';
 import { generateHemicycleSeats } from '@elupedia/shared';
@@ -11,9 +27,11 @@ interface Seat {
   position: VotePosition;
   politicalGroup: string | null;
   slug: string | null;
+  /** Numéro de siège officiel (AN), null si inconnu. */
   seatNumber: number | null;
 }
 
+/** Props injectées par la page Astro. */
 interface Props {
   seats: Seat[];
 }
@@ -32,6 +50,7 @@ const POSITION_LABELS: Record<VotePosition, string> = {
   absent: 'Absent',
 };
 
+/** Coordonnées [x, y] par numéro de siège (clé = numéro en chaîne). */
 const seatMap = seatPositions as Record<string, [number, number]>;
 
 const allCoords = Object.values(seatMap);
@@ -41,13 +60,24 @@ const VIEW_MIN_Y = Math.min(...allCoords.map((c) => c[1]));
 const VIEW_MAX_Y = Math.max(...allCoords.map((c) => c[1]));
 const VIEW_CX = (VIEW_MIN_X + VIEW_MAX_X) / 2;
 
+/** Marge autour des sièges, en unités du repère des sièges. */
 const MARGIN = 6;
 const VB_X = VIEW_MIN_X - MARGIN;
 const VB_Y = VIEW_MIN_Y - MARGIN;
 const VB_W = VIEW_MAX_X - VIEW_MIN_X + MARGIN * 2;
 const VB_H = VIEW_MAX_Y - VIEW_MIN_Y + MARGIN * 2;
 
+/** Rayon d'un point-siège, en unités du repère. */
+const SEAT_RADIUS = 1.5;
+/** Podium du président : cercle sous le dernier rang, marqué « P ». */
+const PODIUM_RADIUS = 2.5;
+const PODIUM_OFFSET_Y = 2;
+const PODIUM_LABEL_OFFSET_Y = 3;
+
+type PositionedSeat = { seat: Seat; x: number; y: number };
+
 export default function HemicycleChart({ seats }: Props) {
+  // Info-bulle : siège survolé et position en pixels dans le conteneur.
   const [tooltip, setTooltip] = useState<{
     seat: Seat;
     x: number;
@@ -58,9 +88,9 @@ export default function HemicycleChart({ seats }: Props) {
     (s) => s.seatNumber != null && seatMap[String(s.seatNumber)],
   );
 
-  const positioned = useMemo(() => {
+  const positioned = useMemo<PositionedSeat[]>(() => {
     if (hasSeatData) {
-      const placed: { seat: Seat; x: number; y: number }[] = [];
+      const placed: PositionedSeat[] = [];
       const unplaced: Seat[] = [];
 
       for (const seat of seats) {
@@ -75,16 +105,18 @@ export default function HemicycleChart({ seats }: Props) {
         }
       }
 
+      // Les votants sans siège connu occupent les sièges restés libres ;
+      // s'il n'y en a pas assez, les derniers ne sont pas dessinés.
       if (unplaced.length > 0) {
         const usedPositions = new Set(placed.map((p) => `${p.x},${p.y}`));
-        const available = Object.values(seatMap).filter(
+        const freeCoords = Object.values(seatMap).filter(
           (c) => !usedPositions.has(`${c[0]},${c[1]}`),
         );
-        for (let i = 0; i < unplaced.length && i < available.length; i++) {
+        for (let i = 0; i < unplaced.length && i < freeCoords.length; i++) {
           placed.push({
             seat: unplaced[i],
-            x: available[i][0],
-            y: available[i][1],
+            x: freeCoords[i][0],
+            y: freeCoords[i][1],
           });
         }
       }
@@ -92,23 +124,23 @@ export default function HemicycleChart({ seats }: Props) {
       return placed;
     }
 
-    const generic = generateHemicycleSeats(seats.length);
+    const genericCoords = generateHemicycleSeats(seats.length);
     return seats.map((seat, i) => ({
       seat,
-      x: generic[i][0],
-      y: generic[i][1],
+      x: genericCoords[i][0],
+      y: genericCoords[i][1],
     }));
   }, [seats, hasSeatData]);
 
-  const dotRadius = 1.5;
-
+  // Convertit la position du siège (repère SVG) en pixels du conteneur,
+  // le SVG étant redimensionné par CSS.
   const handleMouseEnter = useCallback(
-    (seat: Seat, sx: number, sy: number, e: React.MouseEvent) => {
+    (seat: Seat, seatX: number, seatY: number, e: React.MouseEvent) => {
       const svg = (e.target as SVGElement).closest('svg')!;
       const rect = svg.getBoundingClientRect();
-      const pxX = ((sx - VB_X) / VB_W) * rect.width;
-      const pxY = ((sy - VB_Y) / VB_H) * rect.height;
-      setTooltip({ seat, x: pxX, y: pxY });
+      const tooltipX = ((seatX - VB_X) / VB_W) * rect.width;
+      const tooltipY = ((seatY - VB_Y) / VB_H) * rect.height;
+      setTooltip({ seat, x: tooltipX, y: tooltipY });
     },
     [],
   );
@@ -138,25 +170,25 @@ export default function HemicycleChart({ seats }: Props) {
             key={`empty-${i}`}
             cx={x}
             cy={y}
-            r={dotRadius}
+            r={SEAT_RADIUS}
             fill="none"
             stroke="#e2e8f0"
             strokeWidth={0.3}
           />
         ))}
 
-        {/* President podium */}
+        {/* Podium du président */}
         <circle
           cx={VIEW_CX}
-          cy={VIEW_MAX_Y + 2}
-          r={2.5}
+          cy={VIEW_MAX_Y + PODIUM_OFFSET_Y}
+          r={PODIUM_RADIUS}
           fill="none"
           stroke="#94a3b8"
           strokeWidth={0.4}
         />
         <text
           x={VIEW_CX}
-          y={VIEW_MAX_Y + 3}
+          y={VIEW_MAX_Y + PODIUM_LABEL_OFFSET_Y}
           textAnchor="middle"
           fontSize="2"
           fill="#94a3b8"
@@ -169,7 +201,7 @@ export default function HemicycleChart({ seats }: Props) {
             key={seat.officialId}
             cx={x}
             cy={y}
-            r={dotRadius}
+            r={SEAT_RADIUS}
             fill={POSITION_COLORS[seat.position]}
             stroke="white"
             strokeWidth={0.3}
@@ -206,11 +238,11 @@ export default function HemicycleChart({ seats }: Props) {
 
       <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs text-slate-600 dark:text-slate-400">
         {(Object.entries(POSITION_LABELS) as [VotePosition, string][]).map(
-          ([pos, label]) => (
-            <span key={pos} className="flex items-center gap-1">
+          ([position, label]) => (
+            <span key={position} className="flex items-center gap-1">
               <span
                 className="inline-block h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: POSITION_COLORS[pos] }}
+                style={{ backgroundColor: POSITION_COLORS[position] }}
               />
               {label}
             </span>

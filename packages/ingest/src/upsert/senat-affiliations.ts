@@ -1,3 +1,19 @@
+/**
+ * Upsert de l'historique des groupes politiques des sénateurs (open data
+ * Sénat, ODSEN_HISTOGROUPES via `sources/senat-groupes.ts`), appelé par
+ * `run-senat.ts` (`ingest:senat`).
+ *
+ * Tables écrites : `affiliations` (kind `group`, valeur par défaut du schéma)
+ * et `mandates.political_group` du mandat sénateur actif (cf.
+ * `syncActiveMandatePoliticalGroups`).
+ *
+ * Clé de rapprochement : official (via `senat_id` = matricule) + nom du
+ * groupe + date de début. Les lignes sans date de début sont ignorées.
+ *
+ * Idempotent : seule `end_date` est réécrite sur une affiliation connue.
+ * Attention : la recherche ne filtre pas sur `kind`, une affiliation de
+ * même libellé/date d'un autre kind serait confondue (cas théorique).
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, affiliations, mandates } from '@elupedia/shared';
 import { eq, and, sql } from 'drizzle-orm';
@@ -29,15 +45,21 @@ async function syncActiveMandatePoliticalGroups(
   return result.rowCount ?? 0;
 }
 
+/**
+ * Upsert des appartenances aux groupes, puis recopie du groupe actif sur le
+ * mandat sénateur en cours. Écrit dans `affiliations` et `mandates`.
+ * Retourne le nombre d'affiliations créées et mises à jour.
+ */
 export async function upsertSenatAffiliations(
   db: NeonHttpDatabase,
   items: SenatAffiliation[],
 ) {
   const summary = { created: 0, updated: 0 };
-  const cache = new Map<string, string>();
+  // Un sénateur a plusieurs lignes d'historique : on ne le cherche qu'une fois.
+  const officialIdByMatricule = new Map<string, string>();
 
   for (const item of items) {
-    let officialId = cache.get(item.matricule);
+    let officialId = officialIdByMatricule.get(item.matricule);
     if (!officialId) {
       const matches = await db
         .select({ id: officials.id })
@@ -46,7 +68,7 @@ export async function upsertSenatAffiliations(
         .limit(1);
       if (matches.length === 0) continue;
       officialId = matches[0].id;
-      cache.set(item.matricule, officialId);
+      officialIdByMatricule.set(item.matricule, officialId);
     }
 
     if (!item.start_date) continue;

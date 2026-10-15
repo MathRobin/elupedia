@@ -1,3 +1,21 @@
+/**
+ * Upsert des eurodéputés français à partir de l'API open data du Parlement
+ * européen (`sources/parlement-europeen.ts`), appelé par le script
+ * `ingest:europe` (`run-europe.ts`).
+ *
+ * Tables écrites : `officials`, `mandates` (type `eurodepute`), `affiliations`
+ * (groupe européen + parti national) et `data_provenance`.
+ *
+ * Clés de rapprochement :
+ * - official : `europarl_id`, sinon nom normalisé + date de naissance exacte
+ *   parmi les officials sans `europarl_id` (cf. `upsertMep`) ;
+ * - mandat : official + type + date de début ;
+ * - affiliation : official + kind + affiliation active (`end_date IS NULL`).
+ *
+ * Idempotent. Jamais écrasés : une `photo_url` déjà connue (la photo AN /
+ * Sénat prime sur celle du PE), une date de naissance connue quand l'API n'en
+ * fournit pas, et le nom/prénom d'un official déjà rattaché.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates, affiliations } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -24,10 +42,14 @@ function slugify(firstName: string, lastName: string): string {
     .replace(/^-|-$/g, '');
 }
 
-/** Ajoute un suffixe `-1`, `-2`... si le slug de base est déjà pris (homonyme non rattaché, ex. deux "Philippe Olivier" nés à des dates différentes). */
+/**
+ * Ajoute un suffixe `-1`, `-2`... si le slug de base est déjà pris (homonyme
+ * non rattaché, ex. deux "Philippe Olivier" nés à des dates différentes).
+ * Une requête par candidat : acceptable vu le faible volume (81 eurodéputés).
+ */
 async function uniqueSlug(db: NeonHttpDatabase, base: string): Promise<string> {
   let candidate = base;
-  let i = 1;
+  let suffix = 1;
   for (;;) {
     const existing = await db
       .select({ id: officials.id })
@@ -35,14 +57,14 @@ async function uniqueSlug(db: NeonHttpDatabase, base: string): Promise<string> {
       .where(eq(officials.slug, candidate))
       .limit(1);
     if (existing.length === 0) return candidate;
-    candidate = `${base}-${i}`;
-    i++;
+    candidate = `${base}-${suffix}`;
+    suffix++;
   }
 }
 
 /** Normalise un nom pour le matching : minuscules, sans accents, espaces/tirets uniformisés. Ne suffit jamais seul (homonymes) — toujours combiné à la date de naissance. */
-export function normalizeName(s: string): string {
-  return s
+export function normalizeName(name: string): string {
+  return name
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
@@ -53,11 +75,13 @@ export function normalizeName(s: string): string {
 export interface MepUpsertInput {
   mep: FrenchMep;
   detail: MepDetail;
+  /** Libellé du parti national déjà résolu par l'appelant (null si inconnu). */
   nationalPartyLabel: string | null;
 }
 
 export interface MepUpsertResult {
   officialId: string;
+  /** true si un nouvel official a été inséré, false s'il a été rattaché. */
   created: boolean;
 }
 
@@ -69,6 +93,10 @@ export interface MepUpsertResult {
  * (bday absent côté API), un nouvel `official` est créé plutôt que de risquer
  * un mauvais rattachement. Taux d'erreur mesuré sur l'échantillon des 81
  * eurodéputés français actuels : voir commentaire du ticket M24T3.
+ *
+ * Écrit ensuite le mandat `eurodepute` en cours, les affiliations (groupe
+ * européen, parti national) et la provenance. Lève en cas d'erreur DB :
+ * c'est `upsertMeps` qui isole les échecs par eurodéputé.
  */
 export async function upsertMep(
   db: NeonHttpDatabase,
@@ -118,9 +146,9 @@ export async function upsertMep(
       : [];
 
     const match = candidates.find(
-      (c) =>
-        normalizeName(c.lastName) === normalizeName(mep.familyName) &&
-        normalizeName(c.firstName) === normalizeName(mep.givenName),
+      (candidate) =>
+        normalizeName(candidate.lastName) === normalizeName(mep.familyName) &&
+        normalizeName(candidate.firstName) === normalizeName(mep.givenName),
     );
 
     if (match) {
@@ -192,6 +220,8 @@ export async function upsertMep(
       officialId,
       kind: 'european_group',
       partyOrGroup: mep.politicalGroup,
+      // L'API ne date pas l'adhésion au groupe : on prend le début du mandat
+      // en cours, à défaut la date du jour.
       startDate:
         detail.currentParliamentaryMandate?.startDate ??
         new Date().toISOString().split('T')[0],
@@ -219,6 +249,12 @@ export async function upsertMep(
   return { officialId, created };
 }
 
+/**
+ * Historise l'affiliation d'un official pour un `kind` donné : si l'affiliation
+ * active est déjà la bonne, ne fait rien ; sinon clôt les affiliations actives
+ * de ce kind à la date du jour et en ouvre une nouvelle. Les deux kinds
+ * (groupe européen, parti national) sont indépendants et ne s'écrasent pas.
+ */
 async function upsertAffiliation(
   db: NeonHttpDatabase,
   opts: {
@@ -228,7 +264,7 @@ async function upsertAffiliation(
     startDate: string;
   },
 ): Promise<void> {
-  const current = await db
+  const activeAffiliations = await db
     .select({ id: affiliations.id, partyOrGroup: affiliations.partyOrGroup })
     .from(affiliations)
     .where(
@@ -239,15 +275,17 @@ async function upsertAffiliation(
       ),
     );
 
-  const active = current.find((a) => a.partyOrGroup === opts.partyOrGroup);
-  if (active) return;
+  const alreadyCurrent = activeAffiliations.find(
+    (affiliation) => affiliation.partyOrGroup === opts.partyOrGroup,
+  );
+  if (alreadyCurrent) return;
 
   const today = new Date().toISOString().split('T')[0];
-  for (const aff of current) {
+  for (const affiliation of activeAffiliations) {
     await db
       .update(affiliations)
       .set({ endDate: today, updatedAt: new Date() })
-      .where(eq(affiliations.id, aff.id));
+      .where(eq(affiliations.id, affiliation.id));
   }
 
   await db.insert(affiliations).values({
@@ -264,6 +302,10 @@ export interface MepUpsertSummary {
   errors: number;
 }
 
+/**
+ * Upsert de tous les eurodéputés, un par un : une erreur sur l'un est loguée
+ * et comptée dans `errors` sans interrompre le lot.
+ */
 export async function upsertMeps(
   db: NeonHttpDatabase,
   inputs: MepUpsertInput[],

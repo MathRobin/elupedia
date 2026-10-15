@@ -1,3 +1,13 @@
+/**
+ * Point d'entrée CLI de la réconciliation candidats–élus : rattache aux
+ * fiches `officials` les candidats (municipales, législatives, sénatoriales)
+ * dont `official_id` est encore vide (voir reconcile-elections.ts).
+ *
+ * Commande : `yarn --cwd packages/ingest reconcile`
+ *
+ * Ouvre la connexion DB ici et l'injecte, pour garder reconcile-elections.ts
+ * testable avec un faux `db`.
+ */
 import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { reconcileElections } from './reconcile-elections.js';

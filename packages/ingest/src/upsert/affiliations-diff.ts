@@ -1,3 +1,20 @@
+/**
+ * Met à jour l'historique d'appartenance des députés à leur groupe
+ * parlementaire (table `affiliations`, kind 'group') à partir de la liste
+ * courante fournie par l'open data AN. Appelé par `run-an.ts`.
+ *
+ * Tables écrites : `affiliations` (+ `data_provenance`).
+ * Clé de rapprochement : official (via `officials.an_id`) + affiliation
+ * active (end_date NULL) dont `party_or_group` == groupe source.
+ * Logique de diff : si le groupe courant du député a déjà une affiliation
+ * active, rien n'est écrit ; sinon toutes ses affiliations de groupe actives
+ * sont clôturées à la date du jour et une nouvelle est ouverte à la date du
+ * jour. Idempotent d'un run à l'autre tant que le groupe ne change pas.
+ * Piège : les dates de début/fin sont celles du run, pas celles du
+ * changement réel de groupe (la source ne les fournit pas) — la précision
+ * dépend donc de la fréquence d'ingestion. L'historique n'est jamais
+ * réécrit, seulement clôturé.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, affiliations } from '@elupedia/shared';
 import { eq, isNull, and } from 'drizzle-orm';
@@ -7,7 +24,9 @@ import { logger } from '../logger.js';
 export interface AffiliationData {
   slug: string;
   id_an?: string;
+  /** Sigle du groupe parlementaire (prioritaire). */
   groupe_sigle?: string;
+  /** Parti de rattachement financier, utilisé à défaut de groupe. */
   parti_ratt_financier?: string;
 }
 
@@ -15,6 +34,11 @@ const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
   "Données publiques d'appartenance à un groupe parlementaire (art. L311-1 CRPA)";
 
+/**
+ * Compare le groupe courant de chaque député à ses affiliations actives et
+ * clôture / crée ce qu'il faut (écriture DB). Retourne les compteurs
+ * created / ended / unchanged.
+ */
 export async function diffAffiliations(
   db: NeonHttpDatabase,
   deputeAffiliations: AffiliationData[],
@@ -26,10 +50,12 @@ export async function diffAffiliations(
     .select({ id: officials.id, anId: officials.anId })
     .from(officials);
   const officialByAnId = new Map<string, string>();
-  for (const o of allOfficials) {
-    if (o.anId) officialByAnId.set(o.anId, o.id);
+  for (const official of allOfficials) {
+    if (official.anId) officialByAnId.set(official.anId, official.id);
   }
 
+  // Seules les affiliations de groupe (kind 'group') entrent dans le diff :
+  // les eurodéputés ont d'autres kinds, gérés ailleurs.
   const activeAffiliations = await db
     .select()
     .from(affiliations)
@@ -38,10 +64,10 @@ export async function diffAffiliations(
     string,
     (typeof affiliations.$inferSelect)[]
   >();
-  for (const a of activeAffiliations) {
-    const list = activeByOfficialId.get(a.officialId) ?? [];
-    list.push(a);
-    activeByOfficialId.set(a.officialId, list);
+  for (const affiliation of activeAffiliations) {
+    const list = activeByOfficialId.get(affiliation.officialId) ?? [];
+    list.push(affiliation);
+    activeByOfficialId.set(affiliation.officialId, list);
   }
 
   const newRows: (typeof affiliations.$inferInsert)[] = [];
@@ -59,20 +85,21 @@ export async function diffAffiliations(
 
     const currentAffiliations = activeByOfficialId.get(officialId) ?? [];
     const activeGroup = currentAffiliations.find(
-      (a) => a.partyOrGroup === group,
+      (affiliation) => affiliation.partyOrGroup === group,
     );
 
     if (activeGroup) {
       summary.unchanged++;
     } else {
-      for (const aff of currentAffiliations) {
+      for (const affiliation of currentAffiliations) {
         await db
           .update(affiliations)
           .set({ endDate: today, updatedAt: new Date() })
-          .where(eq(affiliations.id, aff.id));
+          .where(eq(affiliations.id, affiliation.id));
         summary.ended++;
       }
 
+      // `kind` n'est pas renseigné : la colonne vaut 'group' par défaut.
       newRows.push({
         officialId,
         partyOrGroup: group,

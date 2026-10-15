@@ -1,4 +1,14 @@
 ---
+/**
+ * Panorama des candidats d'une élection (route /elections/[type]/[id]).
+ *
+ * Rendu à la demande (SSR, `prerender = false`). `type` vaut municipale,
+ * legislative ou senatoriale ; `id` est l'election_id OVH (`YYYY..._tN`) pour
+ * les deux premiers, `${année}-${tour}` pour les sénatoriales. Les candidats
+ * sont rattachés à leur fiche /elus/[slug] quand official_id est renseigné
+ * (script `reconcile`). Les données vont au composant React ElectionPanorama.
+ * Tout type ou id inconnu redirige vers /404.
+ */
 export const prerender = false;
 
 import BaseLayout from '../../../layouts/BaseLayout.astro';
@@ -16,7 +26,14 @@ import {
 import { eq, and, ilike, sql } from 'drizzle-orm';
 import type { PanoramaCandidate } from '../../../lib/election-types.js';
 
+// Municipales et législatives comptent des dizaines de milliers de candidats
+// par scrutin : on exige une recherche par commune d'au moins ce nombre de
+// caractères avant de charger quoi que ce soit, et on plafonne le résultat.
+const MIN_COMMUNE_QUERY_LENGTH = 2;
+const MAX_PANORAMA_CANDIDATES = 500;
+
 const { type, id } = Astro.params;
+// `q` : recherche libre sur le nom de commune (paramètre d'URL `?q=`).
 const q = Astro.url.searchParams.get('q')?.trim() ?? '';
 
 const db = getDb();
@@ -24,10 +41,14 @@ const db = getDb();
 let label = '';
 let electionDate = '';
 let candidates: PanoramaCandidate[] = [];
+// true quand le scrutin est trop volumineux pour être listé sans filtre :
+// le composant affiche alors le champ de recherche seul.
 let needsSearch = false;
 let notFound = false;
 
 if (type === 'senatoriale') {
+  // id = `${année}-${tour}` (construit par /elections/index). Les sénatoriales
+  // renouvellent environ la moitié des sièges : assez peu de candidats pour tout lister.
   const [year, roundStr] = (id ?? '').split('-');
   const round = parseInt(roundStr ?? '1', 10);
 
@@ -59,6 +80,7 @@ if (type === 'senatoriale') {
       .from(senatorialCandidates)
       .innerJoin(senatorialElections, eq(senatorialCandidates.electionId, senatorialElections.id))
       .leftJoin(officials, eq(senatorialCandidates.officialId, officials.id))
+      // Filtre sur l'année seule (pas le tour) : les deux tours sont affichés ensemble.
       .where(eq(senatorialElections.electionYear, year ?? ''));
 
     candidates = rows.map((r) => ({
@@ -78,20 +100,22 @@ if (type === 'senatoriale') {
   const electionsTable = type === 'municipale' ? municipalElections : legislativeElections;
   const candidatesTable = type === 'municipale' ? municipalCandidates : legislativeCandidates;
 
-  const [oneRow] = await db
+  // Une seule ligne suffit pour vérifier l'existence du scrutin et lire sa date.
+  const [electionSampleRow] = await db
     .select({ electionDate: electionsTable.electionDate })
     .from(electionsTable)
     .where(eq(electionsTable.electionId, id ?? ''))
     .limit(1);
 
-  if (!oneRow) {
+  if (!electionSampleRow) {
     notFound = true;
   } else {
+    // id au format `YYYY..._tN` (voir roundFromElectionId dans /elections/index).
     const year = (id ?? '').slice(0, 4);
     const round = /_t2$/.test(id ?? '') ? '2nd tour' : '1er tour';
     label = `Élections ${type === 'municipale' ? 'municipales' : 'législatives'} ${year} — ${round}`;
-    electionDate = oneRow.electionDate;
-    needsSearch = q.length < 2;
+    electionDate = electionSampleRow.electionDate;
+    needsSearch = q.length < MIN_COMMUNE_QUERY_LENGTH;
 
     if (!needsSearch) {
       const rows = await db
@@ -99,6 +123,7 @@ if (type === 'senatoriale') {
           nom: candidatesTable.nom,
           prenom: candidatesTable.prenom,
           nuance: candidatesTable.nuance,
+          // Seules les municipales ont une notion de liste.
           liste: type === 'municipale' ? municipalCandidates.liste : sql<string | null>`null`,
           scope: electionsTable.communeName,
           officialId: candidatesTable.officialId,
@@ -114,13 +139,14 @@ if (type === 'senatoriale') {
             ilike(electionsTable.communeName, `%${q}%`),
           ),
         )
-        .limit(500);
+        .limit(MAX_PANORAMA_CANDIDATES);
 
       candidates = rows.map((r) => ({
         nom: r.nom,
         prenom: r.prenom,
         nuance: r.nuance,
         liste: r.liste,
+        // Non renseignés par les sources municipales/législatives.
         sortant: false,
         elected: null,
         scope: r.scope ?? '',

@@ -1,6 +1,18 @@
+/**
+ * Table `committees` : appartenance d'un élu à une commission, délégation,
+ * groupe d'études ou groupe d'amitié. Une ligne par (élu, organe, période),
+ * pas de table d'organes séparée : le nom est dupliqué sur chaque membre.
+ *
+ * Alimentée par `an-commissions.ts` (open data AN) et
+ * `senat-commissions.ts` (ODSEN_COMS / ODSEN_OFFDEL). Le site regroupe par
+ * `slugifyText(name)` pour les pages `/commissions/{slug}` ; un même organe
+ * nommé différemment selon la source apparaît donc comme deux commissions
+ * (voir `dedupe:committees`).
+ */
 import { pgTable, uuid, varchar, date, timestamp } from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
 
+/** Valeurs attendues de `committees.type` (varchar libre, pas d'enum SQL). */
 export const committeeTypeEnum = [
   'standing_committee',
   'special_committee',

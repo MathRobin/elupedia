@@ -1,3 +1,7 @@
+/**
+ * Tests de personal-website-scraper.ts : extraction de liens, robots.txt et
+ * enchaînement complet avec un fetch simulé.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import {
   extractSocialLinks,

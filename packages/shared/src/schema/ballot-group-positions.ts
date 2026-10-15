@@ -1,3 +1,10 @@
+/**
+ * Table `ballot_group_positions` : position majoritaire et décompte des
+ * voix de chaque groupe politique sur un scrutin (`ballots`).
+ *
+ * Alimentée par l'ingestion des scrutins AN (`positionMajoritaire` et
+ * décompte par groupe dans le JSON source). Une ligne par (scrutin, organe).
+ */
 import {
   pgTable,
   uuid,
@@ -15,8 +22,10 @@ export const ballotGroupPositions = pgTable(
     ballotId: uuid('ballot_id')
       .notNull()
       .references(() => ballots.id),
+    // Identifiant de l'organe (groupe) dans l'open data AN, ex. PO800490.
     organeRef: varchar('organe_ref', { length: 50 }).notNull(),
     groupName: varchar('group_name', { length: 255 }).notNull(),
+    // Position majoritaire du groupe, même vocabulaire que votePositionEnum.
     position: varchar('position', { length: 20 }).notNull(),
     memberCount: integer('member_count'),
     votesFor: integer('votes_for').default(0).notNull(),
@@ -27,10 +36,10 @@ export const ballotGroupPositions = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (t) => [
+  (table) => [
     uniqueIndex('ballot_group_positions_ballot_organe_idx').on(
-      t.ballotId,
-      t.organeRef,
+      table.ballotId,
+      table.organeRef,
     ),
   ],
 );

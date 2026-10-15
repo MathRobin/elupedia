@@ -1,3 +1,19 @@
+/**
+ * Upsert des comptes de campagne publiés par la CNCCFP (une ligne par
+ * candidat et par élection), avec rattachement optionnel à un official.
+ * Données issues de `sources/cnccfp.ts`, appelé par `run.ts` pour chaque
+ * élection de CNCCFP_ELECTIONS.
+ *
+ * Table écrite : `campaign_accounts`, clé `cnccfp_id` (unique).
+ * Idempotent : ON CONFLICT DO UPDATE réécrit tous les champs, y compris
+ * `official_id` — le rattachement est donc recalculé à chaque run (un
+ * official créé depuis le dernier run peut être rattaché a posteriori, et
+ * inversement un rattachement peut redevenir NULL).
+ * Rattachement : par nom + prénom normalisés (sans accents ni ponctuation),
+ * départagé si besoin par le département puis le numéro de circonscription
+ * des mandats de l'official ; en cas d'ambiguïté persistante, `official_id`
+ * reste NULL et un warn est loggé.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { sql, inArray, eq } from 'drizzle-orm';
 import { officials, mandates, campaignAccounts } from '@elupedia/shared';
@@ -5,6 +21,8 @@ import type { CnccfpRow, CnccfpElection } from '../sources/cnccfp.js';
 import { logger } from '../logger.js';
 
 const BATCH_SIZE = 200;
+// Un log de progression toutes les N itérations de lot.
+const PROGRESS_LOG_EVERY_BATCHES = 10;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -14,8 +32,10 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-function normalize(s: string): string {
-  return s
+// Normalisation agressive pour comparer des noms de sources différentes :
+// accents retirés, tout ce qui n'est pas une lettre devient un espace.
+function normalize(text: string): string {
+  return text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
@@ -28,13 +48,17 @@ interface OfficialLookup {
   officialId: string;
   firstName: string;
   lastName: string;
+  /** Départements de tous les mandats de l'official (actifs ou non). */
   departments: string[];
+  /** Circonscriptions (`mandates.district`) de tous ses mandats. */
   districts: string[];
 }
 
-function extractCirconscriptionNumber(s: string): string | null {
-  const m = s.match(/(\d+)/);
-  return m ? m[1] : null;
+// "3ème circonscription", "Circonscription 3", "03" -> "3" (premier nombre
+// trouvé), pour comparer des libellés de circonscription hétérogènes.
+function extractCirconscriptionNumber(label: string): string | null {
+  const match = label.match(/(\d+)/);
+  return match ? match[1] : null;
 }
 
 async function buildLookup(db: NeonHttpDatabase): Promise<OfficialLookup[]> {
@@ -49,67 +73,83 @@ async function buildLookup(db: NeonHttpDatabase): Promise<OfficialLookup[]> {
     .from(officials)
     .innerJoin(mandates, eq(mandates.officialId, officials.id));
 
-  const map = new Map<string, OfficialLookup>();
-  for (const r of rows) {
-    let entry = map.get(r.officialId);
+  const lookupByOfficialId = new Map<string, OfficialLookup>();
+  for (const row of rows) {
+    let entry = lookupByOfficialId.get(row.officialId);
     if (!entry) {
       entry = {
-        officialId: r.officialId,
-        firstName: r.firstName,
-        lastName: r.lastName,
+        officialId: row.officialId,
+        firstName: row.firstName,
+        lastName: row.lastName,
         departments: [],
         districts: [],
       };
-      map.set(r.officialId, entry);
+      lookupByOfficialId.set(row.officialId, entry);
     }
-    if (r.department && !entry.departments.includes(r.department)) {
-      entry.departments.push(r.department);
+    if (row.department && !entry.departments.includes(row.department)) {
+      entry.departments.push(row.department);
     }
-    if (r.district && !entry.districts.includes(r.district)) {
-      entry.districts.push(r.district);
+    if (row.district && !entry.districts.includes(row.district)) {
+      entry.districts.push(row.district);
     }
   }
-  return [...map.values()];
+  return [...lookupByOfficialId.values()];
 }
 
+// Rattachement nom/prénom -> département -> n° de circonscription. Retourne
+// null dès qu'un niveau ne permet pas d'isoler un seul candidat.
 function matchOfficial(
   row: CnccfpRow,
   lookup: OfficialLookup[],
 ): string | null {
-  const normLast = normalize(row.lastName);
-  const normFirst = normalize(row.firstName);
-  const normDept = normalize(row.department);
+  const normalizedLastName = normalize(row.lastName);
+  const normalizedFirstName = normalize(row.firstName);
+  const normalizedDepartment = normalize(row.department);
 
   const candidates = lookup.filter(
-    (o) =>
-      normalize(o.lastName) === normLast &&
-      normalize(o.firstName) === normFirst,
+    (official) =>
+      normalize(official.lastName) === normalizedLastName &&
+      normalize(official.firstName) === normalizedFirstName,
   );
 
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0].officialId;
 
-  const withDept = candidates.filter((o) =>
-    o.departments.some((d) => normalize(d) === normDept),
+  const withDepartment = candidates.filter((official) =>
+    official.departments.some(
+      (department) => normalize(department) === normalizedDepartment,
+    ),
   );
-  if (withDept.length === 1) return withDept[0].officialId;
+  if (withDepartment.length === 1) return withDepartment[0].officialId;
 
-  if (withDept.length > 1 && row.constituency) {
-    const circNum = extractCirconscriptionNumber(row.constituency);
-    if (circNum) {
-      const withCirc = withDept.filter((o) =>
-        o.districts.some((d) => extractCirconscriptionNumber(d) === circNum),
+  if (withDepartment.length > 1 && row.constituency) {
+    const circonscriptionNumber = extractCirconscriptionNumber(
+      row.constituency,
+    );
+    if (circonscriptionNumber) {
+      const withCirconscription = withDepartment.filter((official) =>
+        official.districts.some(
+          (district) =>
+            extractCirconscriptionNumber(district) === circonscriptionNumber,
+        ),
       );
-      if (withCirc.length === 1) return withCirc[0].officialId;
+      if (withCirconscription.length === 1) {
+        return withCirconscription[0].officialId;
+      }
     }
   }
 
   logger.warn(
-    `[CNCCFP] Ambiguous match for ${row.candidateName} (${row.department}, ${row.constituency}): ${(withDept.length > 0 ? withDept : candidates).length} candidates`,
+    `[CNCCFP] Ambiguous match for ${row.candidateName} (${row.department}, ${row.constituency}): ${(withDepartment.length > 0 ? withDepartment : candidates).length} candidates`,
   );
   return null;
 }
 
+/**
+ * Upsert en base des comptes de campagne d'une élection (écriture DB).
+ * `skipped` est toujours 0 : conservé pour la forme du résumé attendue par
+ * `run.ts`.
+ */
 export async function upsertCampaignAccounts(
   db: NeonHttpDatabase,
   rows: CnccfpRow[],
@@ -125,16 +165,21 @@ export async function upsertCampaignAccounts(
 
   for (const [batchIndex, batch] of batches.entries()) {
     const batchNum = batchIndex + 1;
-    if (batchNum % 10 === 1 || batchNum === batches.length) {
+    if (
+      batchNum % PROGRESS_LOG_EVERY_BATCHES === 1 ||
+      batchNum === batches.length
+    ) {
       logger.info(`  [CNCCFP] batch ${batchNum}/${batches.length}`);
     }
 
-    const batchIds = batch.map((r) => r.cnccfpId);
+    // Lu avant l'upsert uniquement pour distinguer créations et mises à
+    // jour dans les compteurs.
+    const batchIds = batch.map((row) => row.cnccfpId);
     const preExisting = await db
       .select({ cnccfpId: campaignAccounts.cnccfpId })
       .from(campaignAccounts)
       .where(inArray(campaignAccounts.cnccfpId, batchIds));
-    const preExistingIds = new Set(preExisting.map((r) => r.cnccfpId));
+    const preExistingIds = new Set(preExisting.map((row) => row.cnccfpId));
 
     const values = batch.map((row) => ({
       cnccfpId: row.cnccfpId,

@@ -1,3 +1,15 @@
+/**
+ * Résultats des élections municipales (2008 → 2026) par commune et par tour.
+ *
+ * Copie quasi identique de legislative-elections.ts (même source, mêmes
+ * CSV, même logique d'agrégation) : voir son en-tête pour le détail. Les
+ * différences :
+ * - filtre `_muni_` sur l'identifiant d'élection ;
+ * - pas de code département dans le résultat ;
+ * - chaque candidat porte le nom de sa liste (`liste`).
+ *
+ * Appelé par run-maires.ts via upsert/municipal-elections.ts.
+ */
 import { logger } from '../logger.js';
 
 const CANDIDATES_URL =
@@ -5,6 +17,7 @@ const CANDIDATES_URL =
 const GENERAL_URL =
   'https://data-pipeline-open.s3.sbg.io.cloud.ovh.net/elections/general_results.csv';
 
+/** Identifiant d'élection du CSV → date du tour. */
 const ELECTION_DATES: Record<string, string> = {
   '2008_muni_t1': '2008-03-09',
   '2008_muni_t2': '2008-03-16',
@@ -16,7 +29,36 @@ const ELECTION_DATES: Record<string, string> = {
   '2026_muni_t2': '2026-03-22',
 };
 
+/** Sous-chaîne de l'identifiant d'élection qui sélectionne les municipales. */
+const ELECTION_ID_FILTER = '_muni_';
+const CSV_SEPARATOR = ';';
+
+// Positions des colonnes dans general_results.csv.
+const GENERAL_COL_ELECTION_ID = 0;
+const GENERAL_COL_COMMUNE_CODE = 6;
+const GENERAL_COL_COMMUNE_NAME = 7;
+const GENERAL_COL_INSCRITS = 11;
+const GENERAL_COL_ABSTENTIONS = 12;
+const GENERAL_COL_VOTANTS = 13;
+const GENERAL_COL_BLANCS = 14;
+const GENERAL_COL_NULS = 15;
+const GENERAL_COL_EXPRIMES = 16;
+
+// Positions des colonnes dans candidats_results.csv.
+const CANDIDATE_COL_ELECTION_ID = 0;
+const CANDIDATE_COL_COMMUNE_CODE = 3;
+const CANDIDATE_COL_PANNEAU = 5;
+const CANDIDATE_COL_VOIX = 6;
+const CANDIDATE_COL_NUANCE = 9;
+const CANDIDATE_COL_SEXE = 10;
+const CANDIDATE_COL_NOM = 11;
+const CANDIDATE_COL_PRENOM = 12;
+/** Nom de liste : deux colonnes possibles selon les millésimes. */
+const CANDIDATE_COL_LISTE_ALT = 14;
+const CANDIDATE_COL_LISTE = 15;
+
 export type MunicipalCandidate = {
+  /** Numéro de panneau : identifie le candidat au sein d'une élection. */
   panneau: number;
   nom: string;
   prenom: string;
@@ -43,22 +85,30 @@ export type MunicipalGeneralResult = {
   candidates: MunicipalCandidate[];
 };
 
+/** Participation d'une commune avant rattachement des candidats. */
+type GeneralAggregate = Omit<MunicipalGeneralResult, 'candidates'>;
+
+/**
+ * Lit un CSV en flux et appelle `onLine` avec les champs de chaque ligne
+ * (hors en-tête) contenant `filter`.
+ */
 async function streamCsv(
   url: string,
   filter: string,
   onLine: (fields: string[]) => void,
 ): Promise<void> {
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     headers: { 'Accept-Encoding': 'gzip, deflate' },
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-  if (!res.body) throw new Error(`No body in response from ${url}`);
+  if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
+  if (!response.body) throw new Error(`No body in response from ${url}`);
 
   const decoder = new TextDecoder();
+  // Fin de ligne incomplète reportée sur le chunk suivant.
   let remainder = '';
   let headerSkipped = false;
 
-  for await (const chunk of res.body) {
+  for await (const chunk of response.body) {
     const text = remainder + decoder.decode(chunk, { stream: true });
     const lines = text.split('\n');
     remainder = lines.pop()!;
@@ -69,40 +119,44 @@ async function streamCsv(
         continue;
       }
       if (!line.includes(filter)) continue;
-      onLine(line.split(';'));
+      onLine(line.split(CSV_SEPARATOR));
     }
   }
 
+  // Dernière ligne sans retour chariot final.
   if (headerSkipped && remainder && remainder.includes(filter)) {
-    onLine(remainder.split(';'));
+    onLine(remainder.split(CSV_SEPARATOR));
   }
 }
 
+/** Entier du CSV, 0 si vide ou invalide. */
+function toInt(raw: string | undefined): number {
+  return parseInt(raw!) || 0;
+}
+
+/** Pourcentage arrondi à 2 décimales, 0 si le dénominateur est nul. */
+function toPercent(numerator: number, denominator: number): number {
+  return denominator > 0
+    ? Math.round((numerator / denominator) * 10000) / 100
+    : 0;
+}
+
+/**
+ * Télécharge et agrège les deux CSV. Effets : deux téléchargements de
+ * plusieurs centaines de Mo, logs de progression.
+ */
 export async function fetchMunicipalElections(): Promise<
   MunicipalGeneralResult[]
 > {
   logger.info('  Fetching general results...');
 
-  const generalByKey = new Map<
-    string,
-    {
-      electionId: string;
-      communeCode: string;
-      communeName: string | null;
-      round: number;
-      electionDate: string;
-      inscrits: number;
-      abstentions: number;
-      votants: number;
-      blancs: number;
-      nuls: number;
-      exprimes: number;
-    }
-  >();
+  // Clé : `${electionId}|${communeCode}` ; les bureaux de vote d'une même
+  // commune sont additionnés.
+  const generalByKey = new Map<string, GeneralAggregate>();
 
-  await streamCsv(GENERAL_URL, '_muni_', (f) => {
-    const electionId = f[0];
-    const communeCode = f[6];
+  await streamCsv(GENERAL_URL, ELECTION_ID_FILTER, (fields) => {
+    const electionId = fields[GENERAL_COL_ELECTION_ID];
+    const communeCode = fields[GENERAL_COL_COMMUNE_CODE];
     const key = `${electionId}|${communeCode}`;
     const round = electionId.endsWith('_t2') ? 2 : 1;
     const electionDate = ELECTION_DATES[electionId];
@@ -110,25 +164,25 @@ export async function fetchMunicipalElections(): Promise<
 
     const existing = generalByKey.get(key);
     if (existing) {
-      existing.inscrits += parseInt(f[11]) || 0;
-      existing.abstentions += parseInt(f[12]) || 0;
-      existing.votants += parseInt(f[13]) || 0;
-      existing.blancs += parseInt(f[14]) || 0;
-      existing.nuls += parseInt(f[15]) || 0;
-      existing.exprimes += parseInt(f[16]) || 0;
+      existing.inscrits += toInt(fields[GENERAL_COL_INSCRITS]);
+      existing.abstentions += toInt(fields[GENERAL_COL_ABSTENTIONS]);
+      existing.votants += toInt(fields[GENERAL_COL_VOTANTS]);
+      existing.blancs += toInt(fields[GENERAL_COL_BLANCS]);
+      existing.nuls += toInt(fields[GENERAL_COL_NULS]);
+      existing.exprimes += toInt(fields[GENERAL_COL_EXPRIMES]);
     } else {
       generalByKey.set(key, {
         electionId,
         communeCode,
-        communeName: f[7] || null,
+        communeName: fields[GENERAL_COL_COMMUNE_NAME] || null,
         round,
         electionDate,
-        inscrits: parseInt(f[11]) || 0,
-        abstentions: parseInt(f[12]) || 0,
-        votants: parseInt(f[13]) || 0,
-        blancs: parseInt(f[14]) || 0,
-        nuls: parseInt(f[15]) || 0,
-        exprimes: parseInt(f[16]) || 0,
+        inscrits: toInt(fields[GENERAL_COL_INSCRITS]),
+        abstentions: toInt(fields[GENERAL_COL_ABSTENTIONS]),
+        votants: toInt(fields[GENERAL_COL_VOTANTS]),
+        blancs: toInt(fields[GENERAL_COL_BLANCS]),
+        nuls: toInt(fields[GENERAL_COL_NULS]),
+        exprimes: toInt(fields[GENERAL_COL_EXPRIMES]),
       });
     }
   });
@@ -136,13 +190,15 @@ export async function fetchMunicipalElections(): Promise<
   logger.info(`  ${generalByKey.size} commune/tour combinations loaded`);
   logger.info('  Fetching candidate results...');
 
+  // Même clé que generalByKey ; par commune, les candidats sont indexés par
+  // panneau pour additionner leurs voix sur les bureaux.
   const candidatesByKey = new Map<string, Map<number, MunicipalCandidate>>();
 
-  await streamCsv(CANDIDATES_URL, '_muni_', (f) => {
-    const electionId = f[0];
-    const communeCode = f[3];
+  await streamCsv(CANDIDATES_URL, ELECTION_ID_FILTER, (fields) => {
+    const electionId = fields[CANDIDATE_COL_ELECTION_ID];
+    const communeCode = fields[CANDIDATE_COL_COMMUNE_CODE];
     const key = `${electionId}|${communeCode}`;
-    const panneau = parseInt(f[5]) || 0;
+    const panneau = toInt(fields[CANDIDATE_COL_PANNEAU]);
 
     if (!candidatesByKey.has(key)) {
       candidatesByKey.set(key, new Map());
@@ -151,16 +207,19 @@ export async function fetchMunicipalElections(): Promise<
     const byPanneau = candidatesByKey.get(key)!;
     const existing = byPanneau.get(panneau);
     if (existing) {
-      existing.voix += parseInt(f[6]) || 0;
+      existing.voix += toInt(fields[CANDIDATE_COL_VOIX]);
     } else {
       byPanneau.set(panneau, {
         panneau,
-        nom: f[11] || '',
-        prenom: f[12] || '',
-        sexe: f[10] || null,
-        nuance: f[9] || null,
-        liste: f[15] || f[14] || null,
-        voix: parseInt(f[6]) || 0,
+        nom: fields[CANDIDATE_COL_NOM] || '',
+        prenom: fields[CANDIDATE_COL_PRENOM] || '',
+        sexe: fields[CANDIDATE_COL_SEXE] || null,
+        nuance: fields[CANDIDATE_COL_NUANCE] || null,
+        liste:
+          fields[CANDIDATE_COL_LISTE] ||
+          fields[CANDIDATE_COL_LISTE_ALT] ||
+          null,
+        voix: toInt(fields[CANDIDATE_COL_VOIX]),
         ratioInscrits: 0,
         ratioExprimes: 0,
       });
@@ -175,15 +234,9 @@ export async function fetchMunicipalElections(): Promise<
     const candidates = candidatesByKey.get(key);
     const candidateList = candidates ? [...candidates.values()] : [];
 
-    for (const c of candidateList) {
-      c.ratioInscrits =
-        general.inscrits > 0
-          ? Math.round((c.voix / general.inscrits) * 10000) / 100
-          : 0;
-      c.ratioExprimes =
-        general.exprimes > 0
-          ? Math.round((c.voix / general.exprimes) * 10000) / 100
-          : 0;
+    for (const candidate of candidateList) {
+      candidate.ratioInscrits = toPercent(candidate.voix, general.inscrits);
+      candidate.ratioExprimes = toPercent(candidate.voix, general.exprimes);
     }
 
     candidateList.sort((a, b) => b.voix - a.voix);

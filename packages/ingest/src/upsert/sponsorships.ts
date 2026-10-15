@@ -1,3 +1,19 @@
+/**
+ * Insertion des parrainages présidentiels (Conseil constitutionnel,
+ * `sources/parrainages.ts`, via `main-parrainages.ts`) et des signatures de
+ * référendum d'initiative partagée (`sources/rip-signatures.ts`, via
+ * `main-rip-signatures.ts`) dans une table commune.
+ *
+ * Table écrite : `sponsorships` (`type` = `parrainage_presidentiel` ou
+ * `rip_signature`).
+ * Clé de rapprochement : (type, election_year, raw_elected_name) où
+ * `raw_elected_name` = "NOM Prénom" tel que publié. Rattachement à
+ * `officials` par NOM|PRÉNOM sans accents : approximatif, figé à l'insertion.
+ *
+ * Insert-only : une ligne déjà présente n'est jamais réécrite (ni le
+ * rattachement, ni les champs bruts) — relancer n'actualise rien, il faut
+ * purger pour réimporter.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, sponsorships } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
@@ -5,10 +21,12 @@ import type { ParrainageRow } from '../sources/parrainages.js';
 import type { RipSignataireRow } from '../sources/rip-signatures.js';
 import { logger } from '../logger.js';
 
-function normalize(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
+/** Majuscules sans accents : les publications du CC sont en capitales. */
+function normalize(name: string): string {
+  return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
 }
 
+/** Index `NOM|PRÉNOM` normalisés → official id, sur toute la table. */
 async function buildOfficialCache(
   db: NeonHttpDatabase,
 ): Promise<Map<string, string>> {
@@ -28,6 +46,7 @@ async function buildOfficialCache(
   return cache;
 }
 
+/** Noms bruts déjà enregistrés pour ce (type, année) : clé de dédoublonnage. */
 async function buildExistingCache(
   db: NeonHttpDatabase,
   electionYear: number,
@@ -42,7 +61,7 @@ async function buildExistingCache(
         eq(sponsorships.electionYear, electionYear),
       ),
     );
-  return new Set(rows.map((r) => r.rawElectedName));
+  return new Set(rows.map((row) => row.rawElectedName));
 }
 
 function matchOfficial(
@@ -53,8 +72,14 @@ function matchOfficial(
   return cache.get(key) ?? null;
 }
 
+/** Taille des INSERT groupés (limite de paramètres Postgres). */
 const BATCH_SIZE = 500;
 
+/**
+ * Insère les parrainages inconnus d'une élection présidentielle. Écrit dans
+ * `sponsorships`. Retourne `{ created, updated, matched }` — attention,
+ * `updated` est en réalité le nombre de lignes ignorées car déjà présentes.
+ */
 export async function upsertSponsorships(
   db: NeonHttpDatabase,
   rows: ParrainageRow[],
@@ -109,6 +134,11 @@ export async function upsertSponsorships(
   return { created, updated: skipped, matched };
 }
 
+/**
+ * Insère les signatures RIP inconnues pour un référendum (`subject`) d'une
+ * année donnée. Écrit dans `sponsorships`. Retourne créés / ignorés /
+ * rattachés.
+ */
 export async function upsertRipSignatures(
   db: NeonHttpDatabase,
   rows: RipSignataireRow[],

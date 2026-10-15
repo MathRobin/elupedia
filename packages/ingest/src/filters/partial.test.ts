@@ -1,3 +1,7 @@
+/**
+ * Tests des filtres purs de filters/partial.ts (activité AN et déclarations
+ * HATVP) ; les requêtes DB du module ne sont pas couvertes ici.
+ */
 import { describe, it, expect } from 'vitest';
 import {
   filterActivitiesForPartial,

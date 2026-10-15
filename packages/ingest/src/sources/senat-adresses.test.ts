@@ -1,3 +1,4 @@
+// Tests de senat-adresses : filtre sur Etat = ACTIF et adresse commune du Sénat.
 import { describe, it, expect, vi } from 'vitest';
 import { fetchSenatAdresses } from './senat-adresses.js';
 

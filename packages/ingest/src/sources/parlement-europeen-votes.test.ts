@@ -1,3 +1,7 @@
+/**
+ * Tests de parlement-europeen-votes.ts : séances et décisions JSON-LD
+ * simulées ; vérifie le filtrage des votes nominatifs.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import {
   fetchPlenarySittings,

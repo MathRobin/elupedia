@@ -1,3 +1,14 @@
+/**
+ * Filtres de l'ingestion « partielle » : restreindre un export complet aux
+ * seuls élus encore actifs, pour des runs fréquents et légers. Deux familles,
+ * sur le même modèle (une requête DB pour obtenir les actifs, puis un filtre
+ * pur, testable) :
+ *   - activité parlementaire AN, par identifiant AN (run-an-partial.ts) ;
+ *   - déclarations HATVP, par nom (sans appelant à ce jour).
+ *
+ * « Actif » = vivant et titulaire d'au moins un mandat sans date de fin,
+ * quel que soit le type de mandat.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
 import { eq, isNull, and, isNotNull } from 'drizzle-orm';
@@ -5,6 +16,7 @@ import type { DeputeActivity } from '../sources/an-activite.js';
 import type { Declaration } from '../sources/hatvp.js';
 import { logger } from '../logger.js';
 
+/** Compteurs d'activités (pas de députés) écartées par chaque règle. */
 export interface PartialFilterStats {
   totalBefore: number;
   excludedDeceased: number;
@@ -13,6 +25,14 @@ export interface PartialFilterStats {
   totalAfter: number;
 }
 
+// Les questions dont la réponse est plus ancienne que ça n'évoluent plus.
+const RESPONSE_MAX_AGE_MONTHS = 3;
+
+/**
+ * Identifiants AN des élus actifs et des élus décédés (lecture seule).
+ * Les deux ensembles sont disjoints ; un député vivant sans mandat en cours
+ * n'est dans aucun des deux.
+ */
 export async function getActiveDeputyAnIds(
   db: NeonHttpDatabase,
 ): Promise<{ activeIds: Set<string>; deceasedIds: Set<string> }> {
@@ -46,6 +66,12 @@ export async function getActiveDeputyAnIds(
   return { activeIds, deceasedIds };
 }
 
+/**
+ * Ne garde que les activités des députés actifs, sans les questions dont la
+ * réponse date de plus de RESPONSE_MAX_AGE_MONTHS. Fonction pure ; `now`
+ * est injectable pour les tests. Un député décédé est compté « décédé »
+ * même s'il n'est pas non plus dans `activeAnIds`.
+ */
 export function filterActivitiesForPartial(
   activities: DeputeActivity[],
   activeAnIds: Set<string>,
@@ -53,7 +79,8 @@ export function filterActivitiesForPartial(
   now: Date = new Date(),
 ): { filtered: DeputeActivity[]; stats: PartialFilterStats } {
   const cutoff = new Date(now);
-  cutoff.setMonth(cutoff.getMonth() - 3);
+  cutoff.setMonth(cutoff.getMonth() - RESPONSE_MAX_AGE_MONTHS);
+  // Comparaison de chaînes ISO (YYYY-MM-DD), comme les dates de la source.
   const cutoffStr = cutoff.toISOString().slice(0, 10);
 
   let totalBefore = 0;
@@ -76,8 +103,9 @@ export function filterActivitiesForPartial(
       continue;
     }
 
-    const kept = depute.activities.filter((a) => {
-      if (a.responseDate && a.responseDate < cutoffStr) {
+    // Une question sans réponse est conservée quel que soit son âge.
+    const kept = depute.activities.filter((activity) => {
+      if (activity.responseDate && activity.responseDate < cutoffStr) {
         excludedOldResponse++;
         return false;
       }
@@ -104,12 +132,17 @@ export function filterActivitiesForPartial(
   return { filtered, stats };
 }
 
+/** Compteurs de déclarations écartées (filtre HATVP). */
 export interface HatvpFilterStats {
   totalBefore: number;
   excludedInactive: number;
   totalAfter: number;
 }
 
+/**
+ * Clés « NOM|PRÉNOM » (majuscules, non désaccentuées) des élus actifs,
+ * tous mandats confondus (lecture seule).
+ */
 export async function getActiveOfficialNames(
   db: NeonHttpDatabase,
 ): Promise<Set<string>> {
@@ -129,6 +162,7 @@ export async function getActiveOfficialNames(
   return names;
 }
 
+/** Ne garde que les déclarations dont « NOM|PRÉNOM » est dans `activeNames`. Fonction pure. */
 export function filterDeclarationsForPartial(
   declarations: Declaration[],
   activeNames: Set<string>,
@@ -155,6 +189,7 @@ export function filterDeclarationsForPartial(
   };
 }
 
+/** Affiche les compteurs du filtre HATVP. */
 export function logHatvpFilterStats(stats: HatvpFilterStats): void {
   logger.info('HATVP partial filter stats:');
   logger.info(`  Total declarations before: ${stats.totalBefore}`);
@@ -162,7 +197,8 @@ export function logHatvpFilterStats(stats: HatvpFilterStats): void {
   logger.info(`  Total declarations after: ${stats.totalAfter}`);
 }
 
-export function logFilterStats(stats: PartialFilterStats): void {
+/** Affiche les compteurs du filtre d'activité AN. */
+export function logActivityFilterStats(stats: PartialFilterStats): void {
   logger.info('Partial filter stats:');
   logger.info(`  Total activities before: ${stats.totalBefore}`);
   logger.info(`  Excluded (deceased): ${stats.excludedDeceased}`);

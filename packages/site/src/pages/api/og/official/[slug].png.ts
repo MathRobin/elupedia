@@ -1,24 +1,35 @@
+/**
+ * `GET /api/og/official/{slug}.png` : image Open Graph d'une fiche élu —
+ * photo (ou initiales), nom, libellé du mandat, circonscription/département
+ * et groupe politique. `slug` peut aussi être l'UUID de l'élu (fiches sans
+ * slug). 404 (corps vide) si l'élu n'existe pas ou n'a aucun mandat.
+ *
+ * Référencée comme `og:image` par `pages/elus/[slug]/index.astro`, comme
+ * `thumbnail_url` par `/api/oembed`, et montrée en exemple sur `/integrer`.
+ * Rendu via `lib/og.ts` ; cache CDN 24 h, stale 7 jours.
+ */
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../../lib/db.js';
-import {
-  officials,
-  mandates,
-  MANDATE_TYPE_LABELS as MANDATE_LABELS,
-} from '@elupedia/shared';
+import { officials, mandates, MANDATE_TYPE_LABELS } from '@elupedia/shared';
 import { eq, or } from 'drizzle-orm';
 import { renderOgImage } from '../../../../lib/og.js';
 import { createElement as h } from 'react';
 
 export const prerender = false;
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** Côté du carré photo / initiales, en px dans l'image 1200×630. */
+const PHOTO_SIZE = 240;
+
 export const GET: APIRoute = async ({ params }) => {
   const { slug } = params;
   const db = getDb();
 
-  const isUuid =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
-      slug!,
-    );
+  // Même logique que /api/oembed : on ne compare à `officials.id` que si la
+  // valeur a la forme d'un UUID, sinon Postgres rejetterait la requête.
+  const isUuid = UUID_PATTERN.test(slug!);
   const filter = isUuid
     ? or(eq(officials.slug, slug!), eq(officials.id, slug!))
     : eq(officials.slug, slug!);
@@ -40,13 +51,48 @@ export const GET: APIRoute = async ({ params }) => {
     .where(filter)
     .limit(10);
 
+  // Une ligne par mandat : on décrit l'élu par son mandat en cours, à défaut
+  // par le premier mandat renvoyé.
   const row = rows.find((r) => !r.endDate) ?? rows[0];
   if (!row) return new Response(null, { status: 404 });
 
   const fullName = `${row.firstName} ${row.lastName}`;
-  const mandate = MANDATE_LABELS[row.mandateType] ?? row.mandateType;
+  const mandate = MANDATE_TYPE_LABELS[row.mandateType] ?? row.mandateType;
   const location = [row.district, row.department].filter(Boolean).join(' — ');
+  // La copie S3 est préférée : l'URL source (site de l'AN, du Sénat…) peut
+  // être lente ou bloquer satori.
   const photo = row.photoUrl ?? row.fallbackPhoto;
+
+  const photoOrInitials = photo
+    ? h('img', {
+        src: photo,
+        width: PHOTO_SIZE,
+        height: PHOTO_SIZE,
+        style: {
+          borderRadius: '24px',
+          objectFit: 'cover',
+          border: '4px solid rgba(129, 140, 248, 0.6)',
+        },
+      })
+    : h(
+        'div',
+        {
+          style: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: `${PHOTO_SIZE}px`,
+            height: `${PHOTO_SIZE}px`,
+            borderRadius: '24px',
+            backgroundColor: 'rgba(129, 140, 248, 0.15)',
+            border: '4px solid rgba(129, 140, 248, 0.6)',
+            fontSize: '80px',
+            fontWeight: 700,
+            color: '#818cf8',
+          },
+        },
+        `${row.firstName[0]}${row.lastName[0]}`,
+      );
 
   const png = await renderOgImage(
     h(
@@ -71,36 +117,7 @@ export const GET: APIRoute = async ({ params }) => {
             width: '100%',
           },
         },
-        photo
-          ? h('img', {
-              src: photo,
-              width: 240,
-              height: 240,
-              style: {
-                borderRadius: '24px',
-                objectFit: 'cover',
-                border: '4px solid rgba(129, 140, 248, 0.6)',
-              },
-            })
-          : h(
-              'div',
-              {
-                style: {
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '240px',
-                  height: '240px',
-                  borderRadius: '24px',
-                  backgroundColor: 'rgba(129, 140, 248, 0.15)',
-                  border: '4px solid rgba(129, 140, 248, 0.6)',
-                  fontSize: '80px',
-                  fontWeight: 700,
-                  color: '#818cf8',
-                },
-              },
-              `${row.firstName[0]}${row.lastName[0]}`,
-            ),
+        photoOrInitials,
         h(
           'div',
           {
@@ -178,6 +195,7 @@ export const GET: APIRoute = async ({ params }) => {
             : null,
         ),
       ),
+      // Signature en bas à gauche.
       h(
         'div',
         {

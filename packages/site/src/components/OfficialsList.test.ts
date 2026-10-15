@@ -1,3 +1,8 @@
+/**
+ * Tests de `readFiltersFromUrl` (OfficialsList) : lecture des filtres de
+ * l'annuaire des élus depuis la query string. `window` est simulé avec
+ * `vi.stubGlobal` ; sans `window`, la fonction doit répondre comme au SSR.
+ */
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { readFiltersFromUrl } from './OfficialsList';
 

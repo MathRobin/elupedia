@@ -1,3 +1,8 @@
+/**
+ * Tests de upsertHatvpStatuses : résilience aux blips réseau sur les
+ * requêtes DB amont (retry) — la logique métier n'est pas couverte ici.
+ * Le téléchargement INSEE et unzipper sont mockés.
+ */
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../logger.js', () => ({

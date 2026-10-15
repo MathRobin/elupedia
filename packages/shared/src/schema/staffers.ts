@@ -1,3 +1,11 @@
+/**
+ * Table `staffers` : collaborateurs parlementaires déclarés d'un élu.
+ *
+ * Alimentée par diff à chaque ingestion (`staffers-diff.ts` pour l'AN,
+ * `senat-staffers-diff.ts` pour le Sénat) : un collaborateur absent de la
+ * liste source est clôturé (`end_date`), pas supprimé. Pas d'identifiant
+ * source, le matching se fait sur prénom + nom.
+ */
 import {
   pgTable,
   uuid,

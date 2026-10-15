@@ -1,3 +1,18 @@
+/**
+ * Upsert des résultats électoraux individuels des députés (score et nombre
+ * d'adversaires par tour) issus de data.gouv.fr
+ * (`sources/datagouv-elections.ts`).
+ *
+ * Table écrite : `electoral_results` (+ `data_provenance`, une ligne par
+ * résultat via writeProvenance).
+ * Clé de rapprochement : (official_id, election_type, election_date, round).
+ * L'official est retrouvé par `officials.an_id` ; les résultats sans
+ * official connu sont ignorés.
+ * Idempotent : une ligne existante est réécrite à chaque run (score et
+ * nombre d'adversaires), sans comparaison préalable.
+ * Piège : deux SELECT + une écriture par résultat (pas de cache) — acceptable
+ * pour quelques centaines de lignes, à revoir si le volume grossit.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, electoralResults } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
@@ -8,6 +23,10 @@ const SOURCE_NAME = 'data.gouv.fr - Résultats électoraux';
 const LEGAL_BASIS =
   'Résultats électoraux publiés (art. L311-1 CRPA, données publiques)';
 
+/**
+ * Insère ou réécrit chaque résultat et sa provenance (écriture DB).
+ * Retourne les compteurs created / updated.
+ */
 export async function upsertElectoralResults(
   db: NeonHttpDatabase,
   results: ElectionResult[],

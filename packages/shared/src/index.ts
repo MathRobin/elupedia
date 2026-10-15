@@ -1,3 +1,13 @@
+/**
+ * Point d'entrée public de `@elupedia/shared`.
+ *
+ * Tout ce que l'ingest, le site et l'admin importent depuis
+ * `@elupedia/shared` passe par ici : le client DB, les tables Drizzle
+ * (via `schema/index.ts`) et les référentiels/helpers purs (codes
+ * départements, couleurs et URLs des groupes politiques, slugs, libellés
+ * de mandats). Le package est consommé directement en TypeScript source
+ * (`main: src/index.ts`), sans étape de build.
+ */
 export { createDb } from './db.js';
 export * from './schema/index.js';
 export { DEPARTMENT_CODES, DEPARTMENT_NAMES } from './department-codes.js';

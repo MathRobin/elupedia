@@ -1,3 +1,15 @@
+/**
+ * Schémas zod des formats d'échange entre les modules sources/ et upsert/ :
+ * d'une part la forme brute des exports open data de l'AN (acteurs, organes),
+ * d'autre part les formes intermédiaires normalisées (commissions, intérêts
+ * HATVP, résultats électoraux) produites par les sources et consommées par
+ * les upserts. Les types TypeScript exportés en sont dérivés (z.infer).
+ *
+ * Piège AN : l'export JSON est une conversion automatique du XML. Un élément
+ * vide n'y devient pas `null` mais un objet d'attributs (`{ "@xsi:nil": "true" }`),
+ * d'où les `z.union([z.string(), z.record(...)])` sur les champs optionnels,
+ * et `uid` qui arrive sous la forme `{ "#text": "PA1234" }` pour les acteurs.
+ */
 import { z } from 'zod/v4';
 
 // ── Assemblée nationale / Sénat (Open Data AN) ──
@@ -76,6 +88,8 @@ export const OrganeFileSchema = z.object({
 });
 
 // ── Commissions ──
+// Forme normalisée commune AN + Sénat, produite par sources/an-commissions.ts
+// et sources/senat-commissions.ts, consommée par upsert/committees.ts.
 
 export const CommitteeItemSchema = z.object({
   name: z.string(),
@@ -95,6 +109,9 @@ export const CommitteeItemSchema = z.object({
 export type CommitteeItem = z.infer<typeof CommitteeItemSchema>;
 
 // ── HATVP ──
+// Forme normalisée d'une déclaration d'intérêts (sources/hatvp.ts). Les
+// champs `*_date` sont des chaînes ISO ; `full` conserve la rubrique brute
+// pour affichage détaillé.
 
 export const InterestItemSchema = z.object({
   category: z.enum([
@@ -133,6 +150,7 @@ export type InterestItem = z.infer<typeof InterestItemSchema>;
 export type Declaration = z.infer<typeof DeclarationSchema>;
 
 // ── Élections (data.gouv.fr) ──
+// Résultat d'un candidat identifié par son id AN (sources/datagouv-elections.ts).
 
 export const ElectionResultSchema = z.object({
   id_an: z.string(),

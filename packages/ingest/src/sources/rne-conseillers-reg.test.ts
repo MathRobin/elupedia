@@ -1,3 +1,5 @@
+// Tests de rne-conseillers-reg : parsing ligne à ligne du CSV RNE (13 colonnes)
+// et saut de l'en-tête au fetch.
 import { describe, it, expect, vi } from 'vitest';
 import { parseCsvRow, fetchRneConseillersReg } from './rne-conseillers-reg.js';
 
