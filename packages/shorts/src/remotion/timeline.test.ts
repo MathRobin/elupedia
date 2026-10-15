@@ -62,12 +62,33 @@ const voiceover: StoredVoiceover = {
 };
 
 describe('buildTimeline', () => {
-  it('uses the longer of script duration and audio duration plus a tail', () => {
+  it('lets a recorded voice drive the length, with a floor per visual', () => {
     const t = buildTimeline(script, voiceover, 30);
-    expect(t.scenes.map((s) => s.durationInFrames)).toEqual([150, 201, 180]);
-    expect(t.scenes.map((s) => s.from)).toEqual([0, 150, 351]);
-    expect(t.totalFrames).toBe(531);
+    // s1 : 3 s + 0,6 s de respiration (plancher « title » 3 s) ;
+    // s2 : 6,2 s + 0,6 s ; s3 sans voix : durée du script.
+    expect(t.scenes.map((s) => s.durationInFrames)).toEqual([108, 204, 180]);
+    expect(t.scenes.map((s) => s.from)).toEqual([0, 108, 312]);
+    expect(t.totalFrames).toBe(492);
     expect(t.scenes[2].audio).toBeNull();
+  });
+
+  it('does not leave dead air when the voice is faster than planned', () => {
+    const fast = {
+      ...voiceover,
+      scenes: [{ ...voiceover.scenes[0], durationSec: 1 }],
+    };
+    const t = buildTimeline(script, fast, 30);
+    // plancher « title » : 3 s, pas les 5 s prévues par le script
+    expect(t.scenes[0].durationInFrames).toBe(90);
+  });
+
+  it('keeps the planned duration when there is no recorded audio file', () => {
+    const estimated = {
+      ...voiceover,
+      scenes: [{ ...voiceover.scenes[0], file: '', durationSec: 2 }],
+    };
+    const t = buildTimeline(script, estimated, 30);
+    expect(t.scenes[0].durationInFrames).toBe(150);
   });
 
   it('works without any voice-over', () => {

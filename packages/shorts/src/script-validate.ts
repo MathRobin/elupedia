@@ -1,4 +1,8 @@
-import type { ShortFacts } from './script-facts.js';
+import {
+  PRONOUNCEABLE_ACRONYMS,
+  groupAcronym,
+  type ShortFacts,
+} from './script-facts.js';
 import type { ShortScript } from './script-schema.js';
 
 /**
@@ -68,6 +72,9 @@ export interface ValidationIssue {
     | 'title_too_long'
     | 'duplicate_scene_id'
     | 'unknown_person'
+    | 'missing_result'
+    | 'spoken_acronym'
+    | 'bloc_not_unanimous'
     | 'missing_source';
   message: string;
 }
@@ -215,6 +222,63 @@ export function validateScript(
         code: 'banned_word',
         message: `Titre : mot évaluatif proscrit « ${raw} »`,
       });
+    }
+  }
+
+  // Le résultat officiel est toujours énoncé en toutes lettres.
+  const spoken = normalizeWord(script.scenes.map((s) => s.voiceover).join(' '));
+  for (const result of new Set(facts.ballots.map((b) => b.result))) {
+    if (!result) continue;
+    const stem = normalizeWord(result.slice(0, -1)); // adopte / rejete
+    if (!new RegExp(`\\b${stem}e?s?\\b`).test(spoken)) {
+      issues.push({
+        code: 'missing_result',
+        message: `La voix doit énoncer le résultat du scrutin (« ${result} »)`,
+      });
+    }
+  }
+
+  // Les sigles de groupes sont pour l'écran : à voix haute, le nom complet.
+  for (const scene of script.scenes) {
+    for (const b of facts.ballots) {
+      for (const g of b.groups) {
+        const acronym = groupAcronym(g.name);
+        if (!acronym || PRONOUNCEABLE_ACRONYMS.includes(acronym)) continue;
+        const escaped = acronym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(
+          `(?<![\\p{L}\\p{N}-])${escaped}(?![\\p{L}\\p{N}-])`,
+          'u',
+        );
+        if (re.test(scene.voiceover)) {
+          issues.push({
+            code: 'spoken_acronym',
+            message: `Scène ${scene.id} : le sigle « ${acronym} » est prononcé, dire « ${g.spokenName} »`,
+          });
+        }
+      }
+    }
+  }
+
+  // « La gauche » / « La droite » : seulement si tous les groupes de ce côté
+  // ont voté pareil (faits.blocs). Pas de généralisation au cas par cas.
+  for (const scene of script.scenes) {
+    const text = normalizeWord(scene.voiceover);
+    for (const [side, word] of [
+      ['left', 'gauche'],
+      ['right', 'droite'],
+    ] as const) {
+      // « La Droite Républicaine » est un groupe, pas le bloc.
+      const re = new RegExp(`\\bla ${word}\\b(?! republicaine)`);
+      if (!re.test(text)) continue;
+      const ok = facts.ballots.every(
+        (b) => b.blocs[side]?.unanimousPosition != null,
+      );
+      if (!ok) {
+        issues.push({
+          code: 'bloc_not_unanimous',
+          message: `Scène ${scene.id} : « la ${word} » n'est employé que si tous les groupes de ce côté ont voté pareil, ce n'est pas le cas dans les données`,
+        });
+      }
     }
   }
 

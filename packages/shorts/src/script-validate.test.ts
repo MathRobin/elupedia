@@ -208,4 +208,129 @@ describe('validateScript', () => {
     };
     expect(validateScript(s, facts)).toEqual([]);
   });
+
+  it('requires the official result to be spoken', () => {
+    const s = script();
+    s.scenes[1].voiceover = '280 voix pour, 260 contre, 10 abstentions.';
+    expect(validateScript(s, facts).map((i) => i.code)).toContain(
+      'missing_result',
+    );
+    s.scenes[1].voiceover = 'Le texte est adopté : 280 voix pour.';
+    expect(validateScript(s, facts).map((i) => i.code)).not.toContain(
+      'missing_result',
+    );
+  });
+
+  it('rejects group acronyms spoken aloud and suggests the full name', () => {
+    const s = script();
+    s.scenes[2].voiceover = 'EPR a voté pour, Dem aussi.';
+    const issues = validateScript(s, facts).filter(
+      (i) => i.code === 'spoken_acronym',
+    );
+    expect(issues).toHaveLength(2);
+    expect(issues[0].message).toContain('Ensemble pour la République');
+    // LFI-NFP et LIOT se prononcent : leur sigle est admis à voix haute.
+    s.scenes[2].voiceover = 'LFI-NFP et LIOT ont voté contre.';
+    const withPronounceable = {
+      ...facts,
+      ballots: [
+        {
+          ...facts.ballots[0],
+          groups: [
+            ...facts.ballots[0].groups,
+            ...[
+              [
+                'La France insoumise - Nouveau Front Populaire (LFI-NFP)',
+                'LFI-NFP',
+              ],
+              [
+                'Libertés, Indépendants, Outre-mer et Territoires (LIOT)',
+                'LIOT',
+              ],
+            ].map(([name, spokenName]) => ({
+              name,
+              spokenName,
+              memberCount: 20,
+              majorityPosition: 'contre',
+              for: 0,
+              against: 15,
+              abstain: 0,
+              absent: 0,
+            })),
+          ],
+        },
+      ],
+    };
+    expect(
+      validateScript(s, withPronounceable).filter(
+        (i) => i.code === 'spoken_acronym',
+      ),
+    ).toEqual([]);
+    // ... alors que SOC ou EPR restent refusés à voix haute.
+    s.scenes[2].voiceover = 'EPR et LFI-NFP ont voté contre.';
+    expect(
+      validateScript(s, withPronounceable).filter(
+        (i) => i.code === 'spoken_acronym',
+      ),
+    ).toHaveLength(1);
+    // Un mot qui contient le sigle n'est pas le sigle.
+    s.scenes[2].voiceover =
+      'Les Démocrates ont voté pour, dans un cadre démocratique.';
+    expect(
+      validateScript(s, facts).filter((i) => i.code === 'spoken_acronym'),
+    ).toEqual([]);
+  });
+
+  it('only allows « la gauche » / « la droite » when the bloc votes as one', () => {
+    const grp = (name: string, spokenName: string, pos: string) => ({
+      name,
+      spokenName,
+      memberCount: 30,
+      majorityPosition: pos,
+      for: 20,
+      against: 5,
+      abstain: 0,
+      absent: 0,
+    });
+    const make = (leftPos: string, rightPos: string) => ({
+      ...facts,
+      ballots: [
+        {
+          ...facts.ballots[0],
+          blocs: {
+            left: {
+              groups: ['a', 'b'],
+              unanimousPosition: leftPos as 'pour' | null,
+            },
+            right: {
+              groups: ['c', 'd'],
+              unanimousPosition: rightPos as 'contre' | null,
+            },
+          },
+          groups: [grp('G', 'g', 'pour')],
+        },
+      ],
+    });
+    const s = script();
+    s.scenes[2].voiceover = 'La gauche a voté pour. La droite a voté contre.';
+    const unanimous = make('pour', 'contre');
+    expect(
+      validateScript(s, unanimous).filter(
+        (i) => i.code === 'bloc_not_unanimous',
+      ),
+    ).toEqual([]);
+
+    const split = make('pour', null as unknown as string);
+    const issues = validateScript(s, split).filter(
+      (i) => i.code === 'bloc_not_unanimous',
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('la droite');
+
+    // Le groupe « Droite Républicaine » n'est pas le bloc de droite.
+    s.scenes[2].voiceover = 'La Droite Républicaine a voté pour.';
+    expect(
+      validateScript(s, split).filter((i) => i.code === 'bloc_not_unanimous'),
+    ).toEqual([]);
+  });
 });

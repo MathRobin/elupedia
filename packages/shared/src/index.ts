@@ -21,3 +21,4 @@ export {
   POLITICAL_GROUP_ORDER,
   politicalGroupRank,
 } from './political-group-order.js';
+export { politicalBloc, type PoliticalBloc } from './political-group-order.js';

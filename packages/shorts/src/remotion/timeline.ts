@@ -4,12 +4,26 @@ import type { WordTiming } from '../words.js';
 import { politicalGroupRank } from '@elupedia/shared/src/political-group-order.js';
 
 /**
- * Découpage temporel du short : une entrée par scène, en frames. La durée
- * d'une scène est le max entre la durée prévue par le script et la durée de
- * sa voix off (plus une respiration), pour ne jamais couper la parole.
+ * Découpage temporel du short : une entrée par scène, en frames.
+ *
+ * - Avec une voix enregistrée, c'est la voix qui commande : la scène dure sa
+ *   prise plus une respiration, avec un plancher par visuel pour laisser le
+ *   temps à l'animation (compteurs, morphing des barres). Une voix plus
+ *   rapide que prévu ne laisse donc pas de blanc.
+ * - Sans voix (démo, sous-titres estimés), la durée prévue par le script sert
+ *   de base, allongée si les sous-titres estimés dépassent.
  */
 
-export const SCENE_TAIL_SEC = 0.5;
+export const SCENE_TAIL_SEC = 0.6;
+
+/** Durée minimale d'une scène voisée, selon ce qu'elle doit montrer. */
+export const MIN_SCENE_SEC: Record<string, number> = {
+  title: 3,
+  hemicycle: 5.5,
+  bars: 6.5,
+  group_focus: 4,
+  source: 4,
+};
 
 export interface TimelineScene {
   scene: Scene;
@@ -35,10 +49,16 @@ export function buildTimeline(
   let from = 0;
   const scenes: TimelineScene[] = script.scenes.map((scene) => {
     const audio = audioById.get(scene.id) ?? null;
-    const seconds = Math.max(
-      scene.durationSec,
-      audio ? audio.durationSec + SCENE_TAIL_SEC : 0,
-    );
+    const voiced = audio !== null && audio.file !== '';
+    const seconds = voiced
+      ? Math.max(
+          audio.durationSec + SCENE_TAIL_SEC,
+          MIN_SCENE_SEC[scene.visual] ?? 3,
+        )
+      : Math.max(
+          scene.durationSec,
+          audio ? audio.durationSec + SCENE_TAIL_SEC : 0,
+        );
     const durationInFrames = Math.max(1, Math.ceil(seconds * fps));
     const entry = { scene, from, durationInFrames, audio };
     from += durationInFrames;

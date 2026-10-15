@@ -8,6 +8,7 @@ import {
   videoShorts,
   videoShortBallots,
 } from '@elupedia/shared';
+import { politicalBloc } from '@elupedia/shared';
 import { CHAMBER_SIZE_FALLBACK, chamberOf } from './select-candidates.js';
 
 /**
@@ -26,12 +27,22 @@ const POSITION_LABELS: Record<string, string> = {
 
 export interface GroupFacts {
   name: string;
+  /** Nom complet, sans le sigle entre parenthèses : celui qu'on prononce. */
+  spokenName: string;
   memberCount: number | null;
   majorityPosition: string;
   for: number;
   against: number;
   abstain: number;
   absent: number;
+}
+
+/** Vote commun des groupes d'un côté de l'hémicycle. */
+export interface BlocFacts {
+  /** Noms prononçables des groupes du bloc présents dans ce scrutin. */
+  groups: string[];
+  /** Position majoritaire commune à tous ces groupes, null s'ils divergent. */
+  unanimousPosition: 'pour' | 'contre' | 'abstention' | null;
 }
 
 export interface BallotFacts {
@@ -75,6 +86,8 @@ export interface BallotFacts {
   /** Part de l'effectif ayant exprimé un vote, en %. */
   participationPercent: number;
   groups: GroupFacts[];
+  /** « La gauche » / « La droite » : seulement si ≥ 2 groupes de ce côté. */
+  blocs: { left: BlocFacts | null; right: BlocFacts | null };
   mostDividedGroup: {
     name: string;
     majorityPosition: string;
@@ -86,6 +99,43 @@ export interface BallotFacts {
 export interface ShortFacts {
   shortId: string;
   ballots: BallotFacts[];
+}
+
+/**
+ * Sigles qui se prononcent naturellement à voix haute : on peut les dire tels
+ * quels (et ils raccourcissent le texte). Tous les autres (SOC, HOR, GDR,
+ * EPR…) sont imprononçables et se disent par le nom complet.
+ */
+export const PRONOUNCEABLE_ACRONYMS: readonly string[] = ['LFI-NFP', 'LIOT'];
+
+/** Ce qu'on dit à voix haute : sigle s'il se prononce, sinon nom complet. */
+export function spokenGroupName(name: string): string {
+  const acronym = name.match(/\(([^)]+)\)\s*$/)?.[1];
+  if (acronym && PRONOUNCEABLE_ACRONYMS.includes(acronym)) return acronym;
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name;
+}
+
+export function groupAcronym(name: string): string | null {
+  return name.match(/\(([^)]+)\)\s*$/)?.[1] ?? null;
+}
+
+export function buildBlocFacts(
+  groups: GroupFacts[],
+  side: 'left' | 'right',
+): BlocFacts | null {
+  const members = groups.filter(
+    (g) => politicalBloc(g.name) === side && (g.memberCount ?? 0) > 0,
+  );
+  if (members.length < 2) return null;
+  const positions = new Set(members.map((g) => g.majorityPosition));
+  const only = positions.size === 1 ? [...positions][0] : null;
+  return {
+    groups: members.map((g) => g.spokenName),
+    unanimousPosition:
+      only === 'pour' || only === 'contre' || only === 'abstention'
+        ? only
+        : null,
+  };
 }
 
 export function formatDateLabel(isoDate: string): string {
@@ -144,6 +194,7 @@ export function buildBallotFacts(input: {
   const groups: GroupFacts[] = input.groups
     .map((g) => ({
       name: g.groupName,
+      spokenName: spokenGroupName(g.groupName),
       memberCount: g.memberCount,
       majorityPosition: POSITION_LABELS[g.position] ?? g.position,
       for: g.votesFor,
@@ -202,6 +253,10 @@ export function buildBallotFacts(input: {
     },
     participationPercent: seats > 0 ? Math.round((100 * expressed) / seats) : 0,
     groups,
+    blocs: {
+      left: buildBlocFacts(groups, 'left'),
+      right: buildBlocFacts(groups, 'right'),
+    },
     mostDividedGroup,
     url: `${SITE_URL}/scrutins/${input.id}`,
   };
