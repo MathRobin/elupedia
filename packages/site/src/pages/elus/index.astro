@@ -1,4 +1,13 @@
 ---
+/**
+ * Annuaire des élus (route /elus).
+ *
+ * Page prérendue au build : la liste complète (élus en mandat et anciens
+ * mandataires) est chargée en une requête puis filtrée/paginée côté client par
+ * le composant React OfficialsList. Une carte par couple (élu, type de mandat).
+ * Le tri SQL fait partie de la règle de déduplication : ne pas le modifier
+ * sans relire le bloc correspondant.
+ */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import OfficialsList from '../../components/OfficialsList';
 import { getDb } from '../../lib/db.js';
@@ -20,11 +29,17 @@ type Official = {
 };
 
 let officialsList: Official[] = [];
+// Message d'erreur affiché à la place de la liste si la base est injoignable
+// au build (le site reste générable, sans annuaire).
 let error: string | null = null;
 
 try {
   const db = getDb();
-  const rows = await db
+  // Une ligne par couple (élu, mandat), tous mandats confondus, anciens inclus.
+  // L'ordre place le mandat actif (end_date NULL) avant les mandats terminés,
+  // puis du plus récent au plus ancien : c'est ce qui fait que la déduplication
+  // ci-dessous conserve le mandat le plus pertinent par type.
+  const officialMandateRows = await db
     .select({
       id: officials.id,
       slug: officials.slug,
@@ -37,14 +52,18 @@ try {
       politicalGroup: mandates.politicalGroup,
       mandateType: mandates.type,
       endDate: mandates.endDate,
+      // Civilité : chemin du JSON open data de l'AN, sinon champ « Qualite »
+      // du RNE/Sénat. Sert uniquement à l'accord féminin des libellés.
       civ: sql<string>`COALESCE("officials"."full"->'acteur'->'etatCivil'->'ident'->>'civ', "officials"."full"->>'Qualite')`,
     })
     .from(officials)
     .innerJoin(mandates, eq(mandates.officialId, officials.id))
     .orderBy(officials.lastName, sql`${mandates.endDate} nulls first`, sql`${mandates.startDate} desc`);
 
-  const seen = new Set<string>();
-  officialsList = rows
+  // Déduplication : une carte par (élu, type de mandat). Un ancien député
+  // devenu sénateur apparaît donc deux fois, mais pas un député réélu.
+  const seenOfficialMandateKeys = new Set<string>();
+  officialsList = officialMandateRows
     .map((r) => ({
       id: r.id,
       slug: r.slug,
@@ -60,8 +79,8 @@ try {
     }))
     .filter((o) => {
       const key = `${o.id}-${o.mandateType}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
+      if (seenOfficialMandateKeys.has(key)) return false;
+      seenOfficialMandateKeys.add(key);
       return true;
     });
 } catch (e) {
@@ -77,6 +96,7 @@ const breadcrumbJsonLd = {
   ],
 };
 
+// Seules les 50 premières cartes entrent dans le JSON-LD (taille de page).
 const itemListJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ItemList',

@@ -1,3 +1,4 @@
+// Tests de senat-groupes : conversion des dates Sénat et dates nulles.
 import { describe, it, expect, vi } from 'vitest';
 import { fetchSenatGroupes } from './senat-groupes.js';
 

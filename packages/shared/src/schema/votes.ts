@@ -1,3 +1,11 @@
+/**
+ * Table `votes` : position d'un élu sur un scrutin de `ballots`.
+ *
+ * Alimentée par les upserts de scrutins AN, Sénat et Parlement européen,
+ * avec traduction des libellés source en anglais (`votePositionEnum`).
+ * Pour le Parlement européen, seules les positions publiées (pour/contre/
+ * abstention) sont enregistrées ; aucune ligne 'absent' n'est déduite.
+ */
 import {
   pgTable,
   uuid,
@@ -24,6 +32,8 @@ export const votes = pgTable('votes', {
     .notNull()
     .references(() => officials.id),
   position: varchar('position', { length: 20 }).notNull(),
+  // Numéro de siège dans l'hémicycle (`numPlace` AN), pour la
+  // visualisation ; null hors AN.
   seatNumber: integer('seat_number'),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()

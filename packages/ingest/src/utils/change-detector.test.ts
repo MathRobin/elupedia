@@ -1,3 +1,7 @@
+/**
+ * Tests de utils/change-detector.ts : agrégation des StepResult et écriture
+ * du rapport JSON (fichier temporaire supprimé après chaque test).
+ */
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';

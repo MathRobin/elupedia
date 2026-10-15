@@ -1,3 +1,6 @@
+// Tests de scrape-selection : le module est testé par inspection de son source
+// (pas de base de données en test) — on vérifie que la requête SQL conserve
+// ses filtres, son tri et sa limite.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

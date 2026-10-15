@@ -1,3 +1,8 @@
+/**
+ * Tests de dila-mairies.ts : le fetch simulé ne renvoie des enregistrements
+ * que pour la partition « 01 » (les autres préfixes répondent vide), avec les
+ * champs JSON imbriqués au format réel de l'API.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import { fetchDilaMairies } from './dila-mairies.js';
 

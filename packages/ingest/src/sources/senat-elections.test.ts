@@ -1,6 +1,8 @@
+// Tests de senat-elections : classeur XLSX construit en mémoire avec les en-têtes
+// réels du fichier ministériel (feuilles MAJ - T1 / MAJ - T2).
 import { describe, it, expect, vi } from 'vitest';
 import * as XLSX from 'xlsx';
-import { fetchSenatElections } from './senat-elections.js';
+import { fetchSenatElectedResults } from './senat-elections.js';
 
 vi.mock('../logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -124,7 +126,7 @@ describe('Sénat elections client', () => {
       ],
     });
 
-    const result = await fetchSenatElections('2023', mockFetch(buf));
+    const result = await fetchSenatElectedResults('2023', mockFetch(buf));
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
@@ -213,7 +215,7 @@ describe('Sénat elections client', () => {
       ],
     });
 
-    const result = await fetchSenatElections('2023', mockFetch(buf));
+    const result = await fetchSenatElectedResults('2023', mockFetch(buf));
 
     expect(result).toHaveLength(1);
     expect(result[0].round).toBe(2);
@@ -221,7 +223,7 @@ describe('Sénat elections client', () => {
   });
 
   it('throws on unknown year', async () => {
-    await expect(fetchSenatElections('1900')).rejects.toThrow(
+    await expect(fetchSenatElectedResults('1900')).rejects.toThrow(
       'No election data configured for year 1900',
     );
   });
@@ -232,7 +234,7 @@ describe('Sénat elections client', () => {
       status: 500,
     }) as unknown as typeof fetch;
 
-    await expect(fetchSenatElections('2023', fakeFetch)).rejects.toThrow(
+    await expect(fetchSenatElectedResults('2023', fakeFetch)).rejects.toThrow(
       'Sénat elections 2023 error: 500',
     );
   });

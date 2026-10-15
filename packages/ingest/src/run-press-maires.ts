@@ -1,3 +1,22 @@
+/**
+ * Orchestration de l'ingestion presse « tous élus » : à chaque run, un lot
+ * des N élus vivants vérifiés le moins récemment (`officials.press_checked_at`,
+ * jamais vérifiés en premier), une recherche Google Actualités chacun, puis
+ * upsert des articles. Le nom historique « maires » est resté alors que le
+ * périmètre couvre tous les mandats.
+ *
+ * Convention du package : les `run-*.ts` portent la logique testable — pas
+ * de parsing d'arguments, pas de process.exit() — et sont lancés par le
+ * `main-*.ts` du même nom (`yarn --cwd packages/ingest ingest:press:maires`).
+ * Ouvre sa propre connexion DB via createDb(). Chaque étape passe par
+ * runStep() : fetch + upsert rejoués en cas d'échec, erreur consignée dans
+ * le StepResult sans interrompre les étapes suivantes.
+ *
+ * Filtres optionnels (validés par le main) : code département et/ou type de
+ * mandat, qui restreignent aux élus ayant un mandat *en cours* correspondant.
+ * Sans filtre, la sélection se fait sur `officials` seule (un élu sans
+ * mandat en base est quand même traité).
+ */
 import {
   createDb,
   officials,
@@ -11,14 +30,23 @@ import { type StepResult, runStep, printSummary } from './run-helpers.js';
 import { fetchPressMentions } from './sources/google-news.js';
 import { upsertPressMentions } from './upsert/press-mentions.js';
 
+/** Taille du lot par défaut (≈ 1500 × 3 s ≈ 75 min par run). Surchargeable via --limit. */
 export const DEFAULT_BATCH_SIZE = 1500;
+// Pause entre deux recherches Google Actualités (flux RSS non officiel,
+// bloque rapidement les rafales).
 const DELAY_MS = 3000;
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function runPressMaires(
+/**
+ * Lance l'ingestion presse d'un lot d'élus. `departmentCode` est un code
+ * INSEE (ex. « 94 », « 2A ») déjà validé contre DEPARTMENT_NAMES ;
+ * `mandateType` une valeur de `mandates.type`. Écrit en base, y compris
+ * `press_checked_at` pour chaque élu du lot.
+ */
+export async function runPressAllOfficials(
   batchSize: number = DEFAULT_BATCH_SIZE,
   departmentCode?: string,
   mandateType?: string,
@@ -28,12 +56,18 @@ export async function runPressMaires(
 
   logger.info('=== Press ingestion (all officials) started ===\n');
 
+  // Deux requêtes distinctes : avec filtre, il faut joindre `mandates`
+  // (selectDistinct, car un élu peut cumuler plusieurs mandats qualifiants) ;
+  // sans filtre, on reste sur `officials` pour ne pas exclure les élus sans
+  // mandat en base. Dans les deux cas, « nulls first » = jamais vérifiés
+  // en tête de file.
   let batch;
   if (departmentCode || mandateType) {
     const conditions = [isNull(officials.deathDate), isNull(mandates.endDate)];
     const filterLabels: string[] = [];
 
     if (departmentCode) {
+      // mandates.department stocke le libellé, pas le code.
       const departmentName = DEPARTMENT_NAMES[departmentCode];
       conditions.push(ilike(mandates.department, departmentName));
       filterLabels.push(`${departmentName} (${departmentCode})`);
@@ -93,10 +127,12 @@ export async function runPressMaires(
             official.firstName,
             official.lastName,
           );
-          const r = await upsertPressMentions(db, mentions);
-          totalCreated += r.created;
-          totalUpdated += r.updated;
-          logger.info(`    → ${mentions.length} articles, ${r.created} new`);
+          const upsert = await upsertPressMentions(db, mentions);
+          totalCreated += upsert.created;
+          totalUpdated += upsert.updated;
+          logger.info(
+            `    → ${mentions.length} articles, ${upsert.created} new`,
+          );
         } catch (err) {
           logger.warn(
             `    → error: ${err instanceof Error ? err.message : String(err)}`,

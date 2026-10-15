@@ -1,4 +1,12 @@
 ---
+/**
+ * Liste des scrutins (route /votes).
+ *
+ * Page prérendue au build : tous les scrutins (AN, Sénat, Parlement européen)
+ * avec leurs décomptes pour/contre/abstention/absent, filtrés et paginés côté
+ * client par le composant React BallotsList. Chaque entrée pointe vers
+ * /scrutins/[id].
+ */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BallotsList from '../../components/BallotsList';
 import { getDb } from '../../lib/db.js';
@@ -7,7 +15,9 @@ import { eq, sql } from 'drizzle-orm';
 
 const db = getDb();
 
-const rows = await db
+// Un scrutin par ligne avec le décompte par position, agrégé en SQL. Le
+// leftJoin garde les scrutins sans vote individuel ingéré (compteurs à 0).
+const ballotRows = await db
   .select({
     id: ballots.id,
     title: ballots.title,
@@ -23,7 +33,8 @@ const rows = await db
   .groupBy(ballots.id, ballots.title, ballots.date, ballots.type)
   .orderBy(sql`${ballots.date} desc`);
 
-const ballotsList = rows.map((r) => ({
+// Les count(...) filter arrivent en chaîne via le driver : conversion explicite.
+const ballotsList = ballotRows.map((r) => ({
   id: r.id,
   title: r.title,
   date: r.date,
@@ -43,6 +54,7 @@ const breadcrumbJsonLd = {
   ],
 };
 
+// Seuls les 50 scrutins les plus récents entrent dans le JSON-LD (taille de page).
 const itemListJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ItemList',

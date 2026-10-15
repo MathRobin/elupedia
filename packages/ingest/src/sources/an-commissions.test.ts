@@ -1,3 +1,7 @@
+/**
+ * Tests de an-commissions.ts : ZIP AMO30 fabriqué en mémoire (adm-zip) avec
+ * acteurs et organes minimaux ; vérifie le mappage des codes d'organe.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import { fetchCommittees, CommitteeItemSchema } from './an-commissions.js';
 import { DATASET_URL } from './assemblee-nationale.js';
@@ -20,12 +24,12 @@ function makeActeurJson(
         infoNaissance: { dateNais: '1975-03-14' },
       },
       mandats: {
-        mandat: mandats.map((m, i) => ({
+        mandat: mandats.map((mandat, i) => ({
           uid: `PM${i}`,
-          typeOrgane: m.typeOrgane,
-          dateDebut: m.dateDebut,
-          dateFin: m.dateFin ?? null,
-          organes: m.organeRef ? { organeRef: m.organeRef } : null,
+          typeOrgane: mandat.typeOrgane,
+          dateDebut: mandat.dateDebut,
+          dateFin: mandat.dateFin ?? null,
+          organes: mandat.organeRef ? { organeRef: mandat.organeRef } : null,
         })),
       },
     },
@@ -48,16 +52,16 @@ function buildZipBuffer(
   organes: { uid: string; data: unknown }[],
 ): Buffer {
   const zip = new AdmZip();
-  for (const a of acteurs) {
+  for (const acteur of acteurs) {
     zip.addFile(
-      `json/acteur/${a.uid}.json`,
-      Buffer.from(JSON.stringify(a.data)),
+      `json/acteur/${acteur.uid}.json`,
+      Buffer.from(JSON.stringify(acteur.data)),
     );
   }
-  for (const o of organes) {
+  for (const organe of organes) {
     zip.addFile(
-      `json/organe/${o.uid}.json`,
-      Buffer.from(JSON.stringify(o.data)),
+      `json/organe/${organe.uid}.json`,
+      Buffer.from(JSON.stringify(organe.data)),
     );
   }
   return zip.toBuffer();

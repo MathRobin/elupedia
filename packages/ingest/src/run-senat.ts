@@ -1,3 +1,19 @@
+/**
+ * Orchestration de l'ingestion Sénat : 9 étapes (sénateurs et mandats,
+ * scrutins, groupes politiques, collaborateurs, adresses, résultats des
+ * sénatoriales, commissions et délégations, activité parlementaire, réseaux
+ * sociaux), chacune = une source open data Sénat + l'upsert correspondant.
+ *
+ * Convention du package : les `run-*.ts` portent la logique testable — pas
+ * de parsing d'arguments, pas de process.exit() — et sont lancés par le
+ * `main-*.ts` du même nom (`yarn --cwd packages/ingest ingest:senat`) et par run.ts (run complet).
+ * Ouvre sa propre connexion DB via createDb(). Chaque étape passe par
+ * runStep() : fetch + upsert rejoués en cas d'échec, erreur consignée dans
+ * le StepResult sans interrompre les étapes suivantes.
+ *
+ * Les scrutins sont publiés par session parlementaire (une archive par
+ * année) : SENAT_VOTE_SESSIONS doit être étendue à chaque nouvelle session.
+ */
 import { createDb } from '@elupedia/shared';
 
 import { logger } from './logger.js';
@@ -14,8 +30,8 @@ import { diffSenatStaffers } from './upsert/senat-staffers-diff.js';
 import { fetchSenatAdresses } from './sources/senat-adresses.js';
 import { upsertSenatAddresses } from './upsert/senat-addresses.js';
 import {
-  fetchSenatElections,
-  fetchSenatorialElections,
+  fetchSenatElectedResults,
+  fetchSenatDepartementResults,
 } from './sources/senat-elections.js';
 import { upsertSenatElectoralResults } from './upsert/senat-electoral-results.js';
 import { upsertSenatorialElections } from './upsert/senatorial-elections.js';
@@ -26,6 +42,19 @@ import { upsertSenatCommittees } from './upsert/senat-committees.js';
 import { fetchSenatSocialLinks } from './sources/senat-reseaux-sociaux.js';
 import { upsertSenatSocialLinks } from './upsert/senat-social-links.js';
 
+// Sessions parlementaires dont on ingère les scrutins (une archive par
+// session côté Sénat). À étendre chaque année.
+const SENAT_VOTE_SESSIONS = ['2020', '2021', '2022', '2023', '2024', '2025'];
+
+// Dernier renouvellement sénatorial dont les résultats sont publiés en open
+// data (série 1, septembre 2023). Le renouvellement 2026 passe par
+// run-senat-resultats.ts.
+const SENAT_ELECTIONS_YEAR = '2023';
+
+/**
+ * Lance les étapes Sénat activées (toutes si `enabledSteps` est absent, voir
+ * SENAT_STEP_NAMES dans cli.ts). Écrit en base.
+ */
 export async function runSenat(
   enabledSteps?: Set<string>,
 ): Promise<StepResult[]> {
@@ -42,11 +71,12 @@ export async function runSenat(
         const senateurs = await withRetry(() => fetchSenateurs(), {
           source: 'senat',
         });
-        const r = await upsertSenators(db, senateurs);
+        const upsert = await upsertSenators(db, senateurs);
+        // created = fiches officials touchées, updated = mandats touchés.
         return {
           source: 'senateurs',
-          created: r.officials,
-          updated: r.mandates,
+          created: upsert.officials,
+          updated: upsert.mandates,
           durationMs: 0,
         };
       }),
@@ -57,17 +87,17 @@ export async function runSenat(
     logger.info('[2/9] Senate votes...');
     results.push(
       await runStep('senat-votes', async () => {
-        const sessions = ['2020', '2021', '2022', '2023', '2024', '2025'];
         let totalBallots = 0;
         let totalVotes = 0;
-        for (const session of sessions) {
+        for (const session of SENAT_VOTE_SESSIONS) {
           const scrutins = await withRetry(() => fetchSenatScrutins(session), {
             source: `senat-scrutins-${session}`,
           });
-          const r = await upsertSenatVotes(db, scrutins);
-          totalBallots += r.ballots;
-          totalVotes += r.votes;
+          const upsert = await upsertSenatVotes(db, scrutins);
+          totalBallots += upsert.ballots;
+          totalVotes += upsert.votes;
         }
+        // created = scrutins, updated = votes individuels.
         return {
           source: 'senat-votes',
           created: totalBallots,
@@ -85,11 +115,11 @@ export async function runSenat(
         const groupes = await withRetry(() => fetchSenatGroupes(), {
           source: 'senat-groupes',
         });
-        const r = await upsertSenatAffiliations(db, groupes);
+        const upsert = await upsertSenatAffiliations(db, groupes);
         return {
           source: 'senat-affiliations',
-          created: r.created,
-          updated: r.updated,
+          created: upsert.created,
+          updated: upsert.updated,
           durationMs: 0,
         };
       }),
@@ -100,14 +130,16 @@ export async function runSenat(
     logger.info('[4/9] Senate collaborateurs...');
     results.push(
       await runStep('senat-collaborateurs', async () => {
-        const collabs = await withRetry(() => fetchSenatCollaborateurs(), {
-          source: 'senat-collaborateurs',
-        });
-        const r = await diffSenatStaffers(db, collabs);
+        const collaborateurs = await withRetry(
+          () => fetchSenatCollaborateurs(),
+          { source: 'senat-collaborateurs' },
+        );
+        const diff = await diffSenatStaffers(db, collaborateurs);
+        // updated = contrats clos (date de fin posée).
         return {
           source: 'senat-collaborateurs',
-          created: r.created,
-          updated: r.ended,
+          created: diff.created,
+          updated: diff.ended,
           durationMs: 0,
         };
       }),
@@ -118,14 +150,14 @@ export async function runSenat(
     logger.info('[5/9] Senate addresses...');
     results.push(
       await runStep('senat-adresses', async () => {
-        const addr = await withRetry(() => fetchSenatAdresses(), {
+        const adresses = await withRetry(() => fetchSenatAdresses(), {
           source: 'senat-adresses',
         });
-        const r = await upsertSenatAddresses(db, addr);
+        const upsert = await upsertSenatAddresses(db, adresses);
         return {
           source: 'senat-adresses',
-          created: r.created,
-          updated: r.updated,
+          created: upsert.created,
+          updated: upsert.updated,
           durationMs: 0,
         };
       }),
@@ -136,20 +168,28 @@ export async function runSenat(
     logger.info('[6/9] Senate electoral results...');
     results.push(
       await runStep('senat-elections', async () => {
-        const elec = await withRetry(() => fetchSenatElections('2023'), {
-          source: 'senat-elections',
-        });
-        const r = await upsertSenatElectoralResults(db, elec);
+        // Deux jeux de données pour le même scrutin : le score des élus
+        // (electoral_results, rattaché à la fiche) et le détail complet par
+        // circonscription avec tous les candidats (senatorial_elections).
+        const electedResults = await withRetry(
+          () => fetchSenatElectedResults(SENAT_ELECTIONS_YEAR),
+          { source: 'senat-elections' },
+        );
+        const electedUpsert = await upsertSenatElectoralResults(
+          db,
+          electedResults,
+        );
 
-        const full = await withRetry(() => fetchSenatorialElections('2023'), {
-          source: 'senat-elections-full',
-        });
-        const r2 = await upsertSenatorialElections(db, full);
+        const fullElections = await withRetry(
+          () => fetchSenatDepartementResults(SENAT_ELECTIONS_YEAR),
+          { source: 'senat-elections-full' },
+        );
+        const fullUpsert = await upsertSenatorialElections(db, fullElections);
 
         return {
           source: 'senat-elections',
-          created: r.created + r2.elections,
-          updated: r.updated + r2.candidates,
+          created: electedUpsert.created + fullUpsert.elections,
+          updated: electedUpsert.updated + fullUpsert.candidates,
           durationMs: 0,
         };
       }),
@@ -160,14 +200,14 @@ export async function runSenat(
     logger.info('[7/9] Senate commissions & delegations...');
     results.push(
       await runStep('senat-commissions', async () => {
-        const comms = await withRetry(() => fetchSenatCommissions(), {
+        const commissions = await withRetry(() => fetchSenatCommissions(), {
           source: 'senat-commissions',
         });
-        const r = await upsertSenatCommittees(db, comms);
+        const upsert = await upsertSenatCommittees(db, commissions);
         return {
           source: 'senat-commissions',
-          created: r.created,
-          updated: r.updated,
+          created: upsert.created,
+          updated: upsert.updated,
           durationMs: 0,
         };
       }),
@@ -181,11 +221,11 @@ export async function runSenat(
         const activities = await withRetry(() => fetchSenatActivities(), {
           source: 'senat-activite',
         });
-        const r = await upsertSenatParliamentaryActivity(db, activities);
+        const upsert = await upsertSenatParliamentaryActivity(db, activities);
         return {
           source: 'senat-activite',
-          created: r.created,
-          updated: r.updated,
+          created: upsert.created,
+          updated: upsert.updated,
           durationMs: 0,
         };
       }),
@@ -199,11 +239,11 @@ export async function runSenat(
         const links = await withRetry(() => fetchSenatSocialLinks(), {
           source: 'senat-social-links',
         });
-        const r = await upsertSenatSocialLinks(db, links);
+        const upsert = await upsertSenatSocialLinks(db, links);
         return {
           source: 'senat-social-links',
-          created: r.created,
-          updated: r.updated,
+          created: upsert.created,
+          updated: upsert.updated,
           durationMs: 0,
         };
       }),

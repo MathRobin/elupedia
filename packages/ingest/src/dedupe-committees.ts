@@ -12,6 +12,12 @@ import { logger } from './logger.js';
  * devenues identiques. Les requêtes sont ensemblistes : la table compte des
  * dizaines de milliers de lignes, et les traiter une par une prendrait des
  * heures sur le driver HTTP de Neon.
+ *
+ * Lancé par main-dedupe-committees.ts (`yarn --cwd packages/ingest
+ * dedupe:committees [--dry-run]`). Trois requêtes : un comptage préalable
+ * (affiché, et renvoyé comme bilan), la fusion sur la ligne conservée, puis
+ * la suppression des lignes redondantes. Non transactionnel (driver HTTP) :
+ * relançable sans dommage, les requêtes sont idempotentes.
  */
 
 /**
@@ -20,6 +26,7 @@ import { logger } from './logger.js';
  */
 const ABBREVIATION_SUFFIX = String.raw`\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)$`;
 
+/** Bilan du dédoublonnage ; zéros en mode dry-run. */
 export interface DedupeCounts {
   renamed: number;
   deleted: number;
@@ -56,6 +63,11 @@ const canonicalNames = sql`
   ) stripped on true
 `;
 
+/**
+ * Renomme puis fusionne les adhésions en double. En `dryRun`, se contente
+ * d'afficher ce qui serait fait. Les compteurs renvoyés viennent du comptage
+ * préalable, pas du nombre de lignes réellement affectées.
+ */
 export async function dedupeCommittees(
   db: NeonHttpDatabase,
   { dryRun = false }: { dryRun?: boolean } = {},
@@ -83,8 +95,10 @@ export async function dedupeCommittees(
 
   if (dryRun) return { renamed: 0, deleted: 0 };
 
-  // Une adhésion en cours prime sur une adhésion close, et l'uid AN de l'une
-  // des écritures est reporté sur la ligne conservée.
+  // Ligne conservée par groupe (official, nom canonique, type, début) : celle
+  // qui a un uid AN, sinon la plus ancienne. Une adhésion en cours prime sur
+  // une adhésion close, et l'uid AN de l'une des écritures est reporté sur
+  // la ligne conservée.
   await db.execute(sql`
     with canonical as (${canonicalNames}),
     merged as (

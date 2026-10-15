@@ -1,3 +1,7 @@
+/**
+ * Tests de parlement-europeen-questions.ts : réponses JSON-LD simulées au
+ * format réel observé sur l'API.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import {
   fetchQuestionsListPage,

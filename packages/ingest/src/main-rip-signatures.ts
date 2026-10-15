@@ -1,3 +1,14 @@
+/**
+ * Point d'entrée CLI de l'ingestion des signatures de parlementaires aux
+ * propositions de référendum d'initiative partagée (RIP), publiées par le
+ * Conseil constitutionnel.
+ *
+ * Commande : `yarn --cwd packages/ingest ingest:rip`
+ *
+ * Exception à la convention main/run du package : la logique est ici, sans
+ * `run-rip-signatures.ts`. Une proposition en erreur est loguée et n'empêche
+ * pas les suivantes ; le code de sortie reste 0 dans ce cas.
+ */
 import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
 import {

@@ -1,15 +1,36 @@
+/**
+ * Tiroir latéral détaillant une activité parlementaire d'un député
+ * (question écrite ou orale, amendement, rapport) : texte de la question,
+ * réponse du gouvernement, ministère, métadonnées AN.
+ *
+ * Rendu une seule fois sur `pages/elus/[slug]/index.astro` avec
+ * `client:idle` : sans contenu tant qu'il n'est pas ouvert. Il s'ouvre sur
+ * l'événement `open-question-detail` dispatché sur `window` par la liste
+ * d'activités de la page, dont `detail` est un `QuestionDetail` partiel
+ * (sans textes). Les textes sont alors chargés depuis `/api/question-text`
+ * (ils sont trop volumineux pour être injectés dans la page) et fusionnés
+ * dans l'état.
+ *
+ * `QuestionDetailDrawer.test.ts` vérifie la présence de chaînes exactes dans
+ * ce fichier (`stripHtml`, `setLoading`, libellés…) : les garder telles quelles.
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 export interface QuestionDetail {
   officialId: string;
+  /** Clé de `ACTIVITY_TYPE_LABELS`. */
   type: string;
   title: string;
+  /** Date ISO. */
   date: string;
+  /** Clé de `STATUS_LABELS` (amendements), ou null. */
   status: string | null;
+  /** HTML brut de l'AN, nettoyé par `stripHtml` à l'affichage. */
   questionText: string | null;
   responseText: string | null;
   responseDate: string | null;
+  /** Ministère interrogé. */
   governmentComments: string | null;
   sourceUrl: string | null;
   rubrique: string | null;
@@ -17,27 +38,48 @@ export interface QuestionDetail {
   questionNumber: number | null;
 }
 
-const activityTypeLabels: Record<string, string> = {
+/** Champs renvoyés par `/api/question-text`, fusionnés dans `QuestionDetail`. */
+type QuestionTextResponse = {
+  questionText: string | null;
+  responseText: string | null;
+  sourceUrl: string | null;
+  rubrique: string | null;
+  teteAnalyse: string | null;
+  questionNumber: number | null;
+};
+
+const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   written_question: 'Question écrite',
   oral_question: 'Question orale',
   amendment: 'Amendement',
   report: 'Rapport',
 };
 
-const statusLabels: Record<string, string> = {
+const STATUS_LABELS: Record<string, string> = {
   adopted: 'Adopté',
   rejected: 'Rejeté',
   withdrawn: 'Retiré',
 };
 
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('fr-FR', {
+/**
+ * Durée de l'animation de fermeture (doit rester égale au `duration-300`
+ * Tailwind du panneau) : le contenu n'est vidé qu'après.
+ */
+const CLOSE_ANIMATION_MS = 300;
+
+function formatDate(isoDate: string): string {
+  return new Date(isoDate).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
 }
 
+/**
+ * Convertit le HTML des questions AN en texte brut multi-lignes : les
+ * <br>/<p> deviennent des sauts de ligne, les autres balises sont retirées
+ * et les entités les plus fréquentes décodées.
+ */
 function stripHtml(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
@@ -58,19 +100,22 @@ export default function QuestionDetailDrawer() {
   const [question, setQuestion] = useState<QuestionDetail | null>(null);
   const [open, setOpen] = useState(false);
   const trapRef = useFocusTrap(open);
+  // Chargement des textes depuis l'API en cours.
   const [loading, setLoading] = useState(false);
 
   const close = useCallback(() => {
     setOpen(false);
-    setTimeout(() => setQuestion(null), 300);
+    setTimeout(() => setQuestion(null), CLOSE_ANIMATION_MS);
   }, []);
 
   useEffect(() => {
-    function handler(e: Event) {
+    function openFromEvent(e: Event) {
       const detail = (e as CustomEvent<QuestionDetail>).detail;
       setQuestion(detail);
       setOpen(true);
 
+      // L'API identifie la question par (élu, type, titre, date) : pas d'id
+      // stable côté page.
       const params = new URLSearchParams({
         officialId: detail.officialId,
         type: detail.type,
@@ -79,40 +124,33 @@ export default function QuestionDetailDrawer() {
       });
       setLoading(true);
       fetch(`/api/question-text?${params}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then(
-          (
-            data: {
-              questionText: string | null;
-              responseText: string | null;
-              sourceUrl: string | null;
-              rubrique: string | null;
-              teteAnalyse: string | null;
-              questionNumber: number | null;
-            } | null,
-          ) => {
-            if (data) {
-              setQuestion((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      questionText: data.questionText,
-                      responseText: data.responseText,
-                      sourceUrl: data.sourceUrl,
-                      rubrique: data.rubrique,
-                      teteAnalyse: data.teteAnalyse,
-                      questionNumber: data.questionNumber,
-                    }
-                  : prev,
-              );
-            }
-          },
-        )
-        .catch(() => {})
+        .then((response) => (response.ok ? response.json() : null))
+        .then((texts: QuestionTextResponse | null) => {
+          if (texts) {
+            // `prev` peut être null si le tiroir a été fermé entre-temps.
+            setQuestion((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    questionText: texts.questionText,
+                    responseText: texts.responseText,
+                    sourceUrl: texts.sourceUrl,
+                    rubrique: texts.rubrique,
+                    teteAnalyse: texts.teteAnalyse,
+                    questionNumber: texts.questionNumber,
+                  }
+                : prev,
+            );
+          }
+        })
+        .catch(() => {
+          /* Échec réseau : on garde l'affichage « Texte non disponible ». */
+        })
         .finally(() => setLoading(false));
     }
-    window.addEventListener('open-question-detail', handler);
-    return () => window.removeEventListener('open-question-detail', handler);
+    window.addEventListener('open-question-detail', openFromEvent);
+    return () =>
+      window.removeEventListener('open-question-detail', openFromEvent);
   }, []);
 
   useEffect(() => {
@@ -125,6 +163,8 @@ export default function QuestionDetailDrawer() {
 
   if (!question && !open) return null;
 
+  // Seules les questions ont un texte et une réponse ; amendements et
+  // rapports n'affichent que le titre et les métadonnées.
   const isQuestion =
     question?.type === 'written_question' || question?.type === 'oral_question';
 
@@ -146,7 +186,7 @@ export default function QuestionDetailDrawer() {
             <div className="flex items-center gap-3">
               <span className="inline-flex items-center rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200/60 ring-inset dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-500/30">
                 {question
-                  ? (activityTypeLabels[question.type] ?? question.type)
+                  ? (ACTIVITY_TYPE_LABELS[question.type] ?? question.type)
                   : ''}
               </span>
               {question?.status && (
@@ -159,7 +199,7 @@ export default function QuestionDetailDrawer() {
                         : 'bg-yellow-50 text-yellow-700 ring-yellow-200/60'
                   }`}
                 >
-                  {statusLabels[question.status] ?? question.status}
+                  {STATUS_LABELS[question.status] ?? question.status}
                 </span>
               )}
             </div>

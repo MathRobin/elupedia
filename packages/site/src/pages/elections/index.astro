@@ -1,4 +1,13 @@
 ---
+/**
+ * Liste des élections référencées (route /elections).
+ *
+ * Rendu à la demande (SSR, `prerender = false`) : agrège les tables
+ * municipal_elections, legislative_elections et senatorial_elections en une
+ * liste d'ElectionEvent (date, tour, nombre de candidats et de territoires)
+ * affichée par le composant React ElectionsList. Chaque événement pointe vers
+ * /elections/[type]/[id].
+ */
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
@@ -15,14 +24,22 @@ import type { ElectionEvent } from '../../lib/election-types.js';
 
 const db = getDb();
 
+// Les election_id municipaux et législatifs suivent le format de l'ingestion
+// OVH : `YYYY..._t1` / `YYYY..._t2` (année en tête, tour en suffixe). Sans
+// suffixe de tour, on considère le 1er tour.
 function roundFromElectionId(electionId: string): number {
-  const m = /_t(\d)$/.exec(electionId);
-  return m ? parseInt(m[1], 10) : 1;
+  const roundMatch = /_t(\d)$/.exec(electionId);
+  return roundMatch ? parseInt(roundMatch[1], 10) : 1;
 }
 
 function yearFromElectionId(electionId: string): string {
   return electionId.slice(0, 4);
 }
+
+// Trois agrégats indépendants, un par table d'élections : date du scrutin,
+// nombre de candidats et nombre de communes/départements concernés.
+// Les sénatoriales n'ont pas leurs candidats dans la table groupée : le
+// compteur est rempli par une requête séparée plus bas.
 
 const [municipalRows, legislativeRows, senatorialRows] = await Promise.all([
   db
@@ -54,6 +71,8 @@ const [municipalRows, legislativeRows, senatorialRows] = await Promise.all([
     .groupBy(senatorialElections.electionYear, senatorialElections.round),
 ]);
 
+// Normalisation en ElectionEvent pour le composant client. L'id des
+// sénatoriales est `${année}-${tour}` (voir /elections/[type]/[id]).
 const events: ElectionEvent[] = [
   ...municipalRows.map((r) => ({
     type: 'municipale' as const,
@@ -99,14 +118,16 @@ const senatorialCandidateCounts = await db
   )
   .groupBy(senatorialElections.electionYear, senatorialElections.round);
 
-for (const e of events) {
-  if (e.type !== 'senatoriale') continue;
-  const found = senatorialCandidateCounts.find(
-    (c) => c.electionYear === e.id.split('-')[0] && String(c.round) === e.id.split('-')[1],
+for (const event of events) {
+  if (event.type !== 'senatoriale') continue;
+  const [electionYear, round] = event.id.split('-');
+  const candidateCountRow = senatorialCandidateCounts.find(
+    (c) => c.electionYear === electionYear && String(c.round) === round,
   );
-  if (found) e.candidateCount = found.candidateCount;
+  if (candidateCountRow) event.candidateCount = candidateCountRow.candidateCount;
 }
 
+// Du plus récent au plus ancien, scrutins à venir en tête.
 events.sort((a, b) => new Date(b.electionDate).getTime() - new Date(a.electionDate).getTime());
 ---
 

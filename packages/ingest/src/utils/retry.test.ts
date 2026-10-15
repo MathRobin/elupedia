@@ -1,3 +1,7 @@
+/**
+ * Tests de withRetry (utils/retry.ts) : succès, rejeu, échec final, délais
+ * de backoff (lus dans les messages de log mockés), cas 429.
+ */
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../logger.js', () => ({

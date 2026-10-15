@@ -148,7 +148,8 @@ describe('upsertOfficials — mandat en cours cross-source (AN + Sénat)', () =>
   /**
    * Mock à file d'attente : chaque select consomme la prochaine entrée, dans
    * l'ordre exact émis par upsertOfficials (officials par anId, puis pour
-   * chaque mandat un select mandates, puis data_provenance).
+   * chaque mandat un select mandates par date de début, puis — seulement si
+   * vide et mandat sans fin — un select du mandat actif, puis data_provenance).
    */
   function createQueueMockDb(selectQueue: unknown[][]) {
     const DRIZZLE_NAME = Symbol.for('drizzle:Name');
@@ -272,6 +273,7 @@ describe('upsertOfficials — mandat en cours cross-source (AN + Sénat)', () =>
     const { db, inserts } = createQueueMockDb([
       [], // officials.slug (uniqueSlug pool)
       [existingOfficial], // officials by anId
+      [], // mandates par date de début
       [], // mandates: aucun mandat actif existant
       [], // data_provenance
     ]);

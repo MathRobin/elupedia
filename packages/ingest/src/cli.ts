@@ -1,3 +1,17 @@
+/**
+ * Parsing des options communes aux points d'entrée `main-*.ts` qui acceptent
+ * `--only` / `--skip` / `--help`, et catalogue des noms d'étapes par domaine.
+ *
+ * Chaque `run-*.ts` teste `enabledSteps.has('<étape>')` avant de lancer une
+ * étape : les constantes *_STEP_NAMES ci-dessous doivent donc rester alignées
+ * avec les chaînes utilisées dans le `run-*.ts` correspondant. Un main
+ * mono-domaine passe sa propre liste à parseCliArgs pour que `--only deputes`
+ * soit refusé dans le périmètre Sénat, par exemple.
+ *
+ * Piège : STEP_NAMES (run complet) ne contient ni `photos` ni `hatvp-status`,
+ * alors que run.ts les teste — ces deux étapes ne tournent donc qu'en
+ * l'absence totale de --only/--skip.
+ */
 import { parseArgs } from 'node:util';
 import { logger } from './logger.js';
 
@@ -76,6 +90,7 @@ export const EUROPE_STEP_NAMES = [
 
 export type EuropeStepName = (typeof EUROPE_STEP_NAMES)[number];
 
+// Étapes transverses du run complet (run.ts), hors sous-orchestrateurs.
 export const COMMON_STEP_NAMES = [
   'interests',
   'geocode',
@@ -112,6 +127,8 @@ export const STEP_NAMES: readonly StepName[] = [
   ...COMMON_STEP_NAMES,
 ];
 
+// Aide générique : les exemples mentionnent `yarn ingest` même pour un main
+// mono-domaine (ingest:an, etc.), seule la liste des étapes est adaptée.
 function printHelp(stepNames: readonly string[]): void {
   const steps = stepNames.join(', ');
   const lines = [
@@ -133,8 +150,9 @@ function printHelp(stepNames: readonly string[]): void {
   logger.info(lines.join('\n'));
 }
 
+/** Découpe « a,b,c » et refuse tout nom hors de `validNames`. */
 function parseStepList(raw: string, validNames: readonly string[]): StepName[] {
-  const names = raw.split(',').map((s) => s.trim());
+  const names = raw.split(',').map((name) => name.trim());
   for (const name of names) {
     if (!validNames.includes(name)) {
       throw new Error(
@@ -145,6 +163,15 @@ function parseStepList(raw: string, validNames: readonly string[]): StepName[] {
   return names as StepName[];
 }
 
+/**
+ * Lit `--only a,b` / `--skip a,b` / `--help` et renvoie l'ensemble des étapes
+ * à exécuter parmi `stepNames` (toutes par défaut).
+ *
+ * Renvoie `null` après avoir affiché l'aide (`--help`) : l'appelant doit
+ * alors sortir sans rien lancer. Lève une erreur sur un nom d'étape inconnu,
+ * sur `--only` + `--skip` combinés, ou sur une option non reconnue
+ * (`strict: true`).
+ */
 export function parseCliArgs(
   argv: string[] = process.argv.slice(2),
   stepNames: readonly string[] = STEP_NAMES,
@@ -175,7 +202,7 @@ export function parseCliArgs(
   if (values.skip) {
     const toSkip = new Set<string>(parseStepList(values.skip, stepNames));
     return new Set(
-      (stepNames as readonly StepName[]).filter((s) => !toSkip.has(s)),
+      (stepNames as readonly StepName[]).filter((step) => !toSkip.has(step)),
     );
   }
 

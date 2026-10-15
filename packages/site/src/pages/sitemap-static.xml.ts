@@ -1,3 +1,11 @@
+/**
+ * `GET /sitemap-static.xml` : pages éditoriales et de navigation (accueil,
+ * listes, pages légales) plus une entrée par fiche du glossaire, dérivée de
+ * `lib/glossary.ts`. Les priorités et fréquences sont indicatives pour les
+ * moteurs. Cache CDN 24 h. Référencé par `sitemap-index.xml.ts` ;
+ * `tests/site-accessibility-page.test.js` vérifie la présence de
+ * `/accessibilite` dans ce fichier.
+ */
 import type { APIRoute } from 'astro';
 import { glossaryEntries } from '../lib/glossary.js';
 
@@ -13,8 +21,8 @@ const STATIC_PAGES = [
   { loc: '/mentions-legales', priority: '0.2', changefreq: 'yearly' },
   { loc: '/donnees-personnelles', priority: '0.2', changefreq: 'yearly' },
   { loc: '/accessibilite', priority: '0.2', changefreq: 'yearly' },
-  ...glossaryEntries.map((e) => ({
-    loc: `/glossaire/${e.slug}`,
+  ...glossaryEntries.map((entry) => ({
+    loc: `/glossaire/${entry.slug}`,
     priority: '0.6',
     changefreq: 'monthly' as const,
   })),
@@ -24,11 +32,11 @@ export const prerender = false;
 
 export const GET: APIRoute = async () => {
   const urls = STATIC_PAGES.map(
-    (p) =>
+    (page) =>
       `  <url>
-    <loc>${SITE}${p.loc}</loc>
-    <changefreq>${p.changefreq}</changefreq>
-    <priority>${p.priority}</priority>
+    <loc>${SITE}${page.loc}</loc>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
   </url>`,
   ).join('\n');
 

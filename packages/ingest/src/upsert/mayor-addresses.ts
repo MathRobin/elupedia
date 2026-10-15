@@ -1,3 +1,22 @@
+/**
+ * Upsert des coordonnées de mairie (adresse, téléphone, email, site web) des
+ * maires, à partir de l'annuaire de l'administration DILA
+ * (`sources/dila-mairies.ts`). Appelé par `run-maires.ts` (étape 2, après
+ * `mayors.ts`).
+ *
+ * Tables écrites : `addresses` (type 'town_hall', clé (official_id, type))
+ * et `external_links` (platform 'official_page', clé
+ * (official_id, platform), status 'published', source 'official').
+ * Le maire d'une commune est retrouvé par `mandates.commune_code` sur les
+ * mandats de type 'maire' ; les communes sans maire en base sont comptées
+ * en `skipped`.
+ * Idempotent : l'adresse n'est réécrite que si un champ de contact a changé
+ * (latitude/longitude posées par geocode-addresses.ts ne sont pas
+ * touchées) ; le lien n'est réécrit que si l'URL a changé. Un site web
+ * absent de la source ne supprime pas le lien existant.
+ * Reprise : checkpoint fichier (`utils/checkpoint.ts`) sur le dernier code
+ * commune traité, les mairies étant triées par code INSEE.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { mandates, addresses, externalLinks } from '@elupedia/shared';
 import { eq, and, inArray } from 'drizzle-orm';
@@ -11,6 +30,8 @@ import {
 
 const BATCH_SIZE = 200;
 const CHECKPOINT_NAME = 'upsert-mayor-addresses';
+// Taille max d'un INSERT multi-lignes.
+const INSERT_CHUNK_SIZE = 500;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -20,6 +41,11 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+/**
+ * Upsert en base des adresses et sites web de mairie (écriture DB,
+ * checkpoint fichier). Retourne created / updated (adresses), websites
+ * (liens créés ou modifiés) et skipped (communes sans maire connu).
+ */
 export async function upsertMayorAddresses(
   db: NeonHttpDatabase,
   mairies: MairieData[],
@@ -33,7 +59,7 @@ export async function upsertMayorAddresses(
   const checkpoint = loadCheckpoint(CHECKPOINT_NAME);
   let startIndex = 0;
   if (checkpoint) {
-    startIndex = sorted.findIndex((m) => m.communeCode > checkpoint);
+    startIndex = sorted.findIndex((mairie) => mairie.communeCode > checkpoint);
     if (startIndex === -1) startIndex = sorted.length;
     logger.info(
       `  Checkpoint found — resuming after "${checkpoint}" (skipping ${startIndex}/${sorted.length})`,
@@ -49,9 +75,9 @@ export async function upsertMayorAddresses(
     .where(eq(mandates.type, 'maire'));
 
   const officialByCommune = new Map<string, string>();
-  for (const m of mayorMandates) {
-    if (m.communeCode) {
-      officialByCommune.set(m.communeCode, m.officialId);
+  for (const mandate of mayorMandates) {
+    if (mandate.communeCode) {
+      officialByCommune.set(mandate.communeCode, mandate.officialId);
     }
   }
 
@@ -76,6 +102,8 @@ export async function upsertMayorAddresses(
       batchOfficialIds.push(officialId);
     }
 
+    // Existant chargé par lot (IN sur les officials du lot) plutôt que
+    // table entière ou requête unitaire.
     const existingAddresses = batchOfficialIds.length
       ? await db
           .select()
@@ -88,7 +116,7 @@ export async function upsertMayorAddresses(
           )
       : [];
     const addressByOfficialId = new Map(
-      existingAddresses.map((a) => [a.officialId, a]),
+      existingAddresses.map((address) => [address.officialId, address]),
     );
 
     const existingLinks = batchOfficialIds.length
@@ -103,7 +131,7 @@ export async function upsertMayorAddresses(
           )
       : [];
     const linkByOfficialId = new Map(
-      existingLinks.map((l) => [l.officialId, l]),
+      existingLinks.map((link) => [link.officialId, link]),
     );
 
     const newAddressRows: (typeof addresses.$inferInsert)[] = [];
@@ -116,6 +144,8 @@ export async function upsertMayorAddresses(
 
       const existingAddress = addressByOfficialId.get(officialId);
 
+      // `||` et non `??` pour rue/CP/ville : la source renvoie des chaînes
+      // vides, stockées en NULL.
       if (!existingAddress) {
         newAddressRows.push({
           officialId,
@@ -175,10 +205,10 @@ export async function upsertMayorAddresses(
       }
     }
 
-    for (const rowChunk of chunk(newAddressRows, 500)) {
+    for (const rowChunk of chunk(newAddressRows, INSERT_CHUNK_SIZE)) {
       await db.insert(addresses).values(rowChunk);
     }
-    for (const rowChunk of chunk(newLinkRows, 500)) {
+    for (const rowChunk of chunk(newLinkRows, INSERT_CHUNK_SIZE)) {
       await db.insert(externalLinks).values(rowChunk);
     }
 

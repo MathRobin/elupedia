@@ -1,12 +1,41 @@
+/**
+ * Upsert des membres des assemblées à statut particulier (Corse, Guyane,
+ * Martinique, Polynésie, Nouvelle-Calédonie, Métropole de Lyon...) à partir
+ * du RNE (`sources/rne-membres-assemblee.ts`), appelé par le script
+ * `ingest:membres-assemblee`.
+ *
+ * Tables écrites : `officials` (création seulement) et `mandates` (type
+ * `membre_assemblee_statut_particulier`).
+ *
+ * Clés de rapprochement :
+ * - official : prénom + nom (insensible à la casse) + date de naissance ;
+ * - mandat : official + type + `district` (cf. `territory`) + mandat actif.
+ *
+ * Idempotent. Les mandats actifs absents du fichier sont clos à la date du
+ * jour ; une prise de fonction plus récente est historisée (clôture + nouvelle
+ * ligne). Les fiches `officials` existantes ne sont jamais modifiées.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { RneMembreAssemblee } from '../sources/rne-membres-assemblee.js';
 import { logger } from '../logger.js';
 
+const MANDATE_TYPE = 'membre_assemblee_statut_particulier' as const;
+
+/** Code SQLSTATE Postgres d'une violation de contrainte d'unicité. */
+const PG_UNIQUE_VIOLATION = '23505';
+
+/**
+ * Détecte une violation d'unicité Postgres, y compris quand Drizzle
+ * l'enveloppe dans `error.cause`.
+ */
 function isUniqueViolation(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
-  if ('code' in error && (error as { code?: unknown }).code === '23505') {
+  if (
+    'code' in error &&
+    (error as { code?: unknown }).code === PG_UNIQUE_VIOLATION
+  ) {
     return true;
   }
   if ('cause' in error) {
@@ -32,20 +61,119 @@ function slugify(firstName: string, lastName: string): string {
 // cf. DEPARTMENT_CODES). Seule la Métropole de Lyon a de vraies
 // circonscriptions internes : `department` = "Rhône", `district` = le nom de
 // la circonscription.
-function territory(m: RneMembreAssemblee): {
+function territory(membre: RneMembreAssemblee): {
   district: string;
   department: string;
 } {
-  if (m.circonscriptionName) {
-    return { district: m.circonscriptionName, department: m.departmentName };
+  if (membre.circonscriptionName) {
+    return {
+      district: membre.circonscriptionName,
+      department: membre.departmentName,
+    };
   }
-  return { district: m.collectiviteName, department: m.collectiviteName };
+  return {
+    district: membre.collectiviteName,
+    department: membre.collectiviteName,
+  };
 }
 
 function territoryKey(department: string, district: string): string {
   return `${department}|${district}`;
 }
 
+/** Clé de rapprochement d'un official : prénom|nom (minuscules)|naissance. */
+function officialKey(
+  firstName: string,
+  lastName: string,
+  birthDate: string | null,
+): string {
+  return `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${birthDate ?? ''}`;
+}
+
+/**
+ * Crée les officials inconnus et rattache chaque ligne RNE à un `official_id`.
+ * Retourne aussi le nombre d'officials créés (effet de bord : INSERT).
+ */
+async function resolveOfficials(
+  db: NeonHttpDatabase,
+  membres: RneMembreAssemblee[],
+): Promise<{
+  resolved: Array<{ row: RneMembreAssemblee; officialId: string }>;
+  created: number;
+}> {
+  const allOfficials = await db
+    .select({
+      id: officials.id,
+      firstName: officials.firstName,
+      lastName: officials.lastName,
+      birthDate: officials.birthDate,
+      slug: officials.slug,
+    })
+    .from(officials);
+
+  const officialByKey = new Map<string, { id: string; slug: string | null }>();
+  for (const official of allOfficials) {
+    officialByKey.set(
+      officialKey(official.firstName, official.lastName, official.birthDate),
+      { id: official.id, slug: official.slug },
+    );
+  }
+
+  const takenSlugs = new Set(
+    allOfficials.filter((o) => o.slug).map((o) => o.slug!),
+  );
+
+  /** Suffixe `-1`, `-2`... si le slug de base est déjà pris (homonymes). */
+  function uniqueSlug(base: string): string {
+    if (!takenSlugs.has(base)) {
+      takenSlugs.add(base);
+      return base;
+    }
+    let suffix = 1;
+    while (takenSlugs.has(`${base}-${suffix}`)) suffix++;
+    const candidate = `${base}-${suffix}`;
+    takenSlugs.add(candidate);
+    return candidate;
+  }
+
+  const resolved: Array<{ row: RneMembreAssemblee; officialId: string }> = [];
+  let created = 0;
+  for (const membre of membres) {
+    const key = officialKey(
+      membre.firstName,
+      membre.lastName,
+      membre.birthDate,
+    );
+    let official = officialByKey.get(key);
+
+    if (!official) {
+      const slug = uniqueSlug(slugify(membre.firstName, membre.lastName));
+      const [inserted] = await db
+        .insert(officials)
+        .values({
+          firstName: membre.firstName,
+          lastName: membre.lastName,
+          birthDate: membre.birthDate,
+          slug,
+        })
+        .returning({ id: officials.id });
+      official = { id: inserted!.id, slug };
+      officialByKey.set(key, official);
+      created++;
+    }
+
+    resolved.push({ row: membre, officialId: official.id });
+  }
+
+  return { resolved, created };
+}
+
+/**
+ * Upsert des membres d'assemblées à statut particulier : crée les officials
+ * manquants, clôt les mandats actifs disparus du fichier, puis insère / met à
+ * jour / historise chaque mandat. Écrit dans `officials` et `mandates`.
+ * Retourne des compteurs.
+ */
 export async function upsertMembresAssemblee(
   db: NeonHttpDatabase,
   membres: RneMembreAssemblee[],
@@ -58,70 +186,17 @@ export async function upsertMembresAssemblee(
     skipped: 0,
   };
 
-  const allOfficials = await db
-    .select({
-      id: officials.id,
-      firstName: officials.firstName,
-      lastName: officials.lastName,
-      birthDate: officials.birthDate,
-      slug: officials.slug,
-    })
-    .from(officials);
-
-  const officialByKey = new Map<string, { id: string; slug: string | null }>();
-  for (const o of allOfficials) {
-    const key = `${o.firstName.toLowerCase()}|${o.lastName.toLowerCase()}|${o.birthDate ?? ''}`;
-    officialByKey.set(key, { id: o.id, slug: o.slug });
-  }
-
-  const slugSet = new Set(
-    allOfficials.filter((o) => o.slug).map((o) => o.slug!),
-  );
-
-  function uniqueSlug(base: string): string {
-    if (!slugSet.has(base)) {
-      slugSet.add(base);
-      return base;
-    }
-    let i = 1;
-    while (slugSet.has(`${base}-${i}`)) i++;
-    const s = `${base}-${i}`;
-    slugSet.add(s);
-    return s;
-  }
-
   // Comme pour les autres mandats locaux à N titulaires (régionaux,
   // arrondissement), on résout d'abord tous les officials, puis on ferme les
   // mandats dont le titulaire n'apparaît plus dans le fichier RNE pour son
   // territoire.
-  const resolved: Array<{ row: RneMembreAssemblee; officialId: string }> = [];
-  for (const m of membres) {
-    const key = `${m.firstName.toLowerCase()}|${m.lastName.toLowerCase()}|${m.birthDate}`;
-    let official = officialByKey.get(key);
-
-    if (!official) {
-      const slug = uniqueSlug(slugify(m.firstName, m.lastName));
-      const [inserted] = await db
-        .insert(officials)
-        .values({
-          firstName: m.firstName,
-          lastName: m.lastName,
-          birthDate: m.birthDate,
-          slug,
-        })
-        .returning({ id: officials.id });
-      official = { id: inserted!.id, slug };
-      officialByKey.set(key, official);
-      summary.officials++;
-    }
-
-    resolved.push({ row: m, officialId: official.id });
-  }
+  const { resolved, created } = await resolveOfficials(db, membres);
+  summary.officials = created;
 
   const currentPairs = new Set(
     resolved.map(({ row, officialId }) => {
-      const t = territory(row);
-      return `${territoryKey(t.department, t.district)}|${officialId}`;
+      const { department, district } = territory(row);
+      return `${territoryKey(department, district)}|${officialId}`;
     }),
   );
 
@@ -133,28 +208,23 @@ export async function upsertMembresAssemblee(
       department: mandates.department,
     })
     .from(mandates)
-    .where(
-      and(
-        eq(mandates.type, 'membre_assemblee_statut_particulier'),
-        isNull(mandates.endDate),
-      ),
-    );
+    .where(and(eq(mandates.type, MANDATE_TYPE), isNull(mandates.endDate)));
 
   const today = new Date().toISOString().split('T')[0];
 
-  for (const m of activeMandates) {
-    const pair = `${territoryKey(m.department ?? '', m.district ?? '')}|${m.officialId}`;
+  for (const active of activeMandates) {
+    const pair = `${territoryKey(active.department ?? '', active.district ?? '')}|${active.officialId}`;
     if (!currentPairs.has(pair)) {
       await db
         .update(mandates)
         .set({ endDate: today, updatedAt: new Date() })
-        .where(eq(mandates.id, m.id));
+        .where(eq(mandates.id, active.id));
       summary.ended++;
     }
   }
 
-  for (const { row: m, officialId } of resolved) {
-    const t = territory(m);
+  for (const { row: membre, officialId } of resolved) {
+    const { district, department } = territory(membre);
 
     const existingMandate = await db
       .select({ id: mandates.id, startDate: mandates.startDate })
@@ -162,8 +232,8 @@ export async function upsertMembresAssemblee(
       .where(
         and(
           eq(mandates.officialId, officialId),
-          eq(mandates.type, 'membre_assemblee_statut_particulier'),
-          eq(mandates.district, t.district),
+          eq(mandates.type, MANDATE_TYPE),
+          eq(mandates.district, district),
           isNull(mandates.endDate),
         ),
       )
@@ -174,11 +244,11 @@ export async function upsertMembresAssemblee(
     // mandateStartDate (élection de l'assemblée, inchangée lors d'un
     // remplacement en cours de mandat) : sinon un remplacement se voit
     // attribuer la date de début du prédécesseur.
-    const newStartDate = m.functionStartDate || m.mandateStartDate;
+    const newStartDate = membre.functionStartDate || membre.mandateStartDate;
 
     if (!newStartDate) {
       logger.warn(
-        `  Skipping mandate for ${m.firstName} ${m.lastName} (${t.district}): ` +
+        `  Skipping mandate for ${membre.firstName} ${membre.lastName} (${district}): ` +
           `no mandate/function start date in source data`,
       );
       summary.skipped++;
@@ -187,9 +257,9 @@ export async function upsertMembresAssemblee(
 
     const mandateValues = {
       officialId,
-      type: 'membre_assemblee_statut_particulier' as const,
-      district: t.district,
-      department: t.department,
+      type: MANDATE_TYPE,
+      district,
+      department,
       startDate: newStartDate,
     };
 
@@ -200,16 +270,20 @@ export async function upsertMembresAssemblee(
     // période en cours : on met à jour la ligne existante sans l'historiser.
     const isReplacement = !!current && newStartDate > current.startDate;
 
+    // L'index unique (official_id, type, start_date) peut refuser l'écriture
+    // quand un homonyme (même nom + naissance) a déjà un mandat de ce type à
+    // cette date ailleurs : on saute la ligne au lieu d'interrompre l'ingestion.
+    const uniqueViolationMessage = (action: string) =>
+      `  Skipping mandate${action} for ${membre.firstName} ${membre.lastName} (${district}): ` +
+      `official already has a "${MANDATE_TYPE}" mandate starting on the same date elsewhere — likely a homonym or bad source data`;
+
     if (!current) {
       try {
         await db.insert(mandates).values(mandateValues);
         summary.mandates++;
       } catch (error) {
         if (isUniqueViolation(error)) {
-          logger.warn(
-            `  Skipping mandate for ${m.firstName} ${m.lastName} (${t.district}): ` +
-              `official already has a "membre_assemblee_statut_particulier" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
-          );
+          logger.warn(uniqueViolationMessage(''));
           summary.skipped++;
         } else {
           throw error;
@@ -230,10 +304,7 @@ export async function upsertMembresAssemblee(
         summary.replaced++;
       } catch (error) {
         if (isUniqueViolation(error)) {
-          logger.warn(
-            `  Skipping mandate for ${m.firstName} ${m.lastName} (${t.district}): ` +
-              `official already has a "membre_assemblee_statut_particulier" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
-          );
+          logger.warn(uniqueViolationMessage(''));
           summary.skipped++;
         } else {
           throw error;
@@ -244,7 +315,7 @@ export async function upsertMembresAssemblee(
         await db
           .update(mandates)
           .set({
-            department: t.department,
+            department,
             startDate: newStartDate,
             endDate: null,
             updatedAt: new Date(),
@@ -253,10 +324,7 @@ export async function upsertMembresAssemblee(
         summary.mandates++;
       } catch (error) {
         if (isUniqueViolation(error)) {
-          logger.warn(
-            `  Skipping mandate update for ${m.firstName} ${m.lastName} (${t.district}): ` +
-              `official already has a "membre_assemblee_statut_particulier" mandate starting on the same date elsewhere — likely a homonym or bad source data`,
-          );
+          logger.warn(uniqueViolationMessage(' update'));
           summary.skipped++;
         } else {
           throw error;

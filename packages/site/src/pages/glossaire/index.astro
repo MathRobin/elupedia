@@ -1,8 +1,18 @@
 ---
+/**
+ * Index du glossaire électoral (route /glossaire).
+ *
+ * Page statique prérendue au build. Les entrées viennent de
+ * lib/glossary.ts (pas de base de données) ; la liste filtrable est rendue par
+ * le composant React GlossaryList. Expose un JSON-LD DefinedTermSet listant
+ * tous les termes pour le référencement.
+ */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import GlossaryList from '../../components/GlossaryList';
 import { glossaryEntries } from '../../lib/glossary.js';
 
+// Projection minimale passée au composant client (les sections complètes
+// restent côté serveur, elles ne servent que sur la page de détail).
 const entries = glossaryEntries.map((e) => ({
   slug: e.slug,
   term: e.term,

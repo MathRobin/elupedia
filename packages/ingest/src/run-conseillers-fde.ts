@@ -1,3 +1,17 @@
+/**
+ * Orchestration de l'ingestion des conseillers des Français de l'étranger :
+ * lit l'export RNE puis crée/met à jour fiches et mandats.
+ *
+ * Convention du package : les `run-*.ts` portent la logique testable — pas
+ * de parsing d'arguments, pas de process.exit() — et sont lancés par le
+ * `main-*.ts` du même nom (`yarn --cwd packages/ingest ingest:conseillers-fde`).
+ * Ouvre sa propre connexion DB via createDb(). Chaque étape passe par
+ * runStep() : fetch + upsert rejoués en cas d'échec, erreur consignée dans
+ * le StepResult sans interrompre les étapes suivantes.
+ *
+ * Une seule étape, mais le filtrage par `enabledSteps` est conservé pour
+ * rester homogène avec les autres run-*.ts (et avec --only/--skip).
+ */
 import { createDb } from '@elupedia/shared';
 
 import { logger } from './logger.js';
@@ -24,11 +38,12 @@ export async function runConseillersFde(
         const conseillers = await withRetry(() => fetchRneConseillersFde(), {
           source: 'rne-conseillers-fde',
         });
-        const r = await upsertConseillersFde(db, conseillers);
+        const upsert = await upsertConseillersFde(db, conseillers);
+        // created = fiches officials touchées, updated = mandats touchés.
         return {
           source: 'conseillers-fde',
-          created: r.officials,
-          updated: r.mandates,
+          created: upsert.officials,
+          updated: upsert.mandates,
           durationMs: 0,
         };
       }),

@@ -1,10 +1,30 @@
+/**
+ * Liste filtrable des scrutins (AN, Sénat, Parlement européen) avec
+ * recherche, filtres par type / résultat / période, tri, et chargement
+ * progressif (« Voir plus ») ; panneau de filtres latéral sur desktop,
+ * tiroir sur mobile.
+ *
+ * Rendue sur `pages/votes/index.astro` avec `client:load`. Tout le filtrage
+ * est local sur la liste passée en props.
+ *
+ * Les filtres sont synchronisés avec la query string (`q`, `type`,
+ * `resultat`, `du`, `au`, `tri`) via `history.replaceState`, pour que l'URL
+ * soit partageable. Ils sont lus de l'URL dès l'état initial : contrairement
+ * à `OfficialsList`, ce composant ne se protège pas d'un mismatch
+ * d'hydratation (le SSR rend toujours les filtres par défaut).
+ *
+ * Règle d'affichage « Adopté / Rejeté » : pour > contre, sans tenir compte
+ * des règles de majorité propres à chaque assemblée.
+ */
 import { useState, useEffect, useMemo } from 'react';
 import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 type Ballot = {
   id: string;
   title: string;
+  /** Date ISO (AAAA-MM-JJ), comparable par chaîne. */
   date: string;
+  /** Assemblée d'origine (clé brute, ex. `europarl`), cf. `formatTypeLabel`. */
   type: string;
   forCount: number;
   againstCount: number;
@@ -14,6 +34,7 @@ type Ballot = {
 
 type Filters = {
   search: string;
+  /** Types cochés ; vide = tous. */
   types: string[];
   result: '' | 'adopted' | 'rejected';
   dateFrom: string;
@@ -21,50 +42,83 @@ type Filters = {
   sort: 'date-desc' | 'date-asc' | 'alpha';
 };
 
-function formatLabel(raw: string): string {
+const DEFAULT_FILTERS: Filters = {
+  search: '',
+  types: [],
+  result: '',
+  dateFrom: '',
+  dateTo: '',
+  sort: 'date-desc',
+};
+
+/** Nombre de scrutins ajoutés à chaque « Voir plus ». */
+const PAGE_SIZE = 30;
+
+/** Libellé d'un type de scrutin brut. */
+function formatTypeLabel(raw: string): string {
   if (raw === 'europarl') return 'Parlement européen';
   return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 }
 
-const PAGE_SIZE = 30;
-
+/** Minuscules sans diacritiques, pour une comparaison tolérante. */
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-function readFiltersFromUrl(): Partial<Filters> {
-  if (typeof window === 'undefined') return {};
-  const p = new URLSearchParams(window.location.search);
-  const f: Partial<Filters> = {};
-  if (p.has('q')) f.search = p.get('q')!;
-  if (p.has('type')) f.types = p.get('type')!.split(',').filter(Boolean);
-  if (
-    p.has('resultat') &&
-    (p.get('resultat') === 'adopted' || p.get('resultat') === 'rejected')
-  )
-    f.result = p.get('resultat') as 'adopted' | 'rejected';
-  if (p.has('du')) f.dateFrom = p.get('du')!;
-  if (p.has('au')) f.dateTo = p.get('au')!;
-  if (p.has('tri')) f.sort = p.get('tri') as Filters['sort'];
-  return f;
+/** Un scrutin est affiché « Adopté » si les pour dépassent les contre. */
+function isAdopted(ballot: Ballot): boolean {
+  return ballot.forCount > ballot.againstCount;
 }
 
+/** Nombre de filtres actifs affiché dans le bouton « Filtres (n) ». */
+function countActiveFilters(filters: Filters): number {
+  return (
+    (filters.search ? 1 : 0) +
+    (filters.types.length > 0 ? 1 : 0) +
+    (filters.result ? 1 : 0) +
+    (filters.dateFrom ? 1 : 0) +
+    (filters.dateTo ? 1 : 0)
+  );
+}
+
+/** Lit les filtres depuis la query string ; vide au SSR. */
+function readFiltersFromUrl(): Partial<Filters> {
+  if (typeof window === 'undefined') return {};
+  const params = new URLSearchParams(window.location.search);
+  const filters: Partial<Filters> = {};
+  if (params.has('q')) filters.search = params.get('q')!;
+  if (params.has('type'))
+    filters.types = params.get('type')!.split(',').filter(Boolean);
+  if (
+    params.has('resultat') &&
+    (params.get('resultat') === 'adopted' ||
+      params.get('resultat') === 'rejected')
+  )
+    filters.result = params.get('resultat') as 'adopted' | 'rejected';
+  if (params.has('du')) filters.dateFrom = params.get('du')!;
+  if (params.has('au')) filters.dateTo = params.get('au')!;
+  if (params.has('tri')) filters.sort = params.get('tri') as Filters['sort'];
+  return filters;
+}
+
+/** Reflète les filtres non par défaut dans l'URL, sans entrée d'historique. */
 function writeFiltersToUrl(filters: Filters) {
   if (typeof window === 'undefined') return;
-  const p = new URLSearchParams();
-  if (filters.search) p.set('q', filters.search);
-  if (filters.types.length > 0) p.set('type', filters.types.join(','));
-  if (filters.result) p.set('resultat', filters.result);
-  if (filters.dateFrom) p.set('du', filters.dateFrom);
-  if (filters.dateTo) p.set('au', filters.dateTo);
-  if (filters.sort !== 'date-desc') p.set('tri', filters.sort);
-  const qs = p.toString();
-  const url = qs
-    ? `${window.location.pathname}?${qs}`
+  const params = new URLSearchParams();
+  if (filters.search) params.set('q', filters.search);
+  if (filters.types.length > 0) params.set('type', filters.types.join(','));
+  if (filters.result) params.set('resultat', filters.result);
+  if (filters.dateFrom) params.set('du', filters.dateFrom);
+  if (filters.dateTo) params.set('au', filters.dateTo);
+  if (filters.sort !== 'date-desc') params.set('tri', filters.sort);
+  const queryString = params.toString();
+  const url = queryString
+    ? `${window.location.pathname}?${queryString}`
     : window.location.pathname;
   window.history.replaceState(null, '', url);
 }
 
+/** Panneau de filtres, partagé entre la barre latérale et le tiroir mobile. */
 function FilterPanel({
   filters,
   onChange,
@@ -72,16 +126,12 @@ function FilterPanel({
   types,
 }: {
   filters: Filters;
-  onChange: (f: Filters) => void;
+  onChange: (filters: Filters) => void;
   onReset: () => void;
+  /** Types de scrutin présents dans les données. */
   types: string[];
 }) {
-  const activeCount =
-    (filters.search ? 1 : 0) +
-    (filters.types.length > 0 ? 1 : 0) +
-    (filters.result ? 1 : 0) +
-    (filters.dateFrom ? 1 : 0) +
-    (filters.dateTo ? 1 : 0);
+  const activeCount = countActiveFilters(filters);
 
   return (
     <div className="space-y-6">
@@ -103,23 +153,23 @@ function FilterPanel({
           Type de scrutin
         </legend>
         <div className="mt-2 space-y-1.5">
-          {types.map((t) => (
+          {types.map((type) => (
             <label
-              key={t}
+              key={type}
               className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
             >
               <input
                 type="checkbox"
-                checked={filters.types.includes(t)}
+                checked={filters.types.includes(type)}
                 onChange={(e) => {
-                  const next = e.target.checked
-                    ? [...filters.types, t]
-                    : filters.types.filter((v) => v !== t);
-                  onChange({ ...filters, types: next });
+                  const nextTypes = e.target.checked
+                    ? [...filters.types, type]
+                    : filters.types.filter((t) => t !== type);
+                  onChange({ ...filters, types: nextTypes });
                 }}
                 className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800"
               />
-              {formatLabel(t)}
+              {formatTypeLabel(type)}
             </label>
           ))}
         </div>
@@ -185,6 +235,7 @@ function FilterPanel({
   );
 }
 
+/** Couleurs des segments de la barre de répartition des votes. */
 const positionColors: Record<string, string> = {
   for: 'bg-emerald-500',
   against: 'bg-red-500',
@@ -192,33 +243,31 @@ const positionColors: Record<string, string> = {
   absent: 'bg-slate-300 dark:bg-slate-600',
 };
 
-export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
-  const defaultFilters: Filters = {
-    search: '',
-    types: [],
-    result: '',
-    dateFrom: '',
-    dateTo: '',
-    sort: 'date-desc',
-  };
+/** Props injectées par la page Astro. */
+type Props = {
+  ballots: Ballot[];
+};
 
+export default function BallotsList({ ballots }: Props) {
   const [filters, setFilters] = useState<Filters>({
-    ...defaultFilters,
+    ...DEFAULT_FILTERS,
     ...readFiltersFromUrl(),
   });
+  // Nombre de « pages » chargées : on affiche `page * PAGE_SIZE` scrutins.
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const filterTrapRef = useFocusTrap(drawerOpen);
 
   useEffect(() => {
     if (!drawerOpen) return;
-    function onKey(e: KeyboardEvent) {
+    function closeOnEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') setDrawerOpen(false);
     }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
   }, [drawerOpen]);
 
+  // Tout changement de filtre réécrit l'URL et repart du premier lot.
   useEffect(() => {
     writeFiltersToUrl(filters);
     setPage(1);
@@ -226,25 +275,26 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
 
   const types = useMemo(
     () =>
-      [...new Set(ballots.map((b) => b.type))].sort((a, b) =>
+      [...new Set(ballots.map((ballot) => ballot.type))].sort((a, b) =>
         a.localeCompare(b, 'fr'),
       ),
     [ballots],
   );
 
   const filtered = useMemo(() => {
-    const q = normalize(filters.search);
-    let list = ballots.filter((b) => {
-      if (filters.types.length > 0 && !filters.types.includes(b.type))
+    const normalizedQuery = normalize(filters.search);
+    let list = ballots.filter((ballot) => {
+      if (filters.types.length > 0 && !filters.types.includes(ballot.type))
         return false;
       if (filters.result) {
-        const adopted = b.forCount > b.againstCount;
+        const adopted = isAdopted(ballot);
         if (filters.result === 'adopted' && !adopted) return false;
         if (filters.result === 'rejected' && adopted) return false;
       }
-      if (filters.dateFrom && b.date < filters.dateFrom) return false;
-      if (filters.dateTo && b.date > filters.dateTo) return false;
-      if (q && !normalize(b.title).includes(q)) return false;
+      if (filters.dateFrom && ballot.date < filters.dateFrom) return false;
+      if (filters.dateTo && ballot.date > filters.dateTo) return false;
+      if (normalizedQuery && !normalize(ballot.title).includes(normalizedQuery))
+        return false;
       return true;
     });
 
@@ -257,16 +307,11 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
     return list;
   }, [ballots, filters]);
 
-  const paged = filtered.slice(0, page * PAGE_SIZE);
-  const hasMore = paged.length < filtered.length;
-  const resetFilters = () => setFilters(defaultFilters);
+  const visible = filtered.slice(0, page * PAGE_SIZE);
+  const hasMore = visible.length < filtered.length;
+  const resetFilters = () => setFilters(DEFAULT_FILTERS);
 
-  const activeCount =
-    (filters.search ? 1 : 0) +
-    (filters.types.length > 0 ? 1 : 0) +
-    (filters.result ? 1 : 0) +
-    (filters.dateFrom ? 1 : 0) +
-    (filters.dateTo ? 1 : 0);
+  const activeCount = countActiveFilters(filters);
 
   return (
     <div className="flex gap-8">
@@ -342,27 +387,30 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
         ) : (
           <>
             <div className="space-y-3">
-              {paged.map((b) => {
-                const total =
-                  b.forCount + b.againstCount + b.abstainCount + b.absentCount;
-                const adopted = b.forCount > b.againstCount;
+              {visible.map((ballot) => {
+                const totalVotes =
+                  ballot.forCount +
+                  ballot.againstCount +
+                  ballot.abstainCount +
+                  ballot.absentCount;
+                const adopted = isAdopted(ballot);
                 return (
                   <a
-                    key={b.id}
-                    href={`/scrutins/${b.id}`}
+                    key={ballot.id}
+                    href={`/scrutins/${ballot.id}`}
                     className="group block rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all hover:border-indigo-300/60 hover:shadow-md no-underline dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500/40"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 dark:text-white dark:group-hover:text-indigo-400">
-                          {b.title}
+                          {ballot.title}
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                           <span>
-                            {new Date(b.date).toLocaleDateString('fr-FR')}
+                            {new Date(ballot.date).toLocaleDateString('fr-FR')}
                           </span>
                           <span className="rounded-full bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">
-                            {formatLabel(b.type)}
+                            {formatTypeLabel(ballot.type)}
                           </span>
                         </div>
                       </div>
@@ -377,48 +425,48 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
                       </span>
                     </div>
 
-                    {total > 0 && (
+                    {totalVotes > 0 && (
                       <>
                         <div className="mt-3 h-2 flex rounded-full overflow-hidden">
-                          {b.forCount > 0 && (
+                          {ballot.forCount > 0 && (
                             <div
                               className={positionColors.for}
                               style={{
-                                width: `${(b.forCount / total) * 100}%`,
+                                width: `${(ballot.forCount / totalVotes) * 100}%`,
                               }}
                             />
                           )}
-                          {b.againstCount > 0 && (
+                          {ballot.againstCount > 0 && (
                             <div
                               className={positionColors.against}
                               style={{
-                                width: `${(b.againstCount / total) * 100}%`,
+                                width: `${(ballot.againstCount / totalVotes) * 100}%`,
                               }}
                             />
                           )}
-                          {b.abstainCount > 0 && (
+                          {ballot.abstainCount > 0 && (
                             <div
                               className={positionColors.abstain}
                               style={{
-                                width: `${(b.abstainCount / total) * 100}%`,
+                                width: `${(ballot.abstainCount / totalVotes) * 100}%`,
                               }}
                             />
                           )}
-                          {b.absentCount > 0 && (
+                          {ballot.absentCount > 0 && (
                             <div
                               className={positionColors.absent}
                               style={{
-                                width: `${(b.absentCount / total) * 100}%`,
+                                width: `${(ballot.absentCount / totalVotes) * 100}%`,
                               }}
                             />
                           )}
                         </div>
                         <div className="mt-1.5 flex gap-4 text-xs text-slate-500 dark:text-slate-400">
-                          <span>{b.forCount} pour</span>
-                          <span>{b.againstCount} contre</span>
-                          <span>{b.abstainCount} abst.</span>
-                          {b.absentCount > 0 && (
-                            <span>{b.absentCount} abs.</span>
+                          <span>{ballot.forCount} pour</span>
+                          <span>{ballot.againstCount} contre</span>
+                          <span>{ballot.abstainCount} abst.</span>
+                          {ballot.absentCount > 0 && (
+                            <span>{ballot.absentCount} abs.</span>
                           )}
                         </div>
                       </>
@@ -434,7 +482,7 @@ export default function BallotsList({ ballots }: { ballots: Ballot[] }) {
                   onClick={() => setPage((p) => p + 1)}
                   className="rounded-lg border border-slate-300 bg-white px-6 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
-                  Voir plus ({filtered.length - paged.length} restants)
+                  Voir plus ({filtered.length - visible.length} restants)
                 </button>
               </div>
             )}
