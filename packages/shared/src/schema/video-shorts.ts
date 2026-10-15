@@ -1,3 +1,14 @@
+/**
+ * Tables `video_shorts` et `video_short_ballots` : pipeline des shorts vidéo
+ * (packages/shorts) qui résument un ou plusieurs scrutins récents.
+ *
+ * `video_shorts` porte l'état d'un short (statut, score de sélection, script
+ * JSON généré par LLM, voix off, clés S3 de la vidéo et de la miniature,
+ * identifiant YouTube) ; `video_short_ballots` lie un short aux scrutins
+ * qu'il couvre, avec un ordre. Écrites uniquement par packages/shorts
+ * (select → script → voiceover → render → review → publish) ; le site ne les
+ * lit pas.
+ */
 import {
   pgTable,
   uuid,
