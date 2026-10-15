@@ -32,7 +32,7 @@ Règles éditoriales, non négociables :
 - Tu traites les groupes de façon symétrique : même formulation pour tous, sans en isoler ni en commenter un en particulier. Le détail des voix est donné pour tous les groupes à la fois par l'écran, pas par la voix.
 - Les nombres s'écrivent en chiffres (« 280 voix »), les pourcentages fournis peuvent être cités tels quels.
 - Vocabulaire officiel : « adopté » / « rejeté », « pour » / « contre » / « abstention », « scrutin », « groupe ».
-- À voix haute, les groupes se disent par leur nom complet (groups[].spokenName), jamais par leur sigle (RN, EPR, LFI-NFP…) : le sigle est réservé à l'écran. Une scène qui nomme beaucoup de groupes reste lisible en regroupant par position plutôt qu'en les énumérant tous.
+- À voix haute, les groupes se disent comme groups[].spokenName l'indique : le nom complet, sauf LFI-NFP et LIOT qui se prononcent et se disent par leur sigle. Jamais les autres sigles (SOC, HOR, GDR, EPR, RN, DR…) : ils sont réservés à l'écran. Une scène qui nomme beaucoup de groupes reste lisible en regroupant par position plutôt qu'en les énumérant tous.
 - Le résultat officiel (result) est toujours énoncé en toutes lettres dans la voix : « Le texte est adopté. » ou « Le texte est rejeté. ». Si result est absent des faits, ne rien dire du résultat.
 
 Structure attendue (4 à 6 scènes, 35 à 60 secondes au total, 2,6 mots par seconde maximum) :

@@ -90,8 +90,17 @@ export interface ShortFacts {
   ballots: BallotFacts[];
 }
 
-/** « Rassemblement National (RN) » → « Rassemblement National ». */
+/**
+ * Sigles qui se prononcent naturellement à voix haute : on peut les dire tels
+ * quels (et ils raccourcissent le texte). Tous les autres (SOC, HOR, GDR,
+ * EPR…) sont imprononçables et se disent par le nom complet.
+ */
+export const PRONOUNCEABLE_ACRONYMS: readonly string[] = ['LFI-NFP', 'LIOT'];
+
+/** Ce qu'on dit à voix haute : sigle s'il se prononce, sinon nom complet. */
 export function spokenGroupName(name: string): string {
+  const acronym = name.match(/\(([^)]+)\)\s*$/)?.[1];
+  if (acronym && PRONOUNCEABLE_ACRONYMS.includes(acronym)) return acronym;
   return name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name;
 }
 

@@ -1,4 +1,8 @@
-import { groupAcronym, type ShortFacts } from './script-facts.js';
+import {
+  PRONOUNCEABLE_ACRONYMS,
+  groupAcronym,
+  type ShortFacts,
+} from './script-facts.js';
 import type { ShortScript } from './script-schema.js';
 
 /**
@@ -238,7 +242,7 @@ export function validateScript(
     for (const b of facts.ballots) {
       for (const g of b.groups) {
         const acronym = groupAcronym(g.name);
-        if (!acronym) continue;
+        if (!acronym || PRONOUNCEABLE_ACRONYMS.includes(acronym)) continue;
         const escaped = acronym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const re = new RegExp(
           `(?<![\\p{L}\\p{N}-])${escaped}(?![\\p{L}\\p{N}-])`,

@@ -229,6 +229,50 @@ describe('validateScript', () => {
     );
     expect(issues).toHaveLength(2);
     expect(issues[0].message).toContain('Ensemble pour la République');
+    // LFI-NFP et LIOT se prononcent : leur sigle est admis à voix haute.
+    s.scenes[2].voiceover = 'LFI-NFP et LIOT ont voté contre.';
+    const withPronounceable = {
+      ...facts,
+      ballots: [
+        {
+          ...facts.ballots[0],
+          groups: [
+            ...facts.ballots[0].groups,
+            ...[
+              [
+                'La France insoumise - Nouveau Front Populaire (LFI-NFP)',
+                'LFI-NFP',
+              ],
+              [
+                'Libertés, Indépendants, Outre-mer et Territoires (LIOT)',
+                'LIOT',
+              ],
+            ].map(([name, spokenName]) => ({
+              name,
+              spokenName,
+              memberCount: 20,
+              majorityPosition: 'contre',
+              for: 0,
+              against: 15,
+              abstain: 0,
+              absent: 0,
+            })),
+          ],
+        },
+      ],
+    };
+    expect(
+      validateScript(s, withPronounceable).filter(
+        (i) => i.code === 'spoken_acronym',
+      ),
+    ).toEqual([]);
+    // ... alors que SOC ou EPR restent refusés à voix haute.
+    s.scenes[2].voiceover = 'EPR et LFI-NFP ont voté contre.';
+    expect(
+      validateScript(s, withPronounceable).filter(
+        (i) => i.code === 'spoken_acronym',
+      ),
+    ).toHaveLength(1);
     // Un mot qui contient le sigle n'est pas le sigle.
     s.scenes[2].voiceover =
       'Les Démocrates ont voté pour, dans un cadre démocratique.';
