@@ -136,11 +136,20 @@ export async function findDuplicateOfficialPairs(
 /**
  * Condition SQL « la fiche conservée a déjà une ligne de même clé naturelle »
  * pour une ligne `d` de la fiche AN, dans la table `table`.
+ *
+ * Égalité stricte (`=`) et non `is not distinct from` : seule l'égalité est
+ * hachable, et Postgres peut alors exécuter l'EXISTS en semi-jointure par
+ * hachage (deux balayages par table). Avec `is not distinct from`, il
+ * retombe sur une boucle imbriquée qui rebalaye la table à chaque ligne :
+ * sur `legislative_candidates` (volumineuse, sans index sur official_id),
+ * une paire prenait plus de 5 minutes et faisait expirer le driver HTTP
+ * Neon. Conséquence assumée : une clé contenant un NULL n'est jamais
+ * considérée comme déjà présente, la ligne est déplacée au lieu d'être
+ * supprimée.
  */
 function sameKeyExists(table: string, keptId: string) {
   const comparisons = NATURAL_KEYS[table].map(
-    (column) =>
-      sql`k.${sql.identifier(column)} is not distinct from d.${sql.identifier(column)}`,
+    (column) => sql`k.${sql.identifier(column)} = d.${sql.identifier(column)}`,
   );
   return sql`exists (
     select 1 from ${sql.identifier(table)} k
