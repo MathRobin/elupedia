@@ -4,6 +4,8 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 
 ## Rapprochement d'élus (homonymes)
 
+- Le rapprochement AN ↔ Sénat (nom + prénom + date de naissance) n'est tenté qu'à la création d'une fiche : les doublons créés avant son existence ne se résorbent pas seuls. Outil de rattrapage : `yarn --cwd packages/ingest merge:duplicate-officials` (48 paires en octobre 2026).
+
 - Plusieurs modules rattachent une personne par nom + prénom seulement, sans date de naissance : `upsert/municipal-elections.ts`, `senat-candidacies.ts`, `senatorial-elections.ts`, `senat-resultats-2026.ts`, `senat-mandats-2026.ts`, `sponsorships.ts`, `declaration-snapshots.ts`, `interests.ts`, `legislative-elections.ts`, `main-decorations.ts`, `reconcile-elections.ts`. En cas d'homonymie stricte, le dernier élu chargé écrase le précédent dans l'index, silencieusement.
 - `upsert/senat-electoral-results.ts` compare NOM|PRÉNOM en majuscules sans retirer les accents, contrairement aux autres modules (« Nédélec » ≠ « NEDELEC ») : source probable de lignes `skipped`.
 - `schema/senatorial-elections.ts` : clé unique `(election_id, nom, prenom)`, deux homonymes dans un même scrutin s'écraseraient.

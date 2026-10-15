@@ -170,7 +170,11 @@ yarn --cwd packages/ingest ingest:wikipedia     # lien Wikipédia via Wikidata
 yarn --cwd packages/ingest reconcile                     # rattache les candidats aux élus (official_id manquants)
 yarn --cwd packages/ingest dedupe:committees --dry-run   # fusionne « nom » et « nom (abrégé) »
 yarn --cwd packages/ingest check:coherence               # contrôles métier, lecture seule
+yarn --cwd packages/ingest merge:duplicate-officials     # dry-run : fiches AN/Sénat en doublon (même nom + naissance)
+yarn --cwd packages/ingest merge:duplicate-officials --apply   # fusionne : garde la fiche Sénat, supprime la fiche AN
 ```
+
+`merge:duplicate-officials` corrige un héritage : avant le rapprochement nom + prénom + date de naissance entre sources, un sénateur décrit à la fois par l'open data Sénat et par le jeu AMO30 de l'AN recevait deux fiches. La fiche Sénat est conservée ; elle reçoit l'`an_id`, les champs qu'elle n'avait pas et toutes les lignes dépendantes de la fiche AN, sauf celles qu'elle possède déjà (même clé naturelle par table, voir `NATURAL_KEYS` dans `src/merge-duplicate-officials.ts`). Le slug de la fiche AN disparaît.
 
 ## Planification
 
