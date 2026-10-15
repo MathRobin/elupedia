@@ -1,3 +1,14 @@
+/**
+ * Table `electoral_results` : résumé du score d'un élu à une élection
+ * (pourcentage, tour, nombre d'adversaires), pour la frise « Historique
+ * électoral » de la fiche.
+ *
+ * Alimentée aujourd'hui uniquement par `senat-elections.ts` →
+ * `senat-electoral-results.ts` (CSV data.gouv.fr, `election_type` =
+ * 'sénatoriales'). La source AN (`datagouv-elections.ts`) est prévue mais
+ * pas câblée. Les résultats complets par commune/candidat sont dans les
+ * tables `*_elections` / `*_candidates`, pas ici.
+ */
 import {
   pgTable,
   uuid,

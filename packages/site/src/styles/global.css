@@ -1,3 +1,15 @@
+/*
+ * Feuille de style globale du site, importée une seule fois par
+ * `layouts/BaseLayout.astro`.
+ *
+ * - Tailwind v4 (configuration en CSS, pas de tailwind.config) + plugin
+ *   typography pour les pages rédactionnelles (`prose`).
+ * - Le mode sombre est piloté par la classe `.dark` sur `<html>` (posée avant
+ *   le premier rendu par un script inline de BaseLayout, puis par
+ *   `components/ThemeToggle.tsx`), pas par `prefers-color-scheme` seul.
+ * - L'anneau de focus global est une exigence d'accessibilité vérifiée par
+ *   `tests/site-a11y.test.js` (présence de `focus-visible` et `outline`).
+ */
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
@@ -12,6 +24,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Anneau de focus visible au clavier uniquement (#4f46e5 = indigo-600). */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,

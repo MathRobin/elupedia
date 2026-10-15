@@ -1,3 +1,9 @@
+/**
+ * `GET /sitemap-elus.xml` : une entrée par fiche élu ayant un slug (les
+ * fiches sans slug, accessibles par UUID, ne sont pas référencées). Lit la
+ * table `officials` en entier à chaque génération ; cache CDN 24 h.
+ * Référencé par `sitemap-index.xml.ts`.
+ */
 import type { APIRoute } from 'astro';
 import { getDb } from '../lib/db.js';
 import { officials } from '@elupedia/shared';
@@ -17,9 +23,9 @@ export const GET: APIRoute = async () => {
 
   const urls = rows
     .map(
-      (r) =>
+      (official) =>
         `  <url>
-    <loc>${SITE}/elus/${r.slug}</loc>
+    <loc>${SITE}/elus/${official.slug}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`,

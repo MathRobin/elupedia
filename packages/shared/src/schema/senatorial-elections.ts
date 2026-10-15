@@ -1,3 +1,22 @@
+/**
+ * Tables `senatorial_elections` / `senatorial_candidates` : résultats des
+ * élections sénatoriales par département et par tour, avec le score de
+ * chaque candidat. Les sénateurs étant élus au suffrage indirect, la
+ * granularité est le département, pas la commune.
+ *
+ * Deux ingestions écrivent dans ces tables, en ciblant la même clé unique
+ * (election_year, departement_code, round) :
+ * - rétrospective : `sources/datagouv-elections.ts` →
+ *   `upsert/senatorial-elections.ts` (CSV data.gouv.fr) ;
+ * - scrutin 2026 : `senat-candidacies-2026.ts` crée les lignes dès la
+ *   publication des candidatures (résultats null), puis
+ *   `senat-resultats-2026.ts` les complète après le scrutin.
+ * D'où des colonnes de dépouillement nullables, contrairement à
+ * `legislative-elections.ts` / `municipal-elections.ts`.
+ *
+ * `senatorial_candidates.official_id` est posé par `reconcile` ou par
+ * `senat-mandats-2026.ts`, sans clé étrangère.
+ */
 import {
   pgTable,
   uuid,
@@ -17,6 +36,8 @@ export const senatorialElections = pgTable(
     electionYear: varchar('election_year', { length: 4 }).notNull(),
     departementCode: varchar('departement_code', { length: 5 }).notNull(),
     departementName: varchar('departement_name', { length: 200 }),
+    // 'majoritaire' (1 ou 2 sièges, deux tours possibles) ou
+    // 'proportionnel' (3 sièges et plus, tour unique, scrutin de liste).
     scrutinType: varchar('scrutin_type', { length: 20 }).notNull(),
     round: integer('round').notNull(),
     electionDate: date('election_date').notNull(),
@@ -32,16 +53,17 @@ export const senatorialElections = pgTable(
     nuls: integer('nuls'),
     exprimes: integer('exprimes'),
     siegesAPourvoir: integer('sieges_a_pourvoir'),
+    // Taille du collège électoral (grands électeurs) du département.
     electeursSenatoriaux: integer('electeurs_senatoriaux'),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
-  (t) => [
+  (table) => [
     uniqueIndex('senatorial_elections_year_dept_round_idx').on(
-      t.electionYear,
-      t.departementCode,
-      t.round,
+      table.electionYear,
+      table.departementCode,
+      table.round,
     ),
   ],
 );
@@ -75,11 +97,14 @@ export const senatorialCandidates = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (t) => [
+  (table) => [
+    // Pas de numéro de panneau pour les sénatoriales : la clé d'upsert est
+    // le nom complet dans le département. Deux homonymes parfaits dans un
+    // même scrutin se téléscoperaient.
     uniqueIndex('senatorial_candidates_election_name_idx').on(
-      t.electionId,
-      t.nom,
-      t.prenom,
+      table.electionId,
+      table.nom,
+      table.prenom,
     ),
   ],
 );

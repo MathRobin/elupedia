@@ -20,7 +20,10 @@ test.describe('Régression visuelle', () => {
       fullPage: true,
       mask: [
         page.locator('main p').filter({ hasText: 'Élupedia consolide' }),
-        page.locator('section').filter({ hasText: 'Élections sénatoriales' }),
+        // Badge qui bascule d'« à venir » à « récente » à la date du scrutin.
+        page
+          .locator('main span')
+          .filter({ hasText: /^Élection (à venir|récente)/ }),
       ],
     });
   });

@@ -1,3 +1,15 @@
+/**
+ * `GET /api/og/scrutin/{id}.png` : image Open Graph d'un scrutin — badge
+ * Adopté/Rejeté, type de scrutin, titre (tronqué), date, barre de répartition
+ * des votes et légende chiffrée. 404 (corps vide) si le scrutin n'existe pas.
+ *
+ * Référencée comme `og:image` par `pages/scrutins/[id].astro` et comme
+ * `thumbnail_url` par `/api/oembed`. Rendu via `lib/og.ts` ; cache CDN 24 h,
+ * stale 7 jours.
+ *
+ * Piège : « Adopté » est déduit de `pour > contre` sur les votes enregistrés,
+ * pas d'un résultat officiel stocké en base.
+ */
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../../lib/db.js';
 import { ballots, votes } from '@elupedia/shared';
@@ -6,6 +18,43 @@ import { renderOgImage } from '../../../../lib/og.js';
 import { createElement as h } from 'react';
 
 export const prerender = false;
+
+/** Couleurs par position de vote, communes à la barre et à la légende. */
+const VOTE_COLORS = {
+  for: '#10b981',
+  against: '#ef4444',
+  abstain: '#f59e0b',
+  absent: '#94a3b8',
+} as const;
+
+/** Au-delà, le titre déborderait du cadre : on coupe à 117 caractères + « … ». */
+const TITLE_MAX_LENGTH = 120;
+const TITLE_TRUNCATED_LENGTH = 117;
+
+/** Entrée de légende : point coloré + libellé. */
+function legendItem(color: string, label: string) {
+  return h(
+    'span',
+    {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        color,
+      },
+    },
+    h('span', {
+      style: {
+        display: 'flex',
+        width: '10px',
+        height: '10px',
+        borderRadius: '50%',
+        backgroundColor: color,
+      },
+    }),
+    label,
+  );
+}
 
 export const GET: APIRoute = async ({ params }) => {
   const { id } = params;
@@ -29,10 +78,12 @@ export const GET: APIRoute = async ({ params }) => {
     .from(votes)
     .where(eq(votes.ballotId, ballot.id));
 
+  // Les positions hors de ces quatre valeurs sont ignorées (mais comptent
+  // dans `total`, donc dans les pourcentages).
   const counts = { for: 0, against: 0, abstain: 0, absent: 0 };
-  for (const v of voteRows) {
-    const pos = v.position as keyof typeof counts;
-    if (pos in counts) counts[pos]++;
+  for (const vote of voteRows) {
+    const position = vote.position as keyof typeof counts;
+    if (position in counts) counts[position]++;
   }
   const total = voteRows.length;
   const adopted = counts.for > counts.against;
@@ -43,15 +94,29 @@ export const GET: APIRoute = async ({ params }) => {
     year: 'numeric',
   });
 
+  // Segments de la barre, dans l'ordre pour / contre / abstention / absent ;
+  // les positions à zéro sont omises pour éviter des segments de largeur 0.
   const barSegments: { color: string; pct: number }[] = [];
   if (counts.for > 0)
-    barSegments.push({ color: '#10b981', pct: (counts.for / total) * 100 });
+    barSegments.push({
+      color: VOTE_COLORS.for,
+      pct: (counts.for / total) * 100,
+    });
   if (counts.against > 0)
-    barSegments.push({ color: '#ef4444', pct: (counts.against / total) * 100 });
+    barSegments.push({
+      color: VOTE_COLORS.against,
+      pct: (counts.against / total) * 100,
+    });
   if (counts.abstain > 0)
-    barSegments.push({ color: '#f59e0b', pct: (counts.abstain / total) * 100 });
+    barSegments.push({
+      color: VOTE_COLORS.abstain,
+      pct: (counts.abstain / total) * 100,
+    });
   if (counts.absent > 0)
-    barSegments.push({ color: '#94a3b8', pct: (counts.absent / total) * 100 });
+    barSegments.push({
+      color: VOTE_COLORS.absent,
+      pct: (counts.absent / total) * 100,
+    });
 
   const png = await renderOgImage(
     h(
@@ -68,6 +133,7 @@ export const GET: APIRoute = async ({ params }) => {
           justifyContent: 'space-between',
         },
       },
+      // Haut : badges, titre, date.
       h(
         'div',
         {
@@ -95,7 +161,7 @@ export const GET: APIRoute = async ({ params }) => {
                 border: `1px solid ${adopted ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
                 fontSize: '22px',
                 fontWeight: 700,
-                color: adopted ? '#10b981' : '#ef4444',
+                color: adopted ? VOTE_COLORS.for : VOTE_COLORS.against,
               },
             },
             adopted ? 'Adopté' : 'Rejeté',
@@ -129,8 +195,8 @@ export const GET: APIRoute = async ({ params }) => {
               overflow: 'hidden',
             },
           },
-          ballot.title.length > 120
-            ? ballot.title.slice(0, 117) + '…'
+          ballot.title.length > TITLE_MAX_LENGTH
+            ? ballot.title.slice(0, TITLE_TRUNCATED_LENGTH) + '…'
             : ballot.title,
         ),
         h(
@@ -145,6 +211,7 @@ export const GET: APIRoute = async ({ params }) => {
           dateFormatted,
         ),
       ),
+      // Bas : barre de répartition et légende.
       h(
         'div',
         {
@@ -161,12 +228,12 @@ export const GET: APIRoute = async ({ params }) => {
               overflow: 'hidden',
             },
           },
-          ...barSegments.map((seg) =>
+          ...barSegments.map((segment) =>
             h('div', {
               style: {
-                width: `${seg.pct}%`,
+                width: `${segment.pct}%`,
                 height: '100%',
-                backgroundColor: seg.color,
+                backgroundColor: segment.color,
               },
             }),
           ),
@@ -180,94 +247,17 @@ export const GET: APIRoute = async ({ params }) => {
               fontSize: '20px',
             },
           },
-          h(
-            'span',
-            {
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#10b981',
-              },
-            },
-            h('span', {
-              style: {
-                display: 'flex',
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                backgroundColor: '#10b981',
-              },
-            }),
-            `Pour ${counts.for}`,
-          ),
-          h(
-            'span',
-            {
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#ef4444',
-              },
-            },
-            h('span', {
-              style: {
-                display: 'flex',
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                backgroundColor: '#ef4444',
-              },
-            }),
-            `Contre ${counts.against}`,
-          ),
-          h(
-            'span',
-            {
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#f59e0b',
-              },
-            },
-            h('span', {
-              style: {
-                display: 'flex',
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                backgroundColor: '#f59e0b',
-              },
-            }),
-            `Abst. ${counts.abstain}`,
-          ),
+          legendItem(VOTE_COLORS.for, `Pour ${counts.for}`),
+          legendItem(VOTE_COLORS.against, `Contre ${counts.against}`),
+          legendItem(VOTE_COLORS.abstain, `Abst. ${counts.abstain}`),
+          // Les absents ne sont affichés que s'il y en a (scrutins du Sénat
+          // sans liste d'absents, par exemple).
           counts.absent > 0
-            ? h(
-                'span',
-                {
-                  style: {
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: '#94a3b8',
-                  },
-                },
-                h('span', {
-                  style: {
-                    display: 'flex',
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    backgroundColor: '#94a3b8',
-                  },
-                }),
-                `Abs. ${counts.absent}`,
-              )
+            ? legendItem(VOTE_COLORS.absent, `Abs. ${counts.absent}`)
             : null,
         ),
       ),
+      // Signature en bas à droite.
       h(
         'div',
         {

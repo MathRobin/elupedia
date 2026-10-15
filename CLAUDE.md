@@ -17,6 +17,7 @@ elupedia/
 ├── packages/
 │   ├── shared/    # Types, helpers et schéma DB partagés
 │   ├── ingest/    # Scripts de collecte de données (APIs ouvertes)
+│   ├── shorts/    # Pipeline de shorts vidéo (sélection, script LLM, voix off enregistrée, rendu Remotion, puis publication)
 │   ├── site/      # Site public Astro/React
 │   └── e2e/       # Tests end-to-end (Playwright)
 ├── docs/          # Documentation projet
@@ -69,6 +70,17 @@ yarn --cwd packages/ingest ingest:conseillers-arr
 # Ingestion membres des assemblées à statut particulier (RNE, Corse/Guyane/DOM-TOM/Métropole de Lyon, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:membres-assemblee
 
+# Sélection des scrutins candidats à un short vidéo (voir docs/DOMAINS.md)
+yarn --cwd packages/shorts select --dry-run   # classement seul, rien écrit ; --days, --max-shorts, --min-score
+yarn --cwd packages/shorts script --dry-run   # script LLM des shorts candidate (ANTHROPIC_API_KEY requise) ; --id, --force, --model
+yarn --cwd packages/shorts voiceover sheet   # fiche de lecture des shorts draft sans voix (voix enregistrée par l'équipe, une prise par scène)
+yarn --cwd packages/shorts voiceover import --id <uuid>   # recadre, normalise et horodate les prises recordings/scene-<id>.wav
+yarn --cwd packages/shorts render --draft   # rendu Remotion (1080×1920) des shorts draft avec voix importée, dans packages/shorts/out/<id>/ ; --id, --force, --silent, --out, --dry-run
+yarn --cwd packages/shorts preview   # Remotion Studio pour retoucher la composition (src/remotion/)
+yarn --cwd packages/shorts review   # revue humaine : liste les draft ; review approve <id> / review reject <id> --note "…"
+yarn --cwd packages/shorts youtube-auth   # une fois : autorisation OAuth YouTube, affiche YOUTUBE_REFRESH_TOKEN
+yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approved (YOUTUBE_*) ; --id, --max, --privacy
+
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
 
@@ -82,6 +94,13 @@ yarn --cwd packages/ingest dedupe:committees --dry-run
 yarn --cwd packages/ingest check:coherence
 ```
 
+## Conventions de code
+
+- Chaque fichier source porte un commentaire d'en-tête (rôle, source des données, appelants, pièges). Le maintenir à jour quand le fichier change.
+- Ingest : `main-*.ts` (CLI) → `run-*.ts` (orchestration testable) → `sources/` (lecture) → `upsert/` (écriture idempotente). Détail dans `docs/ARCHITECTURE.md`, « Guide de lecture du code ».
+- Les tests racine (`tests/`) lisent le code source de certaines pages et composants du site et vérifient des chaînes exactes : lancer `yarn vitest run` à la racine après tout renommage.
+- Les anomalies connues sont listées dans `docs/KNOWN-ISSUES.md` ; retirer une entrée quand elle est corrigée.
+
 ## Documentation
 
 La documentation se trouve dans `docs/` :
@@ -89,4 +108,6 @@ La documentation se trouve dans `docs/` :
 - `ARCHITECTURE.md` — architecture technique
 - `DOMAINS.md` — domaines métier et sources de données
 - `DATA-LICENSES.md` — licences des données utilisées
+- `INGEST.md` — scripts d'ingestion et leurs options
 - `INGESTION-SCHEDULE.md` — calendrier des DAGs Dagu d'ingestion
+- `KNOWN-ISSUES.md` — anomalies et dettes connues

@@ -1,3 +1,7 @@
+/**
+ * Tests de mapCacheKey (services/static-map.ts) : déterminisme et
+ * sensibilité aux coordonnées. Le rendu lui-même (tuiles OSM) n'est pas testé.
+ */
 import { describe, it, expect } from 'vitest';
 import { mapCacheKey } from './static-map.js';
 

@@ -1,3 +1,5 @@
+// Tests de senat-scrutins : parsing de l'index HTML (dates en toutes lettres,
+// entités &deg;/&nbsp;), mapping des codes de vote et chargement des JSON.
 import { describe, it, expect, vi } from 'vitest';
 import {
   parseScrutinsIndex,
@@ -39,13 +41,53 @@ describe('parseScrutinsIndex', () => {
     expect(result[2].date).toBe('2026-07-09');
   });
 
-  it('handles &deg; entity and &nbsp; before colon (real HTML)', () => {
-    const html = `<div class="list-group-subtitle">21 juillet 2026</div>
-<p><a href="2025/scr2025-340.html">Scrutin N&deg;340</a>&nbsp;: sur l'ensemble du projet de loi agricole. Adoption</p>`;
+  it('parses the real structure: multi-line title, dossier link, badge result', () => {
+    const html = `<ol class="list-group">
+<li class="list-group-item">
+<div class="list-group-subtitle">21 juillet 2026</div>
+<p class="my-2">
+<a href="2025/scr2025-340.html">Scrutin N&deg;340</a>&nbsp;: sur l'ensemble du
+projet de loi d'urgence pour la protection et la souverainet&eacute; agricoles -
+<a href="/dossier-legislatif/pjl25-689.html">consulter le dossier
+l&eacute;gislatif</a>.
+<span class="badge rounded-pill text-bg-success">Adoption</span>
+</p>
+<p class="my-2">
+<a href="2025/scr2025-339.html">Scrutin N&deg;339</a>&nbsp;: sur l'amendement n&deg;12.
+<span class="badge rounded-pill text-bg-danger">Rejet</span>
+</p>
+</li>
+<li class="list-group-item">
+<div class="list-group-subtitle">9 juillet 2026</div>
+<p class="my-2">
+<a href="2025/scr2025-335.html">Scrutin N&deg;335</a>&nbsp;: sur l'ensemble du texte.
+<span class="badge rounded-pill text-bg-success">Adoption</span>
+</p>
+</li>
+</ol>`;
+    const result = parseScrutinsIndex(html, '2025');
+    expect(result).toHaveLength(3);
+    expect(result[0]).toEqual({
+      session: '2025',
+      number: 340,
+      title:
+        "sur l'ensemble du projet de loi d'urgence pour la protection et la souveraineté agricoles",
+      date: '2026-07-21',
+      result: 'Adoption',
+    });
+    expect(result[1].title).toBe("sur l'amendement n°12");
+    expect(result[1].result).toBe('Rejet');
+    expect(result[2].date).toBe('2026-07-09');
+  });
+
+  it('ignores a date quoted inside a scrutin title', () => {
+    const html = `<div class="list-group-subtitle">3 octobre 2025</div>
+<p><a href="2025/scr2025-1.html">Scrutin N&deg;1</a>&nbsp;: sur la motion tendant à reporter le scrutin pour permettre la mise en œuvre de l'accord du 12 juillet 2025.
+<span class="badge">Rejet</span></p>`;
     const result = parseScrutinsIndex(html, '2025');
     expect(result).toHaveLength(1);
-    expect(result[0].number).toBe(340);
-    expect(result[0].title).toBe("sur l'ensemble du projet de loi agricole");
+    expect(result[0].date).toBe('2025-10-03');
+    expect(result[0].result).toBe('Rejet');
   });
 
   it('returns empty for HTML without scrutins', () => {

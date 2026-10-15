@@ -1,3 +1,16 @@
+/**
+ * Script de peuplement d'une base de développement vide (`yarn db:seed` à
+ * la racine, via tsx avec `.env`).
+ *
+ * Insère trois député·es fictif·ves avec un mandat et une affiliation
+ * chacun·e, pour avoir de quoi afficher sur le site sans lancer
+ * l'ingestion. Aucune donnée réelle : identifiants AN `PA10000x` et photos
+ * example.com inventés.
+ *
+ * Pièges : non idempotent (`officials.an_id` est unique, un second run
+ * échoue) ; les noms Dupont/Martin/Leroy sont vérifiés par
+ * `tests/migration-seed.test.js`.
+ */
 import { createDb } from './db.js';
 import { officials } from './schema/officials.js';
 import { mandates } from './schema/mandates.js';
@@ -84,7 +97,7 @@ async function seed() {
   console.log('Seed complete.');
 }
 
-seed().catch((err) => {
-  console.error('Seed failed:', err);
+seed().catch((error) => {
+  console.error('Seed failed:', error);
   process.exit(1);
 });

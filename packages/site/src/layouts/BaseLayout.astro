@@ -1,4 +1,23 @@
 ---
+/**
+ * Gabarit de toutes les pages publiques : <head> (SEO, Open Graph, JSON-LD
+ * WebSite, polices, Font Awesome), en-tête avec navigation et bascule de
+ * thème, bouton « Partager », pied de page, bandeau cookies tarteaucitron
+ * et Vercel Analytics.
+ *
+ * Props : `title` (suffixé « — Elupedia » sauf sur l'accueil), `description`,
+ * `image` (OG, sinon `/api/og/default.png`), `jsonLd` (bloc additionnel
+ * propre à la page), `ogType`, `hideShare`. Le slot `head` permet d'ajouter
+ * des balises au <head>.
+ *
+ * Le thème sombre est appliqué avant le premier rendu par le script inline
+ * du <head>, qui lit la clé localStorage `theme` : il doit rester cohérent
+ * avec `components/ThemeToggle.tsx`.
+ *
+ * Plusieurs tests racine (`tests/site-layout.test.js`, `site-a11y`,
+ * `og-image`, `site-legal-page`…) vérifient des chaînes exactes de ce
+ * fichier : ne pas renommer `fullTitle`, ni retoucher les attributs cités.
+ */
 import '../styles/global.css';
 import ThemeToggle from '../components/ThemeToggle';
 import ShareButton from '../components/ShareButton';
@@ -23,9 +42,12 @@ const {
 } = Astro.props;
 
 const fullTitle = title === 'Elupedia' ? title : `${title} — Elupedia`;
+// `Astro.site` vient de astro.config (https://www.elupedia.fr).
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const ogImage = image ?? new URL('/api/og/default.png', Astro.site).href;
 
+// Données structurées du site, présentes sur toutes les pages ; `jsonLd`
+// (prop) ajoute un second bloc propre à la page.
 const websiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
@@ -82,6 +104,7 @@ const websiteJsonLd = {
     <script type="application/ld+json" set:html={JSON.stringify(websiteJsonLd)} />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <slot name="head" />
+    {/* Applique le thème sombre avant le premier rendu (évite le flash) ; même clé que ThemeToggle. */}
     <script is:inline>
       (function(){var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')})();
     </script>
@@ -167,6 +190,7 @@ const websiteJsonLd = {
         </p>
       </div>
     </footer>
+    {/* Bandeau de consentement cookies (CNIL) : fichiers servis depuis public/tarteaucitron. */}
     <script is:inline defer src="/tarteaucitron/tarteaucitron.min.js"></script>
     <script is:inline>
       window.addEventListener('DOMContentLoaded', function() {

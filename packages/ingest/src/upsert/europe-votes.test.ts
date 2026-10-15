@@ -1,3 +1,7 @@
+/**
+ * Tests de isSittingFinal et upsertEuropeVotes : filtrage des votants
+ * français, idempotence des votes, marquage des séances définitives.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import type {
   PlenarySitting,
@@ -25,7 +29,7 @@ function makeThenable(rows: unknown[]) {
 /**
  * Mock générique : `.from(table)` renvoie toujours le contenu courant de
  * `store[table]`, que l'appel se termine par `.where()`, `.where().limit()`
- * ou directement sans filtre (comme `loadFrenchMepOfficialIds`). Les tests
+ * ou directement sans filtre (comme `loadOfficialIdsByEuroparlId`). Les tests
  * gardent volontairement un seul enregistrement pertinent par table à la
  * fois pour ne pas avoir à interpréter les conditions SQL.
  */

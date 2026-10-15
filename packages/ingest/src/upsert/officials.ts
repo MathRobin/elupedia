@@ -1,10 +1,31 @@
+/**
+ * Upsert des députés (et de leurs mandats passés, y compris sénatoriaux) à
+ * partir de l'open data de l'Assemblée nationale
+ * (`sources/assemblee-nationale.ts`), appelé par `run-an.ts` (`ingest:an`).
+ *
+ * Tables écrites : `officials`, `mandates` et `data_provenance`.
+ *
+ * Clés de rapprochement :
+ * - official : `an_id` ; sinon nom + prénom + date de naissance parmi les
+ *   officials sans `an_id` (fiche créée par le Sénat, cf. `upsert/senators.ts`),
+ *   auquel cas la fiche est rattachée plutôt que dupliquée ;
+ * - mandat : official + type + date de début, puis, pour un mandat en cours,
+ *   le mandat actif du même type (voir les commentaires dans la boucle).
+ *
+ * Idempotent. Jamais écrasés : le `slug` existant (URLs publiques), la
+ * `photo_url` Sénat quand l'AN n'en a pas, le `department` d'un mandat déjà
+ * connu, et une `end_date` posée par une source plus à jour.
+ * Une erreur sur un député interrompt tout le lot (throw).
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
 import { writeProvenance } from './provenance.js';
+import { matchMandate } from './mandate-match.js';
 import { logger } from '../logger.js';
 
+/** Un log d'avancement tous les N députés. */
 const LOG_CHUNK_SIZE = 50;
 
 function slugify(firstName: string, lastName: string): string {
@@ -21,22 +42,30 @@ const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
   'Données publiques de mandat parlementaire (art. L311-1 CRPA)';
 
+/**
+ * Upsert de chaque député : fiche `officials`, tous ses mandats, provenance.
+ * Retourne `{ officialId, anId }` par député traité. Lève à la première
+ * erreur après l'avoir loguée avec sa cause Postgres.
+ */
 export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
   const results = [];
 
   const allSlugs = await db.select({ slug: officials.slug }).from(officials);
-  const slugSet = new Set(allSlugs.filter((o) => o.slug).map((o) => o.slug!));
+  const takenSlugs = new Set(
+    allSlugs.filter((o) => o.slug).map((o) => o.slug!),
+  );
 
+  /** Suffixe `-1`, `-2`... si le slug de base est déjà pris (homonymes). */
   function uniqueSlug(base: string): string {
-    if (!slugSet.has(base)) {
-      slugSet.add(base);
+    if (!takenSlugs.has(base)) {
+      takenSlugs.add(base);
       return base;
     }
-    let i = 1;
-    while (slugSet.has(`${base}-${i}`)) i++;
-    const s = `${base}-${i}`;
-    slugSet.add(s);
-    return s;
+    let suffix = 1;
+    while (takenSlugs.has(`${base}-${suffix}`)) suffix++;
+    const candidate = `${base}-${suffix}`;
+    takenSlugs.add(candidate);
+    return candidate;
   }
 
   for (let i = 0; i < deputes.length; i++) {
@@ -74,6 +103,8 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           })
           .where(eq(officials.id, officialId));
       } else {
+        // Fiche déjà créée par l'ingestion Sénat (sans an_id) pour la même
+        // personne : on la rattache au lieu d'en créer une deuxième.
         const senatMatch = depute.date_naissance
           ? await db
               .select({
@@ -127,57 +158,54 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
         }
       }
 
+      // Tous les mandats connus de l'élu, une seule requête ; le rapprochement
+      // mandat par mandat est fait en mémoire (voir mandate-match.ts).
+      const existingMandates = await db
+        .select({
+          id: mandates.id,
+          type: mandates.type,
+          startDate: mandates.startDate,
+          endDate: mandates.endDate,
+          department: mandates.department,
+        })
+        .from(mandates)
+        .where(eq(mandates.officialId, officialId));
+
       for (const m of depute.allMandates) {
-        // Un mandat en cours (pas de mandat_fin) est identifié par son statut
-        // actif plutôt que par sa date de début : cette source (AN) et celle
-        // du Sénat (cf. upsert/senators.ts) peuvent publier des dates de début
-        // légèrement différentes pour le même mandat sénatorial en cours, ce
-        // qui créait un mandat en double au lieu de le mettre à jour.
-        const existingMandate = m.mandat_fin
-          ? await db
-              .select({ id: mandates.id, department: mandates.department })
-              .from(mandates)
-              .where(
-                and(
-                  eq(mandates.officialId, officialId),
-                  eq(mandates.type, m.type),
-                  eq(mandates.startDate, m.mandat_debut),
-                ),
-              )
-              .limit(1)
-          : await db
-              .select({ id: mandates.id, department: mandates.department })
-              .from(mandates)
-              .where(
-                and(
-                  eq(mandates.officialId, officialId),
-                  eq(mandates.type, m.type),
-                  isNull(mandates.endDate),
-                ),
-              )
-              .limit(1);
+        const { target, endDate } = matchMandate(existingMandates, m);
 
         // Le mandat sénateur en cours peut aussi provenir de senators.ts (open
         // data Sénat, toujours renseigné en département) : ne pas écraser un
         // département déjà connu par une valeur vide quand cette source (AN)
         // n'a pas l'info pour ce mandat.
-        const department =
-          m.nom_circo || existingMandate[0]?.department || null;
+        const department = m.nom_circo || target?.department || null;
 
+        // Pas de circonscription numérotée pour un sénateur ; num_circo = 0
+        // signifie « inconnu » côté AN.
         const district =
           m.type === 'senateur' || m.num_circo === 0
             ? null
             : `${m.num_circo}e circonscription`;
 
-        if (existingMandate.length === 0) {
-          await db.insert(mandates).values({
-            officialId,
+        if (!target) {
+          const [inserted] = await db
+            .insert(mandates)
+            .values({
+              officialId,
+              type: m.type,
+              district,
+              department,
+              startDate: m.mandat_debut,
+              endDate,
+              politicalGroup: m.groupe_sigle ?? null,
+            })
+            .returning({ id: mandates.id });
+          existingMandates.push({
+            id: inserted!.id,
             type: m.type,
-            district,
-            department,
             startDate: m.mandat_debut,
-            endDate: m.mandat_fin ?? null,
-            politicalGroup: m.groupe_sigle ?? null,
+            endDate,
+            department,
           });
         } else {
           await db
@@ -186,11 +214,14 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               district,
               department,
               startDate: m.mandat_debut,
-              endDate: m.mandat_fin ?? null,
+              endDate,
               politicalGroup: m.groupe_sigle ?? null,
               updatedAt: new Date(),
             })
-            .where(eq(mandates.id, existingMandate[0].id));
+            .where(eq(mandates.id, target.id));
+          target.startDate = m.mandat_debut;
+          target.endDate = endDate;
+          target.department = department;
         }
       }
 
@@ -208,6 +239,14 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
       logger.error(
         `  Failed processing depute ${anId} (${depute.prenom} ${depute.nom}): ${error instanceof Error ? error.message : String(error)}`,
       );
+      // Drizzle enveloppe l'erreur Postgres : la vraie cause (violation
+      // d'unicité, etc.) est dans error.cause, jamais imprimée sinon.
+      const cause = (error as { cause?: unknown })?.cause;
+      if (cause) {
+        logger.error(
+          `  Cause: ${cause instanceof Error ? cause.message : String(cause)}`,
+        );
+      }
       throw error;
     }
   }

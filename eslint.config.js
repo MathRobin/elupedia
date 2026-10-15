@@ -12,6 +12,7 @@ export default tseslint.config(
       '**/.next/',
       '**/next-env.d.ts',
       '**/public/',
+      'packages/shorts/out/',
     ],
   },
   js.configs.recommended,

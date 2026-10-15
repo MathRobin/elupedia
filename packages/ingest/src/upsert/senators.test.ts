@@ -14,8 +14,9 @@ function makeThenable(rows: unknown[]) {
 
 /**
  * Mock minimal, dans l'ordre exact des requêtes émises par upsertSenators :
- * officials par senatId, puis pour chaque mandat un select mandates (soit par
- * statut actif, soit par date de début exacte selon m.end_date).
+ * officials par senatId, puis pour chaque mandat un select mandates par date
+ * de début exacte, puis — seulement si vide et mandat sans fin — un select du
+ * mandat actif.
  */
 function createMockDb(selectQueue: unknown[][]) {
   const store: Record<string, Record<string, unknown>[]> = {
@@ -81,7 +82,8 @@ describe('upsertSenators — déduplication des mandats en cours', () => {
     // mandat actif au lieu de corriger le premier.
     const { db, store, updates } = createMockDb([
       [existingOfficial], // officials by senatId
-      [{ id: 'mandate-1' }], // mandates: mandat actif existant (peu importe sa startDate)
+      [], // mandates par date de début exacte : aucun
+      [{ id: 'mandate-1', endDate: null }], // mandates: mandat actif existant (peu importe sa startDate)
     ]);
     const { upsertSenators } = await import('./senators.js');
 
@@ -97,9 +99,60 @@ describe('upsertSenators — déduplication des mandats en cours', () => {
     });
   });
 
+  // Cas réel (sénatoriales 2026) : senat-mandats-2026 a ouvert le mandat au
+  // 2026-10-01, puis fetchSenateurs, sans ligne ELUSEN pour ce nouvel élu,
+  // fournit un mandat synthétique. Sa date provisoire écrasait la bonne.
+  it('does not overwrite the start date of the active mandate with a synthetic one', async () => {
+    const { db, store, updates } = createMockDb([
+      [existingOfficial], // officials by senatId
+      [], // mandates par date de début exacte : aucun
+      [{ id: 'mandate-2026', endDate: null }], // mandat actif ouvert par senat-mandats-2026
+    ]);
+    const { upsertSenators } = await import('./senators.js');
+
+    await upsertSenators(db as never, [
+      {
+        ...senateur,
+        mandats: [
+          {
+            start_date: '2023-10-01',
+            end_date: null,
+            department: 'Haute-Marne',
+            synthetic: true,
+          },
+        ],
+      },
+    ]);
+
+    expect(store.mandates).toHaveLength(0);
+    const mandateUpdate = updates.find((u) => u.table === 'mandates');
+    expect(mandateUpdate?.set).not.toHaveProperty('startDate');
+    expect(mandateUpdate?.set).toMatchObject({ department: 'Haute-Marne' });
+  });
+
+  // Cas réel (Gérard Larcher) : le mandat 2023 → 2026 a été clos par les
+  // résultats des sénatoriales, mais ELUSEN le publie encore sans fin.
+  it('updates the closed mandate matching the start date and keeps its end date', async () => {
+    const { db, store, updates } = createMockDb([
+      [existingOfficial], // officials by senatId
+      [{ id: 'mandate-2023', endDate: '2026-10-01' }], // mandates par date de début : mandat clos
+    ]);
+    const { upsertSenators } = await import('./senators.js');
+
+    await upsertSenators(db as never, [senateur]);
+
+    expect(store.mandates).toHaveLength(0);
+    const mandateUpdate = updates.find((u) => u.table === 'mandates');
+    expect(mandateUpdate?.set).toMatchObject({
+      startDate: '2023-10-02',
+      endDate: '2026-10-01',
+    });
+  });
+
   it('inserts a new mandate when no active mandate exists yet', async () => {
     const { db, store } = createMockDb([
       [existingOfficial], // officials by senatId
+      [], // mandates par date de début exacte
       [], // mandates: aucun mandat actif existant
     ]);
     const { upsertSenators } = await import('./senators.js');
@@ -185,6 +238,93 @@ function makeSenateur(matricule: string): Senateur {
     mandats: [],
   };
 }
+
+/**
+ * Mock DB pour tester le repli sur conflit de slug : même ordre de select
+ * que createMockDb (officials par senatId, rapprochement AN), mais l'insert
+ * échoue sur la contrainte unique `officials_slug_unique` — simulant un
+ * official déjà existant sous ce slug sans que le rapprochement AN l'ait
+ * trouvé (ex. date de naissance enregistrée différemment selon la source).
+ */
+function createSlugConflictMockDb(selectQueue: unknown[][]) {
+  const updates: { table: string; set: Record<string, unknown> }[] = [];
+  let i = 0;
+  const db = {
+    select: () => ({
+      from: () => ({
+        where: () => makeThenable(selectQueue[i++] ?? []),
+      }),
+    }),
+    insert: () => ({
+      values: () => ({
+        returning: () => {
+          const err = new Error(
+            'Failed query: insert into "officials" ... duplicate key value violates unique constraint "officials_slug_unique"',
+          );
+          Object.assign(err, {
+            code: '23505',
+            constraint: 'officials_slug_unique',
+          });
+          return Promise.reject(err);
+        },
+      }),
+    }),
+    update: (table: unknown) => ({
+      set: (values: Record<string, unknown>) => {
+        updates.push({ table: getTableName(table), set: values });
+        return { where: () => Promise.resolve() };
+      },
+    }),
+  };
+  return { db, updates };
+}
+
+const senateurSansMandat: Senateur = {
+  matricule: '21686H',
+  nom: 'Alexandre',
+  prenom: 'Rodolphe',
+  sexe: 'M',
+  date_naissance: '1953-09-25',
+  circonscription: 'Guyane',
+  slug: 'rodolphe-alexandre',
+  photo_url: 'https://example.com/photo.jpg',
+  full: {},
+  mandats: [],
+};
+
+describe('upsertSenators — repli sur conflit de slug (incident du 04/10/2026)', () => {
+  it('merges with the existing official holding the conflicting slug instead of failing, when AN matching misses it', async () => {
+    const { db, updates } = createSlugConflictMockDb([
+      [], // officials by senatId : aucun
+      [], // rapprochement AN (nom+prénom+date de naissance) : aucun
+      [{ id: 'official-existing', photoUrl: null }], // select by slug : le trouve
+    ]);
+    const { upsertSenators } = await import('./senators.js');
+
+    const summary = await upsertSenators(db as never, [senateurSansMandat]);
+
+    expect(summary.officials).toBe(0);
+    expect(summary.merged).toBe(1);
+    const officialsUpdate = updates.find((u) => u.table === 'officials');
+    expect(officialsUpdate?.set).toMatchObject({ senatId: '21686H' });
+  });
+
+  it('still throws when no official holds that exact slug (unrelated cause, not a recoverable conflict)', async () => {
+    const { db } = createSlugConflictMockDb([
+      [], // officials by senatId : aucun
+      [], // rapprochement AN : aucun
+      [], // select by slug : rien non plus — vraiment introuvable
+    ]);
+    const { upsertSenators } = await import('./senators.js');
+
+    // upsertSenators lui-même n'échoue pas (le compteur d'échecs consécutifs
+    // l'absorbe), mais aucun official/mandat n'est créé pour ce sénateur.
+    const summary = await upsertSenators(db as never, [senateurSansMandat]);
+
+    expect(summary.officials).toBe(0);
+    expect(summary.merged).toBe(0);
+  });
+});
 
 describe('upsertSenators — résilience aux blips réseau (incident du 01/10/2026)', () => {
   it('retries an isolated transient failure and still processes the sénateur', async () => {

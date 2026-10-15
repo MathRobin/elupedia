@@ -1,3 +1,5 @@
+// Tests de rne-conseillers-arr : parsing ligne à ligne du CSV RNE (14 colonnes)
+// et saut de l'en-tête au fetch.
 import { describe, it, expect, vi } from 'vitest';
 import { parseCsvRow, fetchRneConseillersArr } from './rne-conseillers-arr.js';
 

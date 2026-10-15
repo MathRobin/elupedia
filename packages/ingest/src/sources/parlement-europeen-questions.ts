@@ -1,4 +1,31 @@
+/**
+ * Questions parlementaires des eurodéputés (open data du Parlement européen).
+ *
+ * Source : API v2 `data.europarl.europa.eu`, format JSON-LD
+ * (`format=application/ld+json`), endpoint `/parliamentary-questions`.
+ * Deux appels : la liste paginée (identifiants + type de document) puis le
+ * détail de chaque question (auteurs, destinataire, date de réponse).
+ *
+ * Extrait : une `EuropeQuestion` par question écrite / orale /
+ * interpellation, rattachée à ses auteurs (`person/{id}`), avec un lien vers
+ * la page officielle du document.
+ *
+ * Pièges :
+ * - Pas de filtre serveur par auteur : il faut parcourir toute la liste
+ *   (voir fetchQuestionsListPage).
+ * - Les identifiants du vocabulaire sont préfixés (`def/ep-document-types/`,
+ *   `def/ep-roles/`, `org/`) : voir stripPrefix.
+ * - Le texte des questions n'est pas disponible en JSON (pièces jointes
+ *   seulement) : seul le lien est fourni.
+ *
+ * Appelé par upsert/europe-questions.ts.
+ */
 const API_BASE = 'https://data.europarl.europa.eu/api/v2';
+
+/** Préfixes du vocabulaire EP à retirer des identifiants. */
+const DOCUMENT_TYPE_PREFIX = 'def/ep-document-types/';
+const ROLE_AUTHOR = 'def/ep-roles/AUTHOR';
+const ROLE_ADDRESSEE = 'def/ep-roles/ADDRESSEE';
 
 function jsonLdUrl(path: string): string {
   return `${API_BASE}${path}${path.includes('?') ? '&' : '?'}format=application%2Fld%2Bjson`;
@@ -33,6 +60,7 @@ const ADDRESSEE_LABELS: Record<string, string> = {
 
 export interface EuropeQuestionListItem {
   identifier: string;
+  /** Type de document EP sans préfixe (ex. QUESTION_WRITTEN). */
   workType: string;
 }
 
@@ -58,8 +86,10 @@ interface RawQuestionDoc {
   identifier: string;
   document_date: string;
   work_type?: string;
+  /** Titre par code langue (fr, en, …). */
   title_dcterms?: Record<string, string>;
   workHadParticipation?: RawParticipation[];
+  /** Documents de réponse à cette question. */
   inverse_answers_to?: { document_date?: string }[];
 }
 
@@ -67,6 +97,7 @@ function stripPrefix(uri: string | undefined, prefix: string): string {
   return uri?.startsWith(prefix) ? uri.slice(prefix.length) : (uri ?? '');
 }
 
+/** Titre français, sinon anglais, sinon la première langue disponible. */
 function pickTitle(titleDcterms: Record<string, string> | undefined): string {
   if (!titleDcterms) return '';
   return (
@@ -76,7 +107,7 @@ function pickTitle(titleDcterms: Record<string, string> | undefined): string {
 
 function resolveAddressee(participations: RawParticipation[]): string | null {
   const addressee = participations.find(
-    (p) => p.participation_role === 'def/ep-roles/ADDRESSEE',
+    (participation) => participation.participation_role === ROLE_ADDRESSEE,
   );
   const orgId = addressee?.had_participant_organization?.[0];
   if (!orgId) return null;
@@ -87,28 +118,29 @@ function resolveAddressee(participations: RawParticipation[]): string | null {
  * Liste paginée (le seul mode d'accès : pas de filtre serveur par auteur —
  * vérifié le 29/09/2026, le paramètre `creator` est ignoré). Chaque élément
  * ne porte que l'identifiant : l'auteur n'est connu qu'en récupérant le
- * détail (fetchQuestionDetail).
+ * détail (fetchQuestionDetail). Renvoie [] une fois la liste épuisée ; lève
+ * sur erreur HTTP.
  */
 export async function fetchQuestionsListPage(
   offset: number,
   limit: number,
   fetchFn: typeof fetch = fetch,
 ): Promise<EuropeQuestionListItem[]> {
-  const res = await fetchFn(
+  const response = await fetchFn(
     jsonLdUrl(`/parliamentary-questions?offset=${offset}&limit=${limit}`),
   );
-  if (!res.ok) {
+  if (!response.ok) {
     throw new Error(
-      `Parlement européen /parliamentary-questions error: ${res.status} ${res.statusText}`,
+      `Parlement européen /parliamentary-questions error: ${response.status} ${response.statusText}`,
     );
   }
-  const json = await res.json();
+  const json = await response.json();
   const items: { identifier: string; work_type?: string }[] = json.data ?? [];
   return items
     .filter((item) => typeof item.work_type === 'string')
     .map((item) => ({
       identifier: item.identifier,
-      workType: stripPrefix(item.work_type, 'def/ep-document-types/'),
+      workType: stripPrefix(item.work_type, DOCUMENT_TYPE_PREFIX),
     }));
 }
 
@@ -122,31 +154,31 @@ export async function fetchQuestionDetail(
   identifier: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<EuropeQuestion | null> {
-  const res = await fetchFn(
+  const response = await fetchFn(
     jsonLdUrl(`/parliamentary-questions/${identifier}`),
   );
   // Lève plutôt que de renvoyer null : l'appelant (upsertEuropeQuestions)
   // compte les échecs consécutifs pour détecter un rate-limit/une panne
   // systémique côté API et s'arrêter proprement (incident du 29/09/2026) —
   // un null silencieux rendrait ce mécanisme aveugle aux erreurs HTTP.
-  if (!res.ok) {
+  if (!response.ok) {
     throw new Error(
-      `Parlement européen /parliamentary-questions/${identifier} error: ${res.status} ${res.statusText}`,
+      `Parlement européen /parliamentary-questions/${identifier} error: ${response.status} ${response.statusText}`,
     );
   }
 
-  const json = await res.json();
+  const json = await response.json();
   const doc: RawQuestionDoc | undefined = json.data?.[0];
   if (!doc) return null;
 
-  const rawType = stripPrefix(doc.work_type, 'def/ep-document-types/');
+  const rawType = stripPrefix(doc.work_type, DOCUMENT_TYPE_PREFIX);
   const type = WORK_TYPE_TO_ACTIVITY_TYPE[rawType];
   if (!type) return null;
 
   const participations = doc.workHadParticipation ?? [];
   const authorPersonIds = participations
-    .filter((p) => p.participation_role === 'def/ep-roles/AUTHOR')
-    .flatMap((p) => p.had_participant_person ?? []);
+    .filter((participation) => participation.participation_role === ROLE_AUTHOR)
+    .flatMap((participation) => participation.had_participant_person ?? []);
 
   if (authorPersonIds.length === 0) return null;
 

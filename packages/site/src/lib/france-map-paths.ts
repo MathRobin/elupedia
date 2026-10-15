@@ -1,3 +1,13 @@
+/**
+ * Tracés SVG des 96 départements de France métropolitaine (Corse en 2A/2B,
+ * pas d'outre-mer), dans le repère `VIEWBOX`. Données statiques consommées par
+ * `FranceDepartmentMap` (carte cliquable) et `JurisdictionMap` (mise en
+ * évidence d'un département sur une fiche élu).
+ *
+ * Les `id` sont les codes INSEE de département, à faire correspondre avec
+ * `DEPARTMENT_CODES` de `@elupedia/shared`. Les tracés sont des données
+ * importées : ne pas les retoucher à la main.
+ */
 export const VIEWBOX = '0 0 613 585';
 
 export const DEPARTMENTS: { id: string; name: string; path: string }[] = [

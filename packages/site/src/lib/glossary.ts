@@ -1,8 +1,21 @@
+/**
+ * Contenu éditorial du glossaire électoral (`/glossaire` et
+ * `/glossaire/[slug]`), rédigé en dur ici plutôt qu'en base : quelques
+ * entrées, mises à jour par commit. Consommé par `pages/glossaire/*.astro`,
+ * `GlossaryExampleCard.astro` et `sitemap-static.xml.ts` (une URL par entrée).
+ *
+ * Chaque entrée a exactement deux exemples réels et sourcés (`examples`), ce
+ * que le type impose via un tuple. `related` référence d'autres `slug` du
+ * glossaire : à maintenir à la main, rien ne vérifie leur existence.
+ */
+
+/** Chiffre clé affiché en tête d'un exemple (ex. « Population » → « ≈ 1 670 hab. »). */
 export interface GlossaryStat {
   label: string;
   value: string;
 }
 
+/** Ligne d'un tableau de résultats dans un exemple ; `pct` alimente une barre de proportion. */
 export interface GlossaryRow {
   label: string;
   detail?: string;
@@ -10,6 +23,7 @@ export interface GlossaryRow {
   pct?: number;
 }
 
+/** Cas concret illustrant une entrée, avec sa source primaire. */
 export interface GlossaryExample {
   title: string;
   subtitle: string;
@@ -20,19 +34,25 @@ export interface GlossaryExample {
   sourceUrl: string;
 }
 
+/** Sous-partie de l'explication longue d'une entrée. */
 export interface GlossarySection {
   heading: string;
   paragraphs: string[];
 }
 
 export interface GlossaryEntry {
+  /** Segment d'URL : `/glossaire/[slug]`. */
   slug: string;
   term: string;
+  /** Regroupement affiché sur l'index (ex. « Municipales », « Sénatoriales »). */
   category: string;
+  /** Une phrase, affichée dans l'index et en meta description. */
   shortDefinition: string;
   intro: string;
   sections: GlossarySection[];
+  /** Toujours deux exemples, affichés côte à côte. */
   examples: [GlossaryExample, GlossaryExample];
+  /** Slugs d'autres entrées proposées en « voir aussi ». */
   related?: string[];
 }
 
@@ -525,6 +545,7 @@ export const glossaryEntries: GlossaryEntry[] = [
   },
 ];
 
+/** Entrée du glossaire par slug d'URL, `undefined` si inconnue (→ 404 côté page). */
 export function getGlossaryEntry(slug: string): GlossaryEntry | undefined {
-  return glossaryEntries.find((e) => e.slug === slug);
+  return glossaryEntries.find((entry) => entry.slug === slug);
 }

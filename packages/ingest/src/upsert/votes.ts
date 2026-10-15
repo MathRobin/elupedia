@@ -1,3 +1,17 @@
+/**
+ * Upsert des votes d'un député sur les scrutins publics de l'AN, un
+ * official à la fois. Historiquement appelé par l'ingestion AN ; aujourd'hui
+ * `run-an.ts` passe par `upsert/an-votes.ts` (traitement groupé) et ce
+ * module n'a plus d'appelant hors tests.
+ *
+ * Tables écrites : `ballots`, `votes` et `data_provenance`.
+ * Clés de rapprochement :
+ * - scrutin : `ballots.an_id` = `scrutin-<id AN>` ;
+ * - vote : (ballot, official).
+ *
+ * Idempotent : la position d'un vote existant est réécrite ; un scrutin déjà
+ * connu n'est jamais modifié (titre, date, type figés).
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { ballots, votes } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
@@ -7,6 +21,7 @@ const SOURCE_NAME = 'Assemblée nationale - Open Data';
 const LEGAL_BASIS =
   'Données publiques de scrutin parlementaire (art. L311-1 CRPA)';
 
+/** Un vote tel que lu côté AN (champs en français, nommage de la source). */
 export interface VoteDetail {
   scrutin_id: number;
   scrutin_titre: string;
@@ -15,19 +30,28 @@ export interface VoteDetail {
   position: string;
 }
 
-function mapPosition(
-  position: string,
-): 'for' | 'against' | 'abstain' | 'absent' {
-  const map: Record<string, 'for' | 'against' | 'abstain' | 'absent'> = {
+type VotePosition = 'for' | 'against' | 'abstain' | 'absent';
+
+/**
+ * Traduit la position AN (« pour », « contre », « abstention », « absent »,
+ * « non-votant ») vers l'enum interne, insensible à la casse. Toute valeur
+ * inconnue est rangée en `absent` plutôt que de faire échouer l'ingestion.
+ */
+function mapPosition(position: string): VotePosition {
+  const positionByAnLabel: Record<string, VotePosition> = {
     pour: 'for',
     contre: 'against',
     abstention: 'abstain',
     absent: 'absent',
     'non-votant': 'absent',
   };
-  return map[position.toLowerCase()] ?? 'absent';
+  return positionByAnLabel[position.toLowerCase()] ?? 'absent';
 }
 
+/**
+ * Upsert des votes d'un official. Écrit dans `ballots`, `votes` et
+ * `data_provenance`. Retourne `{ ballotId, officialId }` par vote traité.
+ */
 export async function upsertVotes(
   db: NeonHttpDatabase,
   officialId: string,
@@ -86,6 +110,8 @@ export async function upsertVotes(
       sourceTable: 'votes',
       sourceRecordId: `${scrutinAnId}:${officialId}`,
       sourceName: SOURCE_NAME,
+      // Législature codée en dur (17e) : l'URL cesserait d'être exacte pour
+      // des scrutins d'une autre législature.
       sourceUrl: `https://www.assemblee-nationale.fr/dyn/17/scrutins/${vote.scrutin_id}`,
       legalBasis: LEGAL_BASIS,
       rawData: vote,

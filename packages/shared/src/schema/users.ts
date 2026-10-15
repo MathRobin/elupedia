@@ -1,3 +1,16 @@
+/**
+ * Tables d'authentification de l'interface d'administration
+ * (`packages/admin`, Next.js + Auth.js) : `users`, `accounts`,
+ * `verification_tokens`. Aucun lien avec les élus : ce sont les comptes
+ * des modérateurs.
+ *
+ * `accounts` et `verification_tokens` suivent le schéma imposé par
+ * `@auth/drizzle-adapter` (d'où les colonnes en snake_case côté TypeScript
+ * comme `refresh_token` : l'adaptateur attend ces noms de propriétés
+ * exacts). En pratique seul le provider Credentials (email + mot de passe
+ * bcrypt dans `users.password_hash`) est configuré ; `accounts` et
+ * `verification_tokens` restent vides mais sont requis par l'adaptateur.
+ */
 import {
   pgTable,
   uuid,
@@ -8,6 +21,10 @@ import {
   integer,
 } from 'drizzle-orm/pg-core';
 
+/**
+ * Rôles de l'admin : `moderator` accède à la modération des liens,
+ * `admin` en plus à la gestion des comptes et des doublons d'élus.
+ */
 export const userRoleEnum = ['admin', 'moderator'] as const;
 
 export const users = pgTable('users', {
@@ -18,6 +35,8 @@ export const users = pgTable('users', {
   image: varchar('image', { length: 1024 }),
   passwordHash: varchar('password_hash', { length: 255 }),
   role: varchar('role', { length: 20 }).notNull(),
+  // Seul timestamp du schéma sans fuseau (héritage de la migration
+  // initiale, conservé tel quel).
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

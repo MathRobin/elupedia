@@ -1,4 +1,13 @@
 ---
+/**
+ * Carte « exemple chiffré » d'une entrée du glossaire : titre, indicateurs
+ * clés, puis une liste de lignes avec barre de proportion (ex. résultats
+ * d'un scrutin illustrant le terme) et la source.
+ *
+ * Rendue côté serveur uniquement, par `pages/glossaire/[slug].astro`, pour
+ * chacun des `examples` de l'entrée (type `GlossaryExample`, données
+ * statiques de `lib/glossary.ts`).
+ */
 import type { GlossaryExample } from '../lib/glossary.js';
 
 interface Props {
@@ -7,6 +16,7 @@ interface Props {
 
 const { example } = Astro.props;
 
+// Couleur de pastille et de barre par ligne, attribuée cycliquement.
 const rowColors = [
   'bg-indigo-500',
   'bg-rose-500',
@@ -21,10 +31,10 @@ const rowColors = [
   <p class="text-sm text-slate-500 dark:text-slate-400">{example.subtitle}</p>
 
   <div class="mt-4 grid grid-cols-3 gap-3">
-    {example.stats.map((s) => (
+    {example.stats.map((stat) => (
       <div class="rounded-xl bg-slate-50 p-3 text-center dark:bg-slate-900/60">
-        <p class="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{s.label}</p>
-        <p class="text-lg font-bold text-slate-900 dark:text-white">{s.value}</p>
+        <p class="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{stat.label}</p>
+        <p class="text-lg font-bold text-slate-900 dark:text-white">{stat.value}</p>
       </div>
     ))}
   </div>

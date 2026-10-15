@@ -1,4 +1,12 @@
 ---
+/**
+ * Guide d'intégration pour les sites tiers (route /integrer).
+ *
+ * Page prérendue au build. Documente les trois mécanismes d'intégration d'une
+ * fiche d'élu : iframe /elus/[slug]/embed, oEmbed (/api/oembed) et balises
+ * Open Graph / Twitter Card. Les exemples sont construits autour d'un élu réel
+ * choisi en base par getDocExample() au moment du build.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getDocExample } from '../lib/doc-examples.js';
 

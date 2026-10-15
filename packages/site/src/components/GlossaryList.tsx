@@ -1,3 +1,13 @@
+/**
+ * Liste filtrable des termes du glossaire, groupés par catégorie.
+ *
+ * Rendue sur `pages/glossaire/index.astro` avec `client:load` : la recherche
+ * est purement locale (les entrées sont passées en props, pas d'appel API) et
+ * doit répondre dès que l'utilisateur tape.
+ *
+ * La recherche est insensible à la casse et aux accents, et porte sur le
+ * terme, la catégorie et la définition courte.
+ */
 import { useMemo, useState } from 'react';
 
 type Entry = {
@@ -7,10 +17,13 @@ type Entry = {
   shortDefinition: string;
 };
 
+/** Props injectées par la page Astro. */
 type Props = {
+  /** Toutes les entrées du glossaire (données statiques de `lib/glossary.ts`). */
   entries: Entry[];
 };
 
+/** Minuscules sans diacritiques, pour une comparaison tolérante. */
 function normalize(s: string): string {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
@@ -19,24 +32,27 @@ export default function GlossaryList({ entries }: Props) {
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
-    const q = normalize(query.trim());
-    if (!q) return entries;
+    const normalizedQuery = normalize(query.trim());
+    if (!normalizedQuery) return entries;
     return entries.filter(
-      (e) =>
-        normalize(e.term).includes(q) ||
-        normalize(e.category).includes(q) ||
-        normalize(e.shortDefinition).includes(q),
+      (entry) =>
+        normalize(entry.term).includes(normalizedQuery) ||
+        normalize(entry.category).includes(normalizedQuery) ||
+        normalize(entry.shortDefinition).includes(normalizedQuery),
     );
   }, [entries, query]);
 
+  // Catégories triées alphabétiquement (fr), chacune avec ses entrées.
   const byCategory = useMemo(() => {
-    const map = new Map<string, Entry[]>();
-    for (const e of filtered) {
-      const list = map.get(e.category) ?? [];
-      list.push(e);
-      map.set(e.category, list);
+    const entriesByCategory = new Map<string, Entry[]>();
+    for (const entry of filtered) {
+      const list = entriesByCategory.get(entry.category) ?? [];
+      list.push(entry);
+      entriesByCategory.set(entry.category, list);
     }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'fr'));
+    return [...entriesByCategory.entries()].sort((a, b) =>
+      a[0].localeCompare(b[0], 'fr'),
+    );
   }, [filtered]);
 
   return (
@@ -74,17 +90,17 @@ export default function GlossaryList({ entries }: Props) {
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {items
                 .sort((a, b) => a.term.localeCompare(b.term, 'fr'))
-                .map((e) => (
+                .map((entry) => (
                   <a
-                    key={e.slug}
-                    href={`/glossaire/${e.slug}`}
+                    key={entry.slug}
+                    href={`/glossaire/${entry.slug}`}
                     className="group block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md no-underline dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500"
                   >
                     <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors dark:text-white dark:group-hover:text-indigo-400">
-                      {e.term}
+                      {entry.term}
                     </h3>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                      {e.shortDefinition}
+                      {entry.shortDefinition}
                     </p>
                   </a>
                 ))}

@@ -1,3 +1,6 @@
+// Tests de senat-resultats-2026 : pages HTML simulées pour les trois mises en
+// page (proportionnel, majoritaire à un ou deux tours, petite circonscription
+// en texte brut) et page non dépouillée.
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../logger.js', () => ({
