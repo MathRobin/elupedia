@@ -26,6 +26,7 @@ import {
 import { type Scrutin } from '../sources/an-scrutins.js';
 import { GP_FALLBACK } from '../sources/assemblee-nationale.js';
 import { logger } from '../logger.js';
+import { normalizeBallotResult } from './ballot-result.js';
 
 // Positions telles que libellées dans l'open data AN -> enum interne.
 // Un vote individuel à position inconnue est stocké comme 'absent' ; une
@@ -110,6 +111,9 @@ export async function upsertAnVotes(
             title: scrutin.titre,
             date: scrutin.date,
             type: scrutin.type,
+            result: normalizeBallotResult(scrutin.sort),
+            dossierRef: scrutin.dossierRef,
+            requestedBy: scrutin.requestedBy,
           })),
         )
         .onConflictDoUpdate({
@@ -118,6 +122,9 @@ export async function upsertAnVotes(
             title: sql`excluded.title`,
             date: sql`excluded.date`,
             type: sql`excluded.type`,
+            result: sql`excluded.result`,
+            dossierRef: sql`excluded.dossier_ref`,
+            requestedBy: sql`excluded.requested_by`,
             updatedAt: new Date(),
           },
         })

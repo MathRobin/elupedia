@@ -1,0 +1,37 @@
+{
+  "name": "@elupedia/shorts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "select": "tsx --env-file-if-exists=../../.env src/main-select.ts",
+    "script": "tsx --env-file-if-exists=../../.env src/main-script.ts",
+    "voiceover": "tsx --env-file-if-exists=../../.env src/main-voiceover.ts",
+    "render": "tsx --env-file-if-exists=../../.env src/main-render.ts",
+    "preview": "remotion studio src/remotion/index.ts",
+    "review": "tsx --env-file-if-exists=../../.env src/main-review.ts",
+    "publish": "tsx --env-file-if-exists=../../.env src/main-publish.ts",
+    "youtube-auth": "tsx --env-file-if-exists=../../.env src/main-youtube-auth.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@elupedia/shared": "*",
+    "@neondatabase/serverless": "^1.1.0",
+    "@remotion/bundler": "4.0.532",
+    "@remotion/renderer": "4.0.532",
+    "drizzle-orm": "^0.45.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remotion": "4.0.532",
+    "winston": "^3.19.0",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@remotion/cli": "4.0.532",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.2"
+  }
+}

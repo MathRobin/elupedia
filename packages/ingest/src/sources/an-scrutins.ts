@@ -50,6 +50,8 @@ export interface Scrutin {
   date: string;
   type: string;
   sort: string;
+  dossierRef: string | null;
+  requestedBy: string | null;
   votants: ScrutinVotant[];
   groupPositions: ScrutinGroupPosition[];
 }
@@ -173,6 +175,9 @@ function parseScrutin(scrutin: Record<string, unknown>): Scrutin | undefined {
 
   const typeVote = scrutin.typeVote as Record<string, string> | undefined;
   const sort = scrutin.sort as Record<string, string> | undefined;
+  const objet = scrutin.objet as
+    { dossierLegislatif?: { dossierRef?: string } | null } | undefined;
+  const demandeur = scrutin.demandeur as { texte?: string } | undefined;
 
   const ventilation = scrutin.ventilationVotes as
     Record<string, unknown> | undefined;
@@ -225,6 +230,8 @@ function parseScrutin(scrutin: Record<string, unknown>): Scrutin | undefined {
     date: dateScrutin,
     type: typeVote?.libelleTypeVote ?? DEFAULT_VOTE_TYPE,
     sort: sort?.code ?? '',
+    dossierRef: objet?.dossierLegislatif?.dossierRef ?? null,
+    requestedBy: demandeur?.texte?.trim() || null,
     votants,
     groupPositions,
   };

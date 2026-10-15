@@ -12,7 +12,12 @@
  */
 export { officials } from './officials.js';
 export { mandates } from './mandates.js';
-export { ballots } from './ballots.js';
+export {
+  ballots,
+  ballotResultEnum,
+  type BallotResult,
+  type BallotProposer,
+} from './ballots.js';
 export { votes, votePositionEnum } from './votes.js';
 export { staffers } from './staffers.js';
 export { affiliations } from './affiliations.js';
@@ -62,3 +67,9 @@ export { ballotGroupPositions } from './ballot-group-positions.js';
 export { communeTransparency } from './commune-transparency.js';
 export { madadaRequests } from './madada-requests.js';
 export { factChecks } from './fact-checks.js';
+export {
+  videoShorts,
+  videoShortBallots,
+  videoShortStatusEnum,
+  type VideoShortStatus,
+} from './video-shorts.js';

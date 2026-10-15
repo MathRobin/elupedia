@@ -16,7 +16,7 @@
  */
 import { useState, useMemo, useCallback } from 'react';
 import seatPositions from '../lib/hemicycle-seats.json';
-import { generateHemicycleSeats } from '../lib/generate-hemicycle-seats.js';
+import { generateHemicycleSeats } from '@elupedia/shared';
 
 type VotePosition = 'for' | 'against' | 'abstain' | 'absent';
 

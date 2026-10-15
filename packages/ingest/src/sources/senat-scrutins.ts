@@ -3,10 +3,11 @@
  * session parlementaire (ex. « 2025 » = session 2025-2026).
  *
  * Sources (senat.fr/scrutin-public) :
- *   1. la page index HTML `scr<session>.html`, parsée ligne à ligne par
- *      regex : les titres de date (« 21 juillet 2026 ») précèdent les liens
- *      « Scrutin N°340 : <intitulé>. Adoption|Rejet », et chaque scrutin hérite
- *      de la dernière date rencontrée ;
+ *   1. la page index HTML `scr<session>.html`, parcourue en DOM (cheerio) :
+ *      un `<li>` par jour de séance porte la date, puis un `<p>` par scrutin
+ *      (lien « Scrutin N°340 », intitulé sur plusieurs lignes, badge
+ *      « Adoption »/« Rejet ») ; chaque scrutin hérite de la dernière date
+ *      rencontrée ;
  *   2. un JSON par scrutin `<session>/scr<session>-<n>.json` avec la liste
  *      `votes` (matricule, code de vote p/c/a/n, siège).
  *
@@ -18,6 +19,7 @@
  *
  * Appelé par run-senat.ts, consommé par upsert/senat-votes.ts.
  */
+import * as cheerio from 'cheerio';
 import { logger } from '../logger.js';
 
 const SCRUTINS_INDEX_URL =
@@ -59,7 +61,7 @@ export function mapSenatVotePosition(
   return VOTE_MAP[code] ?? 'absent';
 }
 
-const FRENCH_MONTH_NUMBERS: Record<string, string> = {
+const MONTHS: Record<string, string> = {
   janvier: '01',
   février: '02',
   mars: '03',
@@ -74,65 +76,82 @@ const FRENCH_MONTH_NUMBERS: Record<string, string> = {
   décembre: '12',
 };
 
-/** Date en toutes lettres (« 21 juillet 2026 ») n'importe où dans une ligne. */
-const DATE_IN_LINE_RE =
+const DATE_RE =
   /(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/i;
 
 /**
- * Lien vers un scrutin suivi de son intitulé : `scr2025-340.html…>…N°340</a> : <titre>`.
- * Le « ° » peut être encodé `&deg;` et le « : » précédé de `&nbsp;` dans le HTML réel.
- */
-const SCRUTIN_LINK_RE =
-  /scr\d{4}-(\d+)\.html[^>]*>.*?N(?:°|&deg;)\s*(\d+)<\/a>\s*(?:&nbsp;)?:\s*(.*)/i;
-
-/**
- * Parse la page index d'une session. Un scrutin rencontré avant tout titre de
- * date est ignoré (pas de date à lui attribuer). Exporté pour les tests.
+ * Index des scrutins d'une session (`scr{session}.html`). Structure réelle :
+ * des `<li>` par jour de séance avec un `.list-group-subtitle` portant la
+ * date, puis un `<p>` par scrutin : lien « Scrutin N°340 », intitulé coupé
+ * sur plusieurs lignes, lien « consulter le dossier législatif », et un
+ * `<span class="badge">` « Adoption » / « Rejet ». On parcourt le DOM plutôt
+ * que les lignes du fichier : l'intitulé et le résultat ne tiennent pas sur
+ * une seule ligne.
  */
 export function parseScrutinsIndex(
   html: string,
   session: string,
 ): SenatScrutin[] {
+  const $ = cheerio.load(html);
   const results: SenatScrutin[] = [];
   let currentDate = '';
+  const hrefRe = new RegExp(`scr${session}-(\\d+)\\.html`);
 
-  const lines = html.split('\n');
-
-  for (const line of lines) {
-    const dateMatch = line.match(DATE_IN_LINE_RE);
+  $('*').each((_, el) => {
+    // Date portée par le texte direct de l'élément (pas celui de ses enfants),
+    // pour ne pas prendre celle d'un ancêtre qui contient toute la liste.
+    const ownText = $(el)
+      .contents()
+      .filter((__, n) => n.type === 'text')
+      .text();
+    // Un intitulé de scrutin peut lui-même citer une date (« l'accord du
+    // 12 juillet 2025 ») : un élément qui contient un lien de scrutin n'est
+    // jamais un porteur de date.
+    const holdsScrutinLink =
+      $(el)
+        .find('a[href]')
+        .filter((__, a) => hrefRe.test($(a).attr('href') ?? '')).length > 0;
+    const dateMatch = holdsScrutinLink ? null : ownText.match(DATE_RE);
     if (dateMatch) {
-      const day = dateMatch[1].padStart(2, '0');
-      const monthName = dateMatch[2].toLowerCase();
-      const year = dateMatch[3];
-      const month = FRENCH_MONTH_NUMBERS[monthName];
-      if (month) currentDate = `${year}-${month}-${day}`;
+      const month = MONTHS[dateMatch[2].toLowerCase()];
+      if (month) {
+        currentDate = `${dateMatch[3]}-${month}-${dateMatch[1].padStart(2, '0')}`;
+      }
+      return;
     }
 
-    const scrutinMatch = line.match(SCRUTIN_LINK_RE);
-    if (scrutinMatch && currentDate) {
-      const number = parseInt(scrutinMatch[1], 10);
-      let title = scrutinMatch[3]
-        .replace(/<[^>]+>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      // L'intitulé se termine par « . Adoption » ou « . Rejet » : on l'isole
-      // comme résultat et on retire le point final restant.
-      let result = '';
-      const resultMatch = title.match(/\.\s*(Adoption|Rejet)\s*$/i);
+    if (el.type !== 'tag' || el.name !== 'a') return;
+    const href = $(el).attr('href') ?? '';
+    const numberMatch = href.match(hrefRe);
+    if (!numberMatch || !currentDate) return;
+
+    const container = $(el).parent().clone();
+    const badge = container.find('.badge').text().trim();
+    container.find('.badge').remove();
+    let raw = container
+      .text()
+      .replace(/\s+/g, ' ')
+      .replace(/^.*?N°\s*\d+\s*:\s*/, '')
+      .replace(/\s*-\s*consulter le dossier législatif\.?\s*$/i, '')
+      .trim();
+    let result = badge;
+    if (!result) {
+      const resultMatch = raw.match(/\.\s*(Adoption|Rejet)\s*$/i);
       if (resultMatch) {
         result = resultMatch[1];
-        title = title.slice(0, resultMatch.index!).trim();
+        raw = raw.slice(0, resultMatch.index!).trim();
       }
-      if (title.endsWith('.')) title = title.slice(0, -1);
-      results.push({
-        session,
-        number,
-        title,
-        date: currentDate,
-        result,
-      });
     }
-  }
+    if (raw.endsWith('.')) raw = raw.slice(0, -1);
+
+    results.push({
+      session,
+      number: parseInt(numberMatch[1], 10),
+      title: raw,
+      date: currentDate,
+      result,
+    });
+  });
 
   return results;
 }

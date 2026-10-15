@@ -246,6 +246,41 @@
       "when": 1790708825662,
       "tag": "0034_narrow_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791815222626,
+      "tag": "0035_ballots_result",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791824234972,
+      "tag": "0036_video_shorts",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791825627477,
+      "tag": "0037_ballots_title_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791825888728,
+      "tag": "0038_video_shorts_voiceover",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791835499176,
+      "tag": "0039_ballots_proposers",
+      "breakpoints": true
     }
   ]
 }

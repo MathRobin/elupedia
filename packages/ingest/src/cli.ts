@@ -23,6 +23,7 @@ export const AN_STEP_NAMES = [
   'activity',
   'committees',
   'votes',
+  'ballot-proposers',
   'elections',
 ] as const;
 

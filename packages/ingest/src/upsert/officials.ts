@@ -22,6 +22,7 @@ import { officials, mandates } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
 import { writeProvenance } from './provenance.js';
+import { matchMandate } from './mandate-match.js';
 import { logger } from '../logger.js';
 
 /** Un log d'avancement tous les N députés. */
@@ -157,57 +158,27 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
         }
       }
 
-      for (const m of depute.allMandates) {
-        const mandateColumns = {
+      // Tous les mandats connus de l'élu, une seule requête ; le rapprochement
+      // mandat par mandat est fait en mémoire (voir mandate-match.ts).
+      const existingMandates = await db
+        .select({
           id: mandates.id,
-          department: mandates.department,
+          type: mandates.type,
+          startDate: mandates.startDate,
           endDate: mandates.endDate,
-        };
+          department: mandates.department,
+        })
+        .from(mandates)
+        .where(eq(mandates.officialId, officialId));
 
-        // 1) Même mandat identifié par sa date de début. Toujours tenté en
-        // premier, y compris pour un mandat « en cours » côté AN : l'index
-        // unique (official_id, type, start_date) interdit de déplacer la date
-        // de début du mandat actif sur une date déjà occupée par un autre
-        // mandat. Cas réel : après les sénatoriales 2026, le Sénat a clos le
-        // mandat 2023 → 2026 et ouvert le nouveau, alors que l'AN republie
-        // encore le mandat 2023 sans date de fin.
-        let existingMandate = await db
-          .select(mandateColumns)
-          .from(mandates)
-          .where(
-            and(
-              eq(mandates.officialId, officialId),
-              eq(mandates.type, m.type),
-              eq(mandates.startDate, m.mandat_debut),
-            ),
-          )
-          .limit(1);
-
-        // 2) Sinon, un mandat en cours (pas de mandat_fin) est identifié par
-        // son statut actif : cette source (AN) et celle du Sénat (cf.
-        // upsert/senators.ts) peuvent publier des dates de début légèrement
-        // différentes pour le même mandat sénatorial en cours, ce qui créait
-        // un mandat en double au lieu de le mettre à jour.
-        if (existingMandate.length === 0 && !m.mandat_fin) {
-          existingMandate = await db
-            .select(mandateColumns)
-            .from(mandates)
-            .where(
-              and(
-                eq(mandates.officialId, officialId),
-                eq(mandates.type, m.type),
-                isNull(mandates.endDate),
-              ),
-            )
-            .limit(1);
-        }
+      for (const m of depute.allMandates) {
+        const { target, endDate } = matchMandate(existingMandates, m);
 
         // Le mandat sénateur en cours peut aussi provenir de senators.ts (open
         // data Sénat, toujours renseigné en département) : ne pas écraser un
         // département déjà connu par une valeur vide quand cette source (AN)
         // n'a pas l'info pour ce mandat.
-        const department =
-          m.nom_circo || existingMandate[0]?.department || null;
+        const department = m.nom_circo || target?.department || null;
 
         // Pas de circonscription numérotée pour un sénateur ; num_circo = 0
         // signifie « inconnu » côté AN.
@@ -216,15 +187,25 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
             ? null
             : `${m.num_circo}e circonscription`;
 
-        if (existingMandate.length === 0) {
-          await db.insert(mandates).values({
-            officialId,
+        if (!target) {
+          const [inserted] = await db
+            .insert(mandates)
+            .values({
+              officialId,
+              type: m.type,
+              district,
+              department,
+              startDate: m.mandat_debut,
+              endDate,
+              politicalGroup: m.groupe_sigle ?? null,
+            })
+            .returning({ id: mandates.id });
+          existingMandates.push({
+            id: inserted!.id,
             type: m.type,
-            district,
-            department,
             startDate: m.mandat_debut,
-            endDate: m.mandat_fin ?? null,
-            politicalGroup: m.groupe_sigle ?? null,
+            endDate,
+            department,
           });
         } else {
           await db
@@ -233,14 +214,14 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               district,
               department,
               startDate: m.mandat_debut,
-              // Une date de fin déjà connue (posée par une source plus à jour,
-              // ex. résultats des sénatoriales) n'est pas effacée par une
-              // absence d'info côté AN.
-              endDate: m.mandat_fin ?? existingMandate[0].endDate ?? null,
+              endDate,
               politicalGroup: m.groupe_sigle ?? null,
               updatedAt: new Date(),
             })
-            .where(eq(mandates.id, existingMandate[0].id));
+            .where(eq(mandates.id, target.id));
+          target.startDate = m.mandat_debut;
+          target.endDate = endDate;
+          target.department = department;
         }
       }
 
