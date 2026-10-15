@@ -1,3 +1,4 @@
+import * as cheerio from 'cheerio';
 import { logger } from '../logger.js';
 
 const SCRUTINS_INDEX_URL =
@@ -37,66 +38,97 @@ export function mapSenatVotePosition(
   return VOTE_MAP[code] ?? 'absent';
 }
 
+const MONTHS: Record<string, string> = {
+  janvier: '01',
+  février: '02',
+  mars: '03',
+  avril: '04',
+  mai: '05',
+  juin: '06',
+  juillet: '07',
+  août: '08',
+  septembre: '09',
+  octobre: '10',
+  novembre: '11',
+  décembre: '12',
+};
+
+const DATE_RE =
+  /(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/i;
+
+/**
+ * Index des scrutins d'une session (`scr{session}.html`). Structure réelle :
+ * des `<li>` par jour de séance avec un `.list-group-subtitle` portant la
+ * date, puis un `<p>` par scrutin : lien « Scrutin N°340 », intitulé coupé
+ * sur plusieurs lignes, lien « consulter le dossier législatif », et un
+ * `<span class="badge">` « Adoption » / « Rejet ». On parcourt le DOM plutôt
+ * que les lignes du fichier : l'intitulé et le résultat ne tiennent pas sur
+ * une seule ligne.
+ */
 export function parseScrutinsIndex(
   html: string,
   session: string,
 ): SenatScrutin[] {
+  const $ = cheerio.load(html);
   const results: SenatScrutin[] = [];
   let currentDate = '';
+  const hrefRe = new RegExp(`scr${session}-(\\d+)\\.html`);
 
-  const lines = html.split('\n');
-
-  for (const line of lines) {
-    const dateMatch = line.match(
-      /(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/i,
-    );
+  $('*').each((_, el) => {
+    // Date portée par le texte direct de l'élément (pas celui de ses enfants),
+    // pour ne pas prendre celle d'un ancêtre qui contient toute la liste.
+    const ownText = $(el)
+      .contents()
+      .filter((__, n) => n.type === 'text')
+      .text();
+    // Un intitulé de scrutin peut lui-même citer une date (« l'accord du
+    // 12 juillet 2025 ») : un élément qui contient un lien de scrutin n'est
+    // jamais un porteur de date.
+    const holdsScrutinLink =
+      $(el)
+        .find('a[href]')
+        .filter((__, a) => hrefRe.test($(a).attr('href') ?? '')).length > 0;
+    const dateMatch = holdsScrutinLink ? null : ownText.match(DATE_RE);
     if (dateMatch) {
-      const day = dateMatch[1].padStart(2, '0');
-      const monthName = dateMatch[2].toLowerCase();
-      const year = dateMatch[3];
-      const monthMap: Record<string, string> = {
-        janvier: '01',
-        février: '02',
-        mars: '03',
-        avril: '04',
-        mai: '05',
-        juin: '06',
-        juillet: '07',
-        août: '08',
-        septembre: '09',
-        octobre: '10',
-        novembre: '11',
-        décembre: '12',
-      };
-      const month = monthMap[monthName];
-      if (month) currentDate = `${year}-${month}-${day}`;
+      const month = MONTHS[dateMatch[2].toLowerCase()];
+      if (month) {
+        currentDate = `${dateMatch[3]}-${month}-${dateMatch[1].padStart(2, '0')}`;
+      }
+      return;
     }
 
-    const scrutinMatch = line.match(
-      /scr\d{4}-(\d+)\.html[^>]*>.*?N(?:°|&deg;)\s*(\d+)<\/a>\s*(?:&nbsp;)?:\s*(.*)/i,
-    );
-    if (scrutinMatch && currentDate) {
-      const number = parseInt(scrutinMatch[1], 10);
-      let raw = scrutinMatch[3]
-        .replace(/<[^>]+>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      let result = '';
+    if (el.type !== 'tag' || el.name !== 'a') return;
+    const href = $(el).attr('href') ?? '';
+    const numberMatch = href.match(hrefRe);
+    if (!numberMatch || !currentDate) return;
+
+    const container = $(el).parent().clone();
+    const badge = container.find('.badge').text().trim();
+    container.find('.badge').remove();
+    let raw = container
+      .text()
+      .replace(/\s+/g, ' ')
+      .replace(/^.*?N°\s*\d+\s*:\s*/, '')
+      .replace(/\s*-\s*consulter le dossier législatif\.?\s*$/i, '')
+      .trim();
+    let result = badge;
+    if (!result) {
       const resultMatch = raw.match(/\.\s*(Adoption|Rejet)\s*$/i);
       if (resultMatch) {
         result = resultMatch[1];
         raw = raw.slice(0, resultMatch.index!).trim();
       }
-      if (raw.endsWith('.')) raw = raw.slice(0, -1);
-      results.push({
-        session,
-        number,
-        title: raw,
-        date: currentDate,
-        result,
-      });
     }
-  }
+    if (raw.endsWith('.')) raw = raw.slice(0, -1);
+
+    results.push({
+      session,
+      number: parseInt(numberMatch[1], 10),
+      title: raw,
+      date: currentDate,
+      result,
+    });
+  });
 
   return results;
 }

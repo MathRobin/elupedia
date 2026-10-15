@@ -17,6 +17,7 @@ elupedia/
 ├── packages/
 │   ├── shared/    # Types, helpers et schéma DB partagés
 │   ├── ingest/    # Scripts de collecte de données (APIs ouvertes)
+│   ├── shorts/    # Pipeline de shorts vidéo (sélection, script LLM, voix off enregistrée, rendu Remotion, puis publication)
 │   ├── site/      # Site public Astro/React
 │   └── e2e/       # Tests end-to-end (Playwright)
 ├── docs/          # Documentation projet
@@ -68,6 +69,17 @@ yarn --cwd packages/ingest ingest:conseillers-arr
 
 # Ingestion membres des assemblées à statut particulier (RNE, Corse/Guyane/DOM-TOM/Métropole de Lyon, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:membres-assemblee
+
+# Sélection des scrutins candidats à un short vidéo (voir docs/DOMAINS.md)
+yarn --cwd packages/shorts select --dry-run   # classement seul, rien écrit ; --days, --max-shorts, --min-score
+yarn --cwd packages/shorts script --dry-run   # script LLM des shorts candidate (ANTHROPIC_API_KEY requise) ; --id, --force, --model
+yarn --cwd packages/shorts voiceover sheet   # fiche de lecture des shorts draft sans voix (voix enregistrée par l'équipe, une prise par scène)
+yarn --cwd packages/shorts voiceover import --id <uuid>   # recadre, normalise et horodate les prises recordings/scene-<id>.wav
+yarn --cwd packages/shorts render --draft   # rendu Remotion (1080×1920) des shorts draft avec voix importée, dans packages/shorts/out/<id>/ ; --id, --force, --silent, --out, --dry-run
+yarn --cwd packages/shorts preview   # Remotion Studio pour retoucher la composition (src/remotion/)
+yarn --cwd packages/shorts review   # revue humaine : liste les draft ; review approve <id> / review reject <id> --note "…"
+yarn --cwd packages/shorts youtube-auth   # une fois : autorisation OAuth YouTube, affiche YOUTUBE_REFRESH_TOKEN
+yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approved (YOUTUBE_*) ; --id, --max, --privacy
 
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile

@@ -4,6 +4,7 @@ import { eq, isNotNull } from 'drizzle-orm';
 import type { SenatScrutinWithVotes } from '../sources/senat-scrutins.js';
 import { mapSenatVotePosition } from '../sources/senat-scrutins.js';
 import { logger } from '../logger.js';
+import { normalizeBallotResult } from './ballot-result.js';
 
 const VOTE_CHUNK_SIZE = 500;
 
@@ -19,7 +20,7 @@ export async function upsertSenatVotes(
   db: NeonHttpDatabase,
   scrutins: SenatScrutinWithVotes[],
 ) {
-  const summary = { ballots: 0, votes: 0 };
+  const summary = { ballots: 0, updated: 0, votes: 0 };
 
   const senators = await db
     .select({ id: officials.id, senatId: officials.senatId })
@@ -31,6 +32,7 @@ export async function upsertSenatVotes(
 
   for (const scrutin of scrutins) {
     const ballotAnId = `senat-scrutin-${scrutin.session}-${scrutin.number}`;
+    const result = normalizeBallotResult(scrutin.result);
 
     const existingBallot = await db
       .select()
@@ -42,6 +44,22 @@ export async function upsertSenatVotes(
 
     if (existingBallot.length > 0) {
       ballotId = existingBallot[0].id;
+      // Rattrape les scrutins ingérés avant l'ajout de la colonne `result` et
+      // ceux dont l'intitulé avait été tronqué (ancien parseur ligne à ligne).
+      const patch: Partial<typeof ballots.$inferInsert> = {};
+      if (result && existingBallot[0].result !== result) patch.result = result;
+      if (existingBallot[0].title !== scrutin.title)
+        patch.title = scrutin.title;
+      // Les dates de séance aussi : l'ancien parseur prenait parfois une date
+      // citée dans l'intitulé (« loi du 6 mars 2017 ») pour la date de séance.
+      if (existingBallot[0].date !== scrutin.date) patch.date = scrutin.date;
+      if (Object.keys(patch).length > 0) {
+        await db
+          .update(ballots)
+          .set({ ...patch, updatedAt: new Date() })
+          .where(eq(ballots.id, ballotId));
+        summary.updated++;
+      }
     } else {
       const [inserted] = await db
         .insert(ballots)
@@ -50,6 +68,7 @@ export async function upsertSenatVotes(
           title: scrutin.title,
           date: scrutin.date,
           type: 'ordinaire',
+          result,
         })
         .returning();
       ballotId = inserted!.id;
@@ -82,7 +101,7 @@ export async function upsertSenatVotes(
   }
 
   logger.info(
-    `Senate votes: ${summary.ballots} new ballots, ${summary.votes} new votes`,
+    `Senate votes: ${summary.ballots} new ballots, ${summary.updated} updated, ${summary.votes} new votes`,
   );
   return summary;
 }

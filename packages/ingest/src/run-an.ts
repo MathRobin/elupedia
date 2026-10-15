@@ -16,6 +16,8 @@ import { upsertAddresses } from './upsert/addresses.js';
 import { upsertParliamentaryActivity } from './upsert/parliamentary-activity.js';
 import { upsertCommittees } from './upsert/committees.js';
 import { upsertAnVotes } from './upsert/an-votes.js';
+import { fetchDossierInitiators } from './sources/an-dossiers.js';
+import { upsertBallotProposers } from './upsert/ballot-proposers.js';
 import { type Depute } from './sources/assemblee-nationale.js';
 import { fetchLegislativeElections } from './sources/legislative-elections.js';
 import { upsertLegislativeElections } from './upsert/legislative-elections.js';
@@ -147,6 +149,25 @@ export async function runAn(enabledSteps?: Set<string>): Promise<StepResult[]> {
         return {
           source: 'votes',
           created: r.created,
+          updated: r.updated,
+          durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('ballot-proposers')) {
+    logger.info('[7b/8] Auteurs des textes soumis au vote...');
+    results.push(
+      await runStep('ballot-proposers', async () => {
+        const r = await upsertBallotProposers(db, (refs) =>
+          withRetry(() => fetchDossierInitiators(refs), {
+            source: 'an-dossiers',
+          }),
+        );
+        return {
+          source: 'ballot-proposers',
+          created: 0,
           updated: r.updated,
           durationMs: 0,
         };
