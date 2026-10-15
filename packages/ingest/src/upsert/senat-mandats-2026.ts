@@ -120,13 +120,27 @@ export async function upsertSenatMandats2026(
       firstName: officials.firstName,
       lastName: officials.lastName,
       slug: officials.slug,
+      anId: officials.anId,
+      senatId: officials.senatId,
     })
     .from(officials);
 
-  const officialByName = new Map<string, { id: string }>();
+  // Parmi des homonymes, préférer la fiche qui porte un identifiant source
+  // (matricule Sénat, sinon AN) : sans cela, le mandat 2026 pouvait être
+  // ouvert sur un conseiller municipal homonyme venu du RNE plutôt que sur
+  // le sénateur (cas réels : François Bonneau, Isabelle Briquet).
+  const sourceScore = (official: {
+    anId: string | null;
+    senatId: string | null;
+  }) => (official.senatId ? 2 : 0) + (official.anId ? 1 : 0);
+  const officialByName = new Map<string, { id: string; score: number }>();
   for (const official of allOfficials) {
     const key = `${normalize(official.lastName)}|${normalize(official.firstName)}`;
-    officialByName.set(key, { id: official.id });
+    const score = sourceScore(official);
+    const current = officialByName.get(key);
+    if (!current || score > current.score) {
+      officialByName.set(key, { id: official.id, score });
+    }
   }
 
   const takenSlugs = new Set(
@@ -192,7 +206,7 @@ export async function upsertSenatMandats2026(
             slug,
           })
           .returning({ id: officials.id });
-        official = { id: inserted!.id };
+        official = { id: inserted!.id, score: 0 };
         officialByName.set(nameKey, official);
         summary.officialsCreated++;
       }

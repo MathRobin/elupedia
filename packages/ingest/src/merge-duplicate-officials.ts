@@ -10,10 +10,10 @@
  * 48 paires, surtout des sénateurs des Français établis hors de France et
  * d'outre-mer.
  *
- * Règle de fusion : la fiche Sénat est conservée (elle porte la photo, le
- * matricule et les mandats avec département) ; la fiche AN lui cède son
- * `an_id`, ses champs encore vides sur la fiche conservée, et toutes ses
- * lignes dépendantes. Une ligne dépendante déjà présente sur la fiche
+ * Règle de fusion : la fiche la plus « sourcée » est conservée (matricule
+ * Sénat, sinon identifiant AN ; voir findDuplicateOfficialPairs) ; l'autre
+ * lui cède son `an_id`, ses champs encore vides sur la fiche conservée, et
+ * toutes ses lignes dépendantes. Une ligne dépendante déjà présente sur la fiche
  * conservée (même clé naturelle, voir NATURAL_KEYS) est supprimée plutôt que
  * déplacée : les deux sources ont souvent ingéré le même mandat ou le même
  * article. La fiche AN est ensuite supprimée ; son slug (URL publique) cesse
@@ -94,36 +94,66 @@ export interface MergeSummary {
 }
 
 /**
- * Paires (fiche Sénat, fiche sans matricule) de même nom, prénom et date de
- * naissance. La date de naissance est exigée des deux côtés : sans elle, un
- * homonyme serait fusionné à tort.
+ * Paires de fiches désignant la même personne. Même nom et prénom
+ * (insensible à la casse), et :
+ * - soit la même date de naissance ;
+ * - soit une date de naissance absente d'un côté (fiche créée par les
+ *   résultats des sénatoriales, pas encore complétée par l'open data Sénat)
+ *   et, des deux côtés, un mandat sénateur actif commençant le même jour.
+ * La fiche conservée est la plus « sourcée » : matricule Sénat, sinon
+ * identifiant AN. Deux fiches sans aucun identifiant ne sont jamais
+ * appariées (rien ne permet de trancher un homonyme), et une fiche avec
+ * matricule n'est jamais supprimée.
  */
 export async function findDuplicateOfficialPairs(
   db: NeonHttpDatabase,
 ): Promise<DuplicatePair[]> {
   const rows = await db.execute(sql`
+    with ranked as (
+      select
+        id, first_name, last_name, birth_date, slug, an_id, senat_id,
+        (case when senat_id is not null then 2 else 0 end)
+          + (case when an_id is not null then 1 else 0 end) as score
+      from officials
+    ),
+    active_senateur as (
+      select official_id, start_date
+      from mandates
+      where type = 'senateur' and end_date is null
+    )
     select
       kept.first_name || ' ' || kept.last_name as name,
-      kept.birth_date::text as birth_date,
+      coalesce(kept.birth_date, dup.birth_date)::text as birth_date,
       kept.id as kept_id,
       kept.slug as kept_slug,
       kept.an_id as kept_an_id,
       dup.id as dup_id,
       dup.slug as dup_slug,
       dup.an_id as dup_an_id
-    from officials kept
-    join officials dup
+    from ranked kept
+    join ranked dup
       on lower(dup.last_name) = lower(kept.last_name)
      and lower(dup.first_name) = lower(kept.first_name)
-     and dup.birth_date = kept.birth_date
      and dup.id <> kept.id
-    where kept.senat_id is not null
+    where kept.score > dup.score
       and dup.senat_id is null
+      and (
+        dup.birth_date = kept.birth_date
+        or (
+          (dup.birth_date is null or kept.birth_date is null)
+          and exists (
+            select 1
+            from active_senateur a
+            join active_senateur b on b.start_date = a.start_date
+            where a.official_id = kept.id and b.official_id = dup.id
+          )
+        )
+      )
     order by kept.last_name, kept.first_name
   `);
   return (rows.rows as Record<string, unknown>[]).map((row) => ({
     name: row.name as string,
-    birthDate: row.birth_date as string,
+    birthDate: (row.birth_date as string | null) ?? '?',
     keptId: row.kept_id as string,
     keptSlug: (row.kept_slug as string | null) ?? null,
     keptAnId: (row.kept_an_id as string | null) ?? null,
@@ -136,11 +166,20 @@ export async function findDuplicateOfficialPairs(
 /**
  * Condition SQL « la fiche conservée a déjà une ligne de même clé naturelle »
  * pour une ligne `d` de la fiche AN, dans la table `table`.
+ *
+ * Égalité stricte (`=`) et non `is not distinct from` : seule l'égalité est
+ * hachable, et Postgres peut alors exécuter l'EXISTS en semi-jointure par
+ * hachage (deux balayages par table). Avec `is not distinct from`, il
+ * retombe sur une boucle imbriquée qui rebalaye la table à chaque ligne :
+ * sur `legislative_candidates` (volumineuse, sans index sur official_id),
+ * une paire prenait plus de 5 minutes et faisait expirer le driver HTTP
+ * Neon. Conséquence assumée : une clé contenant un NULL n'est jamais
+ * considérée comme déjà présente, la ligne est déplacée au lieu d'être
+ * supprimée.
  */
 function sameKeyExists(table: string, keptId: string) {
   const comparisons = NATURAL_KEYS[table].map(
-    (column) =>
-      sql`k.${sql.identifier(column)} is not distinct from d.${sql.identifier(column)}`,
+    (column) => sql`k.${sql.identifier(column)} = d.${sql.identifier(column)}`,
   );
   return sql`exists (
     select 1 from ${sql.identifier(table)} k
@@ -189,7 +228,7 @@ async function applyTableMerge(
 }
 
 /**
- * Transfère sur la fiche conservée ce qu'elle n'a pas encore (photo, décès,
+ * Transfère sur la fiche conservée ce qu'elle n'a pas encore (naissance, photo, décès,
  * statut HATVP, dates de vérification). `full` (JSON brut de la source) n'est
  * pas touché : la fiche conservée garde celui du Sénat. L'`an_id` est traité
  * à part (transferAnId) à cause de sa contrainte unique.
@@ -201,6 +240,7 @@ async function fillKeptOfficialFromDup(
   await db.execute(sql`
     update officials kept
     set
+      birth_date = coalesce(kept.birth_date, dup.birth_date),
       photo_url = coalesce(kept.photo_url, dup.photo_url),
       s3_photo_url = coalesce(kept.s3_photo_url, dup.s3_photo_url),
       death_date = coalesce(kept.death_date, dup.death_date),
