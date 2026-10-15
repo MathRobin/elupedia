@@ -1,3 +1,16 @@
+/**
+ * Auteurs des textes soumis au vote (`ballots.proposers`), pour afficher
+ * « texte de X (groupe) » sur les scrutins et dans les shorts vidéo.
+ *
+ * Table écrite : `ballots` (colonne JSON `proposers`, liste de
+ * `BallotProposer`). Lecture : `officials` (rapprochement par `an_id`) et
+ * `mandates` (groupe du mandat de député en cours, sinon du plus récent).
+ * Ne traite que les scrutins qui ont un `dossier_ref` et pas encore de
+ * `proposers` ; idempotent par construction.
+ *
+ * Les initiateurs viennent de `sources/an-dossiers.ts`, injecté en paramètre
+ * (`fetchInitiators`) pour rester testable sans réseau. Appelé par run-an.ts.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import {
