@@ -47,7 +47,7 @@
     "husky": "^9.1.7",
     "js-yaml": "^5.4.3",
     "prettier": "^3.9.9",
-    "satori": "^0.36.0",
+    "satori": "^0.33.5",
     "tsx": "^4.23.15",
     "typescript": "~5.8",
     "typescript-eslint": "^8.71.1",

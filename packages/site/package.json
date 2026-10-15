@@ -22,7 +22,7 @@
     "qrcode-generator": "^2.0.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "satori": "^0.36.0",
+    "satori": "^0.33.5",
     "tarteaucitronjs": "^1.36.0"
   },
   "devDependencies": {

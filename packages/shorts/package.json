@@ -17,7 +17,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
     "@elupedia/shared": "*",
-    "@neondatabase/serverless": "^1.1.0",
+    "@neondatabase/serverless": "^1.2.0",
     "@remotion/bundler": "4.0.532",
     "@remotion/renderer": "4.0.532",
     "drizzle-orm": "^0.45.3",

@@ -1258,7 +1258,7 @@ __metadata:
   dependencies:
     "@anthropic-ai/sdk": "npm:^0.133.0"
     "@elupedia/shared": "npm:*"
-    "@neondatabase/serverless": "npm:^1.1.0"
+    "@neondatabase/serverless": "npm:^1.2.0"
     "@remotion/bundler": "npm:4.0.532"
     "@remotion/cli": "npm:4.0.532"
     "@remotion/renderer": "npm:4.0.532"
@@ -1294,7 +1294,7 @@ __metadata:
     qrcode-generator: "npm:^2.0.4"
     react: "npm:^19.3.0"
     react-dom: "npm:^19.3.0"
-    satori: "npm:^0.36.0"
+    satori: "npm:^0.33.5"
     tailwindcss: "npm:^4.3.3"
     tarteaucitronjs: "npm:^1.36.0"
     vitest: "npm:^5.0.3"
@@ -3157,13 +3157,6 @@ __metadata:
     "@emnapi/core": ^1.7.1 || ^2.0.0-alpha.4
     "@emnapi/runtime": ^1.7.1 || ^2.0.0-alpha.4
   checksum: 10c0/4bd7be975f7c806bf7c33255b53257cdcd603c573e453b2f6878550bcfd59722d0d34c97627ee6a0353d91274b738d29b32ba1f0fe552a5fca1c2da80aa17bdc
-  languageName: node
-  linkType: hard
-
-"@neondatabase/serverless@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "@neondatabase/serverless@npm:1.1.0"
-  checksum: 10c0/ba24391bd53f94b76a817c9bfd09f91259024119b51e64192f2f97f627253d4370699e051d73918352e71fb93ae4575177ca1f5b38f2c27fcf5dc1adda70c677
   languageName: node
   linkType: hard
 
@@ -7337,7 +7330,7 @@ __metadata:
     husky: "npm:^9.1.7"
     js-yaml: "npm:^5.4.3"
     prettier: "npm:^3.9.9"
-    satori: "npm:^0.36.0"
+    satori: "npm:^0.33.5"
     tsx: "npm:^4.23.15"
     typescript: "npm:~5.8"
     typescript-eslint: "npm:^8.71.1"
@@ -11190,9 +11183,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"satori@npm:^0.36.0":
-  version: 0.36.0
-  resolution: "satori@npm:0.36.0"
+"satori@npm:^0.33.5":
+  version: 0.33.5
+  resolution: "satori@npm:0.33.5"
   dependencies:
     "@shuding/opentype.js": "npm:1.4.0-beta.0"
     css-background-parser: "npm:^0.1.0"
@@ -11207,7 +11200,7 @@ __metadata:
     parse-css-color: "npm:^0.2.1"
     postcss-value-parser: "npm:^4.2.0"
     yoga-layout: "npm:^3.2.1"
-  checksum: 10c0/535f878845b1aa7f777fc0a5e320d46bee5670670e8674dcf643ae2ac9fa0f7264661719dc23404048e0441c5092d3972c95240393a64b48b8865da509a93d4f
+  checksum: 10c0/8bb25d4b0f03d44dfa864eeb9e9c174cee49ab72f914f0952923bcea46695ffe9957993a36869ee541fb972af94b6e2e360beef3a2fab8aad8773f8a212ac892
   languageName: node
   linkType: hard
 
