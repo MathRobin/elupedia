@@ -46,9 +46,10 @@ export const mandates = pgTable(
     politicalGroup: varchar('political_group', { length: 255 }),
     // Numéro de législature (ex. 10 pour le Parlement européen 2024-2029). Non renseigné pour AN/Sénat, où les dates suffisent.
     legislature: integer('legislature'),
-    // Renseigné pour type = 'maire' (code INSEE de la commune) et
+    // Renseigné pour type = 'maire' (code INSEE de la commune),
     // 'conseiller_arrondissement' (code de la ville entière, pas d'arrondissement
-    // dédié dans le RNE). Pour 'conseiller_departemental'/'conseiller_regional',
+    // dédié dans le RNE) et 'conseiller_communautaire' (commune de rattachement ;
+    // le libellé de l'EPCI est dans `district`). Pour 'conseiller_departemental'/'conseiller_regional',
     // la circonscription électorale (canton/section) est stockée dans `district`.
     communeCode: varchar('commune_code', { length: 10 }),
     // Code INSEE de la ville de rattachement d'un arrondissement PLM ;

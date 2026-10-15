@@ -11,6 +11,10 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 - `schema/senatorial-elections.ts` : clé unique `(election_id, nom, prenom)`, deux homonymes dans un même scrutin s'écraseraient.
 - `normalize()` est dupliquée à l'identique dans `main-decorations.ts`, `upsert/decorations.ts` et `reconcile-elections.ts`.
 
+## Site : listes d'élus embarquées
+
+- L'accueil (`HeroSearch`) et `/elus` embarquent la liste complète des élus, une ligne par mandat actif (accueil) ou par couple (élu, type de mandat) (annuaire). L'ingestion des conseillers communautaires (`ingest:conseillers-epci`, ticket #289) y ajoutera ~62 000 lignes dont ~30 000 personnes déjà listées comme maires, qui apparaîtront deux fois : poids des pages et doublons de recherche à arbitrer avant la première exécution (exclure ce type de la recherche, une carte par élu…). `OfficialsList` n'a pas de filtre dédié.
+
 ## Compteurs et retours trompeurs
 
 - `upsert/madada-requests.ts` : avec `ON CONFLICT DO UPDATE … RETURNING`, Postgres renvoie toujours la ligne ; `updated` vaut donc toujours 0.

@@ -58,6 +58,11 @@ export const CONSEILLERS_DEP_STEP_NAMES = ['conseillers-dep'] as const;
 export type ConseillersDepStepName =
   (typeof CONSEILLERS_DEP_STEP_NAMES)[number];
 
+export const CONSEILLERS_EPCI_STEP_NAMES = ['conseillers-epci'] as const;
+
+export type ConseillersEpciStepName =
+  (typeof CONSEILLERS_EPCI_STEP_NAMES)[number];
+
 export const CONSEILLERS_REG_STEP_NAMES = ['conseillers-reg'] as const;
 
 export type ConseillersRegStepName =
@@ -105,6 +110,7 @@ export type StepName =
   | SenatStepName
   | MairesStepName
   | ConseillersDepStepName
+  | ConseillersEpciStepName
   | ConseillersRegStepName
   | ConseillersArrStepName
   | MembresAssembleeStepName

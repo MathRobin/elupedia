@@ -125,14 +125,15 @@ yarn --cwd packages/ingest ingest:europe
 
 Eurodéputés français, votes nominatifs et questions écrites (API open data du Parlement européen). Curseur de pagination des questions stocké dans `data_provenance`.
 
-### `ingest:conseillers-dep`, `ingest:conseillers-reg`, `ingest:conseillers-arr`, `ingest:conseillers-fde`, `ingest:membres-assemblee`, `ingest:membres-afe` — RNE
+### `ingest:conseillers-dep`, `ingest:conseillers-epci`, `ingest:conseillers-reg`, `ingest:conseillers-arr`, `ingest:conseillers-fde`, `ingest:membres-assemblee`, `ingest:membres-afe` — RNE
 
 ```bash
 yarn --cwd packages/ingest ingest:conseillers-dep
+yarn --cwd packages/ingest ingest:conseillers-epci   # ~62 000 lignes, lots de 500 avec point de reprise
 yarn --cwd packages/ingest ingest:membres-afe
 ```
 
-Une étape chacun : lecture du Répertoire national des élus (data.gouv.fr) et historisation des mandats (règles dans `docs/ARCHITECTURE.md`).
+Une étape chacun : lecture du Répertoire national des élus (data.gouv.fr) et historisation des mandats (règles dans `docs/ARCHITECTURE.md`). Les conseillers communautaires (EPCI) sont pour la plupart des maires déjà en base, qui reçoivent un second mandat sur la même fiche ; stratégie de rapprochement et impact sur le site dans `docs/DOMAINS.md`.
 
 ### `ingest:senat:candidacies`, `ingest:senat:resultats` — Sénatoriales 2026
 

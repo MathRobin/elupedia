@@ -16,6 +16,7 @@ export const MANDATE_TYPE_LABELS: Record<string, string> = {
   maire: 'Maire',
   eurodepute: 'Député·e européen·ne',
   conseiller_departemental: 'Conseiller départemental',
+  conseiller_communautaire: 'Conseiller communautaire',
   conseiller_regional: 'Conseiller régional',
   conseiller_arrondissement: "Conseiller d'arrondissement",
   membre_assemblee_statut_particulier: "Membre d'assemblée territoriale",

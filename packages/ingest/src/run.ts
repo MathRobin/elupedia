@@ -21,6 +21,7 @@ import { runAn } from './run-an.js';
 import { runSenat } from './run-senat.js';
 import { runMaires } from './run-maires.js';
 import { runConseillersDep } from './run-conseillers-dep.js';
+import { runConseillersEpci } from './run-conseillers-epci.js';
 import { runConseillersReg } from './run-conseillers-reg.js';
 import { runConseillersArr } from './run-conseillers-arr.js';
 import { runMembresAssemblee } from './run-membres-assemblee.js';
@@ -45,6 +46,7 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
   const senatResults = await runSenat(enabledSteps);
   const mairesResults = await runMaires(enabledSteps);
   const conseillersDepResults = await runConseillersDep(enabledSteps);
+  const conseillersEpciResults = await runConseillersEpci(enabledSteps);
   const conseillersRegResults = await runConseillersReg(enabledSteps);
   const conseillersArrResults = await runConseillersArr(enabledSteps);
   const membresAssembleeResults = await runMembresAssemblee(enabledSteps);
@@ -157,6 +159,7 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     ...senatResults,
     ...mairesResults,
     ...conseillersDepResults,
+    ...conseillersEpciResults,
     ...conseillersRegResults,
     ...conseillersArrResults,
     ...membresAssembleeResults,
