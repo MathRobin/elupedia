@@ -1,3 +1,19 @@
+/**
+ * Initiateurs (auteurs) des dossiers législatifs de l'Assemblée nationale.
+ *
+ * Source : ZIP `Dossiers_Legislatifs.json.zip` de data.assemblee-nationale.fr
+ * (XVIIe législature), un fichier JSON par dossier dans
+ * `json/dossierParlementaire/<dossierRef>.json`. On n'en lit que les dossiers
+ * demandés (`wanted`), et on n'extrait que `initiateur.acteurs.acteur[].acteurRef`
+ * (identifiants AN « PAxxxx » des auteurs du texte).
+ *
+ * Pièges : l'archive entière (plusieurs dizaines de Mo) est téléchargée et
+ * extraite dans un dossier temporaire même pour quelques dossiers ; `acteur`
+ * est un objet ou un tableau selon le nombre d'auteurs (convention XML→JSON
+ * de l'AN) ; un dossier illisible est sauté sans erreur.
+ *
+ * Appelé par run-an.ts (étape `votes`), consommé par upsert/ballot-proposers.ts.
+ */
 import { Readable } from 'node:stream';
 import { Extract } from 'unzipper';
 import { tmpdir } from 'node:os';
