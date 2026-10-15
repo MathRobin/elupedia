@@ -1,3 +1,13 @@
+/**
+ * Champ de recherche d'élu de la page d'accueil, avec liste de suggestions
+ * (combobox accessible : navigation clavier, aria-activedescendant).
+ *
+ * Rendu sur `pages/index.astro` avec `client:load` : c'est l'élément central
+ * de la page, il doit réagir immédiatement. La recherche est locale : la
+ * page passe en props la liste complète des élus (nom, mandat, groupe), pas
+ * d'appel réseau. La logique de filtrage est dupliquée dans
+ * `HeroSearch.test.ts` ; garder les deux alignées.
+ */
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 type SearchResult = {
@@ -8,42 +18,70 @@ type SearchResult = {
   politicalGroup: string | null;
 };
 
-export default function HeroSearch({
-  officials,
-}: {
+/** Props injectées par la page Astro. */
+type Props = {
+  /** Liste complète des élus cherchables (sérialisée au build). */
   officials: SearchResult[];
-}) {
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const ref = useRef<HTMLDivElement>(null);
-  const listboxId = 'hero-search-listbox';
+};
 
-  const normalized = query.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+/** Nombre minimal de caractères avant d'afficher des suggestions. */
+const MIN_QUERY_LENGTH = 2;
+/** Nombre maximal de suggestions affichées. */
+const MAX_RESULTS = 8;
+const LISTBOX_ID = 'hero-search-listbox';
+
+/** Libellés affichés à côté du nom, par type de mandat. */
+const MANDATE_LABELS: Record<string, string> = {
+  depute: 'Député·e',
+  senateur: 'Sénateur·rice',
+  maire: 'Maire',
+  eurodepute: 'Député·e européen·ne',
+  conseiller_departemental: 'Conseiller·ère départemental·e',
+  conseiller_regional: 'Conseiller·ère régional·e',
+  conseiller_arrondissement: "Conseiller·ère d'arrondissement",
+  membre_assemblee_statut_particulier: "Membre d'assemblée territoriale",
+};
+
+/** Minuscules sans diacritiques, pour une comparaison tolérante. */
+function normalize(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+export default function HeroSearch({ officials }: Props) {
+  const [query, setQuery] = useState('');
+  const [listOpen, setListOpen] = useState(false);
+  // Index de la suggestion surlignée au clavier ; -1 = aucune.
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const normalizedQuery = normalize(query);
 
   const results =
-    normalized.length >= 2
+    normalizedQuery.length >= MIN_QUERY_LENGTH
       ? officials
-          .filter((o) => {
-            const full = `${o.firstName} ${o.lastName}`
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[̀-ͯ]/g, '');
-            return full.includes(normalized);
+          .filter((official) => {
+            const fullName = normalize(
+              `${official.firstName} ${official.lastName}`,
+            );
+            return fullName.includes(normalizedQuery);
           })
-          .slice(0, 8)
+          .slice(0, MAX_RESULTS)
       : [];
 
-  const showResults = open && results.length > 0;
+  const showResults = listOpen && results.length > 0;
 
+  // Ferme la liste sur clic en dehors du champ.
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
+    function closeOnOutsideClick(e: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setListOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
   }, []);
 
   useEffect(() => {
@@ -70,26 +108,15 @@ export default function HeroSearch({
           }
           break;
         case 'Escape':
-          setOpen(false);
+          setListOpen(false);
           break;
       }
     },
     [showResults, results, activeIndex],
   );
 
-  const mandateLabels: Record<string, string> = {
-    depute: 'Député·e',
-    senateur: 'Sénateur·rice',
-    maire: 'Maire',
-    eurodepute: 'Député·e européen·ne',
-    conseiller_departemental: 'Conseiller·ère départemental·e',
-    conseiller_regional: 'Conseiller·ère régional·e',
-    conseiller_arrondissement: "Conseiller·ère d'arrondissement",
-    membre_assemblee_statut_particulier: "Membre d'assemblée territoriale",
-  };
-
   return (
-    <div ref={ref} className="relative w-full max-w-xl mx-auto">
+    <div ref={containerRef} className="relative w-full max-w-xl mx-auto">
       <label htmlFor="hero-search" className="sr-only">
         Rechercher un élu
       </label>
@@ -104,16 +131,16 @@ export default function HeroSearch({
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={showResults}
-          aria-controls={listboxId}
+          aria-controls={LISTBOX_ID}
           aria-activedescendant={
             activeIndex >= 0 ? `hero-search-option-${activeIndex}` : undefined
           }
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
-            setOpen(true);
+            setListOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => setListOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="Rechercher un élu…"
           className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
@@ -122,33 +149,33 @@ export default function HeroSearch({
 
       {showResults && (
         <ul
-          id={listboxId}
+          id={LISTBOX_ID}
           role="listbox"
           aria-label="Résultats de recherche"
           className="absolute z-50 mt-2 w-full rounded-xl border border-slate-200 bg-white py-2 shadow-lg dark:border-slate-700 dark:bg-slate-800"
         >
-          {results.map((o, i) => (
+          {results.map((official, index) => (
             <li
-              key={o.slug}
-              id={`hero-search-option-${i}`}
+              key={official.slug}
+              id={`hero-search-option-${index}`}
               role="option"
-              aria-selected={i === activeIndex}
+              aria-selected={index === activeIndex}
             >
               <a
-                href={`/elus/${o.slug}`}
+                href={`/elus/${official.slug}`}
                 className={`flex items-center gap-3 px-4 py-2.5 text-sm no-underline transition-colors ${
-                  i === activeIndex
+                  index === activeIndex
                     ? 'bg-indigo-50 dark:bg-indigo-900/30'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
                 }`}
                 tabIndex={-1}
               >
                 <span className="font-medium text-slate-900 dark:text-white">
-                  {o.firstName} {o.lastName}
+                  {official.firstName} {official.lastName}
                 </span>
                 <span className="ml-auto text-xs text-slate-400">
-                  {mandateLabels[o.mandateType] ?? o.mandateType}
-                  {o.politicalGroup && ` · ${o.politicalGroup}`}
+                  {MANDATE_LABELS[official.mandateType] ?? official.mandateType}
+                  {official.politicalGroup && ` · ${official.politicalGroup}`}
                 </span>
               </a>
             </li>

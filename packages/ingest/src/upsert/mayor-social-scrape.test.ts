@@ -1,3 +1,7 @@
+/**
+ * Tests de selectMayorWebsites / scrapeMayorWebsites : sélection via SQL
+ * brut mocké (`db.execute`), scraper et upsert de liens mockés.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@elupedia/shared', () => ({

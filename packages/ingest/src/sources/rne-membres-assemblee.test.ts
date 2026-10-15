@@ -1,3 +1,5 @@
+// Tests de rne-membres-assemblee : parsing du CSV RNE à 19 colonnes (avec et
+// sans circonscription interne) et saut de l'en-tête au fetch.
 import { describe, it, expect, vi } from 'vitest';
 import {
   parseCsvRow,

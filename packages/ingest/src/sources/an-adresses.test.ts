@@ -1,3 +1,8 @@
+/**
+ * Tests de an-adresses.ts : ZIP AMO10 fabriqué en mémoire (adm-zip) avec des
+ * acteurs minimaux ; vérifie le rattachement téléphone/e-mail et le nettoyage
+ * des rues.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import { fetchAddresses, DATASET_URL } from './an-adresses.js';
 import AdmZip from 'adm-zip';
@@ -25,10 +30,10 @@ function makeActeurWithAddresses(uid: string, addresses: unknown[]): unknown {
 
 function buildZipBuffer(acteurs: { uid: string; data: unknown }[]): Buffer {
   const zip = new AdmZip();
-  for (const a of acteurs) {
+  for (const acteur of acteurs) {
     zip.addFile(
-      `json/acteur/${a.uid}.json`,
-      Buffer.from(JSON.stringify(a.data)),
+      `json/acteur/${acteur.uid}.json`,
+      Buffer.from(JSON.stringify(acteur.data)),
     );
   }
   return zip.toBuffer();

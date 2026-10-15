@@ -1,3 +1,20 @@
+/**
+ * Orchestration de l'ingestion du Parlement européen : eurodéputés français
+ * de la législature en cours (fiche + parti national), votes par appel
+ * nominal en plénière, questions parlementaires.
+ *
+ * Convention du package : les `run-*.ts` portent la logique testable — pas
+ * de parsing d'arguments, pas de process.exit() — et sont lancés par le
+ * `main-*.ts` du même nom (`yarn --cwd packages/ingest ingest:europe`).
+ * Ouvre sa propre connexion DB via createDb(). Chaque étape passe par
+ * runStep() : fetch + upsert rejoués en cas d'échec, erreur consignée dans
+ * le StepResult sans interrompre les étapes suivantes.
+ *
+ * L'API open data du PE est appelée fiche par fiche (un appel par député,
+ * un par séance plénière) : chaque appel est suivi d'une pause
+ * RATE_LIMIT_DELAY_MS, et les libellés d'organisations (partis nationaux)
+ * sont mis en cache le temps du run pour ne pas être demandés N fois.
+ */
 import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { withRetry } from './utils/retry.js';
@@ -15,15 +32,22 @@ import {
 import { upsertEuropeVotes } from './upsert/europe-votes.js';
 import { upsertEuropeQuestions } from './upsert/europe-questions.js';
 
-// Législature 10 : mandats à partir du 16/07/2024.
+// Législature 10 : mandats à partir du 16/07/2024. Les séances plénières
+// sont récupérées année par année depuis cette date.
 const LEGISLATURE_10_START_YEAR = 2024;
 
+// Pause après chaque appel à l'API du PE (pas de quota documenté, mais des
+// 429 observés en rafale).
 const RATE_LIMIT_DELAY_MS = 150;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Lance les étapes PE activées (toutes si `enabledSteps` est absent, voir
+ * EUROPE_STEP_NAMES dans cli.ts). Écrit en base.
+ */
 export async function runEurope(
   enabledSteps?: Set<string>,
 ): Promise<StepResult[]> {
@@ -42,6 +66,8 @@ export async function runEurope(
         });
         logger.info(`  ${meps.length} eurodéputés français trouvés`);
 
+        // Libellé par id d'organisation : `null` mémorisé aussi, pour ne
+        // pas redemander une organisation sans libellé.
         const partyLabelCache = new Map<string, string | null>();
         const inputs: MepUpsertInput[] = [];
 
@@ -79,13 +105,15 @@ export async function runEurope(
           inputs.push({ mep, detail, nationalPartyLabel });
         }
 
-        const r = await upsertMeps(db, inputs);
+        const upsert = await upsertMeps(db, inputs);
+        // updated = fiches existantes rattachées à un eurodéputé. Des erreurs
+        // unitaires (fiche en échec) sont remontées comme erreur d'étape.
         return {
           source: 'eurodeputes',
-          created: r.created,
-          updated: r.linked,
+          created: upsert.created,
+          updated: upsert.linked,
           durationMs: 0,
-          error: r.errors > 0 ? `${r.errors} erreur(s)` : undefined,
+          error: upsert.errors > 0 ? `${upsert.errors} erreur(s)` : undefined,
         };
       }),
     );
@@ -111,19 +139,26 @@ export async function runEurope(
         }
         logger.info(`  ${sittings.length} séances plénières à vérifier`);
 
-        const r = await upsertEuropeVotes(db, sittings, async (sittingId) => {
-          const decisions = await withRetry(
-            () => fetchRollcallDecisions(fetch, sittingId),
-            { source: `parlement-europeen-decisions-${sittingId}` },
-          );
-          await sleep(RATE_LIMIT_DELAY_MS);
-          return decisions;
-        });
+        // L'upsert décide lui-même quelles séances re-télécharger (déjà en
+        // base ou non) : on lui passe le chargeur plutôt que les données.
+        const upsert = await upsertEuropeVotes(
+          db,
+          sittings,
+          async (sittingId) => {
+            const decisions = await withRetry(
+              () => fetchRollcallDecisions(fetch, sittingId),
+              { source: `parlement-europeen-decisions-${sittingId}` },
+            );
+            await sleep(RATE_LIMIT_DELAY_MS);
+            return decisions;
+          },
+        );
 
+        // created = scrutins, updated = votes individuels.
         return {
           source: 'eurodeputes-votes',
-          created: r.ballots,
-          updated: r.votes,
+          created: upsert.ballots,
+          updated: upsert.votes,
           durationMs: 0,
         };
       }),
@@ -134,11 +169,12 @@ export async function runEurope(
     logger.info('[1/1] Questions parlementaires...');
     results.push(
       await runStep('eurodeputes-questions', async () => {
-        const r = await upsertEuropeQuestions(db);
+        const upsert = await upsertEuropeQuestions(db);
+        // updated = questions rattachées à une fiche existante.
         return {
           source: 'eurodeputes-questions',
-          created: r.created,
-          updated: r.matched,
+          created: upsert.created,
+          updated: upsert.matched,
           durationMs: 0,
         };
       }),

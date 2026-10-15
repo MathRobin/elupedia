@@ -1,3 +1,20 @@
+/**
+ * Orchestrateur du run complet (`yarn --cwd packages/ingest ingest`) : enchaîne
+ * les sous-orchestrateurs par domaine (AN, Sénat, maires, conseillers…) puis
+ * les étapes transverses (intérêts HATVP, géocodage, cartes, comptes de
+ * campagne, photos, statuts HATVP), et concatène tous les StepResult.
+ *
+ * Convention du package : les `run-*.ts` portent la logique testable (pas
+ * d'arguments, pas de process.exit) et sont lancés par le `main-*.ts` du
+ * même nom. Ici, lancé par main.ts ; chaque sous-run ouvre sa propre
+ * connexion DB via createDb().
+ *
+ * Ordre important : les sous-runs créent les fiches `officials` dont
+ * dépendent les étapes transverses (intérêts, géocodage des adresses…).
+ * Pièges : `photos` et `hatvp-status` ne figurent pas dans STEP_NAMES
+ * (cli.ts), ils ne tournent donc qu'en l'absence de --only/--skip ; les
+ * sous-runs reçoivent `enabledSteps` tel quel et filtrent eux-mêmes.
+ */
 import { createDb } from '@elupedia/shared';
 import { type StepResult, runStep } from './run-helpers.js';
 import { runAn } from './run-an.js';
@@ -18,6 +35,10 @@ import { logger } from './logger.js';
 
 export type { StepResult };
 
+/**
+ * Lance tout le pipeline. `enabledSteps` absent = toutes les étapes ;
+ * sinon seules les étapes nommées tournent (voir cli.ts). Écrit en base.
+ */
 export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
   const enabled = (name: string) => !enabledSteps || enabledSteps.has(name);
   const anResults = await runAn(enabledSteps);
@@ -30,8 +51,7 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
 
   const interestsResults: StepResult[] = [];
   if (enabled('interests')) {
-    const r = await runInterests();
-    interestsResults.push(...r);
+    interestsResults.push(...(await runInterests()));
   }
 
   const geocodeResults: StepResult[] = [];
@@ -40,10 +60,10 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     const db = createDb();
     geocodeResults.push(
       await runStep('geocode', async () => {
-        const r = await geocodeAllAddresses(db);
+        const geocoding = await geocodeAllAddresses(db);
         return {
           source: 'geocode',
-          created: r.geocoded,
+          created: geocoding.geocoded,
           updated: 0,
           durationMs: 0,
         };
@@ -57,11 +77,12 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     const mapsDb = createDb();
     mapsResults.push(
       await runStep('maps', async () => {
-        const r = await uploadMaps(mapsDb);
+        const upload = await uploadMaps(mapsDb);
+        // Pas de colonne « ignorées » dans StepResult : on recycle `updated`.
         return {
           source: 'maps',
-          created: r.uploaded,
-          updated: r.skipped,
+          created: upload.uploaded,
+          updated: upload.skipped,
           durationMs: 0,
         };
       }),
@@ -78,9 +99,13 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
         let totalUpdated = 0;
         for (const election of CNCCFP_ELECTIONS) {
           const rows = await fetchCnccfpAccounts(election);
-          const r = await upsertCampaignAccounts(campaignDb, rows, election);
-          totalCreated += r.created;
-          totalUpdated += r.updated;
+          const upsert = await upsertCampaignAccounts(
+            campaignDb,
+            rows,
+            election,
+          );
+          totalCreated += upsert.created;
+          totalUpdated += upsert.updated;
         }
         return {
           source: 'campaign-accounts',
@@ -98,11 +123,11 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     const photosDb = createDb();
     photosResults.push(
       await runStep('photos', async () => {
-        const r = await uploadPhotos(photosDb);
+        const upload = await uploadPhotos(photosDb);
         return {
           source: 'photos',
-          created: r.uploaded,
-          updated: r.skipped,
+          created: upload.uploaded,
+          updated: upload.skipped,
           durationMs: 0,
         };
       }),
@@ -115,11 +140,12 @@ export async function run(enabledSteps?: Set<string>): Promise<StepResult[]> {
     const hatvpDb = createDb();
     hatvpStatusResults.push(
       await runStep('hatvp-status', async () => {
-        const r = await upsertHatvpStatuses(hatvpDb);
+        const statuses = await upsertHatvpStatuses(hatvpDb);
+        // created = déclarations en attente, updated = statuts vérifiés.
         return {
           source: 'hatvp-status',
-          created: r.pending,
-          updated: r.checked,
+          created: statuses.pending,
+          updated: statuses.checked,
           durationMs: 0,
         };
       }),

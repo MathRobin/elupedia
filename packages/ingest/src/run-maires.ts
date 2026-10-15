@@ -1,3 +1,18 @@
+/**
+ * Orchestration de l'ingestion des maires : 5 étapes — maires et mandats
+ * (RNE), adresses des mairies (DILA), photos (Wikidata), résultats des
+ * municipales, scraping des sites de mairies pour les réseaux sociaux.
+ *
+ * Convention du package : les `run-*.ts` portent la logique testable — pas
+ * de parsing d'arguments, pas de process.exit() — et sont lancés par le
+ * `main-*.ts` du même nom (`yarn --cwd packages/ingest ingest:maires`) et par run.ts (run complet).
+ * Ouvre sa propre connexion DB via createDb(). Chaque étape passe par
+ * runStep() : fetch + upsert rejoués en cas d'échec, erreur consignée dans
+ * le StepResult sans interrompre les étapes suivantes.
+ *
+ * Les étapes RNE et DILA (~35 000 communes) sont longues et reprennent où
+ * elles s'étaient arrêtées via utils/checkpoint.ts en cas d'interruption.
+ */
 import { createDb } from '@elupedia/shared';
 
 import { logger } from './logger.js';
@@ -13,6 +28,10 @@ import { upsertMayorPhotos } from './upsert/mayor-photos.js';
 import { fetchMunicipalElections } from './sources/municipal-elections.js';
 import { upsertMunicipalElections } from './upsert/municipal-elections.js';
 
+/**
+ * Lance les étapes maires activées (toutes si `enabledSteps` est absent,
+ * voir MAIRES_STEP_NAMES dans cli.ts). Écrit en base.
+ */
 export async function runMaires(
   enabledSteps?: Set<string>,
 ): Promise<StepResult[]> {
@@ -29,11 +48,12 @@ export async function runMaires(
         const maires = await withRetry(() => fetchRneMaires(), {
           source: 'rne-maires',
         });
-        const r = await upsertMayors(db, maires);
+        const upsert = await upsertMayors(db, maires);
+        // created = fiches officials touchées, updated = mandats touchés.
         return {
           source: 'maires',
-          created: r.officials,
-          updated: r.mandates,
+          created: upsert.officials,
+          updated: upsert.mandates,
           durationMs: 0,
         };
       }),
@@ -47,11 +67,11 @@ export async function runMaires(
         const mairies = await withRetry(() => fetchDilaMairies(), {
           source: 'dila-mairies',
         });
-        const r = await upsertMayorAddresses(db, mairies);
+        const upsert = await upsertMayorAddresses(db, mairies);
         return {
           source: 'maires-addresses',
-          created: r.created,
-          updated: r.updated,
+          created: upsert.created,
+          updated: upsert.updated,
           durationMs: 0,
         };
       }),
@@ -65,11 +85,13 @@ export async function runMaires(
         const photos = await withRetry(() => fetchWikidataMayorPhotos(), {
           source: 'wikidata-mayor-photos',
         });
-        const r = await upsertMayorPhotos(db, photos);
+        const upsert = await upsertMayorPhotos(db, photos);
+        // created = photos posées sur une fiche, updated = maires reconnus
+        // dans Wikidata (avec ou sans photo nouvelle).
         return {
           source: 'maires-photos',
-          created: r.updated,
-          updated: r.matched,
+          created: upsert.updated,
+          updated: upsert.matched,
           durationMs: 0,
         };
       }),
@@ -83,11 +105,12 @@ export async function runMaires(
         const elections = await withRetry(() => fetchMunicipalElections(), {
           source: 'municipal-elections',
         });
-        const r = await upsertMunicipalElections(db, elections);
+        const upsert = await upsertMunicipalElections(db, elections);
+        // created = scrutins, updated = candidatures.
         return {
           source: 'maires-elections',
-          created: r.elections,
-          updated: r.candidates,
+          created: upsert.elections,
+          updated: upsert.candidates,
           durationMs: 0,
         };
       }),
@@ -98,11 +121,12 @@ export async function runMaires(
     logger.info('[5/5] Mayor website social links scrape...');
     results.push(
       await runStep('maires-social-scrape', async () => {
-        const r = await scrapeMayorWebsites(db);
+        const scrape = await scrapeMayorWebsites(db);
+        // Pas de colonne « ignorés » dans StepResult : on recycle `updated`.
         return {
           source: 'maires-social-scrape',
-          created: r.created,
-          updated: r.skipped,
+          created: scrape.created,
+          updated: scrape.skipped,
           durationMs: 0,
         };
       }),

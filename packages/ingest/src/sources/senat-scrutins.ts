@@ -1,3 +1,24 @@
+/**
+ * Scrutins publics du Sénat et votes nominatifs des sénateurs, pour une
+ * session parlementaire (ex. « 2025 » = session 2025-2026).
+ *
+ * Sources (senat.fr/scrutin-public) :
+ *   1. la page index HTML `scr<session>.html`, parcourue en DOM (cheerio) :
+ *      un `<li>` par jour de séance porte la date, puis un `<p>` par scrutin
+ *      (lien « Scrutin N°340 », intitulé sur plusieurs lignes, badge
+ *      « Adoption »/« Rejet ») ; chaque scrutin hérite de la dernière date
+ *      rencontrée ;
+ *   2. un JSON par scrutin `<session>/scr<session>-<n>.json` avec la liste
+ *      `votes` (matricule, code de vote p/c/a/n, siège).
+ *
+ * Codes de vote Sénat : p = pour, c = contre, a = abstention, n = non-votant ;
+ * mapSenatVotePosition les traduit vers le vocabulaire commun (tout code
+ * inconnu → absent). Un JSON de scrutin en échec est logué et sauté ; seule
+ * la page index en erreur fait échouer l'appel. Appel séquentiel, sans pause,
+ * ~300 scrutins par session.
+ *
+ * Appelé par run-senat.ts, consommé par upsert/senat-votes.ts.
+ */
 import * as cheerio from 'cheerio';
 import { logger } from '../logger.js';
 
@@ -13,6 +34,7 @@ export interface SenatScrutin {
   number: number;
   title: string;
   date: string;
+  /** « Adoption », « Rejet » ou '' si non indiqué sur l'index. */
   result: string;
 }
 
@@ -32,6 +54,7 @@ const VOTE_MAP: Record<string, 'for' | 'against' | 'abstain' | 'absent'> = {
   n: 'absent',
 };
 
+/** Code de vote Sénat (p/c/a/n) → position commune ; tout code inconnu → « absent ». */
 export function mapSenatVotePosition(
   code: string,
 ): 'for' | 'against' | 'abstain' | 'absent' {
@@ -133,6 +156,11 @@ export function parseScrutinsIndex(
   return results;
 }
 
+/**
+ * Télécharge l'index d'une session puis le JSON de chaque scrutin (1 + N GET).
+ * Retourne les scrutins dont les votes ont pu être chargés. Lève une erreur
+ * si l'index ne répond pas en 2xx.
+ */
 export async function fetchSenatScrutins(
   session: string = '2025',
   fetchFn: typeof fetch = fetch,
@@ -161,14 +189,15 @@ export async function fetchSenatScrutins(
         );
         continue;
       }
-      const data = (await voteRes.json()) as {
+      const payload = (await voteRes.json()) as {
         votes: { matricule: string; vote: string; siege: number }[];
       };
       results.push({
         ...scrutin,
-        votes: data.votes.map((v) => ({
-          matricule: v.matricule,
-          position: v.vote as 'p' | 'c' | 'a' | 'n',
+        // Le code est pris tel quel ; mapSenatVotePosition absorbe les valeurs inattendues en aval.
+        votes: payload.votes.map((vote) => ({
+          matricule: vote.matricule,
+          position: vote.vote as 'p' | 'c' | 'a' | 'n',
         })),
       });
     } catch {

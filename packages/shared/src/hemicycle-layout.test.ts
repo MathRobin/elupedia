@@ -1,3 +1,8 @@
+/**
+ * Tests de `generateHemicycleSeats` : nombre exact de sièges, rayons dans la
+ * plage MIN_RADIUS..MAX_RADIUS (avec une marge de 1), demi-plan supérieur
+ * (y ≥ 0) et absence de doublons. 348 = Sénat, 577 = Assemblée nationale.
+ */
 import { describe, it, expect } from 'vitest';
 import { generateHemicycleSeats } from './hemicycle-layout.js';
 

@@ -1,25 +1,59 @@
+/**
+ * Décorations (Légion d'honneur, Ordre national du Mérite, Médaille
+ * militaire) depuis la base Léonore des archives de la Grande Chancellerie.
+ *
+ * Source : archives.legiondhonneur.fr, moteur de recherche « Arkothèque »
+ * non documenté, interrogé comme le fait le site :
+ * - `/_recherche-api/search/{engine}` renvoie du JSON (total, count, results
+ *   {intitule, refUnique}) ; les paramètres portent des identifiants opaques
+ *   (MOTEUR_REF, SEARCH_FIELD, …) relevés dans le front du site ;
+ * - `/_recherche-api/render-fiche/…/{ref}/…/detail/json` renvoie
+ *   `{ html }` : la fiche détaillée en HTML, qu'on parse par regex.
+ *
+ * Extrait : un `DecorationRecord` par fiche (état civil + tableau des
+ * décorations : ordre, grade, dates du décret et du JO, ministère, qualité).
+ *
+ * Pièges :
+ * - Les identifiants Arkothèque peuvent changer si le site est redéployé.
+ * - Pagination par `from` (PAGE_SIZE), plafonnée à MAX_RESULTS résultats.
+ * - Retry avec attente croissante sur erreur réseau ou 5xx (fetchWithRetry).
+ * - Utilise le `fetch` global ; les dates sont au format JJ/MM/AAAA.
+ *
+ * Appelé par main-decorations.ts via upsert/decorations.ts.
+ */
 const BASE_URL = 'https://archives.legiondhonneur.fr';
+// Identifiants opaques du moteur Arkothèque, relevés dans le site.
 const SEARCH_ENGINE_ID = 15;
 const MOTEUR_REF = 'arko_default_684af021cfb1c';
 const MODE_RESTIT = 'arko_default_684af11bcc698';
 const SEARCH_FIELD = 'arko_default_684af0837f315';
 
+const DEFAULT_RETRIES = 3;
+/** Attente de base entre deux tentatives, multipliée par le numéro d'essai. */
+const RETRY_BASE_DELAY_MS = 2000;
+
+/**
+ * `fetch` avec nouvelles tentatives sur erreur réseau ou réponse 5xx. Une
+ * réponse 4xx est renvoyée telle quelle (c'est à l'appelant de la traiter).
+ */
 async function fetchWithRetry(
   url: string,
   init: RequestInit,
-  retries = 3,
+  retries = DEFAULT_RETRIES,
 ): Promise<Response> {
-  for (let i = 0; i < retries; i++) {
+  for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const res = await fetch(url, init);
-      if (res.ok || res.status < 500) return res;
+      const response = await fetch(url, init);
+      if (response.ok || response.status < 500) return response;
     } catch {
-      if (i === retries - 1)
+      if (attempt === retries - 1)
         throw new Error(
           `Fetch failed after ${retries} retries: ${url.slice(0, 120)}`,
         );
     }
-    await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+    await new Promise((resolve) =>
+      setTimeout(resolve, RETRY_BASE_DELAY_MS * (attempt + 1)),
+    );
   }
   throw new Error('unreachable');
 }
@@ -42,6 +76,7 @@ export interface DecorationRecord {
   }[];
 }
 
+/** Paramètres de recherche simple sur le champ « nom » du moteur. */
 function buildFilterParams(name: string): URLSearchParams {
   const prefix = `${MOTEUR_REF}--filtreGroupes`;
   const params = new URLSearchParams();
@@ -53,9 +88,15 @@ function buildFilterParams(name: string): URLSearchParams {
   return params;
 }
 
+/** Taille de page du moteur Arkothèque. */
 const PAGE_SIZE = 25;
+/** Au-delà, un nom trop courant : on s'arrête. */
 const MAX_RESULTS = 500;
 
+/**
+ * Recherche les fiches correspondant à `name` (toutes pages confondues,
+ * jusqu'à MAX_RESULTS). Lève sur réponse HTTP non 2xx.
+ */
 export async function searchDecorations(name: string): Promise<{
   total: number;
   results: { intitule: string; refUnique: string }[];
@@ -66,42 +107,43 @@ export async function searchDecorations(name: string): Promise<{
   let total = 0;
 
   while (allResults.length < MAX_RESULTS) {
-    const p = new URLSearchParams(params);
-    if (from > 0) p.set(`${MOTEUR_REF}--from`, String(from));
+    const pageParams = new URLSearchParams(params);
+    if (from > 0) pageParams.set(`${MOTEUR_REF}--from`, String(from));
 
-    const url = `${BASE_URL}/_recherche-api/search/${SEARCH_ENGINE_ID}?${p.toString()}`;
-    const res = await fetchWithRetry(url, {
+    const url = `${BASE_URL}/_recherche-api/search/${SEARCH_ENGINE_ID}?${pageParams.toString()}`;
+    const response = await fetchWithRetry(url, {
       headers: {
         Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
       },
     });
-    if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+    if (!response.ok) throw new Error(`Search failed: ${response.status}`);
 
-    const data = (await res.json()) as {
+    const page = (await response.json()) as {
       total: number;
       count: number;
       results: { intitule: string; refUnique: string }[];
     };
 
-    total = data.total;
-    allResults.push(...data.results);
+    total = page.total;
+    allResults.push(...page.results);
 
-    if (data.count < PAGE_SIZE || allResults.length >= total) break;
+    if (page.count < PAGE_SIZE || allResults.length >= total) break;
     from += PAGE_SIZE;
   }
 
   return { total, results: allResults };
 }
 
-function parseFrenchDate(s: string): string | null {
-  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return null;
-  return `${m[3]}-${m[2]}-${m[1]}`;
+/** « JJ/MM/AAAA » → AAAA-MM-JJ ; null si autre format. */
+function parseFrenchDate(raw: string): string | null {
+  const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
-function decodeEntities(s: string): string {
-  return s
+function decodeEntities(raw: string): string {
+  return raw
     .replace(/&#039;/g, "'")
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -118,21 +160,26 @@ function stripHtml(html: string): string {
   );
 }
 
+/**
+ * Charge et parse la fiche détaillée d'une personne. Renvoie null si la
+ * fiche est inaccessible ou sans nom.
+ */
 export async function fetchFicheDetail(
   arkoRef: string,
 ): Promise<DecorationRecord | null> {
   const url = `${BASE_URL}/_recherche-api/render-fiche/${MOTEUR_REF}/${arkoRef}/${MODE_RESTIT}/detail/json`;
-  const res = await fetchWithRetry(url, {
+  const response = await fetchWithRetry(url, {
     headers: { Accept: 'application/json' },
   });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { html: string };
-  const html = data.html;
+  if (!response.ok) return null;
+  const payload = (await response.json()) as { html: string };
+  const html = payload.html;
 
+  /** Valeur d'un champ balisé `data-champ="…"` dans la fiche. */
   const field = (name: string): string | null => {
-    const re = new RegExp(`data-champ="${name}"[^>]*>([^<]*)`, 'i');
-    const m = html.match(re);
-    return m ? decodeEntities(m[1]).trim() || null : null;
+    const fieldRegex = new RegExp(`data-champ="${name}"[^>]*>([^<]*)`, 'i');
+    const match = html.match(fieldRegex);
+    return match ? decodeEntities(match[1]).trim() || null : null;
   };
 
   const lastName = field('nom');
@@ -145,6 +192,8 @@ export async function fetchFicheDetail(
   const birthDateRaw = field('date_naissance_publique');
   if (birthDateRaw) birthDate = parseFrenchDate(birthDateRaw);
 
+  // Décès et lieu de naissance ne sont pas balisés data-champ : on lit la
+  // paire <dt>/<dd> correspondante.
   let deathDate: string | null = null;
   const deathMatch = html.match(
     /Date de décès\s*<\/dt>\s*<dd[^>]*>(.*?)<\/dd>/s,
@@ -162,6 +211,8 @@ export async function fetchFicheDetail(
     birthPlace = stripHtml(birthPlaceMatch[1]) || null;
   }
 
+  // Tableau des décorations : 6 colonnes (ordre, grade, date du décret,
+  // date JO, ministère, qualité).
   const decorations: DecorationRecord['decorations'] = [];
   const rows = html.matchAll(
     /<tr>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<td>(.*?)<\/td>\s*<\/tr>/gs,
@@ -194,6 +245,11 @@ export async function fetchFicheDetail(
   };
 }
 
+/**
+ * Recherche « Nom Prénom » puis charge chaque fiche ; ne renvoie que les
+ * fiches ayant au moins une décoration. Le rapprochement avec l'élu (homonymes,
+ * date de naissance) est fait par l'appelant.
+ */
 export async function fetchDecorationsForOfficial(
   lastName: string,
   firstName: string | null,
@@ -202,8 +258,8 @@ export async function fetchDecorationsForOfficial(
   const { results } = await searchDecorations(query);
   const records: DecorationRecord[] = [];
 
-  for (const r of results) {
-    const detail = await fetchFicheDetail(r.refUnique);
+  for (const result of results) {
+    const detail = await fetchFicheDetail(result.refUnique);
     if (detail && detail.decorations.length > 0) {
       records.push(detail);
     }

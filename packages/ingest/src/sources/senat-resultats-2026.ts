@@ -1,3 +1,26 @@
+/**
+ * Résultats des élections sénatoriales du 27 septembre 2026 (post-scrutin) :
+ * sénateurs élus et voix par candidat/liste et par tour.
+ *
+ * Source : senatoriales2026.senat.fr, mêmes pages de circonscription que
+ * senat-candidacies-2026.ts (dont on réutilise DEPARTEMENT_SLUGS, parseCount
+ * et splitNomPrenom), republiées avec les résultats. Une page sans bloc
+ * « Sénateurs élus » (`.senators-list`) est considérée non dépouillée → null.
+ *
+ * Mise en page selon le scrutin (déduit ici de la présence du tableau) :
+ *   - proportionnel : `table.district-listing`, une ligne par liste ; les voix
+ *     de la liste sont recopiées sur chacun de ses candidats, `li.elected`
+ *     marque les élus ;
+ *   - majoritaire : `table.district-simple`, une ligne par candidat avec une
+ *     cellule de voix par tour (1 ou 2) ; un candidat est élu au dernier tour
+ *     où il a des voix.
+ * La cellule `.candidates-vote` est lue en texte (« 709 / 19 % ») car son
+ * balisage varie selon les circonscriptions (voir parseVoteCell).
+ *
+ * Appelé par run-senat-resultats.ts, consommé par upsert/senat-resultats-2026.ts
+ * et upsert/senat-mandats-2026.ts. parseDepartementResultPage est exporté pour
+ * les tests.
+ */
 import * as cheerio from 'cheerio';
 import type { Cheerio } from 'cheerio';
 import type { AnyNode } from 'domhandler';
@@ -11,13 +34,18 @@ import {
 const BASE_URL = 'https://senatoriales2026.senat.fr';
 const ELECTION_YEAR = '2026';
 const ELECTION_DATE = '2026-09-27';
+/** Pause entre deux pages, par courtoisie envers le site du Sénat. */
+const DELAY_BETWEEN_PAGES_MS = 300;
+const USER_AGENT = 'Mozilla/5.0 (elupedia ingest bot)';
 
 export interface SenatorialResultCandidate {
   nom: string;
   prenom: string;
   nuance: string | null;
+  /** Nom de la liste (scrutin proportionnel uniquement). */
   liste: string | null;
   voix: number;
+  /** Pourcentage des suffrages exprimés tel qu'affiché (entier le plus souvent). */
   ratioExprimes: number | null;
   elected: boolean;
 }
@@ -45,6 +73,7 @@ export interface SenatorialResultDepartement {
   rounds: SenatorialResultRound[];
 }
 
+/** Retire le suffixe « (sortant) » / « (sortante) » d'un nom. */
 function stripSortant(raw: string): string {
   return raw.replace(/\(sortant(e)?\)/i, '').trim();
 }
@@ -66,6 +95,7 @@ function parseVoteCell($cell: Cheerio<AnyNode>): {
     .text()
     .replace(/\u00A0/g, ' ')
     .trim();
+  // Cellule présente mais vide = le candidat n'a pas concouru à ce tour.
   if (!text) return null;
   const match = text.match(/^([\d\s]+)\s*\/\s*([\d.,]+)\s*%?/);
   if (!match) return null;
@@ -78,14 +108,15 @@ function parseVoteCell($cell: Cheerio<AnyNode>): {
   };
 }
 
+/** Bloc « Sénateurs élus » en tête de page ; vide tant que le scrutin n'est pas dépouillé. */
 function parseElusList($: cheerio.CheerioAPI): SenatorialElu[] {
   const elus: SenatorialElu[] = [];
-  $('.senators-list .senator-item').each((_, el) => {
-    const $el = $(el);
+  $('.senators-list .senator-item').each((_, item) => {
+    const $item = $(item);
     const name = stripSortant(
-      $el.find('.senator-name .label').text().replace(/\s+/g, ' ').trim(),
+      $item.find('.senator-name .label').text().replace(/\s+/g, ' ').trim(),
     );
-    const nuance = $el
+    const nuance = $item
       .find('.senator-group')
       .text()
       .replace(/\s+/g, ' ')
@@ -99,6 +130,10 @@ function parseElusList($: cheerio.CheerioAPI): SenatorialElu[] {
   return elus;
 }
 
+/**
+ * Scrutin proportionnel (tour unique) : les voix et le pourcentage de la
+ * liste sont portés par chaque candidat de la liste.
+ */
 function parseProportionnelRounds(
   $: cheerio.CheerioAPI,
 ): SenatorialResultRound[] {
@@ -117,11 +152,13 @@ function parseProportionnelRounds(
     const vote = parseVoteCell($row.find('td.text-center.middle').eq(0));
     if (!vote) return;
 
-    namesCell.find('ol.candidates-list li').each((_, li) => {
-      const $li = $(li);
-      const elected = $li.hasClass('elected');
-      const raw = stripSortant($li.text().replace(/\s+/g, ' ').trim());
-      const { nom, prenom } = splitNomPrenom(raw);
+    namesCell.find('ol.candidates-list li').each((_, listItem) => {
+      const $listItem = $(listItem);
+      const elected = $listItem.hasClass('elected');
+      const rawName = stripSortant(
+        $listItem.text().replace(/\s+/g, ' ').trim(),
+      );
+      const { nom, prenom } = splitNomPrenom(rawName);
       if (!nom || !prenom) return;
       candidates.push({
         nom,
@@ -139,6 +176,10 @@ function parseProportionnelRounds(
   return [{ round: 1, candidates }];
 }
 
+/**
+ * Scrutin majoritaire (un ou deux tours) : une colonne de voix par tour,
+ * regroupées en SenatorialResultRound par numéro de tour.
+ */
 function parseMajoritaireRounds(
   $: cheerio.CheerioAPI,
 ): SenatorialResultRound[] {
@@ -150,6 +191,7 @@ function parseMajoritaireRounds(
     // La 2e cellule (index 1) porte toujours le nom : Nuance, Nom, Voix[, Voix T2].
     const nameContainer = $row.find('td').eq(1);
     const elected = nameContainer.find('.vote-pin.elected').length > 0;
+    // On clone pour retirer la pastille « Élu » sans toucher au DOM d'origine.
     const rawName = stripSortant(
       nameContainer
         .clone()
@@ -200,6 +242,10 @@ function parseMajoritaireRounds(
     .map(([round, candidates]) => ({ round, candidates }));
 }
 
+/**
+ * Parse une page de circonscription avec résultats. Retourne null si la
+ * liste des élus est vide (scrutin non dépouillé ou balisage changé).
+ */
 function parseDepartementResultPage(
   html: string,
   code: string,
@@ -215,9 +261,9 @@ function parseDepartementResultPage(
 
   let siegesAPourvoir: number | null = null;
   let electeursSenatoriaux: number | null = null;
-  $('.district-header li').each((_, el) => {
-    const text = $(el).text();
-    const count = $(el).find('.district-count').text();
+  $('.district-header li').each((_, headerItem) => {
+    const text = $(headerItem).text();
+    const count = $(headerItem).find('.district-count').text();
     // "siège(s) pourvu(s)" — singulier pour les circonscriptions à un seul
     // siège (Corse, plusieurs COM/DOM-TOM).
     if (/si[eè]ges?/i.test(text)) siegesAPourvoir = parseCount(count);
@@ -244,23 +290,30 @@ function parseDepartementResultPage(
   };
 }
 
+/**
+ * Scrape toutes les circonscriptions de DEPARTEMENT_SLUGS (un GET par page,
+ * séquentiel, avec pause) et retourne celles dont les résultats sont publiés.
+ * Ne lève jamais : les pages en échec ou non dépouillées sont loguées en warn
+ * et sautées. Utilise le `fetch` global (non injectable).
+ */
 export async function fetchSenatorialResults2026(): Promise<
   SenatorialResultDepartement[]
 > {
   const results: SenatorialResultDepartement[] = [];
 
   for (const slug of DEPARTEMENT_SLUGS) {
+    // Le code de circonscription est le préfixe du slug (« 2A », « 973 », « ZZ »).
     const code = slug.split('-')[0];
     const url = `${BASE_URL}/departement/${slug}`;
     try {
-      const res = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (elupedia ingest bot)' },
+      const response = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT },
       });
-      if (!res.ok) {
-        logger.warn(`  ${slug}: HTTP ${res.status}`);
+      if (!response.ok) {
+        logger.warn(`  ${slug}: HTTP ${response.status}`);
         continue;
       }
-      const html = await res.text();
+      const html = await response.text();
       const parsed = parseDepartementResultPage(html, code);
       if (parsed) {
         results.push(parsed);
@@ -269,12 +322,12 @@ export async function fetchSenatorialResults2026(): Promise<
           `  ${slug}: aucun résultat trouvé (scrutin pas encore dépouillé ?)`,
         );
       }
-    } catch (e) {
+    } catch (error) {
       logger.warn(
-        `  ${slug}: erreur — ${e instanceof Error ? e.message : String(e)}`,
+        `  ${slug}: erreur — ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_PAGES_MS));
   }
 
   return results;

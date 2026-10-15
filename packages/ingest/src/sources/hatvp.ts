@@ -1,3 +1,36 @@
+/**
+ * Déclarations d'intérêts publiées par la HATVP (députés, sénateurs, maires).
+ *
+ * Source : `declarations.xml`, un seul fichier XML de plusieurs centaines de
+ * Mo regroupant toutes les déclarations publiées. Il est parsé en flux (sax)
+ * pour ne jamais être chargé entièrement en mémoire.
+ *
+ * Structure utile de chaque `<declaration>` :
+ * - `general/declarant/{nom,prenom}`, `dateDepot` (JJ/MM/AAAA hh:mm:ss),
+ *   `typeDeclaration` (DI… initiale, DM… modificative) ;
+ * - des sections `<xxxDto><items><items>…</items></items></xxxDto>` : le
+ *   premier `items` est le conteneur, les `items` imbriqués sont les
+ *   éléments (participations financières, fonctions bénévoles, activités
+ *   professionnelles, activités de consultant, fonctions dirigeantes,
+ *   mandats électifs).
+ *
+ * Extrait : une `Declaration` par déclaration dont au moins un mandat
+ * électif correspond à ELIGIBLE_MANDATS, avec ses intérêts normalisés
+ * (`InterestItem`, voir ../schemas.ts). Les mandats parlementaires / de
+ * maire eux-mêmes ne sont pas émis comme intérêts, seuls les autres mandats
+ * électifs le sont. Une déclaration sans aucun intérêt est ignorée.
+ *
+ * Pièges :
+ * - Le parseur conserve une machine à états par section (`inXxx` +
+ *   `currentXxx`) ; le texte d'une balise feuille est copié tel quel dans
+ *   l'item courant sous le nom de la balise.
+ * - Les dates de début/fin sont au format MM/AAAA → ramenées au 1er du mois.
+ * - Le nom est forcé en majuscules et le prénom capitalisé pour faciliter le
+ *   rapprochement avec les fiches.
+ *
+ * Appelé par run-interests.ts via upsert/interests.ts et
+ * upsert/declaration-snapshots.ts.
+ */
 import { Readable } from 'node:stream';
 import sax from 'sax';
 
@@ -13,6 +46,10 @@ export { InterestItemSchema, type InterestItem, type Declaration };
 export const DECLARATIONS_URL =
   'https://www.hatvp.fr/livraison/merge/declarations.xml';
 
+/**
+ * Préfixes (en majuscules) des descriptions de mandat qui rendent une
+ * déclaration éligible, accentués ou non selon la saisie du déclarant.
+ */
 const ELIGIBLE_MANDATS = new Set([
   'DEPUTE',
   'DÉPUTÉ',
@@ -27,12 +64,13 @@ const ELIGIBLE_MANDATS = new Set([
 
 function isEligibleMandat(description: string): boolean {
   const upper = description.toUpperCase().trim();
-  for (const m of ELIGIBLE_MANDATS) {
-    if (upper.startsWith(m)) return true;
+  for (const prefix of ELIGIBLE_MANDATS) {
+    if (upper.startsWith(prefix)) return true;
   }
   return false;
 }
 
+/** Élément d'une section, clé = nom de balise XML, valeur = texte brut. */
 type RawItem = Record<string, string>;
 
 interface RawDeclaration {
@@ -40,15 +78,21 @@ interface RawDeclaration {
   prenom: string;
   dateDepot: string;
   typeDeclaration: string;
+  /** Toutes les descriptions de mandat, éligibles ou non. */
   mandatDescriptions: string[];
   participations: RawItem[];
-  fonctionsBenefoles: RawItem[];
+  fonctionsBenevoles: RawItem[];
   activitesPro: RawItem[];
   activitesConsultant: RawItem[];
   participationsDirigeant: RawItem[];
+  /** Mandats électifs non éligibles (ceux émis comme intérêts). */
   mandatsElectifs: RawItem[];
 }
 
+/**
+ * Télécharge le flux XML et renvoie les déclarations des élus éligibles.
+ * Lève si le téléchargement échoue.
+ */
 export async function fetchDeclarations(
   fetchFn: typeof fetch = fetch,
 ): Promise<Declaration[]> {
@@ -71,9 +115,12 @@ async function parseDeclarationsStream(
   const results: Declaration[] = [];
 
   let current: RawDeclaration | null = null;
+  /** Pile des balises ouvertes, de la racine à la balise courante. */
   const path: string[] = [];
   let textBuf = '';
 
+  // Une machine à états par section : « dans un item de la section » +
+  // l'item en cours de remplissage.
   let inParticipation = false;
   let currentParticipation: RawItem = {};
   let inFonctionBenevole = false;
@@ -100,7 +147,7 @@ async function parseDeclarationsStream(
         typeDeclaration: '',
         mandatDescriptions: [],
         participations: [],
-        fonctionsBenefoles: [],
+        fonctionsBenevoles: [],
         activitesPro: [],
         activitesConsultant: [],
         participationsDirigeant: [],
@@ -108,6 +155,7 @@ async function parseDeclarationsStream(
       };
     }
 
+    // Entrée dans un élément (`items/items`) d'une section.
     const joined = path.join('/');
     if (
       joined.includes('participationFinanciereDto/items/items') &&
@@ -144,12 +192,12 @@ async function parseDeclarationsStream(
     }
   });
 
-  parser.on('text', (t) => {
-    textBuf += t;
+  parser.on('text', (text) => {
+    textBuf += text;
   });
 
-  parser.on('cdata', (t) => {
-    textBuf += t;
+  parser.on('cdata', (cdata) => {
+    textBuf += cdata;
   });
 
   parser.on('closetag', (tag) => {
@@ -160,10 +208,14 @@ async function parseDeclarationsStream(
 
       if (joined.endsWith('declarant/nom')) current.nom = text;
       if (joined.endsWith('declarant/prenom')) current.prenom = text;
+      // Première occurrence seulement : d'autres dateDepot peuvent suivre.
       if (joined.endsWith('declaration/dateDepot') && !current.dateDepot)
         current.dateDepot = text;
       if (joined.endsWith('declaration/typeDeclaration'))
         current.typeDeclaration = text;
+
+      // Pour chaque section : à la fermeture de l'élément, on l'ajoute s'il
+      // est valide ; sinon on copie le texte de la balise feuille dans l'item.
       if (inMandatElectif) {
         if (
           tag === 'items' &&
@@ -173,6 +225,8 @@ async function parseDeclarationsStream(
             current.mandatDescriptions.push(
               currentMandatElectif.descriptionMandat,
             );
+            // Le mandat parlementaire / de maire fonde l'éligibilité ; seuls
+            // les autres mandats deviennent des intérêts « fonction élue ».
             if (!isEligibleMandat(currentMandatElectif.descriptionMandat)) {
               current.mandatsElectifs.push({ ...currentMandatElectif });
             }
@@ -203,7 +257,7 @@ async function parseDeclarationsStream(
           joined.includes('fonctionBenevoleDto/items/items')
         ) {
           if (currentFonction.nomSociete) {
-            current.fonctionsBenefoles.push({ ...currentFonction });
+            current.fonctionsBenevoles.push({ ...currentFonction });
           }
           inFonctionBenevole = false;
         } else if (text) {
@@ -264,101 +318,8 @@ async function parseDeclarationsStream(
         const isParlementaire =
           current.mandatDescriptions.some(isEligibleMandat);
         if (isParlementaire && current.nom && current.prenom) {
-          const interests: InterestItem[] = [];
           const declaredDate = parseDate(current.dateDepot);
-
-          for (const p of current.participations) {
-            const ownershipParts: string[] = [];
-            if (p.nombreParts) ownershipParts.push(`${p.nombreParts} parts`);
-            if (p.pourcentageCapital)
-              ownershipParts.push(`${p.pourcentageCapital}% du capital`);
-
-            interests.push({
-              category: 'financial_participation',
-              type: 'company_share',
-              entity_name: p.nomSociete,
-              role_description: p.nombreParts
-                ? `${p.nombreParts} parts`
-                : undefined,
-              declared_date: declaredDate,
-              full: p,
-              declarant_comment: p.commentaire || undefined,
-              ownership_detail:
-                ownershipParts.length > 0
-                  ? ownershipParts.join(', ')
-                  : undefined,
-            });
-          }
-
-          for (const f of current.fonctionsBenefoles) {
-            interests.push({
-              category: 'voluntary_activity',
-              type: 'nonprofit_role',
-              entity_name: f.nomSociete,
-              role_description: f.activite || undefined,
-              declared_date: declaredDate,
-              full: f,
-              declarant_comment: f.commentaire || undefined,
-            });
-          }
-
-          for (const a of current.activitesPro) {
-            interests.push({
-              category: 'professional_activity',
-              type: 'professional_activity',
-              entity_name: a.employeur || a.description,
-              role_description: a.employeur ? a.description : undefined,
-              declared_date: declaredDate,
-              start_date: parseMonthDate(a.dateDebut),
-              end_date: parseMonthDate(a.dateFin),
-              full: a,
-              declarant_comment: a.commentaire || undefined,
-              ...parseAmount(a),
-            });
-          }
-
-          for (const c of current.activitesConsultant) {
-            interests.push({
-              category: 'consulting_activity',
-              type: 'consulting_activity',
-              entity_name: c.nomEmployeur || c.description,
-              role_description: c.nomEmployeur ? c.description : undefined,
-              declared_date: declaredDate,
-              start_date: parseMonthDate(c.dateDebut),
-              end_date: parseMonthDate(c.dateFin),
-              full: c,
-              declarant_comment: c.commentaire || undefined,
-              ...parseAmount(c),
-            });
-          }
-
-          for (const d of current.participationsDirigeant) {
-            interests.push({
-              category: 'governing_body_membership',
-              type: 'governing_body_membership',
-              entity_name: d.nomSociete,
-              role_description: d.activite || undefined,
-              declared_date: declaredDate,
-              start_date: parseMonthDate(d.dateDebut),
-              end_date: parseMonthDate(d.dateFin),
-              full: d,
-              declarant_comment: d.commentaire || undefined,
-            });
-          }
-
-          for (const m of current.mandatsElectifs) {
-            interests.push({
-              category: 'elected_function',
-              type: 'elected_function',
-              entity_name: m.descriptionMandat,
-              role_description: undefined,
-              declared_date: declaredDate,
-              start_date: parseMonthDate(m.dateDebut),
-              end_date: parseMonthDate(m.dateFin),
-              full: m,
-              declarant_comment: m.commentaire || undefined,
-            });
-          }
+          const interests = buildInterests(current, declaredDate);
 
           if (interests.length > 0) {
             const declType = parseDeclarationType(current.typeDeclaration);
@@ -392,6 +353,118 @@ async function parseDeclarationsStream(
   });
 }
 
+/**
+ * Convertit les sections brutes d'une déclaration en intérêts normalisés,
+ * dans l'ordre : participations financières, fonctions bénévoles, activités
+ * professionnelles, activités de consultant, fonctions dirigeantes, autres
+ * mandats électifs.
+ */
+function buildInterests(
+  raw: RawDeclaration,
+  declaredDate: string,
+): InterestItem[] {
+  const interests: InterestItem[] = [];
+
+  for (const participation of raw.participations) {
+    const ownershipParts: string[] = [];
+    if (participation.nombreParts)
+      ownershipParts.push(`${participation.nombreParts} parts`);
+    if (participation.pourcentageCapital)
+      ownershipParts.push(`${participation.pourcentageCapital}% du capital`);
+
+    interests.push({
+      category: 'financial_participation',
+      type: 'company_share',
+      entity_name: participation.nomSociete,
+      role_description: participation.nombreParts
+        ? `${participation.nombreParts} parts`
+        : undefined,
+      declared_date: declaredDate,
+      full: participation,
+      declarant_comment: participation.commentaire || undefined,
+      ownership_detail:
+        ownershipParts.length > 0 ? ownershipParts.join(', ') : undefined,
+    });
+  }
+
+  for (const fonction of raw.fonctionsBenevoles) {
+    interests.push({
+      category: 'voluntary_activity',
+      type: 'nonprofit_role',
+      entity_name: fonction.nomSociete,
+      role_description: fonction.activite || undefined,
+      declared_date: declaredDate,
+      full: fonction,
+      declarant_comment: fonction.commentaire || undefined,
+    });
+  }
+
+  // Sans employeur, la description tient lieu d'entité (ex. profession
+  // libérale) et il n'y a pas de rôle distinct.
+  for (const activite of raw.activitesPro) {
+    interests.push({
+      category: 'professional_activity',
+      type: 'professional_activity',
+      entity_name: activite.employeur || activite.description,
+      role_description: activite.employeur ? activite.description : undefined,
+      declared_date: declaredDate,
+      start_date: parseMonthDate(activite.dateDebut),
+      end_date: parseMonthDate(activite.dateFin),
+      full: activite,
+      declarant_comment: activite.commentaire || undefined,
+      ...parseAmount(activite),
+    });
+  }
+
+  for (const consultant of raw.activitesConsultant) {
+    interests.push({
+      category: 'consulting_activity',
+      type: 'consulting_activity',
+      entity_name: consultant.nomEmployeur || consultant.description,
+      role_description: consultant.nomEmployeur
+        ? consultant.description
+        : undefined,
+      declared_date: declaredDate,
+      start_date: parseMonthDate(consultant.dateDebut),
+      end_date: parseMonthDate(consultant.dateFin),
+      full: consultant,
+      declarant_comment: consultant.commentaire || undefined,
+      ...parseAmount(consultant),
+    });
+  }
+
+  for (const dirigeant of raw.participationsDirigeant) {
+    interests.push({
+      category: 'governing_body_membership',
+      type: 'governing_body_membership',
+      entity_name: dirigeant.nomSociete,
+      role_description: dirigeant.activite || undefined,
+      declared_date: declaredDate,
+      start_date: parseMonthDate(dirigeant.dateDebut),
+      end_date: parseMonthDate(dirigeant.dateFin),
+      full: dirigeant,
+      declarant_comment: dirigeant.commentaire || undefined,
+    });
+  }
+
+  for (const mandat of raw.mandatsElectifs) {
+    interests.push({
+      category: 'elected_function',
+      type: 'elected_function',
+      entity_name: mandat.descriptionMandat,
+      role_description: undefined,
+      declared_date: declaredDate,
+      start_date: parseMonthDate(mandat.dateDebut),
+      end_date: parseMonthDate(mandat.dateFin),
+      full: mandat,
+      declarant_comment: mandat.commentaire || undefined,
+    });
+  }
+
+  return interests;
+}
+
+/** Code HATVP (DIA, DMIA…) → initiale / modificative. */
 function parseDeclarationType(
   raw: string,
 ): 'initial' | 'modification' | undefined {
@@ -401,6 +474,7 @@ function parseDeclarationType(
   return undefined;
 }
 
+/** Rémunération (`remuneration` ou `montant`), année et indicateur net/brut. */
 function parseAmount(
   item: RawItem,
 ): Pick<InterestItem, 'annual_amount' | 'amount_year' | 'amount_is_net'> {
@@ -411,6 +485,8 @@ function parseAmount(
   const raw = item.remuneration || item.montant;
   if (raw) {
     const cleaned = raw.replace(/\s/g, '').replace(',', '.');
+    // Seuls les montants purement numériques sont conservés (les déclarants
+    // saisissent parfois du texte libre).
     if (/^\d+(\.\d+)?$/.test(cleaned)) {
       result.annual_amount = cleaned;
     }
@@ -427,12 +503,14 @@ function parseAmount(
   return result;
 }
 
+/** « JJ/MM/AAAA … » → AAAA-MM-JJ ; sinon la valeur brute, ou aujourd'hui si vide. */
 function parseDate(raw: string): string {
   const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
   if (match) return `${match[3]}-${match[2]}-${match[1]}`;
   return raw || new Date().toISOString().slice(0, 10);
 }
 
+/** « MM/AAAA » → AAAA-MM-01 ; undefined si absent ou mal formé. */
 function parseMonthDate(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
   const match = raw.match(/^(\d{2})\/(\d{4})/);
@@ -440,6 +518,7 @@ function parseMonthDate(raw: string | undefined): string | undefined {
   return undefined;
 }
 
-function capitalize(s: string): string {
-  return s.toLowerCase().replace(/(^|\s|-)\S/g, (c) => c.toUpperCase());
+/** « JEAN-PIERRE » → « Jean-Pierre ». */
+function capitalize(value: string): string {
+  return value.toLowerCase().replace(/(^|\s|-)\S/g, (c) => c.toUpperCase());
 }

@@ -1,3 +1,22 @@
+/**
+ * Ingestion des questions parlementaires du Parlement européen (écrites,
+ * orales, interpellations) déposées par des eurodéputés français, via un
+ * parcours paginé de l'API open data (`sources/parlement-europeen-questions.ts`,
+ * appels réseau faits ici). Appelé par `run-europe.ts` (étape
+ * « eurodeputes-questions », hebdomadaire).
+ *
+ * Tables écrites : `parliamentary_activity` (source 'europarl', une ligne
+ * par (question, auteur français)) et `data_provenance` (une seule ligne
+ * technique, le curseur de pagination — pas une provenance par question).
+ * Clé de rapprochement : (official_id, title, date) — pas l'identifiant
+ * europarl, qui n'est pas stocké. L'official est retrouvé par
+ * `officials.europarl_id`.
+ * Idempotent : insert-only, une question déjà en base est comptée en
+ * `skipped` ; rien n'est jamais mis à jour ni supprimé.
+ * Invariant : cette fonction ne lève jamais (voir commentaire dans le
+ * corps) — elle absorbe les pannes amont, sauvegarde le curseur et retourne
+ * un résumé partiel.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import {
   officials,
@@ -26,6 +45,10 @@ const RATE_LIMIT_DELAY_MS = 700;
 // problème isolé à ce document : continuer à tenter les items suivants un
 // par un ne ferait qu'aggraver la situation (cf. incident du 29/09/2026).
 const MAX_CONSECUTIVE_FAILURES = 5;
+// Valeurs par défaut du budget d'un run, voir le commentaire dans
+// upsertEuropeQuestions.
+const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_MAX_PAGES = 30;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -51,10 +74,12 @@ async function loadCursor(db: NeonHttpDatabase): Promise<number> {
       ),
     )
     .limit(1);
-  const raw = row?.rawData as { offset?: number } | null;
-  return raw?.offset ?? 0;
+  const cursorData = row?.rawData as { offset?: number } | null;
+  return cursorData?.offset ?? 0;
 }
 
+// Delete + insert plutôt qu'un upsert : data_provenance n'a pas de contrainte
+// unique sur (source_table, source_record_id).
 async function saveCursor(db: NeonHttpDatabase, offset: number): Promise<void> {
   await db
     .delete(dataProvenance)
@@ -76,11 +101,16 @@ async function saveCursor(db: NeonHttpDatabase, offset: number): Promise<void> {
 }
 
 export interface EuropeQuestionsSummary {
+  /** Documents de la liste dont le détail a été demandé. */
   scanned: number;
+  /** Documents ayant au moins un auteur eurodéputé français connu. */
   matched: number;
   created: number;
+  /** Lignes déjà en base (clé official|title|date). */
   skipped: number;
+  /** Offset sauvegardé pour le prochain run (0 si le jeu est épuisé). */
   cursorEnd: number;
+  /** Fin du jeu de données atteinte pendant ce run. */
   exhausted: boolean;
 }
 
@@ -92,6 +122,11 @@ export interface EuropeQuestionsOptions {
   rateLimitDelayMs?: number;
 }
 
+/**
+ * Parcourt jusqu'à `maxPages` pages de questions à partir du curseur
+ * persisté, insère celles d'auteurs français inconnues en base, puis
+ * sauvegarde le curseur (appels réseau + écriture DB). Ne lève jamais.
+ */
 export async function upsertEuropeQuestions(
   db: NeonHttpDatabase,
   opts: EuropeQuestionsOptions = {},
@@ -104,17 +139,20 @@ export async function upsertEuropeQuestions(
   // conditions réelles le 29/09/2026), 1500 documents scannés par run prend
   // ~20-25 min — compromis entre couverture raisonnable en quelques
   // semaines et durée d'exécution d'une tâche planifiée.
-  const pageSize = opts.pageSize ?? 50;
-  const maxPages = opts.maxPages ?? 30;
+  const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
+  const maxPages = opts.maxPages ?? DEFAULT_MAX_PAGES;
   const fetchFn = opts.fetchFn ?? fetch;
   const rateLimitDelayMs = opts.rateLimitDelayMs ?? RATE_LIMIT_DELAY_MS;
 
   const officialRows = await db
     .select({ id: officials.id, europarlId: officials.europarlId })
     .from(officials);
+  // Les auteurs sont référencés sous la forme "person/<europarl_id>".
   const officialByPersonId = new Map<string, string>();
-  for (const o of officialRows) {
-    if (o.europarlId) officialByPersonId.set(`person/${o.europarlId}`, o.id);
+  for (const official of officialRows) {
+    if (official.europarlId) {
+      officialByPersonId.set(`person/${official.europarlId}`, official.id);
+    }
   }
 
   const summary: EuropeQuestionsSummary = {
@@ -141,7 +179,7 @@ export async function upsertEuropeQuestions(
     .where(eq(parliamentaryActivity.source, 'europarl'));
   const existingKeys = new Set(
     existingEuroparlActivities.map(
-      (a) => `${a.officialId}|${a.title}|${a.date}`,
+      (activity) => `${activity.officialId}|${activity.title}|${activity.date}`,
     ),
   );
 
@@ -204,12 +242,14 @@ export async function upsertEuropeQuestions(
       if (!detail) continue;
 
       const matchedOfficialIds = detail.authorPersonIds
-        .map((pid) => officialByPersonId.get(pid))
+        .map((personId) => officialByPersonId.get(personId))
         .filter((id): id is string => !!id);
 
       if (matchedOfficialIds.length === 0) continue;
       summary.matched++;
 
+      // Une ligne par cosignataire français : l'activité est rattachée à
+      // chaque official, pas au document.
       for (const officialId of matchedOfficialIds) {
         const key = `${officialId}|${detail.title}|${detail.date}`;
         if (existingKeys.has(key)) {
@@ -225,6 +265,9 @@ export async function upsertEuropeQuestions(
           title: detail.title,
           date: detail.date,
           responseDate: detail.responseDate,
+          // Le destinataire (Commission, Conseil…) est rangé dans la colonne
+          // prévue pour les commentaires du gouvernement, faute de colonne
+          // dédiée.
           governmentComments: detail.addressee,
           sourceUrl: detail.sourceUrl,
         });

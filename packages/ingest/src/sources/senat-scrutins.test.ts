@@ -1,3 +1,5 @@
+// Tests de senat-scrutins : parsing de l'index HTML (dates en toutes lettres,
+// entités &deg;/&nbsp;), mapping des codes de vote et chargement des JSON.
 import { describe, it, expect, vi } from 'vitest';
 import {
   parseScrutinsIndex,

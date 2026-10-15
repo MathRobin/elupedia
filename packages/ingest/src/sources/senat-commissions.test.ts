@@ -1,3 +1,5 @@
+// Tests de senat-commissions : fusion des fichiers ODSEN_COMS (Nom_commission)
+// et ODSEN_OFFDEL (Nom_organisme), conversion des dates et des types.
 import { describe, it, expect, vi } from 'vitest';
 import { fetchSenatCommissions } from './senat-commissions.js';
 

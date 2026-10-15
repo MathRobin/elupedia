@@ -1,8 +1,16 @@
 ---
+/**
+ * Fiche d'un terme du glossaire (route /glossaire/[slug]).
+ *
+ * Page statique : getStaticPaths() énumère les slugs de lib/glossary.ts. Rend
+ * la définition, les sections détaillées, les exemples (GlossaryExampleCard)
+ * et les termes liés, plus un JSON-LD DefinedTerm.
+ */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import GlossaryExampleCard from '../../components/GlossaryExampleCard.astro';
 import { glossaryEntries, getGlossaryEntry } from '../../lib/glossary.js';
 
+// Une page par entrée du glossaire, générée au build.
 export function getStaticPaths() {
   return glossaryEntries.map((e) => ({ params: { slug: e.slug } }));
 }
@@ -14,6 +22,8 @@ if (!entry) {
   return Astro.redirect('/glossaire', 404);
 }
 
+// Termes liés : les slugs inconnus (faute de frappe dans glossary.ts) sont
+// ignorés silencieusement plutôt que de casser la page.
 const relatedEntries = (entry.related ?? [])
   .map((s) => getGlossaryEntry(s))
   .filter((e): e is NonNullable<typeof e> => Boolean(e));

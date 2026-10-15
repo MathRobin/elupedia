@@ -1,3 +1,22 @@
+/**
+ * Pose une photo (Wikimedia Commons) sur les fiches de maires qui n'en ont
+ * pas, à partir des maires en poste déclarés sur Wikidata
+ * (`sources/wikidata-mayor-photos.ts`). Appelé par `run-maires.ts`
+ * (étape 3).
+ *
+ * Table écrite : `officials`, colonne `photo_url` uniquement (URL Commons
+ * avec paramètre de miniature `?width=`).
+ * Rattachement : Wikidata ne donne qu'un libellé « Prénom Nom » ; on essaie
+ * deux découpes (1er mot / reste, puis 2 premiers mots / reste) contre les
+ * maires actifs en base, d'abord par (prénom, nom, code INSEE de la
+ * commune), puis par (prénom, nom, date de naissance). Noms normalisés
+ * sans accents ni tirets.
+ * Jamais écrasé : une fiche qui a déjà une photo (quelle qu'en soit la
+ * source) n'est pas modifiée — le cas est listé dans `report.conflicts`
+ * pour arbitrage manuel. Un maire apparaissant plusieurs fois côté Wikidata
+ * n'est traité qu'une fois. La licence Commons est récupérée (appel
+ * réseau) pour le log uniquement, elle n'est pas stockée.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -8,8 +27,17 @@ import type {
 import { fetchCommonsLicense } from '../sources/wikidata-mayor-photos.js';
 import { logger } from '../logger.js';
 
-export function normalize(s: string): string {
-  return s
+// Largeur de la miniature demandée à Commons.
+const THUMBNAIL_WIDTH = 400;
+// Pause entre deux appels à l'API Commons (licence).
+const COMMONS_REQUEST_DELAY_MS = 300;
+// Nombre d'entrées non rattachées / en conflit détaillées dans le log.
+const UNMATCHED_LOG_LIMIT = 20;
+const CONFLICTS_LOG_LIMIT = 10;
+
+/** Normalise un prénom ou nom pour comparaison : sans accents, minuscules, apostrophes unifiées, tirets -> espaces. */
+export function normalizeMayorName(text: string): string {
+  return text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
@@ -18,20 +46,22 @@ export function normalize(s: string): string {
     .trim();
 }
 
-export function matchKey(
+/** Clé de rattachement par commune : prénom|nom normalisés + code INSEE. */
+export function communeMatchKey(
   firstName: string,
   lastName: string,
   communeCode: string,
 ): string {
-  return `${normalize(firstName)}|${normalize(lastName)}|${communeCode}`;
+  return `${normalizeMayorName(firstName)}|${normalizeMayorName(lastName)}|${communeCode}`;
 }
 
+/** Clé de rattachement par naissance : prénom|nom normalisés + date ISO (jour). */
 export function matchKeyBirthDate(
   firstName: string,
   lastName: string,
   birthDate: string,
 ): string {
-  return `${normalize(firstName)}|${normalize(lastName)}|${birthDate.slice(0, 10)}`;
+  return `${normalizeMayorName(firstName)}|${normalizeMayorName(lastName)}|${birthDate.slice(0, 10)}`;
 }
 
 export interface MayorPhotoReport {
@@ -55,6 +85,18 @@ export interface MayorPhotoReport {
   }>;
 }
 
+interface MayorCandidate {
+  id: string;
+  photoUrl: string | null;
+  firstName: string;
+  lastName: string;
+}
+
+/**
+ * Rattache chaque photo Wikidata à un maire actif et pose `photo_url` sur
+ * les fiches sans photo (appels réseau Commons + écriture DB). Retourne les
+ * compteurs matched / updated / skipped et un rapport détaillé.
+ */
 export async function upsertMayorPhotos(
   db: NeonHttpDatabase,
   photos: WikidataMayorPhoto[],
@@ -89,33 +131,27 @@ export async function upsertMayorPhotos(
     .innerJoin(mandates, eq(mandates.officialId, officials.id))
     .where(and(eq(mandates.type, 'maire'), isNull(mandates.endDate)));
 
-  const mayorByCommuneKey = new Map<
-    string,
-    { id: string; photoUrl: string | null; firstName: string; lastName: string }
-  >();
-  const mayorByBirthKey = new Map<
-    string,
-    { id: string; photoUrl: string | null; firstName: string; lastName: string }
-  >();
+  const mayorByCommuneKey = new Map<string, MayorCandidate>();
+  const mayorByBirthKey = new Map<string, MayorCandidate>();
 
-  for (const m of mayors) {
-    if (m.communeCode) {
-      const key = matchKey(m.firstName, m.lastName, m.communeCode);
-      mayorByCommuneKey.set(key, {
-        id: m.id,
-        photoUrl: m.photoUrl,
-        firstName: m.firstName,
-        lastName: m.lastName,
-      });
+  for (const mayor of mayors) {
+    const candidate: MayorCandidate = {
+      id: mayor.id,
+      photoUrl: mayor.photoUrl,
+      firstName: mayor.firstName,
+      lastName: mayor.lastName,
+    };
+    if (mayor.communeCode) {
+      mayorByCommuneKey.set(
+        communeMatchKey(mayor.firstName, mayor.lastName, mayor.communeCode),
+        candidate,
+      );
     }
-    if (m.birthDate) {
-      const key = matchKeyBirthDate(m.firstName, m.lastName, m.birthDate);
-      mayorByBirthKey.set(key, {
-        id: m.id,
-        photoUrl: m.photoUrl,
-        firstName: m.firstName,
-        lastName: m.lastName,
-      });
+    if (mayor.birthDate) {
+      mayorByBirthKey.set(
+        matchKeyBirthDate(mayor.firstName, mayor.lastName, mayor.birthDate),
+        candidate,
+      );
     }
   }
 
@@ -125,37 +161,39 @@ export async function upsertMayorPhotos(
 
   const processed = new Set<string>();
 
-  for (const p of photos) {
-    const parts = p.name.split(' ');
-    if (parts.length < 2) {
+  for (const photo of photos) {
+    const nameParts = photo.name.split(' ');
+    if (nameParts.length < 2) {
       report.unmatched.push({
-        name: p.name,
-        communeName: p.communeName,
-        communeCode: p.communeCode,
-        qid: p.qid,
+        name: photo.name,
+        communeName: photo.communeName,
+        communeCode: photo.communeCode,
+        qid: photo.qid,
       });
       continue;
     }
 
+    // Découpes [prénom, nom] candidates : "Jean Dupont" -> ["Jean", "Dupont"] ;
+    // "Jean Pierre Dupont" -> ["Jean", "Pierre Dupont"] puis
+    // ["Jean Pierre", "Dupont"] (prénoms composés).
     const nameCombinations: Array<[string, string]> = [];
-    nameCombinations.push([parts[0], parts.slice(1).join(' ')]);
-    if (parts.length > 2) {
+    nameCombinations.push([nameParts[0], nameParts.slice(1).join(' ')]);
+    if (nameParts.length > 2) {
       nameCombinations.push([
-        parts.slice(0, 2).join(' '),
-        parts.slice(2).join(' '),
+        nameParts.slice(0, 2).join(' '),
+        nameParts.slice(2).join(' '),
       ]);
     }
 
-    let mayor: {
-      id: string;
-      photoUrl: string | null;
-      firstName: string;
-      lastName: string;
-    } | null = null;
+    let mayor: MayorCandidate | null = null;
     let matchType: 'commune' | 'birthdate' = 'commune';
 
-    for (const [fn, ln] of nameCombinations) {
-      const communeKey = matchKey(fn, ln, p.communeCode);
+    for (const [firstName, lastName] of nameCombinations) {
+      const communeKey = communeMatchKey(
+        firstName,
+        lastName,
+        photo.communeCode,
+      );
       const found = mayorByCommuneKey.get(communeKey);
       if (found) {
         mayor = found;
@@ -165,8 +203,12 @@ export async function upsertMayorPhotos(
     }
 
     if (!mayor) {
-      for (const [fn, ln] of nameCombinations) {
-        const birthKey = matchKeyBirthDate(fn, ln, p.birthDate);
+      for (const [firstName, lastName] of nameCombinations) {
+        const birthKey = matchKeyBirthDate(
+          firstName,
+          lastName,
+          photo.birthDate,
+        );
         const found = mayorByBirthKey.get(birthKey);
         if (found) {
           mayor = found;
@@ -178,10 +220,10 @@ export async function upsertMayorPhotos(
 
     if (!mayor) {
       report.unmatched.push({
-        name: p.name,
-        communeName: p.communeName,
-        communeCode: p.communeCode,
-        qid: p.qid,
+        name: photo.name,
+        communeName: photo.communeName,
+        communeCode: photo.communeCode,
+        qid: photo.qid,
       });
       continue;
     }
@@ -197,23 +239,23 @@ export async function upsertMayorPhotos(
       summary.skipped++;
       report.alreadyHadPhoto++;
       report.conflicts.push({
-        name: p.name,
-        communeName: p.communeName,
+        name: photo.name,
+        communeName: photo.communeName,
         existingPhoto: mayor.photoUrl,
-        wikidataPhoto: p.imageUrl,
+        wikidataPhoto: photo.imageUrl,
       });
       continue;
     }
 
     let license: CommonsLicense | null = null;
     try {
-      license = await fetchCommonsLicense(p.imageUrl);
+      license = await fetchCommonsLicense(photo.imageUrl);
       if (license) report.licenseFetched++;
     } catch {
-      logger.warn(`  License fetch failed for ${p.name}`);
+      logger.warn(`  License fetch failed for ${photo.name}`);
     }
 
-    const thumbUrl = `${p.imageUrl}?width=400`;
+    const thumbUrl = `${photo.imageUrl}?width=${THUMBNAIL_WIDTH}`;
 
     await db
       .update(officials)
@@ -224,10 +266,12 @@ export async function upsertMayorPhotos(
     report.photosUpdated++;
 
     logger.info(
-      `  + ${p.name} (${p.communeName}): photo set${license ? ` [${license.name}]` : ''}`,
+      `  + ${photo.name} (${photo.communeName}): photo set${license ? ` [${license.name}]` : ''}`,
     );
 
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((resolve) =>
+      setTimeout(resolve, COMMONS_REQUEST_DELAY_MS),
+    );
   }
 
   report.wikidataTotal = photos.length;
@@ -244,10 +288,10 @@ export async function upsertMayorPhotos(
   );
 
   if (report.unmatched.length > 0) {
-    logger.info('\nUnmatched mayors (first 20):');
-    for (const u of report.unmatched.slice(0, 20)) {
+    logger.info(`\nUnmatched mayors (first ${UNMATCHED_LOG_LIMIT}):`);
+    for (const unmatched of report.unmatched.slice(0, UNMATCHED_LOG_LIMIT)) {
       logger.info(
-        `  - ${u.name} — ${u.communeName} (${u.communeCode}) [${u.qid}]`,
+        `  - ${unmatched.name} — ${unmatched.communeName} (${unmatched.communeCode}) [${unmatched.qid}]`,
       );
     }
   }
@@ -256,8 +300,8 @@ export async function upsertMayorPhotos(
     logger.info(
       `\nConflicts (existing photo, not overwritten): ${report.conflicts.length}`,
     );
-    for (const c of report.conflicts.slice(0, 10)) {
-      logger.info(`  - ${c.name} (${c.communeName})`);
+    for (const conflict of report.conflicts.slice(0, CONFLICTS_LOG_LIMIT)) {
+      logger.info(`  - ${conflict.name} (${conflict.communeName})`);
     }
   }
 

@@ -1,3 +1,9 @@
+/**
+ * Tests de la logique de filtrage de `HeroSearch` (recherche d'élu de
+ * l'accueil). Le composant n'exporte pas sa fonction de filtrage : elle est
+ * recopiée ici (`filter`) et doit rester alignée avec `HeroSearch.tsx`
+ * (normalisation sans accents ni casse, recherche sur « prénom nom »).
+ */
 import { describe, it, expect } from 'vitest';
 
 describe('HeroSearch filtering logic', () => {
@@ -28,18 +34,19 @@ describe('HeroSearch filtering logic', () => {
   function filter(query: string) {
     const normalized = query.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-    return officials.filter((o) => {
-      const full = `${o.firstName} ${o.lastName}`
+    return officials.filter((official) => {
+      const fullName = `${official.firstName} ${official.lastName}`
         .toLowerCase()
         .normalize('NFD')
         .replace(/[̀-ͯ]/g, '');
-      return full.includes(normalized);
+      return fullName.includes(normalized);
     });
   }
 
   it('returns empty for queries shorter than 2 chars', () => {
+    // Le seuil de 2 caractères est appliqué par le composant, pas par le
+    // filtre pur : celui-ci répond pour n'importe quelle longueur.
     expect(filter('J').length).toBeGreaterThan(0);
-    // The component gates at 2 chars, but the pure filter function works for any length
   });
 
   it('finds by last name', () => {

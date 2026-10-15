@@ -1,13 +1,32 @@
+/**
+ * Panorama des candidats d'une élection : grille de cartes triée par ordre
+ * alphabétique (avec séparateurs par initiale), filtres par texte / périmètre
+ * (commune ou département) / nuance politique, pagination côté client.
+ *
+ * Rendu sur `pages/elections/[type]/[id].astro` avec `client:load`.
+ *
+ * Deux régimes selon `needsSearch` (décidé par la page) :
+ * - élection trop volumineuse (municipales, législatives) : la page ne charge
+ *   aucun candidat tant qu'une commune n'est pas saisie ; le formulaire
+ *   recharge la page avec `?q=<commune>` et la page filtre côté serveur ;
+ * - sinon, tous les candidats sont passés en props et filtrés localement.
+ *
+ * Une carte est cliquable seulement si le candidat a une fiche Elupedia
+ * (`hasProfile` + `profileSlug`) ; sinon elle est grisée.
+ */
 import { useMemo, useState } from 'react';
 import { useFocusTrap } from '../lib/use-focus-trap.js';
 import type { PanoramaCandidate } from '../lib/election-types.js';
 
+/** Nombre de cartes par page. */
 const PAGE_SIZE = 48;
 
+/** Minuscules sans diacritiques, pour tri et comparaison tolérants. */
 function normalize(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
+/** Initiale (majuscule, sans accent) servant de séparateur dans la grille. */
 function initial(name: string): string {
   return normalize(name).charAt(0).toUpperCase() || '#';
 }
@@ -15,22 +34,36 @@ function initial(name: string): string {
 // Certaines communes (scrutin de liste) ne fournissent que le nom de la
 // liste dans les données sources, sans identité individuelle pour la tête
 // de liste — on affiche alors le nom de liste comme identifiant principal.
-function displayName(c: PanoramaCandidate): string {
-  const full = `${c.prenom} ${c.nom}`.trim();
-  return full || c.liste || 'Liste sans nom';
+function displayName(candidate: PanoramaCandidate): string {
+  const fullName = `${candidate.prenom} ${candidate.nom}`.trim();
+  return fullName || candidate.liste || 'Liste sans nom';
 }
 
 // Tri "annuaire" : par nom de famille (comme un répertoire d'entreprises
 // trie par raison sociale), ou par nom de liste quand il n'y a pas
 // d'identité individuelle.
-function sortKey(c: PanoramaCandidate): string {
-  return c.nom.trim() || c.liste || 'Liste sans nom';
+function sortKey(candidate: PanoramaCandidate): string {
+  return candidate.nom.trim() || candidate.liste || 'Liste sans nom';
 }
 
+/** Libellé du filtre « périmètre » selon le type d'élection. */
 const SCOPE_LABELS: Record<string, string> = {
   senatoriale: 'Département',
   municipale: 'Commune',
   legislative: 'Commune',
+};
+
+/** Props injectées par la page Astro. */
+type Props = {
+  /** Type d'élection (`municipale`, `legislative`, `senatoriale`). */
+  type: string;
+  /** Identifiant de l'élection, pour reconstruire l'URL de la page. */
+  id: string;
+  candidates: PanoramaCandidate[];
+  /** true : afficher le formulaire de recherche de commune au lieu de la grille. */
+  needsSearch: boolean;
+  /** Valeur de `?q=` (commune recherchée), '' sinon. */
+  initialQuery: string;
 };
 
 export default function ElectionPanorama({
@@ -39,14 +72,9 @@ export default function ElectionPanorama({
   candidates,
   needsSearch,
   initialQuery,
-}: {
-  type: string;
-  id: string;
-  candidates: PanoramaCandidate[];
-  needsSearch: boolean;
-  initialQuery: string;
-}) {
-  const [search, setSearch] = useState(initialQuery);
+}: Props) {
+  // Recherche de commune (rechargement de page), distincte du filtre texte local.
+  const [communeSearch, setCommuneSearch] = useState(initialQuery);
   const [textFilter, setTextFilter] = useState('');
   const [scopeFilter, setScopeFilter] = useState('');
   const [nuanceFilter, setNuanceFilter] = useState<Set<string>>(new Set());
@@ -54,6 +82,7 @@ export default function ElectionPanorama({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const drawerRef = useFocusTrap(mobileFiltersOpen);
 
+  // Affiche « Commune : X · changer » quand le panorama est restreint à une commune.
   const isCommuneSearch =
     needsSearch || type === 'municipale' || type === 'legislative';
   const scopeLabel = SCOPE_LABELS[type] ?? 'Circonscription';
@@ -66,39 +95,47 @@ export default function ElectionPanorama({
     [candidates],
   );
 
+  // Nuances avec leur effectif, les plus représentées d'abord.
   const nuances = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const c of candidates) {
-      if (!c.nuance) continue;
-      counts.set(c.nuance, (counts.get(c.nuance) ?? 0) + 1);
+    const countByNuance = new Map<string, number>();
+    for (const candidate of candidates) {
+      if (!candidate.nuance) continue;
+      countByNuance.set(
+        candidate.nuance,
+        (countByNuance.get(candidate.nuance) ?? 0) + 1,
+      );
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    return [...countByNuance.entries()].sort((a, b) => b[1] - a[1]);
   }, [candidates]);
 
-  function toggleNuance(n: string) {
+  function toggleNuance(nuance: string) {
     setNuanceFilter((prev) => {
       const next = new Set(prev);
-      if (next.has(n)) next.delete(n);
-      else next.add(n);
+      if (next.has(nuance)) next.delete(nuance);
+      else next.add(nuance);
       return next;
     });
     setPage(1);
   }
 
   const filtered = useMemo(() => {
-    const q = normalize(textFilter.trim());
+    const normalizedQuery = normalize(textFilter.trim());
     const sorted = [...candidates].sort((a, b) =>
       normalize(sortKey(a)).localeCompare(normalize(sortKey(b))),
     );
-    return sorted.filter((c) => {
-      if (scopeFilter && c.scope !== scopeFilter) return false;
-      if (nuanceFilter.size > 0 && !(c.nuance && nuanceFilter.has(c.nuance)))
+    return sorted.filter((candidate) => {
+      if (scopeFilter && candidate.scope !== scopeFilter) return false;
+      if (
+        nuanceFilter.size > 0 &&
+        !(candidate.nuance && nuanceFilter.has(candidate.nuance))
+      )
         return false;
-      if (q) {
+      if (normalizedQuery) {
         return (
-          normalize(displayName(c)).includes(q) ||
-          (c.nuance && normalize(c.nuance).includes(q)) ||
-          normalize(c.scope).includes(q)
+          normalize(displayName(candidate)).includes(normalizedQuery) ||
+          (candidate.nuance &&
+            normalize(candidate.nuance).includes(normalizedQuery)) ||
+          normalize(candidate.scope).includes(normalizedQuery)
         );
       }
       return true;
@@ -118,10 +155,11 @@ export default function ElectionPanorama({
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Recharge la page avec `?q=` : le filtrage par commune est fait côté serveur.
   function submitCommuneSearch(e: React.FormEvent) {
     e.preventDefault();
     const url = new URL(window.location.href);
-    url.searchParams.set('q', search);
+    url.searchParams.set('q', communeSearch);
     window.location.href = url.toString();
   }
 
@@ -135,8 +173,8 @@ export default function ElectionPanorama({
         <form onSubmit={submitCommuneSearch} className="mt-4 flex gap-2">
           <input
             type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={communeSearch}
+            onChange={(e) => setCommuneSearch(e.target.value)}
             placeholder="Nom de la commune..."
             className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
           />
@@ -151,6 +189,7 @@ export default function ElectionPanorama({
     );
   }
 
+  // Panneau de filtres partagé entre la barre latérale desktop et le tiroir mobile.
   const filterPanel = (
     <div className="space-y-6">
       <fieldset>
@@ -189,9 +228,9 @@ export default function ElectionPanorama({
             className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
           >
             <option value="">Tous</option>
-            {scopes.map((s) => (
-              <option key={s} value={s}>
-                {s}
+            {scopes.map((scope) => (
+              <option key={scope} value={scope}>
+                {scope}
               </option>
             ))}
           </select>
@@ -204,19 +243,19 @@ export default function ElectionPanorama({
             Groupe politique
           </legend>
           <div className="mt-2 max-h-64 space-y-1.5 overflow-y-auto pr-1">
-            {nuances.map(([n, count]) => (
+            {nuances.map(([nuance, count]) => (
               <label
-                key={n}
+                key={nuance}
                 className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
               >
                 <input
                   type="checkbox"
-                  checked={nuanceFilter.has(n)}
-                  onChange={() => toggleNuance(n)}
+                  checked={nuanceFilter.has(nuance)}
+                  onChange={() => toggleNuance(nuance)}
                   className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                 />
                 <span>
-                  {n}{' '}
+                  {nuance}{' '}
                   <span className="text-slate-400 dark:text-slate-500">
                     ({count})
                   </span>
@@ -280,18 +319,23 @@ export default function ElectionPanorama({
           </p>
         ) : (
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {pageItems.map((c, i) => {
+            {pageItems.map((candidate, index) => {
+              // Séparateur d'initiale avant la première carte de chaque lettre.
               const showLetterHeader =
-                i === 0 ||
-                initial(sortKey(pageItems[i - 1])) !== initial(sortKey(c));
+                index === 0 ||
+                initial(sortKey(pageItems[index - 1])) !==
+                  initial(sortKey(candidate));
               return (
-                <div key={`${c.nom}-${c.prenom}-${i}`} className="contents">
+                <div
+                  key={`${candidate.nom}-${candidate.prenom}-${index}`}
+                  className="contents"
+                >
                   {showLetterHeader && (
                     <div className="sm:col-span-2 lg:col-span-3 -mb-1 mt-2 text-xs font-bold uppercase tracking-wider text-indigo-500 first:mt-0 dark:text-indigo-400">
-                      {initial(sortKey(c))}
+                      {initial(sortKey(candidate))}
                     </div>
                   )}
-                  <CandidateCard candidate={c} />
+                  <CandidateCard candidate={candidate} />
                 </div>
               );
             })}
@@ -369,19 +413,20 @@ export default function ElectionPanorama({
   );
 }
 
-function CandidateCard({ candidate: c }: { candidate: PanoramaCandidate }) {
-  const name = displayName(c);
-  const isListOnly = !`${c.prenom}${c.nom}`.trim();
+/** Carte d'un candidat : lien vers sa fiche si elle existe, grisée sinon. */
+function CandidateCard({ candidate }: { candidate: PanoramaCandidate }) {
+  const name = displayName(candidate);
+  const isListOnly = !`${candidate.prenom}${candidate.nom}`.trim();
   const avatarInitials = isListOnly
     ? name.charAt(0)
-    : `${c.prenom.charAt(0)}${c.nom.charAt(0)}`;
+    : `${candidate.prenom.charAt(0)}${candidate.nom.charAt(0)}`;
 
   const content = (
     <>
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400">
-        {c.hasProfile && c.profilePhotoUrl ? (
+        {candidate.hasProfile && candidate.profilePhotoUrl ? (
           <img
-            src={c.profilePhotoUrl}
+            src={candidate.profilePhotoUrl}
             alt=""
             className="h-10 w-10 rounded-full object-cover"
           />
@@ -392,26 +437,26 @@ function CandidateCard({ candidate: c }: { candidate: PanoramaCandidate }) {
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-slate-800 dark:text-slate-100">
           {name}
-          {c.sortant && (
+          {candidate.sortant && (
             <span className="ml-1.5 inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400">
               sortant
             </span>
           )}
         </p>
         <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-          {c.nuance && <span>{c.nuance}</span>}
-          {!isListOnly && c.liste && <span> · {c.liste}</span>}
+          {candidate.nuance && <span>{candidate.nuance}</span>}
+          {!isListOnly && candidate.liste && <span> · {candidate.liste}</span>}
         </p>
         <p className="truncate text-xs text-slate-400 dark:text-slate-500">
-          {c.scope}
+          {candidate.scope}
         </p>
-        {!c.hasProfile && (
+        {!candidate.hasProfile && (
           <p className="mt-0.5 text-[11px] italic text-slate-400 dark:text-slate-500">
             Pas de fiche disponible
           </p>
         )}
       </div>
-      {c.elected && (
+      {candidate.elected && (
         <i
           className="fa-solid fa-check-circle shrink-0 text-emerald-500"
           title="Élu(e)"
@@ -421,10 +466,10 @@ function CandidateCard({ candidate: c }: { candidate: PanoramaCandidate }) {
     </>
   );
 
-  if (c.hasProfile && c.profileSlug) {
+  if (candidate.hasProfile && candidate.profileSlug) {
     return (
       <a
-        href={`/elus/${c.profileSlug}`}
+        href={`/elus/${candidate.profileSlug}`}
         className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm transition-all hover:border-indigo-300/60 hover:shadow-md no-underline dark:border-slate-700 dark:bg-slate-800"
       >
         {content}

@@ -1,3 +1,20 @@
+/**
+ * Carte de France cliquable colorée selon la position dominante des votes
+ * (pour / contre / abstention / absent) de chaque département sur un scrutin.
+ *
+ * Toujours rendue via `DepartmentMapWrapper` (page `pages/scrutins/[id].astro`,
+ * `client:load`), qui lui fournit l'état de sélection. Au survol, une
+ * info-bulle détaille le décompte du département ; au clic, le département
+ * est (dé)sélectionné.
+ *
+ * Effet de bord : chaque changement de sélection est diffusé sur `document`
+ * par l'événement `dept-filter` (detail = code INSEE ou null), écouté par un
+ * script inline de la page pour filtrer la liste nominative des votes. Un
+ * événement `null` est aussi émis au montage.
+ *
+ * Métropole uniquement (cf. `lib/france-map-paths.ts`) : les votes des élus
+ * d'outre-mer ne sont pas visibles sur la carte.
+ */
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { DEPARTMENTS, VIEWBOX } from '../lib/france-map-paths.js';
 
@@ -8,9 +25,13 @@ type DepartmentVotes = {
   absent: number;
 };
 
+/** Props fournies par DepartmentMapWrapper. */
 type Props = {
+  /** Décompte des positions par code INSEE de département. */
   votesByDept: Record<string, DepartmentVotes>;
+  /** Nom affichable de chaque département, par code INSEE. */
   deptNames: Record<string, string>;
+  /** Code INSEE du département sélectionné (état contrôlé par le parent). */
   selectedDept: string | null;
   onSelect: (deptCode: string | null) => void;
 };
@@ -29,14 +50,24 @@ const POSITION_LABELS: Record<string, string> = {
   absent: 'Absent',
 };
 
-function dominantColor(v: DepartmentVotes): string {
-  const total = v.for + v.against + v.abstain + v.absent;
-  if (total === 0) return '#f1f5f9';
-  const max = Math.max(v.for, v.against, v.abstain, v.absent);
-  if (max === v.for) return '#d1fae5';
-  if (max === v.against) return '#fee2e2';
-  if (max === v.abstain) return '#fef3c7';
-  return '#f1f5f9';
+/** Fond des départements sans vote (slate-100). */
+const NO_VOTE_FILL = '#f1f5f9';
+/** Décalage de l'info-bulle par rapport au curseur, en pixels. */
+const TOOLTIP_OFFSET_X = 12;
+const TOOLTIP_OFFSET_Y = -10;
+
+/**
+ * Teinte pastel de la position majoritaire du département. En cas d'égalité,
+ * l'ordre de priorité est pour > contre > abstention > absent.
+ */
+function dominantColor(votes: DepartmentVotes): string {
+  const total = votes.for + votes.against + votes.abstain + votes.absent;
+  if (total === 0) return NO_VOTE_FILL;
+  const max = Math.max(votes.for, votes.against, votes.abstain, votes.absent);
+  if (max === votes.for) return '#d1fae5';
+  if (max === votes.against) return '#fee2e2';
+  if (max === votes.abstain) return '#fef3c7';
+  return NO_VOTE_FILL;
 }
 
 export default function FranceDepartmentMap({
@@ -46,6 +77,7 @@ export default function FranceDepartmentMap({
   onSelect,
 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
+  // Position de l'info-bulle, relative au conteneur.
   const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +90,7 @@ export default function FranceDepartmentMap({
   const hoveredData = hovered ? votesByDept[hovered] : null;
   const hoveredName = hovered ? deptNames[hovered] : null;
 
+  // Diffuse la sélection à la page hôte (voir en-tête).
   useEffect(() => {
     if (selectedDept) {
       document.dispatchEvent(
@@ -80,7 +113,7 @@ export default function FranceDepartmentMap({
       >
         {DEPARTMENTS.map((dept) => {
           const votes = votesByDept[dept.id];
-          const fill = votes ? dominantColor(votes) : '#f1f5f9';
+          const fill = votes ? dominantColor(votes) : NO_VOTE_FILL;
           const isSelected = selectedDept === dept.id;
           const isHovered = hovered === dept.id;
 
@@ -106,8 +139,8 @@ export default function FranceDepartmentMap({
         <div
           className="pointer-events-none absolute z-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-slate-600 dark:bg-slate-800"
           style={{
-            left: tooltip.x + 12,
-            top: tooltip.y - 10,
+            left: tooltip.x + TOOLTIP_OFFSET_X,
+            top: tooltip.y + TOOLTIP_OFFSET_Y,
             transform: 'translateY(-100%)',
           }}
         >
@@ -115,20 +148,22 @@ export default function FranceDepartmentMap({
             {hoveredName} ({hovered})
           </p>
           <div className="mt-1 space-y-0.5">
-            {(['for', 'against', 'abstain', 'absent'] as const).map((pos) => (
-              <div key={pos} className="flex items-center gap-2">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: POSITION_COLORS[pos] }}
-                />
-                <span className="text-slate-600 dark:text-slate-300">
-                  {POSITION_LABELS[pos]}
-                </span>
-                <span className="ml-auto font-medium tabular-nums text-slate-800 dark:text-white">
-                  {hoveredData[pos]}
-                </span>
-              </div>
-            ))}
+            {(['for', 'against', 'abstain', 'absent'] as const).map(
+              (position) => (
+                <div key={position} className="flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: POSITION_COLORS[position] }}
+                  />
+                  <span className="text-slate-600 dark:text-slate-300">
+                    {POSITION_LABELS[position]}
+                  </span>
+                  <span className="ml-auto font-medium tabular-nums text-slate-800 dark:text-white">
+                    {hoveredData[position]}
+                  </span>
+                </div>
+              ),
+            )}
           </div>
         </div>
       )}

@@ -1,8 +1,22 @@
+/**
+ * Upsert des commissions et délégations des sénateurs (open data Sénat,
+ * `sources/senat-commissions.ts`), appelé par `run-senat.ts` (`ingest:senat`).
+ *
+ * Table écrite : `committees`.
+ * Clé de rapprochement : official (via `senat_id` = matricule, trimé car la
+ * source a des espaces parasites) + nom + type + date de début.
+ *
+ * Idempotent : seule `end_date` est réécrite sur une ligne connue. Les
+ * sénateurs sans fiche `officials` sont comptés en `skipped`.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, committees } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { SenateurCommittees } from '../sources/senat-commissions.js';
 import { logger } from '../logger.js';
+
+/** Taille des INSERT groupés (limite de paramètres Postgres). */
+const INSERT_CHUNK_SIZE = 500;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -12,6 +26,10 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+/**
+ * Upsert des commissions sénatoriales. Écrit dans `committees`. Retourne le
+ * nombre de lignes créées, mises à jour et ignorées.
+ */
 export async function upsertSenatCommittees(
   db: NeonHttpDatabase,
   senateurCommittees: SenateurCommittees[],
@@ -35,8 +53,11 @@ export async function upsertSenatCommittees(
 
   const allCommittees = await db.select().from(committees);
   const existingByKey = new Map<string, typeof committees.$inferSelect>();
-  for (const c of allCommittees) {
-    existingByKey.set(`${c.officialId}|${c.name}|${c.type}|${c.startDate}`, c);
+  for (const committee of allCommittees) {
+    existingByKey.set(
+      `${committee.officialId}|${committee.name}|${committee.type}|${committee.startDate}`,
+      committee,
+    );
   }
 
   const newRows: (typeof committees.$inferInsert)[] = [];
@@ -71,7 +92,7 @@ export async function upsertSenatCommittees(
     }
   }
 
-  for (const rowChunk of chunk(newRows, 500)) {
+  for (const rowChunk of chunk(newRows, INSERT_CHUNK_SIZE)) {
     await db.insert(committees).values(rowChunk);
   }
 

@@ -1,63 +1,63 @@
 import { describe, it, expect } from 'vitest';
 import {
-  normalize,
-  matchKey,
+  normalizeMayorName,
+  communeMatchKey,
   matchKeyBirthDate,
 } from '../packages/ingest/src/upsert/mayor-photos.js';
 
-describe('normalize', () => {
+describe('normalizeMayorName', () => {
   it('removes accents', () => {
-    expect(normalize('Éloïse')).toBe('eloise');
-    expect(normalize('François')).toBe('francois');
-    expect(normalize('Jérôme')).toBe('jerome');
+    expect(normalizeMayorName('Éloïse')).toBe('eloise');
+    expect(normalizeMayorName('François')).toBe('francois');
+    expect(normalizeMayorName('Jérôme')).toBe('jerome');
   });
 
   it('lowercases', () => {
-    expect(normalize('DUPONT')).toBe('dupont');
-    expect(normalize('Martin')).toBe('martin');
+    expect(normalizeMayorName('DUPONT')).toBe('dupont');
+    expect(normalizeMayorName('Martin')).toBe('martin');
   });
 
   it('normalizes apostrophes', () => {
-    expect(normalize("d'Artagnan")).toBe("d'artagnan");
-    expect(normalize('d’Artagnan')).toBe("d'artagnan");
-    expect(normalize('d‘Artagnan')).toBe("d'artagnan");
+    expect(normalizeMayorName("d'Artagnan")).toBe("d'artagnan");
+    expect(normalizeMayorName('d’Artagnan')).toBe("d'artagnan");
+    expect(normalizeMayorName('d‘Artagnan')).toBe("d'artagnan");
   });
 
   it('replaces hyphens with spaces', () => {
-    expect(normalize('Jean-Pierre')).toBe('jean pierre');
+    expect(normalizeMayorName('Jean-Pierre')).toBe('jean pierre');
   });
 
   it('trims whitespace', () => {
-    expect(normalize('  Martin  ')).toBe('martin');
+    expect(normalizeMayorName('  Martin  ')).toBe('martin');
   });
 
   it('handles combined diacritics', () => {
-    expect(normalize('Ça été bénéfique')).toBe('ca ete benefique');
+    expect(normalizeMayorName('Ça été bénéfique')).toBe('ca ete benefique');
   });
 });
 
-describe('matchKey', () => {
+describe('communeMatchKey', () => {
   it('produces same key for accented/unaccented names', () => {
-    const k1 = matchKey('François', 'Baroin', '10033');
-    const k2 = matchKey('Francois', 'Baroin', '10033');
+    const k1 = communeMatchKey('François', 'Baroin', '10033');
+    const k2 = communeMatchKey('Francois', 'Baroin', '10033');
     expect(k1).toBe(k2);
   });
 
   it('produces same key for hyphenated/split first names', () => {
-    const k1 = matchKey('Jean-Pierre', 'Dupont', '75056');
-    const k2 = matchKey('Jean Pierre', 'Dupont', '75056');
+    const k1 = communeMatchKey('Jean-Pierre', 'Dupont', '75056');
+    const k2 = communeMatchKey('Jean Pierre', 'Dupont', '75056');
     expect(k1).toBe(k2);
   });
 
   it('produces different keys for different commune codes', () => {
-    const k1 = matchKey('Marie', 'Martin', '75056');
-    const k2 = matchKey('Marie', 'Martin', '13055');
+    const k1 = communeMatchKey('Marie', 'Martin', '75056');
+    const k2 = communeMatchKey('Marie', 'Martin', '13055');
     expect(k1).not.toBe(k2);
   });
 
   it('handles case variations', () => {
-    const k1 = matchKey('JEAN', 'DUPONT', '75056');
-    const k2 = matchKey('jean', 'dupont', '75056');
+    const k1 = communeMatchKey('JEAN', 'DUPONT', '75056');
+    const k2 = communeMatchKey('jean', 'dupont', '75056');
     expect(k1).toBe(k2);
   });
 });
