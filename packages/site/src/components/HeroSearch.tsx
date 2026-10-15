@@ -37,6 +37,7 @@ const MANDATE_LABELS: Record<string, string> = {
   maire: 'Maire',
   eurodepute: 'Député·e européen·ne',
   conseiller_departemental: 'Conseiller·ère départemental·e',
+  conseiller_communautaire: 'Conseiller·ère communautaire',
   conseiller_regional: 'Conseiller·ère régional·e',
   conseiller_arrondissement: "Conseiller·ère d'arrondissement",
   membre_assemblee_statut_particulier: "Membre d'assemblée territoriale",

@@ -61,6 +61,9 @@ yarn --cwd packages/ingest ingest:senat:resultats
 # Ingestion conseillers départementaux (RNE, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:conseillers-dep
 
+# Ingestion conseillers communautaires (EPCI, RNE, voir docs/DOMAINS.md)
+yarn --cwd packages/ingest ingest:conseillers-epci
+
 # Ingestion conseillers régionaux (RNE, voir docs/DOMAINS.md)
 yarn --cwd packages/ingest ingest:conseillers-reg
 

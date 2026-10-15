@@ -72,6 +72,20 @@ déjà cloné (pas de checkout distant).
   rester isolé des quatre autres jobs RNE sur `officials`/`mandates`.
 - Cron `0 22 5/5 * *`.
 
+## Créneau mensuel dédié — le 12 du mois, 07:30 UTC
+
+- `ingest:conseillers-epci` (RNE conseillers communautaires, ~62 100 lignes,
+  ~1 250 EPCI) — même source RNE (trimestrielle) que les autres jobs RNE, donc un
+  rythme mensuel est déjà large. Les cinq créneaux « tous les 5 jours à 22:00 »
+  (`*/5`, `2/5`, `3/5`, `4/5`, `5/5`) couvrent déjà tous les jours du mois : un
+  sixième à 22:00 chevaucherait forcément l'un d'eux sur `officials`/`mandates`.
+  07:30 tombe après la fin du tick `press:maires` de 05:00 (~06:15 au plus tard)
+  et du job secondaire de 03:30, avant celui de 10:00 ; les jobs lourds de 01:30
+  sont longtemps terminés. Ce job écrit beaucoup plus de lignes que les autres
+  jobs RNE hors maires (écritures groupées par lots de 500, point de reprise
+  entre chaque lot).
+- Cron `30 7 12 * *`.
+
 ## Créneau principal — un job lourd par jour, 01:30 UTC
 
 Choisi à 1h30 après le tick `press:maires` de 00:00 (qui peut tourner jusqu'à ~75 min)

@@ -176,6 +176,14 @@ vi.mock('./sources/municipal-elections.js', () => ({
 vi.mock('./upsert/municipal-elections.js', () => ({
   upsertMunicipalElections: vi.fn(),
 }));
+vi.mock('./sources/rne-conseillers-epci.js', () => ({
+  fetchRneConseillersEpci: vi.fn(),
+}));
+
+vi.mock('./upsert/conseillers-epci.js', () => ({
+  upsertConseillersEpci: vi.fn(),
+}));
+
 vi.mock('./sources/rne-conseillers-dep.js', () => ({
   fetchRneConseillersDep: vi.fn(),
 }));
@@ -294,6 +302,8 @@ import { fetchWikidataMayorPhotos } from './sources/wikidata-mayor-photos.js';
 import { upsertMayorPhotos } from './upsert/mayor-photos.js';
 import { fetchMunicipalElections } from './sources/municipal-elections.js';
 import { upsertMunicipalElections } from './upsert/municipal-elections.js';
+import { fetchRneConseillersEpci } from './sources/rne-conseillers-epci.js';
+import { upsertConseillersEpci } from './upsert/conseillers-epci.js';
 import { fetchRneConseillersDep } from './sources/rne-conseillers-dep.js';
 import { upsertConseillersDep } from './upsert/conseillers-dep.js';
 import { fetchRneConseillersReg } from './sources/rne-conseillers-reg.js';
@@ -442,6 +452,15 @@ function setupHappyPath() {
     candidates: 0,
     matched: 0,
   });
+  vi.mocked(fetchRneConseillersEpci).mockResolvedValue([]);
+  vi.mocked(upsertConseillersEpci).mockResolvedValue({
+    officials: 0,
+    mandates: 0,
+    updated: 0,
+    reelected: 0,
+    ended: 0,
+    skipped: 0,
+  });
   vi.mocked(fetchRneConseillersDep).mockResolvedValue([]);
   vi.mocked(upsertConseillersDep).mockResolvedValue({
     officials: 0,
@@ -516,7 +535,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(33);
+    expect(results).toHaveLength(34);
     expect(results[0].source).toBe('deputes');
     expect(results.every((r) => !r.error)).toBe(true);
     expect(fetchDeputes).toHaveBeenCalledTimes(1);
@@ -545,7 +564,7 @@ describe('run', () => {
 
     const results = await run();
 
-    expect(results).toHaveLength(33);
+    expect(results).toHaveLength(34);
     const collabResult = results.find((r) => r.source === 'collaborateurs');
     expect(collabResult?.error).toContain('network timeout');
 

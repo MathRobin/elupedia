@@ -1,0 +1,21 @@
+# Cron documenté dans docs/INGESTION-SCHEDULE.md (créneau mensuel dédié : les
+# cinq créneaux "tous les 5 jours à 22:00" des autres jobs RNE sont pleins).
+name: Ingest — Conseillers communautaires (RNE)
+schedule: '30 7 12 * *'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+steps:
+  - name: git-pull
+    command: git pull
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: ingestion-conseillers-epci
+    command: yarn --cwd packages/ingest ingest:conseillers-epci
+    depends:
+      - install-dependencies
