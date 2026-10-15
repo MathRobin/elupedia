@@ -79,8 +79,8 @@ function createMockDb(pair = cadicPair) {
       const text = dialect.sqlToQuery(query).sql.toLowerCase();
       statements.push(text);
       if (
-        text.includes('from officials kept') &&
-        text.includes('join officials dup')
+        text.includes('from ranked kept') &&
+        text.includes('join ranked dup')
       ) {
         return { rows: [pair] };
       }
