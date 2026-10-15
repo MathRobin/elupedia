@@ -1,3 +1,9 @@
+/**
+ * Normalisation du résultat brut d'un scrutin vers `ballots.result`
+ * (`adopted` / `rejected`, voir `ballotResultEnum` dans le schéma).
+ * Partagé par upsert/an-votes.ts (AN : `sort.code`) et upsert/senat-votes.ts
+ * (Sénat : badge « Adoption »/« Rejet » de l'index des scrutins).
+ */
 import type { BallotResult } from '@elupedia/shared';
 
 /**
