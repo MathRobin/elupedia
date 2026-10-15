@@ -1,3 +1,10 @@
+/**
+ * Tests unitaires du client Bursae (`bursae.ts`) : construction de l'URL
+ * oEmbed, validation de la réponse, et comportement de `fetchBursaeEmbed`
+ * face aux cas d'échec (hors couverture, panne, timeout, contrat rompu).
+ * `fetch` est injecté par paramètre ; le cache mémoire est vidé avant chaque
+ * cas via `clearBursaeCache`.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   buildOembedUrl,
@@ -19,6 +26,7 @@ const VALID_PAYLOAD = {
   code_insee: '33063',
 };
 
+/** Réponse HTTP 200 minimale, suffisante pour `fetchBursaeEmbed`. */
 function okResponse(payload: unknown) {
   return {
     ok: true,
@@ -72,9 +80,9 @@ describe('parseOembed', () => {
   });
 
   it('tolerates a payload without code_insee', () => {
-    const without = { ...VALID_PAYLOAD };
-    delete (without as Partial<typeof VALID_PAYLOAD>).code_insee;
-    const embed = parseOembed(without);
+    const payloadWithoutCode = { ...VALID_PAYLOAD };
+    delete (payloadWithoutCode as Partial<typeof VALID_PAYLOAD>).code_insee;
+    const embed = parseOembed(payloadWithoutCode);
     expect(embed).not.toBeNull();
     expect(embed!.codeInsee).toBeNull();
   });

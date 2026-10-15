@@ -1,3 +1,7 @@
+/**
+ * Tests de parseCliArgs (cli.ts) : combinaisons --only / --skip / --help et
+ * restriction du périmètre d'étapes par domaine.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import {
   parseCliArgs,

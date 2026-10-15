@@ -1,3 +1,9 @@
+/**
+ * `GET /sitemap-index.xml` : index Sitemaps pointant vers les trois sitemaps
+ * du site (pages statiques, fiches élus, scrutins). C'est l'URL déclarée dans
+ * `public/robots.txt`. Rendu à la demande (pas prérendu) pour partager la
+ * politique de cache des autres sitemaps : CDN 24 h.
+ */
 import type { APIRoute } from 'astro';
 
 const SITE = 'https://www.elupedia.fr';

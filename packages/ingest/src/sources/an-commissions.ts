@@ -1,3 +1,23 @@
+/**
+ * Appartenances des députés aux commissions, délégations et groupes
+ * (open data AN, jeu AMO30 — le même ZIP que assemblee-nationale.ts).
+ *
+ * Source : dossier `json/organe/` (un fichier par organe : commission,
+ * groupe politique, etc.) et `json/acteur/` (un fichier par acteur avec tous
+ * ses mandats, y compris les mandats « membre de l'organe X »).
+ *
+ * Extrait : pour chaque député, la liste de ses appartenances aux organes
+ * dont le `codeType` figure dans CODE_TYPE_MAP, avec dates de début/fin.
+ *
+ * Pièges :
+ * - `mandats.mandat` et `organes.organeRef` peuvent être un objet/une chaîne
+ *   ou un tableau (conversion XML→JSON) ; on ne garde que le premier
+ *   organeRef.
+ * - Les organes sont chargés d'abord pour résoudre les libellés ; un mandat
+ *   dont l'organe est inconnu ou hors périmètre est ignoré.
+ *
+ * Appelé par run-an.ts via upsert/committees.ts.
+ */
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -19,6 +39,7 @@ export interface DeputeCommittees {
   committees: CommitteeItem[];
 }
 
+/** Codes d'organe AN retenus et leur type côté Elupedia. */
 const CODE_TYPE_MAP: Record<string, CommitteeItem['type']> = {
   COMPER: 'standing_committee',
   COMSPST: 'special_committee',
@@ -33,6 +54,11 @@ interface OrganeInfo {
   type: CommitteeItem['type'];
 }
 
+/**
+ * Télécharge le ZIP AMO30 et renvoie les appartenances par député (seuls les
+ * députés ayant au moins une appartenance sont renvoyés).
+ * Lève une erreur si le téléchargement échoue.
+ */
 export async function fetchCommittees(
   fetchFn: typeof fetch = fetch,
 ): Promise<DeputeCommittees[]> {
@@ -64,17 +90,18 @@ export async function fetchCommittees(
   }
 }
 
+/** Index uid → organe, limité aux types de CODE_TYPE_MAP. */
 async function loadCommitteeOrganes(
   extractDir: string,
 ): Promise<Map<string, OrganeInfo>> {
-  const map = new Map<string, OrganeInfo>();
+  const organesByUid = new Map<string, OrganeInfo>();
   const organeDir = join(extractDir, 'json', 'organe');
 
   let files: string[];
   try {
     files = await readdir(organeDir);
   } catch {
-    return map;
+    return organesByUid;
   }
 
   for (const file of files) {
@@ -83,21 +110,21 @@ async function loadCommitteeOrganes(
     const parsed = OrganeFileSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) continue;
 
-    const o = parsed.data.organe;
-    const committeeType = CODE_TYPE_MAP[o.codeType];
+    const organe = parsed.data.organe;
+    const committeeType = CODE_TYPE_MAP[organe.codeType];
     if (!committeeType) continue;
 
-    map.set(o.uid, {
-      uid: o.uid,
+    organesByUid.set(organe.uid, {
+      uid: organe.uid,
       // Le libellé abrégé de l'open data AN est le plus souvent identique au
       // libellé complet : on ne garde que ce dernier pour éviter des noms de
       // commissions dupliqués sous deux formes.
-      name: o.libelle ?? o.libelleAbrege ?? '',
+      name: organe.libelle ?? organe.libelleAbrege ?? '',
       type: committeeType,
     });
   }
 
-  return map;
+  return organesByUid;
 }
 
 async function loadMemberships(
@@ -129,8 +156,8 @@ async function loadMemberships(
 
     const committees: CommitteeItem[] = [];
 
-    for (const m of allMandats) {
-      const rawRef = m.organes?.organeRef;
+    for (const mandat of allMandats) {
+      const rawRef = mandat.organes?.organeRef;
       if (!rawRef) continue;
       const organeRef = Array.isArray(rawRef) ? rawRef[0] : rawRef;
 
@@ -140,8 +167,8 @@ async function loadMemberships(
       committees.push({
         name: organe.name,
         type: organe.type,
-        start_date: m.dateDebut,
-        end_date: m.dateFin ?? undefined,
+        start_date: mandat.dateDebut,
+        end_date: mandat.dateFin ?? undefined,
         an_uid: organe.uid,
       });
     }

@@ -1,8 +1,29 @@
+/**
+ * Parrainages (« signatures ») des candidats à l'élection présidentielle,
+ * publiés par le Conseil constitutionnel via data.gouv.fr.
+ *
+ * Source : un CSV par scrutin (PARRAINAGES_ELECTIONS), séparateur « ; »,
+ * valeurs parfois entre guillemets, une ligne par parrainage. Colonnes dans
+ * l'ordre : civilité, nom, prénom, mandat, circonscription (commune ou
+ * territoire), département, candidat parrainé, date de publication
+ * (JJ/MM/AAAA). L'en-tête de la colonne candidat change selon l'année
+ * (`candidateColumn`), mais la position des colonnes est stable : le parsing
+ * est positionnel.
+ *
+ * Extrait : une `ParrainageRow` par ligne complète, date au format ISO.
+ *
+ * Pièges : les guillemets ne sont retirés qu'en début/fin de champ ; un
+ * champ contenant « ; » décalerait les colonnes. Une date illisible est
+ * conservée telle quelle.
+ *
+ * Appelé par main-parrainages.ts via upsert/sponsorships.ts.
+ */
 import { logger } from '../logger.js';
 
 export interface ParrainageElection {
   year: number;
   url: string;
+  /** Intitulé de la colonne « candidat » dans l'en-tête de ce millésime. */
   candidateColumn: string;
 }
 
@@ -30,17 +51,35 @@ export interface ParrainageRow {
   datePublication: string;
 }
 
+const CSV_SEPARATOR = ';';
+
+// Positions des colonnes dans le CSV.
+const COL_CIVILITE = 0;
+const COL_NOM = 1;
+const COL_PRENOM = 2;
+const COL_MANDAT = 3;
+const COL_CIRCONSCRIPTION = 4;
+const COL_DEPARTEMENT = 5;
+const COL_CANDIDAT = 6;
+const COL_DATE_PUBLICATION = 7;
+const MIN_COLUMNS = 8;
+
+/** « JJ/MM/AAAA » → AAAA-MM-JJ ; null si autre format. */
 function parseDateFr(raw: string): string | null {
-  const m = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return null;
-  return `${m[3]}-${m[2]}-${m[1]}`;
+  const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
-function stripQuotes(s: string): string {
-  if (s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1);
-  return s;
+function stripQuotes(value: string): string {
+  if (value.startsWith('"') && value.endsWith('"')) return value.slice(1, -1);
+  return value;
 }
 
+/**
+ * Télécharge et parse le CSV d'un scrutin. Lève si le téléchargement échoue
+ * ou si le fichier n'a pas au moins une ligne après l'en-tête.
+ */
 export async function fetchParrainages(
   election: ParrainageElection,
   fetchFn: typeof fetch = fetch,
@@ -62,22 +101,25 @@ export async function fetchParrainages(
 
   const rows: ParrainageRow[] = [];
 
+  // La première ligne est l'en-tête.
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    const cols = line.split(';').map(stripQuotes);
-    if (cols.length < 8) continue;
+    const columns = line.split(CSV_SEPARATOR).map(stripQuotes);
+    if (columns.length < MIN_COLUMNS) continue;
 
     rows.push({
-      civilite: cols[0],
-      nom: cols[1],
-      prenom: cols[2],
-      mandat: cols[3],
-      circonscription: cols[4],
-      departement: cols[5],
-      candidat: cols[6],
-      datePublication: parseDateFr(cols[7]) ?? cols[7],
+      civilite: columns[COL_CIVILITE],
+      nom: columns[COL_NOM],
+      prenom: columns[COL_PRENOM],
+      mandat: columns[COL_MANDAT],
+      circonscription: columns[COL_CIRCONSCRIPTION],
+      departement: columns[COL_DEPARTEMENT],
+      candidat: columns[COL_CANDIDAT],
+      datePublication:
+        parseDateFr(columns[COL_DATE_PUBLICATION]) ??
+        columns[COL_DATE_PUBLICATION],
     });
   }
 

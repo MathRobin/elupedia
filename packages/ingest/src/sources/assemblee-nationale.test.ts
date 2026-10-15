@@ -1,3 +1,7 @@
+/**
+ * Tests de assemblee-nationale.ts : ZIP AMO30 fabriqué en mémoire (adm-zip)
+ * avec des acteurs au format réel de l'AN (attributs @xmlns, uid.#text…).
+ */
 import { describe, it, expect, vi } from 'vitest';
 import { fetchDeputes, DATASET_URL } from './assemblee-nationale.js';
 import AdmZip from 'adm-zip';
@@ -127,16 +131,16 @@ function buildZipBuffer(
   organes: { uid: string; data: unknown }[],
 ): Buffer {
   const zip = new AdmZip();
-  for (const a of acteurs) {
+  for (const acteur of acteurs) {
     zip.addFile(
-      `json/acteur/${a.uid}.json`,
-      Buffer.from(JSON.stringify(a.data)),
+      `json/acteur/${acteur.uid}.json`,
+      Buffer.from(JSON.stringify(acteur.data)),
     );
   }
-  for (const o of organes) {
+  for (const organe of organes) {
     zip.addFile(
-      `json/organe/${o.uid}.json`,
-      Buffer.from(JSON.stringify(o.data)),
+      `json/organe/${organe.uid}.json`,
+      Buffer.from(JSON.stringify(organe.data)),
     );
   }
   return zip.toBuffer();

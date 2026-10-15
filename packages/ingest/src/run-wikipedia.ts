@@ -1,3 +1,20 @@
+/**
+ * Orchestration de la recherche de pages Wikipédia (fr) : pour chaque élu
+ * ciblé sans lien `wikipedia_fr` dans `external_links`, interroge l'API
+ * Wikipédia (sources/wikipedia.ts) et insère le lien trouvé. Seul run-*.ts
+ * qui écrit directement en base, sans module upsert/.
+ *
+ * Convention du package : les `run-*.ts` portent la logique testable — pas
+ * de parsing d'arguments, pas de process.exit() — et sont lancés par le
+ * `main-*.ts` du même nom (`yarn --cwd packages/ingest ingest:wikipedia`).
+ * Ouvre sa propre connexion DB via createDb(). Chaque étape passe par
+ * runStep() : fetch + upsert rejoués en cas d'échec, erreur consignée dans
+ * le StepResult sans interrompre les étapes suivantes.
+ *
+ * Périmètre : députés, sénateurs et maires (mandats clos compris) plus tout
+ * élu ayant un mandat en cours. Les liens déjà présents ne sont jamais
+ * modifiés : un élu avec un lien est simplement sauté.
+ */
 import { createDb, officials, externalLinks, mandates } from '@elupedia/shared';
 import { eq, and, or, isNull } from 'drizzle-orm';
 
@@ -6,6 +23,12 @@ import { type StepResult, runStep, printSummary } from './run-helpers.js';
 import { withRetry } from './utils/retry.js';
 import { findWikipediaUrl } from './sources/wikipedia.js';
 
+// Pause entre deux appels à l'API Wikipédia (politesse, pas de quota strict).
+const DELAY_BETWEEN_QUERIES_MS = 500;
+// Fréquence (en nombre d'élus traités) des lignes de progression.
+const PROGRESS_LOG_EVERY = 100;
+
+/** Lance la recherche Wikipédia (une seule étape). Écrit en base. */
 export async function runWikipedia(): Promise<StepResult[]> {
   const db = createDb();
   const results: StepResult[] = [];
@@ -18,9 +41,13 @@ export async function runWikipedia(): Promise<StepResult[]> {
         .select({ officialId: externalLinks.officialId })
         .from(externalLinks)
         .where(eq(externalLinks.platform, 'wikipedia_fr'));
-      const alreadyHasWiki = new Set(existingWiki.map((r) => r.officialId));
+      const alreadyHasWiki = new Set(
+        existingWiki.map((link) => link.officialId),
+      );
 
-      const rows = await db
+      // groupBy = un élu une seule fois, même avec plusieurs mandats
+      // qualifiants.
+      const targets = await db
         .select({
           id: officials.id,
           firstName: officials.firstName,
@@ -38,29 +65,34 @@ export async function runWikipedia(): Promise<StepResult[]> {
         )
         .groupBy(officials.id, officials.firstName, officials.lastName);
 
-      const candidates = rows.filter((r) => !alreadyHasWiki.has(r.id));
+      const candidates = targets.filter(
+        (official) => !alreadyHasWiki.has(official.id),
+      );
       logger.info(
-        `  ${rows.length} officials total, ${candidates.length} without Wikipedia link`,
+        `  ${targets.length} officials total, ${candidates.length} without Wikipedia link`,
       );
 
       let created = 0;
       let errors = 0;
       let queried = 0;
 
-      for (const row of candidates) {
+      for (const official of candidates) {
         try {
           const url = await withRetry(
-            () => findWikipediaUrl(row.firstName, row.lastName),
+            () => findWikipediaUrl(official.firstName, official.lastName),
             { source: 'wikipedia', maxAttempts: 2, baseDelayMs: 2000 },
           );
 
           if (url) {
+            // Re-vérifié juste avant l'insert (pas de contrainte unique sur
+            // official_id + platform) : un run concurrent ou un retry de
+            // runStep ne doit pas créer de doublon.
             const existing = await db
               .select({ id: externalLinks.id })
               .from(externalLinks)
               .where(
                 and(
-                  eq(externalLinks.officialId, row.id),
+                  eq(externalLinks.officialId, official.id),
                   eq(externalLinks.platform, 'wikipedia_fr'),
                 ),
               )
@@ -68,7 +100,7 @@ export async function runWikipedia(): Promise<StepResult[]> {
 
             if (existing.length === 0) {
               await db.insert(externalLinks).values({
-                officialId: row.id,
+                officialId: official.id,
                 platform: 'wikipedia_fr',
                 url,
                 status: 'published',
@@ -76,21 +108,27 @@ export async function runWikipedia(): Promise<StepResult[]> {
                 capturedAt: new Date().toISOString().slice(0, 10),
               });
               created++;
-              logger.info(`  + ${row.firstName} ${row.lastName}: ${url}`);
+              logger.info(
+                `  + ${official.firstName} ${official.lastName}: ${url}`,
+              );
             }
           }
 
           queried++;
-          if (queried % 100 === 0) {
+          if (queried % PROGRESS_LOG_EVERY === 0) {
             logger.info(
               `  Progress: ${queried}/${candidates.length} (${created} found)`,
             );
           }
-        } catch (e) {
+        } catch (error) {
           errors++;
-          logger.warn(`  Error for ${row.firstName} ${row.lastName}: ${e}`);
+          logger.warn(
+            `  Error for ${official.firstName} ${official.lastName}: ${error}`,
+          );
         }
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((resolve) =>
+          setTimeout(resolve, DELAY_BETWEEN_QUERIES_MS),
+        );
       }
 
       if (errors > 0) logger.warn(`  ${errors} errors`);

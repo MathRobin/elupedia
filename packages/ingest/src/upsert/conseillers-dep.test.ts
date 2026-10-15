@@ -1,3 +1,14 @@
+/**
+ * Tests de upsertConseillersDep : historisation des remplacements (clôture + nouveau
+ * mandat vs mise à jour en place) sur un mock Drizzle minimal.
+ *
+ * Le mock sert les SELECT dans l'ordre exact où le module les émet :
+ * 1. officials (bulk), 2. mandats actifs du type (bulk), 3. pour chaque
+ * conseiller, le mandat actif de cet official. Les INSERT alimentent
+ * `store`, les UPDATE sont journalisés dans `updates` ; `batch` résout
+ * simplement les requêtes déjà construites (leurs effets de bord ont eu
+ * lieu de façon synchrone à la construction).
+ */
 import { describe, it, expect, vi } from 'vitest';
 import type { RneConseillerDep } from '../sources/rne-conseillers-dep.js';
 
@@ -5,6 +16,8 @@ vi.mock('../logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
+// Thenable imitant un query builder Drizzle : `await`, `.where()` et
+// `.limit()` renvoient tous les mêmes lignes.
 function chain(rows: unknown[]) {
   const promise = Promise.resolve(rows);
   return Object.assign(promise, {
@@ -22,11 +35,11 @@ function createMockDb(selectQueue: unknown[][]) {
   const getTableName = (table: unknown): string =>
     (table as Record<symbol, string>)[DRIZZLE_NAME] ?? 'unknown';
 
-  let i = 0;
+  let selectCallIndex = 0;
   const updates: { table: string; set: Record<string, unknown> }[] = [];
   const db = {
     select: () => ({
-      from: () => chain(selectQueue[i++] ?? []),
+      from: () => chain(selectQueue[selectCallIndex++] ?? []),
     }),
     insert: (table: unknown) => {
       const name = getTableName(table);

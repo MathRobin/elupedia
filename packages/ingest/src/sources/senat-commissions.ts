@@ -1,3 +1,23 @@
+/**
+ * Appartenances des sénateurs aux commissions, délégations, offices et
+ * autres organes internes.
+ *
+ * Sources : open data du Sénat, deux fichiers JSON `{ results: [...] }` de
+ * même structure mais dont la colonne « nom » diffère :
+ *   - ODSEN_COMS.json   → commissions (permanentes, spéciales, d'enquête…),
+ *     nom dans `Nom_commission` ;
+ *   - ODSEN_OFFDEL.json → offices, délégations, missions d'information…,
+ *     nom dans `Nom_organisme`.
+ * Chaque ligne = une période d'appartenance (Matricule, Type_commission,
+ * Debut/Fin_d_appartenance au format « AAAA/MM/JJ HH:MM:SS »). Les deux
+ * fichiers sont chargés en parallèle et fusionnés par matricule ; une ligne
+ * sans date de début est ignorée (donnée inexploitable).
+ *
+ * Le `Type_commission` du Sénat est projeté sur le vocabulaire commun AN/Sénat
+ * (CommitteeItem.type) via TYPE_MAP ; tout type inconnu tombe en « delegation ».
+ *
+ * Appelé par run-senat.ts, consommé par upsert/senat-committees.ts.
+ */
 import { logger } from '../logger.js';
 import type { CommitteeItem } from '../schemas.js';
 
@@ -11,6 +31,7 @@ export interface SenateurCommittees {
   committees: CommitteeItem[];
 }
 
+/** Ligne brute commune aux deux fichiers ; seul l'un des deux champs « nom » est présent selon la source. */
 interface RawRow {
   Matricule: string;
   Nom_commission?: string;
@@ -21,6 +42,7 @@ interface RawRow {
   Fonction: string;
 }
 
+/** Libellé `Type_commission` du Sénat → type CommitteeItem. Les types non listés deviennent « delegation ». */
 const TYPE_MAP: Record<string, CommitteeItem['type']> = {
   'Commission permanente': 'standing_committee',
   'Commission spéciale': 'special_committee',
@@ -34,6 +56,7 @@ const TYPE_MAP: Record<string, CommitteeItem['type']> = {
   "Mission d'information": 'special_committee',
 };
 
+/** « AAAA/MM/JJ HH:MM:SS » (format Sénat) → « AAAA-MM-JJ », undefined si vide ou illisible. */
 function parseSenatDate(raw: string): string | undefined {
   if (!raw || raw.trim() === '') return undefined;
   const match = raw.match(/^(\d{4})\/(\d{2})\/(\d{2})/);
@@ -45,6 +68,11 @@ function mapType(raw: string): CommitteeItem['type'] {
   return TYPE_MAP[raw] ?? 'delegation';
 }
 
+/**
+ * Télécharge les deux fichiers (deux GET en parallèle) et retourne les
+ * appartenances regroupées par matricule. Lève une erreur si l'un des deux
+ * fichiers ne répond pas en 2xx.
+ */
 export async function fetchSenatCommissions(
   fetchFn: typeof fetch = fetch,
 ): Promise<SenateurCommittees[]> {
@@ -61,11 +89,16 @@ export async function fetchSenatCommissions(
   }
 
   logger.info(
-    `Sénat commissions: ${result.length} sénateurs, ${[...byMatricule.values()].reduce((s, c) => s + c.length, 0)} appartenances`,
+    `Sénat commissions: ${result.length} sénateurs, ${[...byMatricule.values()].reduce((total, list) => total + list.length, 0)} appartenances`,
   );
   return result;
 }
 
+/**
+ * Charge un des deux fichiers et ajoute ses lignes dans `byMatricule`
+ * (mutation de la map partagée). `nameField` indique la colonne portant le
+ * nom de l'organe dans ce fichier.
+ */
 async function loadSource(
   url: string,
   nameField: string,

@@ -1,3 +1,19 @@
+/**
+ * Référentiel libellé de département → code INSEE, et son inverse.
+ *
+ * Les clés sont les libellés exacts écrits dans `mandates.department` par
+ * les ingestions (AN, Sénat, RNE) : le site s'en sert pour le filtre
+ * « Département » de l'annuaire et les URLs par code, l'ingest pour
+ * résoudre un code depuis un libellé (ex. `--department 94`).
+ *
+ * Particularités :
+ * - Corse : codes alphanumériques `2A`/`2B` (pas de `20`).
+ * - `ZZ` est un pseudo-code maison pour « Français établis hors de
+ *   France » (eurodéputés, conseillers des Français de l'étranger, AFE),
+ *   qui n'ont pas de département INSEE.
+ * - Collectivités absentes volontairement ou non : Saint-Pierre-et-Miquelon
+ *   (975), Métropole de Lyon, Corse en tant que collectivité unique.
+ */
 export const DEPARTMENT_CODES: Record<string, string> = {
   Ain: '01',
   Aisne: '02',
@@ -108,6 +124,11 @@ export const DEPARTMENT_CODES: Record<string, string> = {
   'Français établis hors de France': 'ZZ',
 };
 
+/**
+ * Inverse de `DEPARTMENT_CODES` (code INSEE → libellé), construit une fois
+ * au chargement du module. Suppose les codes uniques : un doublon de code
+ * écraserait silencieusement le libellé précédent.
+ */
 const DEPARTMENT_NAMES: Record<string, string> = {};
 for (const [name, code] of Object.entries(DEPARTMENT_CODES)) {
   DEPARTMENT_NAMES[code] = name;

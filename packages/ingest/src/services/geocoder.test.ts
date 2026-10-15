@@ -1,3 +1,7 @@
+/**
+ * Tests de geocodeAddress (services/geocoder.ts) avec `fetch` mocké :
+ * paramètres d'appel, seuil de score, réponses vides ou en erreur.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { geocodeAddress } from './geocoder.js';
 

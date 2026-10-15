@@ -1,5 +1,12 @@
+// Tests de senat : jointure GENERAL/ELUSEN sur le matricule, sexe depuis la
+// civilité, URL de photo reconstruite et mandat synthétique pour un ACTIF sans mandat.
 import { describe, it, expect, vi } from 'vitest';
-import { fetchSenateurs, GENERAL_URL, MANDATS_URL } from './senat.js';
+import {
+  fetchSenateurs,
+  syntheticMandateStart,
+  GENERAL_URL,
+  MANDATS_URL,
+} from './senat.js';
 
 vi.mock('../logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -120,8 +127,17 @@ describe('Sénat client', () => {
       mockFetch([sampleGeneral], [badMandat]),
     );
     expect(result[0].mandats).toHaveLength(1);
-    expect(result[0].mandats[0].start_date).toBe('2023-10-01');
+    expect(result[0].mandats[0].start_date).toBe(syntheticMandateStart());
+    expect(result[0].mandats[0].synthetic).toBe(true);
     expect(result[0].mandats[0].end_date).toBeNull();
+  });
+
+  it('dates a synthetic mandate from the last Senate renewal before today', () => {
+    expect(syntheticMandateStart(new Date('2024-05-01'))).toBe('2023-10-01');
+    expect(syntheticMandateStart(new Date('2026-09-30'))).toBe('2023-10-01');
+    expect(syntheticMandateStart(new Date('2026-10-01'))).toBe('2026-10-01');
+    expect(syntheticMandateStart(new Date('2028-01-15'))).toBe('2026-10-01');
+    expect(syntheticMandateStart(new Date('2029-10-01'))).toBe('2029-10-01');
   });
 
   it('does not create synthetic mandate for ancien senators', async () => {

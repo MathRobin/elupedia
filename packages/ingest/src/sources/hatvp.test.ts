@@ -1,3 +1,7 @@
+/**
+ * Tests de hatvp.ts : XML HATVP fabriqué par deputeDeclaration() (structure
+ * réelle items/items) et servi en flux via un ReadableStream.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import { Readable } from 'node:stream';
 import { fetchDeclarations, InterestItemSchema } from './hatvp.js';

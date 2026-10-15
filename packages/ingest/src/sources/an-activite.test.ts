@@ -1,3 +1,7 @@
+/**
+ * Tests de an-activite.ts : les deux ZIP AN sont fabriqués en mémoire
+ * (adm-zip) et servis par un fetch simulé indexé par URL.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import {
   fetchActivities,
@@ -73,8 +77,11 @@ function makeQuestionJson(
 
 function buildZipBuffer(questions: { uid: string; data: unknown }[]): Buffer {
   const zip = new AdmZip();
-  for (const q of questions) {
-    zip.addFile(`json/${q.uid}.json`, Buffer.from(JSON.stringify(q.data)));
+  for (const question of questions) {
+    zip.addFile(
+      `json/${question.uid}.json`,
+      Buffer.from(JSON.stringify(question.data)),
+    );
   }
   return zip.toBuffer();
 }
@@ -198,13 +205,13 @@ describe('AN activité client', () => {
   });
 
   it('uses rubrique as fallback title when analyse is missing', async () => {
-    const q = makeQuestionJson('QE020', 'PA100001', {
+    const question = makeQuestionJson('QE020', 'PA100001', {
       rubrique: 'agriculture',
       analyse: '',
       dateJO: '2025-06-01',
     });
 
-    const urlMap = defaultUrlMap([{ uid: 'QE020', data: q }], []);
+    const urlMap = defaultUrlMap([{ uid: 'QE020', data: question }], []);
     const result = await fetchActivities(mockFetch(urlMap));
 
     expect(result[0].activities[0].title).toBe('agriculture');
@@ -250,7 +257,7 @@ describe('AN activité client', () => {
   });
 
   it('extracts question text, response text, response date and ministry', async () => {
-    const q = makeQuestionJson('QE050', 'PA100001', {
+    const question = makeQuestionJson('QE050', 'PA100001', {
       analyse: 'Test enrichi',
       dateJO: '2025-06-01',
       responseText: 'Réponse du gouvernement.',
@@ -258,7 +265,7 @@ describe('AN activité client', () => {
       ministry: "Ministère de l'intérieur",
     });
 
-    const urlMap = defaultUrlMap([{ uid: 'QE050', data: q }], []);
+    const urlMap = defaultUrlMap([{ uid: 'QE050', data: question }], []);
     const result = await fetchActivities(mockFetch(urlMap));
 
     const activity = result[0].activities[0];
@@ -269,12 +276,12 @@ describe('AN activité client', () => {
   });
 
   it('handles questions without response', async () => {
-    const q = makeQuestionJson('QE060', 'PA100001', {
+    const question = makeQuestionJson('QE060', 'PA100001', {
       analyse: 'Sans réponse',
       dateJO: '2025-06-01',
     });
 
-    const urlMap = defaultUrlMap([{ uid: 'QE060', data: q }], []);
+    const urlMap = defaultUrlMap([{ uid: 'QE060', data: question }], []);
     const result = await fetchActivities(mockFetch(urlMap));
 
     const activity = result[0].activities[0];

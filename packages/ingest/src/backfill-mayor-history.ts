@@ -21,6 +21,8 @@
  * ignorée (contrainte unique officialId+type+startDate).
  *
  * Usage: npx tsx --env-file=../../.env src/backfill-mayor-history.ts [--apply]
+ *   (pas de script yarn ni de main-*.ts : script ponctuel, hors convention
+ *   main/run du package)
  *
  * Par défaut le script tourne en dry-run. Passer --apply pour écrire en base.
  */
@@ -30,8 +32,18 @@ import { logger } from './logger.js';
 const RNE_RESOURCE_URL =
   'https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503';
 const CDX_API_URL = 'https://web.archive.org/cdx/search/cdx';
+// Capture la date (YYYYMMDD) de publication dans l'URL statique data.gouv.fr
+// vers laquelle redirige chaque capture Wayback.
 const STATIC_URL_PATTERN =
   /static\.data\.gouv\.fr\/resources\/repertoire-national-des-elus-1\/(\d{8})-\d{6}\/elus-maires?-mai\.csv/;
+
+// Une capture avec moins de maires que ça est un fichier tronqué/partiel.
+const MIN_MAYORS_PER_SNAPSHOT = 1000;
+// Pauses de politesse entre appels Wayback (résolution d'URL / téléchargement).
+const DELAY_BETWEEN_CDX_LOOKUPS_MS = 500;
+const DELAY_BETWEEN_SNAPSHOT_DOWNLOADS_MS = 1000;
+// Nombre de mandats listés en dry-run.
+const DRY_RUN_PREVIEW_LIMIT = 30;
 
 interface HistoricalMaire {
   departmentName: string;
@@ -43,20 +55,25 @@ interface HistoricalMaire {
   functionStartDate: string;
 }
 
+/** État du RNE à une date : maire par code commune (5 caractères). */
 interface Snapshot {
   date: string;
   mayors: Map<string, HistoricalMaire>;
 }
 
-function toIsoDate(d: string): string {
-  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : d;
+/** DD/MM/YYYY → YYYY-MM-DD ; toute autre forme (déjà ISO, vide) est rendue telle quelle. */
+function toIsoDate(date: string): string {
+  const match = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : date;
 }
 
 function stripQuotes(s: string): string {
   return s.trim().replace(/^"|"$/g, '');
 }
 
+// Colonnes du CSV RNE maires (séparateur « ; ») : 1 = département,
+// 4 = code commune, 5 = nom commune, 6 = nom, 7 = prénom, 9 = naissance,
+// 12 = début du mandat, 13 = début de la fonction.
 function parseHistoricalCsvRow(line: string): HistoricalMaire | undefined {
   const cols = line.split(';').map(stripQuotes);
   if (cols.length < 14) return undefined;
@@ -91,20 +108,20 @@ async function fetchWithRetry(
   delayMs = 3000,
 ): Promise<Response> {
   let lastError: unknown;
-  for (let i = 0; i < attempts; i++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     try {
-      const res = await fetch(url, init);
+      const response = await fetch(url, init);
       // Wayback/CDX renvoient parfois des 5xx transitoires sous charge —
       // ce n'est pas une exception, donc pas retenté sans ce check.
-      if (res.status >= 500 && i < attempts - 1) {
-        lastError = new Error(`HTTP ${res.status}`);
-        await new Promise((r) => setTimeout(r, delayMs));
+      if (response.status >= 500 && attempt < attempts - 1) {
+        lastError = new Error(`HTTP ${response.status}`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }
-      return res;
-    } catch (e) {
-      lastError = e;
-      await new Promise((r) => setTimeout(r, delayMs));
+      return response;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
   throw lastError;
@@ -122,9 +139,12 @@ async function discoverSnapshotUrls(): Promise<
   const cdxUrl = `${CDX_API_URL}?url=${encodeURIComponent(RNE_RESOURCE_URL)}&output=text&fl=timestamp,digest&collapse=digest`;
   // L'API CDX de Wayback est particulièrement instable (5xx fréquents) —
   // plus de tentatives et un backoff plus long que pour les autres appels.
-  const res = await fetchWithRetry(cdxUrl, {}, 10, 8000);
-  if (!res.ok) throw new Error(`CDX API error: ${res.status}`);
-  const text = await res.text();
+  const cdxResponse = await fetchWithRetry(cdxUrl, {}, 10, 8000);
+  if (!cdxResponse.ok) {
+    throw new Error(`CDX API error: ${cdxResponse.status}`);
+  }
+  const text = await cdxResponse.text();
+  // Une ligne « timestamp digest » par capture au contenu distinct.
   const timestamps = text
     .trim()
     .split('\n')
@@ -132,26 +152,30 @@ async function discoverSnapshotUrls(): Promise<
     .map((line) => line.split(' ')[0]);
   logger.info(`CDX API: ${timestamps.length} captures trouvées`);
 
+  // Plusieurs captures peuvent pointer vers la même version publiée : on
+  // dédoublonne par date de publication (la dernière capture vue gagne).
   const byDate = new Map<string, string>();
-  for (const ts of timestamps) {
+  for (const timestamp of timestamps) {
     try {
-      const res = await fetchWithRetry(
-        `https://web.archive.org/web/${ts}id_/${RNE_RESOURCE_URL}`,
+      const redirect = await fetchWithRetry(
+        `https://web.archive.org/web/${timestamp}id_/${RNE_RESOURCE_URL}`,
         { redirect: 'manual' },
       );
-      const location = res.headers.get('location');
+      const location = redirect.headers.get('location');
       const match = location?.match(STATIC_URL_PATTERN);
       if (match) {
-        const d = match[1];
-        const date = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+        const dateDigits = match[1];
+        const date = `${dateDigits.slice(0, 4)}-${dateDigits.slice(4, 6)}-${dateDigits.slice(6, 8)}`;
         byDate.set(date, location!);
       }
-    } catch (e) {
+    } catch (error) {
       logger.warn(
-        `  ${ts}: ${e instanceof Error ? e.message : String(e)} — skipped`,
+        `  ${timestamp}: ${error instanceof Error ? error.message : String(error)} — skipped`,
       );
     }
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((resolve) =>
+      setTimeout(resolve, DELAY_BETWEEN_CDX_LOOKUPS_MS),
+    );
   }
 
   return [...byDate.entries()]
@@ -159,21 +183,23 @@ async function discoverSnapshotUrls(): Promise<
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/** Télécharge et parse une version du CSV ; `null` si indisponible. */
 async function fetchSnapshot(
   fetchUrl: string,
 ): Promise<Map<string, HistoricalMaire> | null> {
   try {
-    const res = await fetchWithRetry(fetchUrl, {
+    const response = await fetchWithRetry(fetchUrl, {
       redirect: 'follow',
       headers: { 'Accept-Encoding': 'gzip, deflate' },
     });
-    if (!res.ok) {
-      logger.warn(`  HTTP ${res.status} — skipped`);
+    if (!response.ok) {
+      logger.warn(`  HTTP ${response.status} — skipped`);
       return null;
     }
-    const text = await res.text();
+    const text = await response.text();
     const lines = text.split('\n');
     const mayors = new Map<string, HistoricalMaire>();
+    // i = 1 : saute la ligne d'en-tête.
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
@@ -182,14 +208,17 @@ async function fetchSnapshot(
       if (code && maire) mayors.set(code, maire);
     }
     return mayors;
-  } catch (e) {
-    logger.warn(`  ${e instanceof Error ? e.message : String(e)} — skipped`);
+  } catch (error) {
+    logger.warn(
+      `  ${error instanceof Error ? error.message : String(error)} — skipped`,
+    );
     return null;
   }
 }
 
-function maireKey(m: HistoricalMaire): string {
-  return `${m.firstName.toLowerCase()}|${m.lastName.toLowerCase()}|${m.birthDate}`;
+/** Identité d'une personne à travers les snapshots : nom, prénom, naissance. */
+function maireKey(maire: HistoricalMaire): string {
+  return `${maire.firstName.toLowerCase()}|${maire.lastName.toLowerCase()}|${maire.birthDate}`;
 }
 
 function slugify(firstName: string, lastName: string): string {
@@ -202,6 +231,8 @@ function slugify(firstName: string, lastName: string): string {
     .replace(/^-|-$/g, '');
 }
 
+// Code SQLSTATE 23505 = unique_violation, parfois enfoui dans error.cause
+// par drizzle.
 function isUniqueViolation(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
   if ('code' in error && (error as { code?: unknown }).code === '23505') {
@@ -213,6 +244,7 @@ function isUniqueViolation(error: unknown): boolean {
   return false;
 }
 
+/** Un maire observé à la tête d'une commune à partir d'une date. */
 interface Term {
   maire: HistoricalMaire;
   startDate: string;
@@ -236,6 +268,7 @@ interface NewOfficial {
 }
 
 const DRY_RUN = !process.argv.includes('--apply');
+// Taille des INSERT groupés (limite de taille de requête du driver HTTP).
 const INSERT_BATCH_SIZE = 300;
 
 async function run() {
@@ -252,11 +285,13 @@ async function run() {
   for (const { date, fetchUrl } of urls) {
     logger.info(`Téléchargement ${date}...`);
     const mayors = await fetchSnapshot(fetchUrl);
-    if (mayors && mayors.size > 1000) {
+    if (mayors && mayors.size > MIN_MAYORS_PER_SNAPSHOT) {
       snapshots.push({ date, mayors });
       logger.info(`  ${mayors.size} maires`);
     }
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((resolve) =>
+      setTimeout(resolve, DELAY_BETWEEN_SNAPSHOT_DOWNLOADS_MS),
+    );
   }
 
   if (snapshots.length < 2) {
@@ -275,35 +310,40 @@ async function run() {
     })
     .from(officials);
 
+  // Même clé que maireKey(), côté base.
   const officialByKey = new Map<string, string>();
-  for (const o of allOfficials) {
+  for (const official of allOfficials) {
     officialByKey.set(
-      `${o.firstName.toLowerCase()}|${o.lastName.toLowerCase()}|${o.birthDate ?? ''}`,
-      o.id,
+      `${official.firstName.toLowerCase()}|${official.lastName.toLowerCase()}|${official.birthDate ?? ''}`,
+      official.id,
     );
   }
   logger.info(
     `\n${officialByKey.size} officials chargés pour le rapprochement\n`,
   );
 
+  // Slugs existants + ceux attribués pendant ce run, pour garantir l'unicité
+  // des nouvelles fiches (suffixe -1, -2… en cas de collision).
   const slugSet = new Set(
-    allOfficials.filter((o) => o.slug).map((o) => o.slug!),
+    allOfficials
+      .filter((official) => official.slug)
+      .map((official) => official.slug!),
   );
   function uniqueSlug(base: string): string {
     if (!slugSet.has(base)) {
       slugSet.add(base);
       return base;
     }
-    let i = 1;
-    while (slugSet.has(`${base}-${i}`)) i++;
-    const s = `${base}-${i}`;
-    slugSet.add(s);
-    return s;
+    let suffix = 1;
+    while (slugSet.has(`${base}-${suffix}`)) suffix++;
+    const slug = `${base}-${suffix}`;
+    slugSet.add(slug);
+    return slug;
   }
 
   const communeCodes = new Set<string>();
-  for (const s of snapshots) {
-    for (const code of s.mayors.keys()) communeCodes.add(code);
+  for (const snapshot of snapshots) {
+    for (const code of snapshot.mayors.keys()) communeCodes.add(code);
   }
 
   const summary = { toInsert: 0, newOfficials: 0, badDates: 0 };
@@ -311,6 +351,8 @@ async function run() {
   const newOfficials: NewOfficial[] = [];
 
   for (const communeCode of communeCodes) {
+    // Séquence des maires successifs de la commune : un nouveau terme à
+    // chaque changement de personne ou de date de prise de fonction.
     const terms: Term[] = [];
     for (const snapshot of snapshots) {
       const maire = snapshot.mayors.get(communeCode);
@@ -340,6 +382,8 @@ async function run() {
       const term = terms[i];
       const next = terms[i + 1];
 
+      // Plage vide ou inversée (dates incohérentes entre deux versions du
+      // CSV) : on préfère ne rien insérer.
       if (term.startDate >= next.startDate) {
         summary.badDates++;
         continue;
@@ -380,16 +424,18 @@ async function run() {
   );
 
   if (DRY_RUN) {
-    for (const p of pending.slice(0, 30)) {
+    for (const mandate of pending.slice(0, DRY_RUN_PREVIEW_LIMIT)) {
       logger.info(
-        `  [dry-run] ${p.district} (${p.communeCode}) : ${p.startDate} → ${p.endDate}`,
+        `  [dry-run] ${mandate.district} (${mandate.communeCode}) : ${mandate.startDate} → ${mandate.endDate}`,
       );
     }
-    if (pending.length > 30) {
-      logger.info(`  … et ${pending.length - 30} de plus`);
+    if (pending.length > DRY_RUN_PREVIEW_LIMIT) {
+      logger.info(`  … et ${pending.length - DRY_RUN_PREVIEW_LIMIT} de plus`);
     }
     return;
   }
+
+  // Les fiches d'abord : les mandats les référencent (clé étrangère).
 
   let officialsInserted = 0;
   for (let start = 0; start < newOfficials.length; start += INSERT_BATCH_SIZE) {
@@ -407,14 +453,14 @@ async function run() {
     const batch = pending.slice(start, start + INSERT_BATCH_SIZE);
     try {
       await db.insert(mandates).values(
-        batch.map((p) => ({
-          officialId: p.officialId,
+        batch.map((mandate) => ({
+          officialId: mandate.officialId,
           type: 'maire',
-          district: p.district,
-          department: p.department,
-          communeCode: p.communeCode,
-          startDate: p.startDate,
-          endDate: p.endDate,
+          district: mandate.district,
+          department: mandate.department,
+          communeCode: mandate.communeCode,
+          startDate: mandate.startDate,
+          endDate: mandate.endDate,
         })),
       );
       inserted += batch.length;
@@ -422,16 +468,16 @@ async function run() {
       if (!isUniqueViolation(error)) throw error;
       // Un doublon dans le lot : on retente ligne à ligne pour ne perdre
       // que les vraies collisions.
-      for (const p of batch) {
+      for (const mandate of batch) {
         try {
           await db.insert(mandates).values({
-            officialId: p.officialId,
+            officialId: mandate.officialId,
             type: 'maire',
-            district: p.district,
-            department: p.department,
-            communeCode: p.communeCode,
-            startDate: p.startDate,
-            endDate: p.endDate,
+            district: mandate.district,
+            department: mandate.department,
+            communeCode: mandate.communeCode,
+            startDate: mandate.startDate,
+            endDate: mandate.endDate,
           });
           inserted++;
         } catch (rowError) {
@@ -451,7 +497,7 @@ async function run() {
   );
 }
 
-run().catch((e) => {
-  logger.error(`Backfill failed: ${e}`);
+run().catch((error) => {
+  logger.error(`Backfill failed: ${error}`);
   process.exit(1);
 });

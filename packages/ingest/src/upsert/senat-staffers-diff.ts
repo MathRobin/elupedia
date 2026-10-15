@@ -1,9 +1,27 @@
+/**
+ * Diff des collaborateurs des sénateurs (open data Sénat,
+ * `sources/senat-collaborateurs.ts`), appelé par `run-senat.ts`
+ * (`ingest:senat`). Pendant Sénat de `upsert/staffers-diff.ts`.
+ *
+ * Table écrite : `staffers`.
+ * Clé de rapprochement : official (via `senat_id` = matricule) + prénom|nom
+ * exacts (casse comprise) parmi les collaborateurs actifs (`end_date IS NULL`).
+ *
+ * La source est une photo instantanée sans dates : un collaborateur inconnu
+ * est ouvert à la date du jour, un collaborateur actif absent de la photo est
+ * clos à la date du jour. Les dates réelles d'entrée/sortie ne sont donc
+ * connues qu'à la précision de la fréquence d'ingestion. Idempotent.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, staffers } from '@elupedia/shared';
 import { eq, isNull } from 'drizzle-orm';
 import type { CollaborateursSenateur } from '../sources/senat-collaborateurs.js';
 import { logger } from '../logger.js';
 
+/**
+ * Ouvre les nouveaux collaborateurs et clôt les disparus. Écrit dans
+ * `staffers`. Retourne créés / clos / inchangés.
+ */
 export async function diffSenatStaffers(
   db: NeonHttpDatabase,
   senateurCollabs: CollaborateursSenateur[],
@@ -15,8 +33,9 @@ export async function diffSenatStaffers(
     .select({ id: officials.id, senatId: officials.senatId })
     .from(officials);
   const officialByMatricule = new Map<string, string>();
-  for (const o of allOfficials) {
-    if (o.senatId) officialByMatricule.set(o.senatId, o.id);
+  for (const official of allOfficials) {
+    if (official.senatId)
+      officialByMatricule.set(official.senatId, official.id);
   }
 
   const activeStaffers = await db
@@ -27,10 +46,10 @@ export async function diffSenatStaffers(
     string,
     (typeof staffers.$inferSelect)[]
   >();
-  for (const s of activeStaffers) {
-    const list = staffersByOfficialId.get(s.officialId) ?? [];
-    list.push(s);
-    staffersByOfficialId.set(s.officialId, list);
+  for (const staffer of activeStaffers) {
+    const list = staffersByOfficialId.get(staffer.officialId) ?? [];
+    list.push(staffer);
+    staffersByOfficialId.set(staffer.officialId, list);
   }
 
   const newRows: (typeof staffers.$inferInsert)[] = [];
@@ -42,11 +61,13 @@ export async function diffSenatStaffers(
     const currentStaffers = staffersByOfficialId.get(officialId) ?? [];
 
     const incomingNames = new Set(
-      senateur.collaborateurs.map((c) => `${c.prenom}|${c.nom}`),
+      senateur.collaborateurs.map((collab) => `${collab.prenom}|${collab.nom}`),
     );
 
     const existingNames = new Set(
-      currentStaffers.map((s) => `${s.firstName}|${s.lastName}`),
+      currentStaffers.map(
+        (staffer) => `${staffer.firstName}|${staffer.lastName}`,
+      ),
     );
 
     for (const collab of senateur.collaborateurs) {

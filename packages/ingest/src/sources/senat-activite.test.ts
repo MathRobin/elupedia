@@ -1,3 +1,6 @@
+// Tests de senat-activite : parsing d'une ligne COPY de tam_questions /
+// tam_reponses (colonnes tabulées, \N = NULL). Le téléchargement du dump
+// n'est pas testé.
 import { describe, it, expect } from 'vitest';
 import { parseQuestionRow, parseReponseRow } from './senat-activite.js';
 
@@ -48,23 +51,23 @@ describe('parseQuestionRow', () => {
   ].join('\t');
 
   it('parses a valid question line', () => {
-    const q = parseQuestionRow(sampleLine);
-    expect(q).not.toBeNull();
-    expect(q!.id).toBe(92);
-    expect(q!.matricule).toBe('58502E');
-    expect(q!.nature).toBe('QE');
-    expect(q!.titre).toBe('Situation du marché');
-    expect(q!.rubrique).toBe('Économie');
-    expect(q!.questionText).toBe('Ma question au gouvernement');
-    expect(q!.mindepotlib).toBe('Industrie');
-    expect(q!.sourceRef).toBe('SEQ780402185');
-    expect(q!.questionNumber).toBe(2185);
+    const question = parseQuestionRow(sampleLine);
+    expect(question).not.toBeNull();
+    expect(question!.id).toBe(92);
+    expect(question!.matricule).toBe('58502E');
+    expect(question!.nature).toBe('QE');
+    expect(question!.titre).toBe('Situation du marché');
+    expect(question!.rubrique).toBe('Économie');
+    expect(question!.questionText).toBe('Ma question au gouvernement');
+    expect(question!.mindepotlib).toBe('Industrie');
+    expect(question!.sourceRef).toBe('SEQ780402185');
+    expect(question!.questionNumber).toBe(2185);
   });
 
   it('handles \\N values as empty', () => {
     const line = sampleLine.replace('Ma question au gouvernement', '\\N');
-    const q = parseQuestionRow(line);
-    expect(q!.questionText).toBe('');
+    const question = parseQuestionRow(line);
+    expect(question!.questionText).toBe('');
   });
 
   it('returns null for invalid id', () => {
@@ -90,18 +93,18 @@ describe('parseReponseRow', () => {
   ].join('\t');
 
   it('parses a valid response line', () => {
-    const r = parseReponseRow(sampleLine);
-    expect(r).not.toBeNull();
-    expect(r!.idque).toBe(180154);
-    expect(r!.datejorep).toBe('2024-05-14 00:00:00');
-    expect(r!.txtrep).toBe('Voici la réponse du gouvernement');
-    expect(r!.minreplib).toBe('Intérieur');
+    const reponse = parseReponseRow(sampleLine);
+    expect(reponse).not.toBeNull();
+    expect(reponse!.idque).toBe(180154);
+    expect(reponse!.datejorep).toBe('2024-05-14 00:00:00');
+    expect(reponse!.txtrep).toBe('Voici la réponse du gouvernement');
+    expect(reponse!.minreplib).toBe('Intérieur');
   });
 
   it('handles \\N values as empty', () => {
     const line = sampleLine.replace('Voici la réponse du gouvernement', '\\N');
-    const r = parseReponseRow(line);
-    expect(r!.txtrep).toBe('');
+    const reponse = parseReponseRow(line);
+    expect(reponse!.txtrep).toBe('');
   });
 
   it('returns null for invalid idque', () => {

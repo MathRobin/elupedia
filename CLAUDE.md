@@ -94,6 +94,13 @@ yarn --cwd packages/ingest dedupe:committees --dry-run
 yarn --cwd packages/ingest check:coherence
 ```
 
+## Conventions de code
+
+- Chaque fichier source porte un commentaire d'en-tête (rôle, source des données, appelants, pièges). Le maintenir à jour quand le fichier change.
+- Ingest : `main-*.ts` (CLI) → `run-*.ts` (orchestration testable) → `sources/` (lecture) → `upsert/` (écriture idempotente). Détail dans `docs/ARCHITECTURE.md`, « Guide de lecture du code ».
+- Les tests racine (`tests/`) lisent le code source de certaines pages et composants du site et vérifient des chaînes exactes : lancer `yarn vitest run` à la racine après tout renommage.
+- Les anomalies connues sont listées dans `docs/KNOWN-ISSUES.md` ; retirer une entrée quand elle est corrigée.
+
 ## Documentation
 
 La documentation se trouve dans `docs/` :
@@ -101,4 +108,6 @@ La documentation se trouve dans `docs/` :
 - `ARCHITECTURE.md` — architecture technique
 - `DOMAINS.md` — domaines métier et sources de données
 - `DATA-LICENSES.md` — licences des données utilisées
+- `INGEST.md` — scripts d'ingestion et leurs options
 - `INGESTION-SCHEDULE.md` — calendrier des DAGs Dagu d'ingestion
+- `KNOWN-ISSUES.md` — anomalies et dettes connues

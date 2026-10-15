@@ -1,12 +1,32 @@
+/**
+ * Géocodage des adresses sans coordonnées via `services/geocoder.ts`
+ * (API Adresse). Appelé par `run.ts` (étape « geocode »), après les upserts
+ * d'adresses AN / Sénat / mairies.
+ *
+ * Table écrite : `addresses`, colonnes `latitude` et `longitude` uniquement
+ * (`updated_at` n'est pas touché).
+ * Sélection : lignes dont `latitude` est NULL et qui ont au moins une rue
+ * ou une ville. Une adresse déjà géocodée n'est jamais recalculée, même si
+ * ses champs texte ont changé depuis (voir `addresses.ts`) ; une adresse
+ * que le géocodeur ne résout pas reste à NULL et sera retentée au run
+ * suivant. Appels réseau séquentiels avec une pause fixe entre chaque.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { addresses } from '@elupedia/shared';
 import { isNull, and, isNotNull, or, eq } from 'drizzle-orm';
 import { geocodeAddress } from '../services/geocoder.js';
 import { logger } from '../logger.js';
 
+// Les lots ne servent qu'au log de progression : les appels restent
+// séquentiels.
 const BATCH_SIZE = 50;
+// Pause entre deux appels au géocodeur (respect du rate limit API Adresse).
 const DELAY_MS = 200;
 
+/**
+ * Géocode toutes les adresses sans coordonnées (appels réseau + écriture DB).
+ * Retourne le nombre d'adresses géocodées et celui des échecs/ignorées.
+ */
 export async function geocodeAllAddresses(db: NeonHttpDatabase) {
   const rows = await db
     .select({
@@ -54,7 +74,7 @@ export async function geocodeAllAddresses(db: NeonHttpDatabase) {
         failed++;
       }
 
-      await new Promise((r) => setTimeout(r, DELAY_MS));
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
     }
   }
 

@@ -1,4 +1,13 @@
 ---
+/**
+ * Carte d'élu intégrable en iframe (route /elus/[slug]/embed).
+ *
+ * Rendu à la demande (SSR, `prerender = false`). Page autonome (document
+ * HTML complet, sans le layout du site) : nom, photo, mandat principal, territoire et
+ * date de début, avec un lien vers la fiche complète. Utilisée par /integrer
+ * et par la réponse oEmbed (/api/oembed). Les noms `row`, `startFormatted` et
+ * `profileUrl` sont vérifiés par tests/embed-card.test.js.
+ */
 import { getDb } from '../../../lib/db.js';
 import { officials, mandates, mandateTypeLabel } from '@elupedia/shared';
 import { eq, or, desc } from 'drizzle-orm';
@@ -8,12 +17,16 @@ export const prerender = false;
 const { slug } = Astro.params;
 const db = getDb();
 
+// Même résolution que la fiche complète : le paramètre est normalement le
+// slug, mais on accepte aussi l'UUID de l'élu (anciens liens, fiches sans slug).
 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(slug!);
 const slugFilter = isUuid
   ? or(eq(officials.slug, slug!), eq(officials.id, slug!))
   : eq(officials.slug, slug!);
 
-const rows = await db
+// Une ligne par mandat de l'élu, mandat actif (end_date NULL) en premier
+// puis du plus récent au plus ancien.
+const officialMandateRows = await db
   .select({
     id: officials.id,
     slug: officials.slug,
@@ -32,7 +45,9 @@ const rows = await db
   .where(slugFilter)
   .orderBy(mandates.endDate, desc(mandates.startDate));
 
-const row = rows.find((r) => !r.endDate) ?? rows[0] ?? null;
+// Mandat mis en avant : le mandat en cours, sinon le plus récent.
+const row = officialMandateRows.find((r) => !r.endDate) ?? officialMandateRows[0] ?? null;
+// 404 nue (pas de redirection) : la carte est destinée à une iframe.
 if (!row) return new Response(null, { status: 404 });
 
 const fullName = `${row.firstName} ${row.lastName}`;

@@ -1,3 +1,8 @@
+/**
+ * Tests de upsertMayors : historisation des réélections (clôture + nouveau
+ * mandat vs mise à jour en place) sur un mock Drizzle minimal. Le
+ * checkpoint fichier est neutralisé par mock.
+ */
 import { describe, it, expect, vi } from 'vitest';
 import type { RneMaire } from '../sources/rne-maires.js';
 
@@ -11,6 +16,8 @@ vi.mock('../utils/checkpoint.js', () => ({
   clearCheckpoint: () => {},
 }));
 
+// Thenable imitant un query builder Drizzle : `await`, `.where()` et
+// `.limit()` renvoient tous les mêmes lignes.
 function chain(rows: unknown[]) {
   const promise = Promise.resolve(rows);
   return Object.assign(promise, {
@@ -33,11 +40,11 @@ function createMockDb(selectQueue: unknown[][]) {
   const getTableName = (table: unknown): string =>
     (table as Record<symbol, string>)[DRIZZLE_NAME] ?? 'unknown';
 
-  let i = 0;
+  let selectCallIndex = 0;
   const updates: { table: string; set: Record<string, unknown> }[] = [];
   const db = {
     select: () => ({
-      from: () => chain(selectQueue[i++] ?? []),
+      from: () => chain(selectQueue[selectCallIndex++] ?? []),
     }),
     insert: (table: unknown) => {
       const name = getTableName(table);

@@ -1,9 +1,30 @@
+/**
+ * Annuaire des élus : grille de cartes paginée avec recherche et filtres
+ * (types de mandat, mandat en cours, groupe politique, département, tri),
+ * panneau latéral sur desktop et tiroir sur mobile.
+ *
+ * Rendu sur `pages/elus/index.astro` avec `client:load`. La page passe la
+ * liste complète des élus (un élément par couple élu × mandat, d'où la clé
+ * `id-mandateType`) ; tout le filtrage est local.
+ *
+ * Les filtres sont synchronisés avec la query string (`q`, `type`, `actif`,
+ * `photo`, `dep`, `groupe`, `tri`, `page`) via `history.replaceState` et
+ * relus sur `popstate`. Pour éviter un mismatch d'hydratation, le premier
+ * rendu ignore l'URL (identique au SSR) et les filtres de l'URL ne sont
+ * appliqués qu'après montage.
+ *
+ * `readFiltersFromUrl` est exporté pour `OfficialsList.test.ts`.
+ * `tests/site-index.test.js` (racine) vérifie des chaînes exactes de ce
+ * fichier (`d.photoUrl`, `d.politicalGroup`, `d.id`, `loading="lazy"`…) :
+ * la variable `d` des cartes doit garder ce nom.
+ */
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { DEPARTMENT_CODES } from '../lib/department-codes.js';
 import { useFocusTrap } from '../lib/use-focus-trap.js';
 
 type Official = {
   id: string;
+  /** Slug de la fiche ; l'id sert de repli dans l'URL. */
   slug: string | null;
   firstName: string;
   lastName: string;
@@ -11,11 +32,14 @@ type Official = {
   district: string | null;
   department: string | null;
   politicalGroup: string | null;
+  /** Clé de type de mandat (`depute`, `senateur`, `conseiller_regional`…). */
   mandateType: string;
+  /** Pour accorder le libellé du mandat (Députée, Sénatrice…). */
   isFemale: boolean;
   hasActiveMandate: boolean;
 };
 
+/** État complet des filtres ; un booléen par type de mandat (coché = affiché). */
 type Filters = {
   search: string;
   depute: boolean;
@@ -28,62 +52,99 @@ type Filters = {
   membreAssembleeStatutParticulier: boolean;
   conseillerFrancaisEtranger: boolean;
   membreAfe: boolean;
+  /** Ne montrer que les mandats en cours. */
   mandatActif: boolean;
+  /** Filtre masqué dans l'UI (`hidden`) mais encore lisible via `?photo=`. */
   photoFilter: '' | 'with' | 'without';
   department: string;
   group: string;
   sort: 'name' | 'department';
 };
 
+/** Nombre de cartes par page. */
 const PAGE_SIZE = 30;
+/**
+ * Nombre de types de mandat filtrables (autant que de booléens dans
+ * `Filters`) : quand tous sont cochés, `?type=` n'est pas écrit dans l'URL.
+ */
+const MANDATE_TYPE_COUNT = 10;
 
+const DEFAULT_FILTERS: Filters = {
+  search: '',
+  depute: true,
+  senateur: true,
+  maire: true,
+  eurodepute: true,
+  conseillerDepartemental: true,
+  conseillerRegional: true,
+  conseillerArrondissement: true,
+  membreAssembleeStatutParticulier: true,
+  conseillerFrancaisEtranger: true,
+  membreAfe: true,
+  mandatActif: true,
+  photoFilter: '',
+  department: '',
+  group: '',
+  sort: 'name',
+};
+
+/** Minuscules sans diacritiques, pour une comparaison tolérante. */
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
+/**
+ * Lit les filtres et la page depuis la query string. Retourne des filtres
+ * vides au SSR (pas de `window`). Les types de mandat absents de `?type=`
+ * sont explicitement mis à `false` (sinon tous restent cochés par défaut).
+ */
 export function readFiltersFromUrl(): {
   filters: Partial<Filters>;
   page?: number;
 } {
   if (typeof window === 'undefined') return { filters: {} };
-  const p = new URLSearchParams(window.location.search);
-  const f: Partial<Filters> = {};
-  if (p.has('q')) f.search = p.get('q')!;
-  if (p.has('type')) {
-    const types = new Set(p.get('type')!.split(','));
-    f.depute = types.has('depute');
-    f.senateur = types.has('senateur');
-    f.maire = types.has('maire');
-    f.eurodepute = types.has('eurodepute');
-    f.conseillerDepartemental = types.has('conseiller_departemental');
-    f.conseillerRegional = types.has('conseiller_regional');
-    f.conseillerArrondissement = types.has('conseiller_arrondissement');
-    f.membreAssembleeStatutParticulier = types.has(
+  const params = new URLSearchParams(window.location.search);
+  const filters: Partial<Filters> = {};
+  if (params.has('q')) filters.search = params.get('q')!;
+  if (params.has('type')) {
+    const types = new Set(params.get('type')!.split(','));
+    filters.depute = types.has('depute');
+    filters.senateur = types.has('senateur');
+    filters.maire = types.has('maire');
+    filters.eurodepute = types.has('eurodepute');
+    filters.conseillerDepartemental = types.has('conseiller_departemental');
+    filters.conseillerRegional = types.has('conseiller_regional');
+    filters.conseillerArrondissement = types.has('conseiller_arrondissement');
+    filters.membreAssembleeStatutParticulier = types.has(
       'membre_assemblee_statut_particulier',
     );
-    f.conseillerFrancaisEtranger = types.has('conseiller_francais_etranger');
-    f.membreAfe = types.has('membre_afe');
+    filters.conseillerFrancaisEtranger = types.has(
+      'conseiller_francais_etranger',
+    );
+    filters.membreAfe = types.has('membre_afe');
   }
-  if (p.has('actif')) f.mandatActif = p.get('actif') !== '0';
-  if (p.has('photo')) {
-    const v = p.get('photo');
-    if (v === 'with' || v === 'without') f.photoFilter = v;
+  if (params.has('actif')) filters.mandatActif = params.get('actif') !== '0';
+  if (params.has('photo')) {
+    const photoParam = params.get('photo');
+    if (photoParam === 'with' || photoParam === 'without')
+      filters.photoFilter = photoParam;
   }
-  if (p.has('dep')) f.department = p.get('dep')!;
-  if (p.has('groupe')) f.group = p.get('groupe')!;
+  if (params.has('dep')) filters.department = params.get('dep')!;
+  if (params.has('groupe')) filters.group = params.get('groupe')!;
   if (
-    p.has('tri') &&
-    (p.get('tri') === 'name' || p.get('tri') === 'department')
+    params.has('tri') &&
+    (params.get('tri') === 'name' || params.get('tri') === 'department')
   )
-    f.sort = p.get('tri') as 'name' | 'department';
-  const pg = parseInt(p.get('page') ?? '', 10);
-  return { filters: f, page: pg > 0 ? pg : undefined };
+    filters.sort = params.get('tri') as 'name' | 'department';
+  const pageParam = parseInt(params.get('page') ?? '', 10);
+  return { filters, page: pageParam > 0 ? pageParam : undefined };
 }
 
+/** Reflète les filtres non par défaut dans l'URL, sans entrée d'historique. */
 function writeFiltersToUrl(filters: Filters, page: number) {
   if (typeof window === 'undefined') return;
-  const p = new URLSearchParams();
-  if (filters.search) p.set('q', filters.search);
+  const params = new URLSearchParams();
+  if (filters.search) params.set('q', filters.search);
   const activeTypes = [
     filters.depute && 'depute',
     filters.senateur && 'senateur',
@@ -97,26 +158,65 @@ function writeFiltersToUrl(filters: Filters, page: number) {
     filters.conseillerFrancaisEtranger && 'conseiller_francais_etranger',
     filters.membreAfe && 'membre_afe',
   ].filter(Boolean) as string[];
-  const allTypes = 10;
-  if (activeTypes.length > 0 && activeTypes.length < allTypes) {
-    p.set('type', activeTypes.join(','));
+  // Tous cochés = état par défaut, rien à écrire ; aucun coché non plus
+  // (l'URL ne sait pas représenter « aucun type »).
+  if (activeTypes.length > 0 && activeTypes.length < MANDATE_TYPE_COUNT) {
+    params.set('type', activeTypes.join(','));
   }
-  if (!filters.mandatActif) p.set('actif', '0');
-  if (filters.photoFilter) p.set('photo', filters.photoFilter);
-  if (filters.department) p.set('dep', filters.department);
-  if (filters.group) p.set('groupe', filters.group);
-  if (filters.sort !== 'name') p.set('tri', filters.sort);
-  if (page > 1) p.set('page', String(page));
-  const qs = p.toString();
-  const url = qs
-    ? `${window.location.pathname}?${qs}`
+  if (!filters.mandatActif) params.set('actif', '0');
+  if (filters.photoFilter) params.set('photo', filters.photoFilter);
+  if (filters.department) params.set('dep', filters.department);
+  if (filters.group) params.set('groupe', filters.group);
+  if (filters.sort !== 'name') params.set('tri', filters.sort);
+  if (page > 1) params.set('page', String(page));
+  const queryString = params.toString();
+  const url = queryString
+    ? `${window.location.pathname}?${queryString}`
     : window.location.pathname;
   window.history.replaceState(null, '', url);
 }
 
+/** true si au moins un type de mandat est décoché. */
+function isAnyMandateTypeUnchecked(filters: Filters): boolean {
+  return (
+    !filters.depute ||
+    !filters.senateur ||
+    !filters.maire ||
+    !filters.eurodepute ||
+    !filters.conseillerDepartemental ||
+    !filters.conseillerRegional ||
+    !filters.conseillerArrondissement ||
+    !filters.membreAssembleeStatutParticulier ||
+    !filters.conseillerFrancaisEtranger ||
+    !filters.membreAfe
+  );
+}
+
+/**
+ * Nombre de filtres actifs affiché dans « Filtres (n) » ; les types de
+ * mandat comptent pour un seul filtre.
+ */
+function countActiveFilters(filters: Filters): number {
+  return (
+    (filters.search ? 1 : 0) +
+    (isAnyMandateTypeUnchecked(filters) ? 1 : 0) +
+    (!filters.mandatActif ? 1 : 0) +
+    (filters.photoFilter ? 1 : 0) +
+    (filters.department ? 1 : 0) +
+    (filters.group ? 1 : 0)
+  );
+}
+
+/** Nombre de pages au-delà duquel la pagination est abrégée avec « … ». */
+const MAX_UNABRIDGED_PAGES = 7;
+
+/**
+ * Numéros de page à afficher : tous jusqu'à `MAX_UNABRIDGED_PAGES`, sinon
+ * première, dernière, la page courante et ses voisines, avec des « … ».
+ */
 function pageRange(current: number, total: number): (number | '…')[] {
   const pages: (number | '…')[] = [];
-  if (total <= 7) {
+  if (total <= MAX_UNABRIDGED_PAGES) {
     for (let i = 1; i <= total; i++) pages.push(i);
     return pages;
   }
@@ -137,9 +237,9 @@ function Pagination({
 }: {
   page: number;
   totalPages: number;
-  onChange: (p: number) => void;
+  onChange: (page: number) => void;
 }) {
-  const btn =
+  const buttonBase =
     'inline-flex items-center justify-center h-9 min-w-[2.25rem] rounded-lg text-sm font-medium transition-colors';
   const inactive =
     'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700';
@@ -153,7 +253,7 @@ function Pagination({
     >
       <button
         onClick={() => onChange(page - 1)}
-        className={`${btn} px-2 ${page <= 1 ? disabled : inactive}`}
+        className={`${buttonBase} px-2 ${page <= 1 ? disabled : inactive}`}
         aria-label="Page précédente"
       >
         <i className="fa-solid fa-chevron-left text-sm" aria-hidden="true" />
@@ -167,7 +267,7 @@ function Pagination({
           <button
             key={p}
             onClick={() => onChange(p)}
-            className={`${btn} ${p === page ? active : inactive}`}
+            className={`${buttonBase} ${p === page ? active : inactive}`}
             aria-current={p === page ? 'page' : undefined}
           >
             {p}
@@ -176,7 +276,7 @@ function Pagination({
       )}
       <button
         onClick={() => onChange(page + 1)}
-        className={`${btn} px-2 ${page >= totalPages ? disabled : inactive}`}
+        className={`${buttonBase} px-2 ${page >= totalPages ? disabled : inactive}`}
         aria-label="Page suivante"
       >
         <i className="fa-solid fa-chevron-right text-sm" aria-hidden="true" />
@@ -185,6 +285,7 @@ function Pagination({
   );
 }
 
+/** Panneau de filtres, partagé entre la barre latérale et le tiroir mobile. */
 function FilterPanel({
   filters,
   onChange,
@@ -194,8 +295,9 @@ function FilterPanel({
   departments,
 }: {
   filters: Filters;
-  onChange: (f: Filters) => void;
+  onChange: (filters: Filters) => void;
   onReset: () => void;
+  /** Effectif de chaque type de mandat, affiché à côté de la case. */
   counts: {
     depute: number;
     senateur: number;
@@ -211,24 +313,7 @@ function FilterPanel({
   groups: string[];
   departments: string[];
 }) {
-  const activeCount =
-    (filters.search ? 1 : 0) +
-    (!filters.depute ||
-    !filters.senateur ||
-    !filters.maire ||
-    !filters.eurodepute ||
-    !filters.conseillerDepartemental ||
-    !filters.conseillerRegional ||
-    !filters.conseillerArrondissement ||
-    !filters.membreAssembleeStatutParticulier ||
-    !filters.conseillerFrancaisEtranger ||
-    !filters.membreAfe
-      ? 1
-      : 0) +
-    (!filters.mandatActif ? 1 : 0) +
-    (filters.photoFilter ? 1 : 0) +
-    (filters.department ? 1 : 0) +
-    (filters.group ? 1 : 0);
+  const activeCount = countActiveFilters(filters);
 
   return (
     <div className="space-y-6">
@@ -436,6 +521,7 @@ function FilterPanel({
         </label>
       </fieldset>
 
+      {/* Filtre photo retiré de l'UI mais conservé (encore pilotable via ?photo=). */}
       <div className="space-y-2" hidden>
         <label className="flex items-center gap-3 cursor-pointer">
           <input
@@ -520,34 +606,17 @@ function FilterPanel({
   );
 }
 
-export default function OfficialsList({
-  officials,
-}: {
+/** Props injectées par la page Astro. */
+type Props = {
+  /** Un élément par couple élu × mandat. */
   officials: Official[];
-}) {
-  const defaultFilters: Filters = {
-    search: '',
-    depute: true,
-    senateur: true,
-    maire: true,
-    eurodepute: true,
-    conseillerDepartemental: true,
-    conseillerRegional: true,
-    conseillerArrondissement: true,
-    membreAssembleeStatutParticulier: true,
-    conseillerFrancaisEtranger: true,
-    membreAfe: true,
-    mandatActif: true,
-    photoFilter: '',
-    department: '',
-    group: '',
-    sort: 'name',
-  };
+};
 
-  // État initial identique au SSR (toujours defaultFilters) pour éviter un
+export default function OfficialsList({ officials }: Props) {
+  // État initial identique au SSR (toujours DEFAULT_FILTERS) pour éviter un
   // mismatch d'hydratation : les filtres réels de l'URL sont appliqués après
   // le montage, dans l'effet ci-dessous.
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const filterTrapRef = useFocusTrap(drawerOpen);
@@ -555,11 +624,11 @@ export default function OfficialsList({
 
   useEffect(() => {
     if (!drawerOpen) return;
-    function onKey(e: KeyboardEvent) {
+    function closeOnEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') setDrawerOpen(false);
     }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
   }, [drawerOpen]);
 
   useEffect(() => {
@@ -576,25 +645,26 @@ export default function OfficialsList({
   // Applique les filtres réels de l'URL une fois montés côté client (le
   // rendu initial, identique au SSR, ignore volontairement l'URL).
   useEffect(() => {
-    const u = readFiltersFromUrl();
-    if (Object.keys(u.filters).length === 0 && !u.page) return;
-    setFilters({ ...defaultFilters, ...u.filters });
-    setPage(u.page ?? 1);
+    const urlState = readFiltersFromUrl();
+    if (Object.keys(urlState.filters).length === 0 && !urlState.page) return;
+    setFilters({ ...DEFAULT_FILTERS, ...urlState.filters });
+    setPage(urlState.page ?? 1);
   }, []);
 
-  const updateFilters = (f: Filters) => {
-    setFilters(f);
+  const updateFilters = (nextFilters: Filters) => {
+    setFilters(nextFilters);
     setPage(1);
   };
 
+  // Navigation arrière/avant : l'URL a changé, on la relit.
   useEffect(() => {
-    const onPop = () => {
-      const u = readFiltersFromUrl();
-      setFilters({ ...defaultFilters, ...u.filters });
-      setPage(u.page ?? 1);
+    const applyUrlState = () => {
+      const urlState = readFiltersFromUrl();
+      setFilters({ ...DEFAULT_FILTERS, ...urlState.filters });
+      setPage(urlState.page ?? 1);
     };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    window.addEventListener('popstate', applyUrlState);
+    return () => window.removeEventListener('popstate', applyUrlState);
   }, []);
 
   const counts = useMemo(
@@ -641,7 +711,7 @@ export default function OfficialsList({
   );
 
   const filtered = useMemo(() => {
-    const q = normalize(filters.search);
+    const normalizedQuery = normalize(filters.search);
     let list = officials.filter((o) => {
       if (filters.mandatActif && !o.hasActiveMandate) return false;
       if (o.mandateType === 'depute' && !filters.depute) return false;
@@ -679,11 +749,12 @@ export default function OfficialsList({
       if (filters.department && o.department !== filters.department)
         return false;
       if (filters.group && o.politicalGroup !== filters.group) return false;
-      if (q) {
+      if (normalizedQuery) {
+        // La recherche porte sur le nom complet, la circonscription et le département.
         const haystack = normalize(
           `${o.firstName} ${o.lastName} ${o.district ?? ''} ${o.department ?? ''}`,
         );
-        if (!haystack.includes(q)) return false;
+        if (!haystack.includes(normalizedQuery)) return false;
       }
       return true;
     });
@@ -698,33 +769,17 @@ export default function OfficialsList({
   }, [officials, filters]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // `page` peut dépasser (URL manuelle, filtres resserrés) : on borne à l'affichage.
   const safePage = Math.min(page, totalPages);
   const paged = filtered.slice(
     (safePage - 1) * PAGE_SIZE,
     safePage * PAGE_SIZE,
   );
 
-  const activeCount =
-    (filters.search ? 1 : 0) +
-    (!filters.depute ||
-    !filters.senateur ||
-    !filters.maire ||
-    !filters.eurodepute ||
-    !filters.conseillerDepartemental ||
-    !filters.conseillerRegional ||
-    !filters.conseillerArrondissement ||
-    !filters.membreAssembleeStatutParticulier ||
-    !filters.conseillerFrancaisEtranger ||
-    !filters.membreAfe
-      ? 1
-      : 0) +
-    (!filters.mandatActif ? 1 : 0) +
-    (filters.photoFilter ? 1 : 0) +
-    (filters.department ? 1 : 0) +
-    (filters.group ? 1 : 0);
+  const activeCount = countActiveFilters(filters);
 
   const resetFilters = () => {
-    setFilters(defaultFilters);
+    setFilters(DEFAULT_FILTERS);
     setPage(1);
   };
 
@@ -811,6 +866,7 @@ export default function OfficialsList({
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {/* `d` : nom vérifié par tests/site-index.test.js, ne pas renommer. */}
               {paged.map((d) => (
                 <a
                   key={`${d.id}-${d.mandateType}`}

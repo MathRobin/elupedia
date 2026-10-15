@@ -1,8 +1,24 @@
+/**
+ * Upsert des vérifications de faits (Google Fact Check Tools API,
+ * `sources/google-factcheck.ts`) concernant un élu donné. Appelé par
+ * `run-factchecks.ts`, une fois par official recherché.
+ *
+ * Table écrite : `fact_checks`.
+ * Clé de rapprochement : (official_id, review_url) — l'URL de l'article de
+ * vérification identifie la review.
+ * Idempotent : une ligne existante n'est réécrite que si la note (`rating`)
+ * a changé ; les autres champs (claim, reviewer, date, langue) ne sont
+ * jamais mis à jour après création.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { factChecks } from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import type { FactCheckResult } from '../sources/google-factcheck.js';
 
+/**
+ * Insère les reviews inconnues et met à jour la note des existantes
+ * (écriture DB). Retourne les compteurs created / updated.
+ */
 export async function upsertFactChecks(
   db: NeonHttpDatabase,
   officialId: string,

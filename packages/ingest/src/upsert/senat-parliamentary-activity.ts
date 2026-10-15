@@ -1,3 +1,17 @@
+/**
+ * Upsert de l'activité parlementaire des sénateurs (questions, rapports...)
+ * lue par `sources/senat-activite.ts`, appelé par `run-senat.ts`
+ * (`ingest:senat`). Pendant Sénat de `upsert/parliamentary-activity.ts`.
+ *
+ * Table écrite : `parliamentary_activity` (source `senat`).
+ * Clé de rapprochement : official (via `senat_id` = matricule, trimé) +
+ * source + type + titre + date.
+ *
+ * Idempotent : une ligne existante n'est réécrite que si un champ a changé.
+ * Les sénateurs sans fiche sont comptés en `skipped`. Résilience : retry
+ * court par sénateur, puis arrêt propre (sans throw) après
+ * MAX_CONSECUTIVE_FAILURES échecs, voir le commentaire ci-dessous.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, parliamentaryActivity } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
@@ -5,8 +19,12 @@ import type { SenateurActivity } from '../sources/senat-activite.js';
 import { logger } from '../logger.js';
 import { withRetry, describeError } from '../utils/retry.js';
 
+/** Taille des INSERT groupés (limite de paramètres Postgres). */
 const INSERT_CHUNK_SIZE = 500;
+/** Un log d'avancement tous les N sénateurs. */
 const LOG_CHUNK_SIZE = 50;
+
+const SOURCE = 'senat';
 // Ce driver Neon HTTP fait un aller-retour HTTP par requête, sans connexion
 // persistante : sur ~1500 sénateurs traités séquentiellement (1 select +
 // 0..N update/insert chacun), un simple blip réseau isolé était auparavant
@@ -30,6 +48,20 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+/** Clé de rapprochement d'une activité, identique côté DB et côté source. */
+function activityKey(
+  source: string,
+  type: string,
+  title: string,
+  date: string,
+): string {
+  return `${source}|${type}|${title}|${date}`;
+}
+
+/**
+ * Compare les activités d'un sénateur à celles déjà en base : insère les
+ * nouvelles (par paquets) et met à jour celles dont un champ a changé.
+ */
 async function processSenateur(
   db: NeonHttpDatabase,
   officialId: string,
@@ -42,23 +74,28 @@ async function processSenateur(
     .where(eq(parliamentaryActivity.officialId, officialId));
 
   const existingByKey = new Map(
-    existingActivities.map((a) => [
-      `${a.source}|${a.type}|${a.title}|${a.date}`,
-      a,
+    existingActivities.map((activity) => [
+      activityKey(
+        activity.source,
+        activity.type,
+        activity.title,
+        activity.date,
+      ),
+      activity,
     ]),
   );
 
   const newRows: (typeof parliamentaryActivity.$inferInsert)[] = [];
 
   for (const item of senateur.activities) {
-    const key = `senat|${item.type}|${item.title}|${item.date}`;
+    const key = activityKey(SOURCE, item.type, item.title, item.date);
     const existing = existingByKey.get(key);
 
     if (!existing) {
       newRows.push({
         officialId,
         type: item.type,
-        source: 'senat',
+        source: SOURCE,
         title: item.title,
         date: item.date,
         status: item.status ?? null,
@@ -72,6 +109,8 @@ async function processSenateur(
         questionNumber: item.questionNumber ?? null,
       });
     } else if (
+      // Mise à jour seulement si un champ a changé, pour ne pas toucher
+      // updated_at (et ne pas émettre des milliers d'UPDATE inutiles).
       existing.status !== (item.status ?? null) ||
       existing.questionText !== (item.questionText ?? null) ||
       existing.responseText !== (item.responseText ?? null) ||
@@ -107,6 +146,11 @@ async function processSenateur(
   }
 }
 
+/**
+ * Upsert de l'activité de chaque sénateur. Écrit dans
+ * `parliamentary_activity`. Retourne créés / mis à jour / ignorés. Ne lève
+ * jamais pour un échec DB : s'arrête proprement après trop d'échecs.
+ */
 export async function upsertSenatParliamentaryActivity(
   db: NeonHttpDatabase,
   senateurActivities: SenateurActivity[],

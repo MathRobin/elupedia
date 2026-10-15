@@ -1,7 +1,21 @@
+/**
+ * Traçabilité des données : enregistre, pour chaque ligne ingérée, la source
+ * (nom, URL, base légale) et la donnée brute telle que reçue. Utilisé par la
+ * plupart des modules d'upsert (officials, senators, meps, votes...).
+ *
+ * Table écrite : `data_provenance`.
+ * Clé de rapprochement : (`source_table`, `source_record_id`) — l'id du
+ * record est un identifiant de la source (an_id, matricule Sénat, europarl
+ * id préfixé...), pas la PK interne.
+ *
+ * Idempotent : une ligne existante est mise à jour (raw_data, fetched_at),
+ * les métadonnées de source (nom, URL, base légale) ne sont jamais réécrites.
+ */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { dataProvenance } from '@elupedia/shared';
 import { eq, and, inArray } from 'drizzle-orm';
 
+/** Taille des lots (SELECT IN + INSERT groupé), limite de paramètres Postgres. */
 const PROVENANCE_CHUNK_SIZE = 500;
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -12,6 +26,11 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+/**
+ * Écrit ou rafraîchit la provenance d'un record : INSERT s'il est inconnu,
+ * sinon UPDATE de `raw_data` et `fetched_at`. Un `rawData` undefined est
+ * stocké comme NULL.
+ */
 export async function writeProvenance(
   db: NeonHttpDatabase,
   opts: {
@@ -58,11 +77,15 @@ export async function writeProvenance(
 }
 
 /**
- * Same semantics as writeProvenance, but for many rows of the same
- * sourceTable at once: one SELECT + one bulk INSERT per chunk instead of
- * a SELECT + INSERT/UPDATE per row. Existing rows are only updated when
- * rawData actually changed, since re-fetching the same source data is the
- * common case on repeat ingestion runs.
+ * Même sémantique que `writeProvenance`, mais pour de nombreux records de la
+ * même `sourceTable` : un SELECT + un INSERT groupé par lot au lieu d'un
+ * SELECT + INSERT/UPDATE par ligne. Les lignes existantes ne sont mises à
+ * jour que si `rawData` a réellement changé (comparaison JSON), car
+ * re-télécharger des données identiques est le cas courant d'une
+ * ré-ingestion.
+ *
+ * Piège : la `sourceTable` est lue sur le premier élément de chaque lot ;
+ * tous les items d'un appel doivent donc partager la même table.
  */
 export async function writeProvenanceBatch(
   db: NeonHttpDatabase,
@@ -78,7 +101,7 @@ export async function writeProvenanceBatch(
   for (const batch of chunk(items, PROVENANCE_CHUNK_SIZE)) {
     if (batch.length === 0) continue;
     const sourceTable = batch[0].sourceTable;
-    const recordIds = batch.map((i) => i.sourceRecordId);
+    const recordIds = batch.map((item) => item.sourceRecordId);
 
     const existing = await db
       .select({
@@ -95,7 +118,7 @@ export async function writeProvenanceBatch(
       );
 
     const existingByRecordId = new Map(
-      existing.map((e) => [e.sourceRecordId, e]),
+      existing.map((row) => [row.sourceRecordId, row]),
     );
     const now = new Date();
     const newRows: (typeof dataProvenance.$inferInsert)[] = [];
