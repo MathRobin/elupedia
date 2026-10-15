@@ -280,4 +280,57 @@ describe('validateScript', () => {
       validateScript(s, facts).filter((i) => i.code === 'spoken_acronym'),
     ).toEqual([]);
   });
+
+  it('only allows « la gauche » / « la droite » when the bloc votes as one', () => {
+    const grp = (name: string, spokenName: string, pos: string) => ({
+      name,
+      spokenName,
+      memberCount: 30,
+      majorityPosition: pos,
+      for: 20,
+      against: 5,
+      abstain: 0,
+      absent: 0,
+    });
+    const make = (leftPos: string, rightPos: string) => ({
+      ...facts,
+      ballots: [
+        {
+          ...facts.ballots[0],
+          blocs: {
+            left: {
+              groups: ['a', 'b'],
+              unanimousPosition: leftPos as 'pour' | null,
+            },
+            right: {
+              groups: ['c', 'd'],
+              unanimousPosition: rightPos as 'contre' | null,
+            },
+          },
+          groups: [grp('G', 'g', 'pour')],
+        },
+      ],
+    });
+    const s = script();
+    s.scenes[2].voiceover = 'La gauche a voté pour. La droite a voté contre.';
+    const unanimous = make('pour', 'contre');
+    expect(
+      validateScript(s, unanimous).filter(
+        (i) => i.code === 'bloc_not_unanimous',
+      ),
+    ).toEqual([]);
+
+    const split = make('pour', null as unknown as string);
+    const issues = validateScript(s, split).filter(
+      (i) => i.code === 'bloc_not_unanimous',
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('la droite');
+
+    // Le groupe « Droite Républicaine » n'est pas le bloc de droite.
+    s.scenes[2].voiceover = 'La Droite Républicaine a voté pour.';
+    expect(
+      validateScript(s, split).filter((i) => i.code === 'bloc_not_unanimous'),
+    ).toEqual([]);
+  });
 });

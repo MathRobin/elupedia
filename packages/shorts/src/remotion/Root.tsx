@@ -31,6 +31,7 @@ const defaultProps: ShortProps = {
         percentOfExpressed: { for: 51, against: 47, abstain: 2 },
         participationPercent: 95,
         groups: [],
+        blocs: { left: null, right: null },
         mostDividedGroup: null,
         url: 'https://www.elupedia.fr/scrutins/preview',
       },

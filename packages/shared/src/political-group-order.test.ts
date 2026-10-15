@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   POLITICAL_GROUP_ORDER,
+  politicalBloc,
   politicalGroupRank,
 } from './political-group-order.js';
 import { POLITICAL_GROUP_COLORS } from './political-group-colors.js';
@@ -24,5 +25,22 @@ describe('politicalGroupRank', () => {
       (name) => politicalGroupRank(name) === POLITICAL_GROUP_ORDER.length,
     );
     expect(missing).toEqual([]);
+  });
+});
+
+describe('politicalBloc', () => {
+  it('follows the seating order: left, then centre, then right', () => {
+    const blocs = POLITICAL_GROUP_ORDER.map((n) => politicalBloc(n));
+    expect(blocs.every((b) => b !== null)).toBe(true);
+    const an = blocs.slice(0, 11);
+    // Gauche puis centre puis droite, sans retour en arrière.
+    const rank = { left: 0, centre: 1, right: 2 } as const;
+    const ranks = an.map((b) => rank[b!]);
+    expect([...ranks].sort()).toEqual(ranks);
+  });
+
+  it('has no bloc for unattached members or unknown groups', () => {
+    expect(politicalBloc('Non inscrits (NI)')).toBeNull();
+    expect(politicalBloc('Groupe inconnu')).toBeNull();
   });
 });

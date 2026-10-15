@@ -74,6 +74,7 @@ export interface ValidationIssue {
     | 'unknown_person'
     | 'missing_result'
     | 'spoken_acronym'
+    | 'bloc_not_unanimous'
     | 'missing_source';
   message: string;
 }
@@ -254,6 +255,29 @@ export function validateScript(
             message: `Scène ${scene.id} : le sigle « ${acronym} » est prononcé, dire « ${g.spokenName} »`,
           });
         }
+      }
+    }
+  }
+
+  // « La gauche » / « La droite » : seulement si tous les groupes de ce côté
+  // ont voté pareil (faits.blocs). Pas de généralisation au cas par cas.
+  for (const scene of script.scenes) {
+    const text = normalizeWord(scene.voiceover);
+    for (const [side, word] of [
+      ['left', 'gauche'],
+      ['right', 'droite'],
+    ] as const) {
+      // « La Droite Républicaine » est un groupe, pas le bloc.
+      const re = new RegExp(`\\bla ${word}\\b(?! republicaine)`);
+      if (!re.test(text)) continue;
+      const ok = facts.ballots.every(
+        (b) => b.blocs[side]?.unanimousPosition != null,
+      );
+      if (!ok) {
+        issues.push({
+          code: 'bloc_not_unanimous',
+          message: `Scène ${scene.id} : « la ${word} » n'est employé que si tous les groupes de ce côté ont voté pareil, ce n'est pas le cas dans les données`,
+        });
       }
     }
   }
