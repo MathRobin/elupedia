@@ -9,6 +9,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
+  Accordion,
+  Alert,
   Anchor,
   Badge,
   Button,
@@ -24,6 +26,7 @@ import {
   Title,
 } from '@mantine/core';
 import { getVideo, type VideoDetail } from '../actions';
+import { videoCommands } from '../commands';
 import { STATUS_COLORS, STATUS_LABELS, formatDate } from '../status';
 
 const SCENE_KIND_LABELS: Record<string, string> = {
@@ -48,6 +51,16 @@ export default function VideoDetailPage() {
 
   const script = video.script?.script ?? null;
   const fileUrl = (name: string) => `/api/videos/${video.id}/${name}`;
+  const commandGroups = videoCommands(video.id, {
+    status: video.status,
+    hasScript: script !== null,
+    hasVoiceover: video.voiceover !== null,
+    hasVideo: video.files.video,
+    youtubeVideoId: video.youtubeVideoId,
+  });
+  const nextSteps = commandGroups.flatMap((g) =>
+    g.commands.filter((c) => c.relevant),
+  );
 
   return (
     <Stack gap="lg">
@@ -281,6 +294,82 @@ export default function VideoDetailPage() {
           </Stack>
         </Grid.Col>
       </Grid>
+
+      <Paper withBorder p="md">
+        <Title order={4} mb="xs">
+          Commandes
+        </Title>
+        <Text size="sm" c="dimmed" mb="sm">
+          À lancer depuis la racine du dépôt, sur la machine de rendu. Les
+          étapes attendues dans l&apos;état actuel du short sont marquées.
+        </Text>
+        {nextSteps.length > 0 ? (
+          <Alert color="blue" variant="light" mb="sm" title="Étape suivante">
+            <Stack gap={4}>
+              {nextSteps.map((c) => (
+                <Group key={c.command} gap="xs" wrap="nowrap">
+                  <Code style={{ whiteSpace: 'nowrap' }}>{c.command}</Code>
+                  <Text size="sm">{c.title}</Text>
+                </Group>
+              ))}
+            </Stack>
+          </Alert>
+        ) : null}
+        <Accordion
+          multiple
+          defaultValue={commandGroups
+            .filter((g) => g.commands.some((c) => c.relevant))
+            .map((g) => g.label)}
+        >
+          {commandGroups.map((g) => (
+            <Accordion.Item key={g.label} value={g.label}>
+              <Accordion.Control>{g.label}</Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="md">
+                  {g.commands.map((c) => (
+                    <Stack key={c.command} gap={4}>
+                      <Group
+                        justify="space-between"
+                        wrap="nowrap"
+                        align="flex-start"
+                      >
+                        <Group gap="xs" wrap="nowrap">
+                          <Text fw={500} size="sm">
+                            {c.title}
+                          </Text>
+                          {c.relevant ? (
+                            <Badge size="xs" color="blue">
+                              maintenant
+                            </Badge>
+                          ) : null}
+                        </Group>
+                        <CopyButton value={c.command}>
+                          {({ copied, copy }) => (
+                            <Button
+                              size="compact-xs"
+                              variant="light"
+                              onClick={copy}
+                            >
+                              {copied ? 'Copié' : 'Copier'}
+                            </Button>
+                          )}
+                        </CopyButton>
+                      </Group>
+                      <Code block>{c.command}</Code>
+                      <Text size="sm">{c.what}</Text>
+                      {c.caution ? (
+                        <Text size="xs" c="orange">
+                          {c.caution}
+                        </Text>
+                      ) : null}
+                    </Stack>
+                  ))}
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+          ))}
+        </Accordion>
+      </Paper>
     </Stack>
   );
 }

@@ -71,4 +71,27 @@ describe('Section Vidéos (shorts) de l’admin', () => {
     expect(helper).toContain("'thumbnail.png'");
     expect(helper).toContain("'description.txt'");
   });
+
+  it('le détail propose les commandes shell du short avec leur explication', () => {
+    const page = readFileSync(detail, 'utf-8');
+    expect(page).toContain('videoCommands');
+    expect(page).toContain('Commandes');
+    expect(page).toContain('CopyButton');
+    const commands = readFileSync(
+      resolve(adminDir, 'src/app/videos/commands.ts'),
+      'utf-8',
+    );
+    for (const c of [
+      'make ${id}',
+      'script --id ${id}',
+      'voiceover sheet --id ${id}',
+      'voiceover import --id ${id}',
+      'render --id ${id}',
+      'review approve ${id}',
+      'review reject ${id}',
+      'publish --id ${id}',
+    ]) {
+      expect(commands, c).toContain(c);
+    }
+  });
 });
