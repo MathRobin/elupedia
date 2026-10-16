@@ -86,7 +86,7 @@ yarn --cwd packages/shorts review   # revue humaine : liste les draft ; review a
 yarn --cwd packages/shorts youtube-auth   # une fois : autorisation OAuth YouTube, affiche YOUTUBE_REFRESH_TOKEN
 yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approved (YOUTUBE_*) ; --id, --max, --privacy
 
-# Interface d'administration (http://localhost:3001, compte dans la table users)
+# Interface d'administration (http://localhost:3001, compte dans la table users ; webpack imposé, .env de la racine chargé par scripts/next.mjs)
 yarn --cwd packages/admin dev
 
 # Réconciliation candidats–élus (rattache les official_id manquants)

@@ -3,10 +3,11 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const middlewarePath = resolve(root, 'packages/admin/src/middleware.ts');
+// Next 16 : le fichier `middleware.ts` est devenu `proxy.ts` (même rôle).
+const middlewarePath = resolve(root, 'packages/admin/src/proxy.ts');
 
-describe('Admin route protection middleware (#141)', () => {
-  it('middleware.ts exists', () => {
+describe('Admin route protection proxy (#141)', () => {
+  it('proxy.ts exists', () => {
     expect(existsSync(middlewarePath)).toBe(true);
   });
 
