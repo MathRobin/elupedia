@@ -22,3 +22,10 @@ steps:
     command: yarn --cwd packages/ingest ingest:senat
     depends:
       - install-dependencies
+  # Les nouveaux élus publiés par le Sénat sans date de naissance, ou déjà
+  # connus de l'AN (jeu AMO30), peuvent recréer une fiche en doublon :
+  # fusion idempotente en fin de run (voir docs/INGEST.md).
+  - name: merge-duplicate-officials
+    command: yarn --cwd packages/ingest merge:duplicate-officials --apply
+    depends:
+      - ingestion-senat
