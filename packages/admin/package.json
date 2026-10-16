@@ -7,6 +7,7 @@
     "dev": "node scripts/next.mjs dev --webpack --port 3001",
     "build": "node scripts/next.mjs build --webpack",
     "start": "node scripts/next.mjs start --port 3001",
+    "set-password": "node scripts/set-password.mjs",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
