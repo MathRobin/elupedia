@@ -9,7 +9,11 @@ import type { NextConfig } from 'next';
  * `--webpack` explicitement.
  */
 const nextConfig: NextConfig = {
-  transpilePackages: ['@elupedia/shared', '@elupedia/shorts'],
+  transpilePackages: [
+    '@elupedia/shared',
+    '@elupedia/shorts',
+    '@elupedia/ingest',
+  ],
   experimental: {
     extensionAlias: {
       '.js': ['.ts', '.tsx', '.js'],

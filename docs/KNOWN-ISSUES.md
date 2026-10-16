@@ -15,6 +15,9 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 
 - `packages/admin` doit tourner avec webpack (`--webpack` dans les scripts `dev`/`build`, via `scripts/next.mjs` qui charge aussi le `.env` de la racine) : Turbopack, bundler par défaut de Next 16, ne réécrit pas les imports `./x.js` des paquets partagés vers `.ts` (« Can't resolve './db.js' »). Passer sur Turbopack supposerait de changer la convention d'imports de `@elupedia/shared` et `@elupedia/shorts`, ou une configuration Turbopack équivalente à `extensionAlias` quand elle existera.
 - Le fichier `middleware.ts` est devenu `proxy.ts` (convention Next 16, codemod officiel) ; même logique de protection des routes.
+- Les corrections manuelles de fiches (`/elus/[id]`) ne sont pas protégées contre l'ingestion : une passe AN/Sénat/décorations peut réécrire `birth_date`, `photo_url`, `death_date`, et le rapprochement de mandats rouvrir un mandat clos à la main. Seule la trace `data_provenance` (« Admin Elupedia ») permet de le voir. Un verrou par champ (« valeur fixée à la main ») reste à concevoir.
+- Le tableau de bord des ingestions (`/ingestions`) n'interroge pas Dagu (API authentifiée, DAG du dépôt non déployés dans `/var/lib/dagu/dags` sur la machine locale) : il lit les YAML et les rapports JSON locaux.
+- Les jobs lancés depuis l'admin (`shorts-jobs.ts`) tournent sur la machine qui héberge l'admin et supposent le dépôt complet, Yarn et les clés dans le `.env` de la racine ; un redémarrage de l'admin ne tue pas le job mais perd son suivi si `current.json` n'a pas été finalisé.
 
 ## Site : listes d'élus embarquées
 

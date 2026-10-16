@@ -6,7 +6,7 @@
  * off, texte d'accompagnement tel qu'il sera publié, notes et score.
  * Lecture seule : les décisions passent par `review approve|reject`.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Accordion,
@@ -26,6 +26,7 @@ import {
   Title,
 } from '@mantine/core';
 import { getVideo, type VideoDetail } from '../actions';
+import { ActionsPanel } from './ActionsPanel';
 import { videoCommands } from '../commands';
 import { STATUS_COLORS, STATUS_LABELS, formatDate } from '../status';
 
@@ -42,9 +43,13 @@ export default function VideoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [video, setVideo] = useState<VideoDetail | null | undefined>(undefined);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     getVideo(id).then(setVideo);
   }, [id]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   if (video === undefined) return <Loader />;
   if (video === null) return <Text c="red">Vidéo introuvable : {id}</Text>;
@@ -86,6 +91,15 @@ export default function VideoDetailPage() {
           ) : null}
         </Group>
       </Group>
+
+      <ActionsPanel
+        id={video.id}
+        status={video.status}
+        hasScript={script !== null}
+        hasVoiceover={video.voiceover !== null}
+        hasVideo={video.files.video}
+        onChanged={reload}
+      />
 
       <Grid>
         <Grid.Col span={{ base: 12, md: 7 }}>
