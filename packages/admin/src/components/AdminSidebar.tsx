@@ -6,11 +6,25 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   {
     label: 'Élus',
-    children: [{ label: 'Doublons', href: '/elus/doublons' }],
+    children: [
+      { label: 'Rechercher', href: '/elus/recherche' },
+      { label: 'Doublons', href: '/elus/doublons' },
+      { label: 'Rattachements', href: '/rattachements' },
+    ],
   },
   {
     label: 'Vidéos',
-    children: [{ label: 'Shorts', href: '/videos' }],
+    children: [
+      { label: 'Shorts', href: '/videos' },
+      { label: 'Dérive des faits', href: '/videos/derive' },
+    ],
+  },
+  {
+    label: 'Données',
+    children: [
+      { label: 'Ingestions', href: '/ingestions' },
+      { label: 'Cohérence', href: '/coherence' },
+    ],
   },
   {
     label: 'Modération',
@@ -36,7 +50,12 @@ export function AdminSidebar() {
               href={item.href}
               component="a"
               active={
-                pathname === item.href || pathname.startsWith(`${item.href}/`)
+                pathname === item.href ||
+                (pathname.startsWith(`${item.href}/`) &&
+                  !section.children.some(
+                    (other) =>
+                      other !== item && pathname.startsWith(other.href),
+                  ))
               }
             />
           ))}

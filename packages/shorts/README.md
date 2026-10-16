@@ -56,7 +56,10 @@ yarn --cwd packages/shorts publish --dry-run      # puis sans --dry-run
 `yarn --cwd packages/admin dev` puis http://localhost:3001/videos : liste
 filtrable par statut, détail avec script, texte d'accompagnement, scrutin lié
 et sources, miniature et vidéo (lues depuis le dossier de sortie, l'admin doit
-tourner sur la machine de rendu). Lecture seule.
+tourner sur la machine de rendu). Depuis la page d'un short : approuver, rejeter,
+publier (aperçu avec blocages et dérive des faits), lancer `make`, `script`,
+`voiceover` ou `render` en tâche de fond avec le journal en direct. La page
+« Dérive des faits » liste les shorts dont les chiffres ne collent plus à la base.
 
 ## Enregistrer la voix
 
