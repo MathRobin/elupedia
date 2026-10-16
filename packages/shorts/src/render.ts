@@ -14,6 +14,7 @@ import {
 import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
 import type { ShortFacts } from './script-facts.js';
+import { buildDescription } from './description.js';
 import type { StoredVoiceover } from './voiceover.js';
 import type { ShortProps } from './remotion/props.js';
 import { FPS } from './remotion/props.js';
@@ -47,6 +48,7 @@ export const PUBLIC_DIR = path.join(here, '..', 'public');
 export const COMPOSITION_ID = 'Short';
 export const VIDEO_FILE = 'short.mp4';
 export const THUMBNAIL_FILE = 'thumbnail.png';
+export const DESCRIPTION_FILE = 'description.txt';
 
 export interface RenderOptions {
   shortId?: string;
@@ -307,8 +309,15 @@ export async function renderShorts(
           updatedAt: new Date(),
         })
         .where(eq(videoShorts.id, target.id));
+      // Texte d'accompagnement, relu avec la vidéo puis repris tel quel à la
+      // publication (liens Elupedia + sources officielles).
+      const descriptionFile = path.join(shortDir, DESCRIPTION_FILE);
+      await writeFile(
+        descriptionFile,
+        buildDescription(stored.facts, stored.script),
+      );
       logger.info(
-        `short ${target.id} : ${result.durationSec} s rendues dans ${path.join(options.outputDir, result.videoFile)}`,
+        `short ${target.id} : ${result.durationSec} s rendues dans ${path.join(options.outputDir, result.videoFile)}, description dans ${descriptionFile}`,
       );
       rendered.push(target.id);
     } catch (error) {

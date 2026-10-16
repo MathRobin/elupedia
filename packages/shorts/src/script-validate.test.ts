@@ -181,11 +181,20 @@ describe('validateScript', () => {
     );
   });
 
-  it('requires a source scene and an Elupedia mention in the description', () => {
-    const s = script({ description: 'Sans source.' });
-    expect(validateScript(s, facts).map((i) => i.code)).toContain(
+  it('requires a source scene, and checks the description like the voice', () => {
+    const noSource = script();
+    noSource.scenes = noSource.scenes.filter((sc) => sc.visual !== 'source');
+    expect(validateScript(noSource, facts).map((i) => i.code)).toContain(
       'missing_source',
     );
+    const bad = script({ description: 'Un vote historique : 999 voix pour.' });
+    const codes = validateScript(bad, facts).map((i) => i.code);
+    expect(codes).toContain('banned_word');
+    expect(codes).toContain('unknown_number');
+    const plain = script({
+      description: 'Scrutin du 8 octobre 2026 sur le budget.',
+    });
+    expect(validateScript(plain, facts)).toEqual([]);
   });
 
   it('rejects duplicate scene ids and overlong titles', () => {

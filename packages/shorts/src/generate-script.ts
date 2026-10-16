@@ -46,7 +46,7 @@ Les genres « division » et le visuel « group_focus » ne sont plus utilisés.
 lowerThird : renseigné uniquement quand une scène met un groupe ou une personne à l'image (name = libellé exact fourni, sinon rejeté). Pour l'auteur du texte (proposers), sur la scène qui le cite : name = son nom exact, role = « Auteur·rice du texte · » suivi de son groupe ; sa photo s'affiche alors automatiquement. Pour un groupe : role = « Groupe à l'Assemblée nationale » ou « Groupe au Sénat ». Sinon null.
 onScreenText : très court (un chiffre, un mot-clé), vide si rien d'utile.
 title : titre YouTube factuel, 70 caractères maximum, pas de point d'exclamation.
-description : 2 à 3 phrases factuelles, puis « Source : Elupedia — » suivi de l'URL fournie, puis la mention « Données : Assemblée nationale / Sénat, licence ouverte ».
+description : 2 à 3 phrases factuelles résumant le scrutin (ce qui était voté, où, quand, le résultat), mêmes règles que la voix (faits fournis seulement, aucun jugement, noms de groupes prononçables). Rien d'autre : les chiffres détaillés, le lien Elupedia, les sources officielles et les mentions de licence sont ajoutés automatiquement à la suite.
 hashtags : 3 à 6, sans espace, dont #Elupedia.`;
 
 export interface GenerationResult {

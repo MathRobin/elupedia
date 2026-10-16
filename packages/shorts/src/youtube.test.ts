@@ -79,12 +79,22 @@ describe('sanitizeMetadata / buildMetadata', () => {
     expect(m.tags).toEqual(['Elupedia', 'Sénat']);
   });
 
-  it('appends hashtags to the description', () => {
+  it('builds the description from the facts and the script', () => {
     const m = buildMetadata(
-      { title: 't', scenes: [], description: 'desc', hashtags: ['#A', '#B'] },
+      {
+        script: {
+          title: 't',
+          scenes: [],
+          description: 'desc',
+          hashtags: ['#A', '#B'],
+        },
+        facts: { shortId: 's', ballots: [] },
+      },
       'unlisted',
     );
-    expect(m.description).toBe('desc\n\n#A #B');
+    expect(m.description.startsWith('desc')).toBe(true);
+    expect(m.description.trimEnd().endsWith('#A #B')).toBe(true);
+    expect(m.description).toContain('Sources et vérification');
     expect(m.privacyStatus).toBe('unlisted');
   });
 });

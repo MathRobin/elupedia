@@ -102,7 +102,7 @@ Dans le `.env` à la racine (voir `.env.example`) :
 
 Dans `out/<id>/` (ignoré par git) : `lecture.txt`, `recordings/` (tes prises),
 `scene-*.wav` (prises traitées), `photos/` (portrait de l'auteur du texte),
-`short.mp4` et `thumbnail.png`. Un dossier `broll/` avec des images
+`short.mp4`, `thumbnail.png` et `description.txt` (texte d'accompagnement : résumé, chiffres, lien Elupedia et sources officielles, repris tel quel à la publication). Un dossier `broll/` avec des images
 (`.jpg`, `.png`, `.webp`) sert de fond aux scènes de titre.
 
 Le premier rendu télécharge un Chrome headless (une centaine de Mo).

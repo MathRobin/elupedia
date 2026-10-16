@@ -94,6 +94,63 @@ export interface BallotFacts {
     minorityShare: number;
   } | null;
   url: string;
+  /** Pages officielles d'où viennent les chiffres (voir `officialSources`). */
+  sources: SourceLink[];
+}
+
+export interface SourceLink {
+  label: string;
+  url: string;
+}
+
+/**
+ * Liens vers les sources officielles d'un scrutin, pour la description de la
+ * vidéo : la page du scrutin sur le site de l'assemblée, le dossier
+ * législatif quand il est connu, et le jeu de données ouvertes d'où la base
+ * est alimentée. Construits à partir des identifiants, sans appel réseau ;
+ * les motifs d'URL ont été vérifiés le 16/10/2026.
+ */
+export function officialSources(input: {
+  anId: string | null;
+  dossierRef?: string | null;
+}): SourceLink[] {
+  const an = input.anId?.match(/^scrutin-VTANR5L(\d+)V(\d+)$/);
+  if (an) {
+    const [, legislature, numero] = an;
+    const links: SourceLink[] = [
+      {
+        label: `Scrutin n° ${numero}, Assemblée nationale`,
+        url: `https://www.assemblee-nationale.fr/dyn/${legislature}/scrutins/${numero}`,
+      },
+    ];
+    if (input.dossierRef) {
+      links.push({
+        label: 'Dossier législatif, Assemblée nationale',
+        url: `https://www.assemblee-nationale.fr/dyn/${legislature}/dossiers/${input.dossierRef}`,
+      });
+    }
+    links.push({
+      label:
+        'Données ouvertes des scrutins, Assemblée nationale (licence ouverte)',
+      url: 'https://data.assemblee-nationale.fr/travaux-parlementaires/votes',
+    });
+    return links;
+  }
+  const senat = input.anId?.match(/^senat-scrutin-(\d{4})-(\d+)$/);
+  if (senat) {
+    const [, session, numero] = senat;
+    return [
+      {
+        label: `Scrutin n° ${numero}, Sénat (session ${session})`,
+        url: `https://www.senat.fr/scrutin-public/${session}/scr${session}-${numero}.html`,
+      },
+      {
+        label: `Liste des scrutins publics du Sénat, session ${session}`,
+        url: `https://www.senat.fr/scrutin-public/scr${session}.html`,
+      },
+    ];
+  }
+  return [];
 }
 
 export interface ShortFacts {
@@ -163,6 +220,7 @@ export function buildBallotFacts(input: {
       }[]
     | null;
   requestedBy?: string | null;
+  dossierRef?: string | null;
   counts: { for: number; against: number; abstain: number; absent: number };
   groups: {
     groupName: string;
@@ -259,6 +317,7 @@ export function buildBallotFacts(input: {
     },
     mostDividedGroup,
     url: `${SITE_URL}/scrutins/${input.id}`,
+    sources: officialSources(input),
   };
 }
 
@@ -296,6 +355,7 @@ export async function loadShortFacts(
       result: ballots.result,
       proposers: ballots.proposers,
       requestedBy: ballots.requestedBy,
+      dossierRef: ballots.dossierRef,
     })
     .from(ballots)
     .where(inArray(ballots.id, ids));
