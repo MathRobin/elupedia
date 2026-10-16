@@ -88,6 +88,7 @@ yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approve
 
 # Interface d'administration (http://localhost:3001, compte dans la table users ; webpack imposé, .env de la racine chargé par scripts/next.mjs)
 yarn --cwd packages/admin dev
+yarn --cwd packages/admin set-password <email> [--create --role admin]   # (re)définit le mot de passe d'un compte, saisi au clavier sans écho
 
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
