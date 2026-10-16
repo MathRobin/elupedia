@@ -12,7 +12,7 @@
  */
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import yaml from 'js-yaml';
+import { load as loadYaml } from 'js-yaml';
 import { auth } from '@/lib/auth';
 import { repoRoot } from '@/lib/shorts-jobs';
 
@@ -107,7 +107,7 @@ export async function loadIngestionsDashboard(): Promise<IngestionsDashboard> {
   for (const file of (await readdir(dagsDir))
     .filter((f) => f.endsWith('.yaml'))
     .sort()) {
-    const doc = yaml.load(await readFile(path.join(dagsDir, file), 'utf8')) as {
+    const doc = loadYaml(await readFile(path.join(dagsDir, file), 'utf8')) as {
       name?: string;
       schedule?: string;
       steps?: { name?: string; command?: string }[];
