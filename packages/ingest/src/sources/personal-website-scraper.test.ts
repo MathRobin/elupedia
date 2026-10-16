@@ -27,6 +27,24 @@ describe('personal-website-scraper (#132)', () => {
       ]);
     });
 
+    it('ignores youtube links to a specific video (embed, watch, shorts) but keeps channel links', () => {
+      const html = `
+        <iframe src="x"></iframe>
+        <a href="https://www.youtube.com/embed/dQw4w9WgXcQ">Vidéo embarquée</a>
+        <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Vidéo</a>
+        <a href="https://youtube.com/shorts/abc123">Short</a>
+        <a href="https://www.youtube.com/@depute123">Chaîne</a>
+        <a href="https://www.youtube.com/channel/UCabc">Chaîne 2</a>
+        <a href="https://www.youtube.com/c/depute123/videos">Onglet vidéos</a>
+      `;
+      const links = extractSocialLinks(html, 'https://depute.fr');
+      expect(links.map((l) => l.url)).toEqual([
+        'https://www.youtube.com/@depute123',
+        'https://www.youtube.com/channel/UCabc',
+        'https://www.youtube.com/c/depute123/videos',
+      ]);
+    });
+
     it('returns empty array when no social links found', () => {
       const html =
         '<a href="/contact">Contact</a><a href="https://twitter.com/x">X</a>';

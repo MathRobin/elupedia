@@ -42,6 +42,20 @@ function domainToPlatform(hostname: string): SocialPlatform | null {
 }
 
 /**
+ * Lien YouTube vers une vidéo précise (lecteur embarqué, page de lecture,
+ * short) plutôt que vers une chaîne. On cherche la chaîne de l'élu : ces
+ * liens sont écartés, ils ne mèneraient qu'à une vidéo isolée.
+ */
+const YOUTUBE_VIDEO_PATH = /^\/(embed|watch|shorts)(\/|$)/i;
+
+function isYoutubeVideoLink(url: URL): boolean {
+  return (
+    url.hostname.endsWith('youtube.com') &&
+    YOUTUBE_VIDEO_PATH.test(url.pathname)
+  );
+}
+
+/**
  * Lit le robots.txt du site et renvoie false uniquement si la racine est
  * interdite pour tous les robots ou pour ElupediaBot. Toute erreur (pas de
  * fichier, timeout, URL invalide) vaut autorisation.
@@ -83,7 +97,8 @@ export async function checkRobotsTxt(
 /**
  * Extrait les liens vers les plateformes supportées d'un document HTML.
  * `baseUrl` sert à résoudre les URL relatives ; les liens non http(s) ou
- * invalides sont ignorés.
+ * invalides sont ignorés, ainsi que les liens YouTube vers une vidéo
+ * (embed, watch, shorts) qui ne désignent pas une chaîne.
  */
 export function extractSocialLinks(
   html: string,
@@ -100,6 +115,7 @@ export function extractSocialLinks(
         continue;
       const platform = domainToPlatform(resolved.hostname);
       if (!platform) continue;
+      if (platform === 'youtube' && isYoutubeVideoLink(resolved)) continue;
       const canonical = resolved.href;
       if (seen.has(canonical)) continue;
       seen.add(canonical);
