@@ -9,6 +9,10 @@ const navItems = [
     children: [{ label: 'Doublons', href: '/elus/doublons' }],
   },
   {
+    label: 'Vidéos',
+    children: [{ label: 'Shorts', href: '/videos' }],
+  },
+  {
     label: 'Modération',
     children: [{ label: 'Queue de modération', href: '/moderation' }],
   },
@@ -31,7 +35,9 @@ export function AdminSidebar() {
               label={item.label}
               href={item.href}
               component="a"
-              active={pathname === item.href}
+              active={
+                pathname === item.href || pathname.startsWith(`${item.href}/`)
+              }
             />
           ))}
         </NavLink>

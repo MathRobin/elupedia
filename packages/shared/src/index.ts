@@ -22,3 +22,7 @@ export {
   politicalGroupRank,
 } from './political-group-order.js';
 export { politicalBloc, type PoliticalBloc } from './political-group-order.js';
+export {
+  officialBallotSources,
+  type BallotSourceLink,
+} from './ballot-sources.js';

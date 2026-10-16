@@ -51,6 +51,13 @@ yarn --cwd packages/shorts review approve <id>    # ou : reject <id> --note "mot
 yarn --cwd packages/shorts publish --dry-run      # puis sans --dry-run
 ```
 
+## Voir les shorts dans l'admin
+
+`yarn --cwd packages/admin dev` puis http://localhost:3001/videos : liste
+filtrable par statut, détail avec script, texte d'accompagnement, scrutin lié
+et sources, miniature et vidéo (lues depuis le dossier de sortie, l'admin doit
+tourner sur la machine de rendu). Lecture seule.
+
 ## Enregistrer la voix
 
 ```bash

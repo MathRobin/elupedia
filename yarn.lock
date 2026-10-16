@@ -1151,6 +1151,7 @@ __metadata:
   dependencies:
     "@auth/drizzle-adapter": "npm:^1.11.3"
     "@elupedia/shared": "npm:*"
+    "@elupedia/shorts": "npm:*"
     "@mantine/core": "npm:9.7.2"
     "@mantine/hooks": "npm:9.7.2"
     "@neondatabase/serverless": "npm:^1.2.0"
@@ -1211,7 +1212,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@elupedia/shorts@workspace:packages/shorts":
+"@elupedia/shorts@npm:*, @elupedia/shorts@workspace:packages/shorts":
   version: 0.0.0-use.local
   resolution: "@elupedia/shorts@workspace:packages/shorts"
   dependencies:

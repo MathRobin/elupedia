@@ -8,7 +8,11 @@ import {
   videoShorts,
   videoShortBallots,
 } from '@elupedia/shared';
-import { politicalBloc } from '@elupedia/shared';
+import {
+  officialBallotSources,
+  politicalBloc,
+  type BallotSourceLink,
+} from '@elupedia/shared';
 import { CHAMBER_SIZE_FALLBACK, chamberOf } from './select-candidates.js';
 
 /**
@@ -98,60 +102,10 @@ export interface BallotFacts {
   sources: SourceLink[];
 }
 
-export interface SourceLink {
-  label: string;
-  url: string;
-}
+export type SourceLink = BallotSourceLink;
 
-/**
- * Liens vers les sources officielles d'un scrutin, pour la description de la
- * vidéo : la page du scrutin sur le site de l'assemblée, le dossier
- * législatif quand il est connu, et le jeu de données ouvertes d'où la base
- * est alimentée. Construits à partir des identifiants, sans appel réseau ;
- * les motifs d'URL ont été vérifiés le 16/10/2026.
- */
-export function officialSources(input: {
-  anId: string | null;
-  dossierRef?: string | null;
-}): SourceLink[] {
-  const an = input.anId?.match(/^scrutin-VTANR5L(\d+)V(\d+)$/);
-  if (an) {
-    const [, legislature, numero] = an;
-    const links: SourceLink[] = [
-      {
-        label: `Scrutin n° ${numero}, Assemblée nationale`,
-        url: `https://www.assemblee-nationale.fr/dyn/${legislature}/scrutins/${numero}`,
-      },
-    ];
-    if (input.dossierRef) {
-      links.push({
-        label: 'Dossier législatif, Assemblée nationale',
-        url: `https://www.assemblee-nationale.fr/dyn/${legislature}/dossiers/${input.dossierRef}`,
-      });
-    }
-    links.push({
-      label:
-        'Données ouvertes des scrutins, Assemblée nationale (licence ouverte)',
-      url: 'https://data.assemblee-nationale.fr/travaux-parlementaires/votes',
-    });
-    return links;
-  }
-  const senat = input.anId?.match(/^senat-scrutin-(\d{4})-(\d+)$/);
-  if (senat) {
-    const [, session, numero] = senat;
-    return [
-      {
-        label: `Scrutin n° ${numero}, Sénat (session ${session})`,
-        url: `https://www.senat.fr/scrutin-public/${session}/scr${session}-${numero}.html`,
-      },
-      {
-        label: `Liste des scrutins publics du Sénat, session ${session}`,
-        url: `https://www.senat.fr/scrutin-public/scr${session}.html`,
-      },
-    ];
-  }
-  return [];
-}
+/** Pages officielles d'un scrutin ; implémentation partagée dans `@elupedia/shared`. */
+export const officialSources = officialBallotSources;
 
 export interface ShortFacts {
   shortId: string;

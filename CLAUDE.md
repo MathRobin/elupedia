@@ -15,6 +15,7 @@ Encyclopédie ouverte des élus français.
 ```
 elupedia/
 ├── packages/
+│   ├── admin/     # Interface d'administration (Next.js + Auth.js + Mantine, port 3001) : modération des liens, doublons d'élus, comptes, vidéos
 │   ├── shared/    # Types, helpers et schéma DB partagés
 │   ├── ingest/    # Scripts de collecte de données (APIs ouvertes)
 │   ├── shorts/    # Pipeline de shorts vidéo (sélection, script LLM, voix off enregistrée, rendu Remotion, puis publication)
@@ -84,6 +85,9 @@ yarn --cwd packages/shorts preview   # Remotion Studio pour retoucher la composi
 yarn --cwd packages/shorts review   # revue humaine : liste les draft ; review approve <id> / review reject <id> --note "…"
 yarn --cwd packages/shorts youtube-auth   # une fois : autorisation OAuth YouTube, affiche YOUTUBE_REFRESH_TOKEN
 yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approved (YOUTUBE_*) ; --id, --max, --privacy
+
+# Interface d'administration (http://localhost:3001, compte dans la table users)
+yarn --cwd packages/admin dev
 
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
