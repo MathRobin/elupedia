@@ -8,7 +8,11 @@ import {
   videoShorts,
   videoShortBallots,
 } from '@elupedia/shared';
-import { politicalBloc } from '@elupedia/shared';
+import {
+  officialBallotSources,
+  politicalBloc,
+  type BallotSourceLink,
+} from '@elupedia/shared';
 import { CHAMBER_SIZE_FALLBACK, chamberOf } from './select-candidates.js';
 
 /**
@@ -94,7 +98,14 @@ export interface BallotFacts {
     minorityShare: number;
   } | null;
   url: string;
+  /** Pages officielles d'où viennent les chiffres (voir `officialSources`). */
+  sources: SourceLink[];
 }
+
+export type SourceLink = BallotSourceLink;
+
+/** Pages officielles d'un scrutin ; implémentation partagée dans `@elupedia/shared`. */
+export const officialSources = officialBallotSources;
 
 export interface ShortFacts {
   shortId: string;
@@ -163,6 +174,7 @@ export function buildBallotFacts(input: {
       }[]
     | null;
   requestedBy?: string | null;
+  dossierRef?: string | null;
   counts: { for: number; against: number; abstain: number; absent: number };
   groups: {
     groupName: string;
@@ -259,6 +271,7 @@ export function buildBallotFacts(input: {
     },
     mostDividedGroup,
     url: `${SITE_URL}/scrutins/${input.id}`,
+    sources: officialSources(input),
   };
 }
 
@@ -296,6 +309,7 @@ export async function loadShortFacts(
       result: ballots.result,
       proposers: ballots.proposers,
       requestedBy: ballots.requestedBy,
+      dossierRef: ballots.dossierRef,
     })
     .from(ballots)
     .where(inArray(ballots.id, ids));

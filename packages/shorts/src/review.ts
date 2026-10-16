@@ -100,6 +100,7 @@ export function formatReviewRow(row: ReviewRow, outputDir: string): string {
     ...row.ballotTitles.map((t) => `  scrutin   : ${t}`),
     `  scènes    : ${row.sceneCount}${row.voiceoverSec !== null ? ` · voix off ${row.voiceoverSec} s` : ' · pas de voix off'}`,
     `  vidéo     : ${row.videoKey ? `${outputDir}/${row.videoKey}` : '(pas rendue)'}`,
+    `  texte     : ${row.videoKey ? `${outputDir}/${row.id}/description.txt` : '(écrit au rendu)'}`,
   ];
   if (row.youtubeVideoId) {
     lines.push(

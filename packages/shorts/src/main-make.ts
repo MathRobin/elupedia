@@ -15,6 +15,8 @@ import {
   planMake,
 } from './make.js';
 import { renderShorts } from './render.js';
+import { factsDrift, formatDrift } from './facts-drift.js';
+import { loadShortFacts } from './script-facts.js';
 import {
   DEFAULT_OUTPUT_DIR,
   importRecordings,
@@ -144,6 +146,13 @@ async function main(): Promise<number> {
     const total = voiceover.scenes.reduce((n, s) => n + s.durationSec, 0);
     logger.info(
       `voix importée : ${voiceover.scenes.length} prise(s), ${total.toFixed(1)} s`,
+    );
+  }
+
+  const drift = factsDrift(row.script!.facts, await loadShortFacts(db, id));
+  if (drift.length > 0) {
+    logger.warn(
+      `les faits ont changé depuis le script (${formatDrift(drift)}) : la publication sera refusée tant que le script n'est pas regénéré (make ${id} --rescript)`,
     );
   }
 

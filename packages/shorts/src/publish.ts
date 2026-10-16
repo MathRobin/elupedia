@@ -5,6 +5,9 @@ import { asc, eq } from 'drizzle-orm';
 import { videoShorts } from '@elupedia/shared';
 import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
+import { buildDescription } from './description.js';
+import { factsDrift, formatDrift } from './facts-drift.js';
+import { loadShortFacts } from './script-facts.js';
 import type {
   PrivacyStatus,
   VideoMetadata,
@@ -27,14 +30,13 @@ export interface PublishOptions {
 }
 
 export function buildMetadata(
-  script: StoredScript['script'],
+  stored: Pick<StoredScript, 'script' | 'facts'>,
   privacyStatus: PrivacyStatus,
 ): VideoMetadata {
-  const hashtags = script.hashtags.filter((h) => h.startsWith('#'));
   return {
-    title: script.title,
-    description: [script.description, '', hashtags.join(' ')].join('\n').trim(),
-    tags: script.hashtags,
+    title: stored.script.title,
+    description: buildDescription(stored.facts, stored.script),
+    tags: stored.script.hashtags,
     privacyStatus,
   };
 }
@@ -101,7 +103,17 @@ export async function publishShorts(
       failed.push(target.id);
       continue;
     }
-    const meta = buildMetadata(stored.script, options.privacyStatus);
+    // Les chiffres de la vidéo doivent encore correspondre à la source
+    // officielle au moment de publier (mises au point de l'AN après coup).
+    const drift = factsDrift(stored.facts, await loadShortFacts(db, target.id));
+    if (drift.length > 0) {
+      logger.error(
+        `short ${target.id} : les faits ont changé depuis le script, publication refusée — ${formatDrift(drift)}. Regénérer (make ${target.id} --rescript) ou réviser à la main.`,
+      );
+      failed.push(target.id);
+      continue;
+    }
+    const meta = buildMetadata(stored, options.privacyStatus);
     if (options.dryRun) {
       logger.info(
         `[dry-run] short ${target.id} : « ${meta.title} » (${meta.privacyStatus}) depuis ${videoPath}`,

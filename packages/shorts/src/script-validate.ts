@@ -282,13 +282,29 @@ export function validateScript(
     }
   }
 
+  // La description est publiée telle quelle : mêmes règles que la voix.
+  for (const n of extractNumbers(script.description)) {
+    if (!allowed.has(n)) {
+      issues.push({
+        code: 'unknown_number',
+        message: `Description : le nombre ${n} n'existe pas dans les données`,
+      });
+    }
+  }
+  for (const raw of script.description.split(/[^\p{L}\p{N}'’-]+/u)) {
+    if (banned.has(normalizeWord(raw))) {
+      issues.push({
+        code: 'banned_word',
+        message: `Description : mot évaluatif proscrit « ${raw} »`,
+      });
+    }
+  }
+
   const hasSourceScene = script.scenes.some((s) => s.visual === 'source');
-  const mentionsSource = /elupedia/i.test(script.description);
-  if (!hasSourceScene || !mentionsSource) {
+  if (!hasSourceScene) {
     issues.push({
       code: 'missing_source',
-      message:
-        'Le script doit se terminer par une scène « source » et la description doit citer Elupedia',
+      message: 'Le script doit se terminer par une scène « source »',
     });
   }
 
