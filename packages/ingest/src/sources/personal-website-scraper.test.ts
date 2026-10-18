@@ -45,6 +45,26 @@ describe('personal-website-scraper (#132)', () => {
       ]);
     });
 
+    it('keeps only instagram and tiktok profile links, in canonical form', () => {
+      const html = `
+        <a href="https://www.instagram.com/p/C_qSg1csYyx/">Post</a>
+        <a href="https://www.instagram.com/reel/DBeInAvN5IL/">Reel</a>
+        <a href="https://www.instagram.com/explore/tags/martres/">Hashtag</a>
+        <a href="https://www.instagram.com/stories/depute123/">Stories</a>
+        <a href="https://instagram.com/depute.123">Profil sans www</a>
+        <a href="https://www.instagram.com/depute.123/profilecard/">Carte de profil</a>
+        <a href="https://www.tiktok.com/@depute123/video/7306194920213350401">Vidéo</a>
+        <a href="https://www.tiktok.com/music/son-original-7592296610885798678?refer=embed">Musique</a>
+        <a href="https://www.tiktok.com/tag/depute">Tag</a>
+        <a href="https://www.tiktok.com/@depute123?lang=fr">Profil</a>
+      `;
+      const links = extractSocialLinks(html, 'https://depute.fr');
+      expect(links).toEqual([
+        { platform: 'instagram', url: 'https://www.instagram.com/depute.123' },
+        { platform: 'tiktok', url: 'https://www.tiktok.com/@depute123' },
+      ]);
+    });
+
     it('returns empty array when no social links found', () => {
       const html =
         '<a href="/contact">Contact</a><a href="https://twitter.com/x">X</a>';

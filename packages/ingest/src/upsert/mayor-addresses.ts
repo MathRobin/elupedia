@@ -18,7 +18,12 @@
  * commune traité, les mairies étant triées par code INSEE.
  */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { mandates, addresses, externalLinks } from '@elupedia/shared';
+import {
+  mandates,
+  addresses,
+  externalLinks,
+  normalizeExternalLinkUrl,
+} from '@elupedia/shared';
 import { eq, and, inArray } from 'drizzle-orm';
 import type { MairieData } from '../sources/dila-mairies.js';
 import { logger } from '../logger.js';
@@ -180,22 +185,23 @@ export async function upsertMayorAddresses(
 
       if (mairie.website) {
         const existingLink = linkByOfficialId.get(officialId);
+        const website = normalizeExternalLinkUrl(mairie.website);
 
         if (!existingLink) {
           newLinkRows.push({
             officialId,
             platform: 'official_page',
-            url: mairie.website,
+            url: website,
             status: 'published',
             source: 'official',
             capturedAt: today,
           });
           summary.websites++;
-        } else if (existingLink.url !== mairie.website) {
+        } else if (existingLink.url !== website) {
           await db
             .update(externalLinks)
             .set({
-              url: mairie.website,
+              url: website,
               capturedAt: today,
               updatedAt: new Date(),
             })
