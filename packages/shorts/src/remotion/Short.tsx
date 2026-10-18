@@ -12,6 +12,7 @@ import {
 } from './components.js';
 import {
   BarsScene,
+  ChartScene,
   GroupFocusScene,
   HemicycleScene,
   SourceScene,
@@ -27,36 +28,48 @@ const SceneView: React.FC<{
 }> = ({ entry, props, broll }) => {
   const { scene } = entry;
   // Un short peut couvrir plusieurs scrutins : à défaut d'indication dans le
-  // script, les scènes se répartissent sur le premier.
+  // script, les scènes se répartissent sur le premier. Un short « thème » n'en
+  // a aucun : les visuels de scrutin retombent sur la scène titre.
   const ballot = props.facts.ballots[0];
+  const topic = props.facts.topic;
+  const chart = topic?.charts.find((c) => c.id === scene.chart);
   let body: React.ReactNode;
   switch (scene.visual) {
     case 'hemicycle':
-      body = <HemicycleScene ballot={ballot} />;
+      body = ballot ? <HemicycleScene ballot={ballot} /> : null;
       break;
     case 'bars':
-      body = <BarsScene ballot={ballot} />;
+      body = ballot ? <BarsScene ballot={ballot} /> : null;
       break;
     case 'group_focus':
-      body = <GroupFocusScene scene={scene} ballot={ballot} />;
+      body = ballot ? <GroupFocusScene scene={scene} ballot={ballot} /> : null;
+      break;
+    case 'chart':
+      body = chart ? <ChartScene chart={chart} /> : null;
       break;
     case 'source':
-      body = <SourceScene scene={scene} ballot={ballot} />;
+      body = <SourceScene scene={scene} facts={props.facts} />;
       break;
-    default:
-      body = <TitleScene scene={scene} ballot={ballot} photos={props.photos} />;
+  }
+  if (!body) {
+    body = (
+      <TitleScene scene={scene} facts={props.facts} photos={props.photos} />
+    );
   }
   return (
     <AbsoluteFill>
       <Background broll={scene.visual === 'title' ? broll : undefined} />
-      <Header chamber={ballot.chamber} dateLabel={ballot.dateLabel} />
+      <Header
+        chamber={ballot?.chamber ?? topic?.chamber ?? ''}
+        dateLabel={ballot?.dateLabel ?? topic?.dateLabel ?? ''}
+      />
       {body}
       {scene.lowerThird ? (
         <LowerThird
           name={scene.lowerThird.name}
           role={scene.lowerThird.role}
           accent={(() => {
-            const group = ballot.proposers.find(
+            const group = ballot?.proposers.find(
               (p) => p.name === scene.lowerThird?.name,
             )?.group;
             return group ? POLITICAL_GROUP_COLORS[group] : undefined;
