@@ -48,6 +48,7 @@ const defaultProps: ShortProps = {
         voiceover: '',
         onScreenText: 'Aperçu',
         visual: 'title',
+        chart: null,
         lowerThird: null,
       },
     ],

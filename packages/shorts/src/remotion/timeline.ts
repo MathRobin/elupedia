@@ -23,6 +23,7 @@ export const MIN_SCENE_SEC: Record<string, number> = {
   bars: 6.5,
   group_focus: 4,
   source: 4,
+  chart: 6,
 };
 
 export interface TimelineScene {

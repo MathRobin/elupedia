@@ -107,9 +107,56 @@ export type SourceLink = BallotSourceLink;
 /** Pages officielles d'un scrutin ; implémentation partagée dans `@elupedia/shared`. */
 export const officialSources = officialBallotSources;
 
+/** Une barre d'un graphique de short « thème ». */
+export interface ChartBar {
+  /** Libellé à l'écran (sigle d'un groupe, « 3 », « 6 et plus »…). */
+  label: string;
+  /** Libellé à voix haute (nom complet du groupe…), sinon le libellé. */
+  spokenLabel: string;
+  value: number;
+  /** Nom complet du groupe quand la barre en représente un (couleur du groupe). */
+  group: string | null;
+  /** Effectif derrière la valeur (nombre de députés), affiché en second si présent. */
+  count: number | null;
+}
+
+export interface ChartFacts {
+  id: string;
+  title: string;
+  /** Unité affichée après la valeur (« », « %», « €»). */
+  unit: string;
+  /** Décimales affichées (0 pour des effectifs, 1 pour une moyenne). */
+  decimals: number;
+  bars: ChartBar[];
+}
+
+/**
+ * Faits d'un short « thème » (pas de scrutin) : chiffres datés, calculés
+ * depuis la base ou repris de pages officielles, et graphiques à afficher.
+ * Même règle que pour un scrutin : la voix ne cite que des nombres présents
+ * ici (`numbers`, barres des graphiques, date).
+ */
+export interface TopicFacts {
+  kind: string;
+  /** Libellé d'en-tête, ex. « Assemblée nationale ». */
+  chamber: string;
+  /** Date des données, ex. « 15 octobre 2026 » (en-tête et voix). */
+  dateLabel: string;
+  asOf: string;
+  title: string;
+  /** Nombres que la voix et le texte peuvent citer, par nom explicite. */
+  numbers: Record<string, number>;
+  charts: ChartFacts[];
+  url: string;
+  sources: SourceLink[];
+}
+
 export interface ShortFacts {
   shortId: string;
+  /** Vide pour un short « thème ». */
   ballots: BallotFacts[];
+  /** Renseigné pour un short « thème » (voir `topics/`). */
+  topic?: TopicFacts;
 }
 
 /**
@@ -294,9 +341,9 @@ export async function loadShortFacts(
     .from(videoShortBallots)
     .where(eq(videoShortBallots.videoShortId, shortId))
     .orderBy(videoShortBallots.position);
-  if (links.length === 0) {
-    throw new Error(`video_short ${shortId} n'est rattaché à aucun scrutin`);
-  }
+  // Short « thème » : aucun scrutin, les faits figés avec le script font foi
+  // (chiffres datés, pas de dérive à contrôler).
+  if (links.length === 0) return { shortId, ballots: [] };
   const ids = links.map((l) => l.ballotId);
 
   const rows = await db

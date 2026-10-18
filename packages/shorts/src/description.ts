@@ -26,7 +26,20 @@ export function buildDescription(
     parts.push(lines.join('\n'));
   }
 
+  if (facts.topic) {
+    parts.push(
+      `Données : ${facts.topic.chamber}, ${facts.topic.dateLabel} (données ouvertes, licence ouverte).`,
+    );
+  }
+
   const sourceLines: string[] = ['Sources et vérification :'];
+  if (facts.topic) {
+    sourceLines.push(
+      `• Les collaborateurs de chaque député, sur sa fiche Elupedia : ${facts.topic.url}`,
+    );
+    for (const src of facts.topic.sources)
+      sourceLines.push(`• ${src.label} : ${src.url}`);
+  }
   for (const b of facts.ballots) {
     sourceLines.push(
       `• Le vote de chaque élu·e, scrutin par scrutin, sur Elupedia : ${b.url}`,

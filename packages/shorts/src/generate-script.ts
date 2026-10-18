@@ -41,7 +41,7 @@ Structure attendue (4 à 6 scènes, 35 à 60 secondes au total, 2,6 mots par sec
 3. result : le résultat énoncé (« Le texte est adopté/rejeté »), puis les voix (pour, contre, abstention), puis la participation : « X députés sur Y n'ont pas pris part au vote » (counts.notVoting sur counts.seats). Toujours la donner : un scrutin public ordinaire se tient avec les présents, souvent une moitié de l'assemblée, et le taire donnerait une image trompeuse du vote. Visuel « hemicycle ».
 4. groups : quand blocs.left.unanimousPosition (ou blocs.right) est renseigné, tous les groupes de ce côté de l'hémicycle ont voté pareil : dis-le simplement (« La gauche a voté pour », « La droite a voté contre », « La gauche s'est abstenue ») au lieu d'énumérer les groupes du bloc ; n'emploie « la gauche » / « la droite » que dans ce cas. Traite les deux côtés de la même façon : si l'un est unanime et pas l'autre, dis aussi que les groupes de l'autre côté se sont partagés ; si les deux sont unanimes, dis les deux avec la même formulation. Les groupes du centre et les non-inscrits n'appartiennent à aucun bloc : cite-les par leur position. Pour les groupes hors bloc (ou un bloc non unanime), la position majoritaire des groupes, cités par position (ceux qui ont voté pour, ceux qui ont voté contre, ceux qui se sont abstenus), chaque groupe nommé une fois au plus, puis une phrase indiquant que le détail des voix de chaque groupe s'affiche — pour, contre, abstention et membres n'ayant pas pris part au vote. Visuel « bars » : l'écran montre d'abord la position de chaque groupe puis se transforme en détail des voix de tous les groupes avec le même code couleur ; aucun groupe n'est isolé ni commenté à part. Prévoir 12 à 15 secondes.
 5. outro : où retrouver le vote de chaque élu. Visuel « source », onScreenText = l'URL fournie.
-Les genres « division » et le visuel « group_focus » ne sont plus utilisés.
+Les genres « division » et le visuel « group_focus » ne sont plus utilisés. Le visuel « chart » et le champ chart sont réservés aux shorts « thème » : ici chart = null.
 
 lowerThird : renseigné uniquement quand une scène met un groupe ou une personne à l'image (name = libellé exact fourni, sinon rejeté). Pour l'auteur du texte (proposers), sur la scène qui le cite : name = son nom exact, role = « Auteur·rice du texte · » suivi de son groupe ; sa photo s'affiche alors automatiquement. Pour un groupe : role = « Groupe à l'Assemblée nationale » ou « Groupe au Sénat ». Sinon null.
 onScreenText : très court (un chiffre, un mot-clé), vide si rien d'utile.
@@ -226,6 +226,11 @@ export async function generateScriptsForShorts(
 
   for (const target of targets) {
     const facts = await loadShortFacts(db, target.id);
+    if (facts.ballots.length === 0) {
+      throw new Error(
+        `video_short ${target.id} n'est rattaché à aucun scrutin (short « thème » : script écrit par topics/, pas par le modèle)`,
+      );
+    }
     const outcome = await generateScript(facts, callModel, options.model);
 
     if (!outcome.ok) {
