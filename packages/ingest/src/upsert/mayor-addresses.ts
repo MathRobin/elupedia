@@ -18,13 +18,14 @@
  * commune traité, les mairies étant triées par code INSEE.
  */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
   mandates,
   addresses,
   externalLinks,
   normalizeExternalLinkUrl,
 } from '@elupedia/shared';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull, notExists, sql } from 'drizzle-orm';
 import type { MairieData } from '../sources/dila-mairies.js';
 import { logger } from '../logger.js';
 import {
@@ -49,13 +50,20 @@ function chunk<T>(items: T[], size: number): T[][] {
 /**
  * Upsert en base des adresses et sites web de mairie (écriture DB,
  * checkpoint fichier). Retourne created / updated (adresses), websites
- * (liens créés ou modifiés) et skipped (communes sans maire connu).
+ * (liens créés ou modifiés), skipped (communes sans maire connu) et removed
+ * (adresses et sites retirés aux anciens maires).
  */
 export async function upsertMayorAddresses(
   db: NeonHttpDatabase,
   mairies: MairieData[],
 ) {
-  const summary = { created: 0, updated: 0, websites: 0, skipped: 0 };
+  const summary = {
+    created: 0,
+    updated: 0,
+    websites: 0,
+    skipped: 0,
+    removed: 0,
+  };
 
   const sorted = [...mairies].sort((a, b) =>
     a.communeCode.localeCompare(b.communeCode),
@@ -71,13 +79,15 @@ export async function upsertMayorAddresses(
     );
   }
 
+  // Seuls les mandats de maire en cours : un ancien maire ne doit ni
+  // recevoir ni garder l'adresse et le site de la mairie.
   const mayorMandates = await db
     .select({
       officialId: mandates.officialId,
       communeCode: mandates.communeCode,
     })
     .from(mandates)
-    .where(eq(mandates.type, 'maire'));
+    .where(and(eq(mandates.type, 'maire'), isNull(mandates.endDate)));
 
   const officialByCommune = new Map<string, string>();
   for (const mandate of mayorMandates) {
@@ -223,8 +233,43 @@ export async function upsertMayorAddresses(
 
   clearCheckpoint(CHECKPOINT_NAME);
 
+  // Anciens maires (mandat clos depuis le dernier run, ex. municipales) :
+  // l'adresse et le site de la mairie ne les concernent plus. Idempotent.
+  const noActiveMayorMandate = (officialId: AnyPgColumn) =>
+    notExists(
+      db
+        .select({ one: sql`1` })
+        .from(mandates)
+        .where(
+          and(
+            eq(mandates.officialId, officialId),
+            eq(mandates.type, 'maire'),
+            isNull(mandates.endDate),
+          ),
+        ),
+    );
+  const removedAddresses = await db
+    .delete(addresses)
+    .where(
+      and(
+        eq(addresses.type, 'town_hall'),
+        noActiveMayorMandate(addresses.officialId),
+      ),
+    )
+    .returning({ id: addresses.id });
+  const removedLinks = await db
+    .delete(externalLinks)
+    .where(
+      and(
+        eq(externalLinks.platform, 'official_page'),
+        noActiveMayorMandate(externalLinks.officialId),
+      ),
+    )
+    .returning({ id: externalLinks.id });
+  summary.removed = removedAddresses.length + removedLinks.length;
+
   logger.info(
-    `Mayor addresses: ${summary.created} created, ${summary.updated} updated, ${summary.websites} websites, ${summary.skipped} skipped`,
+    `Mayor addresses: ${summary.created} created, ${summary.updated} updated, ${summary.websites} websites, ${summary.skipped} skipped, ${summary.removed} removed (ex-maires)`,
   );
   return summary;
 }
