@@ -117,9 +117,10 @@ function normalizedNameSql(column: ReturnType<typeof sql>) {
  *   résultats des sénatoriales, pas encore complétée par l'open data Sénat)
  *   et, des deux côtés, un mandat sénateur actif commençant le même jour.
  * La fiche conservée est la plus « sourcée » : matricule Sénat, sinon
- * identifiant AN. Deux fiches sans aucun identifiant ne sont jamais
- * appariées (rien ne permet de trancher un homonyme), et une fiche avec
- * matricule n'est jamais supprimée.
+ * identifiant AN. Deux fiches sans aucun identifiant (deux écritures RNE
+ * du même élu local) ne sont appariées que sur date de naissance identique,
+ * et on garde celle qui a un mandat en cours, puis le plus de mandats, puis
+ * la plus récente. Une fiche avec matricule n'est jamais supprimée.
  */
 export async function findDuplicateOfficialPairs(
   db: NeonHttpDatabase,
@@ -131,7 +132,14 @@ export async function findDuplicateOfficialPairs(
         ${normalizedNameSql(sql`first_name`)} as first_name_key,
         ${normalizedNameSql(sql`last_name`)} as last_name_key,
         (case when senat_id is not null then 2 else 0 end)
-          + (case when an_id is not null then 1 else 0 end) as score
+          + (case when an_id is not null then 1 else 0 end) as score,
+        exists (
+          select 1 from mandates m
+          where m.official_id = officials.id and m.end_date is null
+        ) as has_active_mandate,
+        (select count(*) from mandates m where m.official_id = officials.id)
+          as mandate_count,
+        updated_at
       from officials
     ),
     active_senateur as (
@@ -153,18 +161,31 @@ export async function findDuplicateOfficialPairs(
       on dup.last_name_key = kept.last_name_key
      and dup.first_name_key = kept.first_name_key
      and dup.id <> kept.id
-    where kept.score > dup.score
-      and dup.senat_id is null
+    where dup.senat_id is null
       and (
-        dup.birth_date = kept.birth_date
-        or (
-          (dup.birth_date is null or kept.birth_date is null)
-          and exists (
-            select 1
-            from active_senateur a
-            join active_senateur b on b.start_date = a.start_date
-            where a.official_id = kept.id and b.official_id = dup.id
+        (
+          kept.score > dup.score
+          and (
+            dup.birth_date = kept.birth_date
+            or (
+              (dup.birth_date is null or kept.birth_date is null)
+              and exists (
+                select 1
+                from active_senateur a
+                join active_senateur b on b.start_date = a.start_date
+                where a.official_id = kept.id and b.official_id = dup.id
+              )
+            )
           )
+        )
+        or (
+          -- Deux fiches sans identifiant source (ex. deux écritures RNE du
+          -- même maire) : la date de naissance, obligatoire ici, départage
+          -- les homonymes ; on garde la fiche la plus riche.
+          kept.score = 0 and dup.score = 0
+          and dup.birth_date = kept.birth_date
+          and (kept.has_active_mandate, kept.mandate_count, kept.updated_at, kept.id)
+            > (dup.has_active_mandate, dup.mandate_count, dup.updated_at, dup.id)
         )
       )
     order by kept.last_name, kept.first_name
