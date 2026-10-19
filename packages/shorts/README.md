@@ -51,6 +51,17 @@ yarn --cwd packages/shorts review approve <id>    # ou : reject <id> --note "mot
 yarn --cwd packages/shorts publish --dry-run      # puis sans --dry-run
 ```
 
+## Un short « thème » (sans scrutin)
+
+```bash
+yarn --cwd packages/shorts topic staffers --dry-run   # faits + script, rien écrit
+yarn --cwd packages/shorts topic staffers             # short draft + fiche de lecture
+```
+
+Faits calculés depuis la base et repris de pages officielles, script de gabarit
+validé comme un script généré. Ensuite : enregistrer les prises d'après la fiche,
+puis `make <id>` comme pour un short de scrutin. Thèmes dans `src/topics/`.
+
 ## Voir les shorts dans l'admin
 
 `yarn --cwd packages/admin dev` puis http://localhost:3001/videos : liste

@@ -49,6 +49,63 @@ export async function rejectShort(id: string, note: string): Promise<void> {
   await reviewShort(db, { shortId: id, decision: 'rejected', note });
 }
 
+/**
+ * Extrait l'identifiant d'une vidéo YouTube depuis un lien (youtube.com/shorts/…,
+ * youtube.com/watch?v=…, youtu.be/…) ou un identifiant brut (11 caractères).
+ * Chaîne vide → null (publié sans trace de l'identifiant).
+ */
+export async function parseYoutubeVideoId(
+  input: string,
+): Promise<string | null> {
+  const v = input.trim();
+  if (!v) return null;
+  const id = /^[A-Za-z0-9_-]{11}$/.test(v)
+    ? v
+    : (v.match(
+        /(?:shorts\/|watch\?v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/,
+      )?.[1] ?? null);
+  if (!id) throw new Error('Lien ou identifiant YouTube non reconnu');
+  return id;
+}
+
+/**
+ * Marque un short comme publié à la main (mise en ligne faite hors pipeline) :
+ * statut `published`, date, identifiant YouTube si fourni. Admin seul. Refusé
+ * si le short est déjà publié par le pipeline (identifiant déjà en base).
+ */
+export async function markPublished(
+  id: string,
+  youtubeInput: string,
+  note?: string,
+): Promise<void> {
+  await requireRole(['admin']);
+  const youtubeVideoId = await parseYoutubeVideoId(youtubeInput);
+  const [row] = await db
+    .select({
+      status: videoShorts.status,
+      youtubeVideoId: videoShorts.youtubeVideoId,
+      notes: videoShorts.notes,
+    })
+    .from(videoShorts)
+    .where(eq(videoShorts.id, id))
+    .limit(1);
+  if (!row) throw new Error('Short introuvable');
+  if (row.status === 'published' && row.youtubeVideoId) {
+    throw new Error(`Déjà publié (${row.youtubeVideoId})`);
+  }
+  const stamp = `Marqué publié à la main le ${new Date().toISOString().slice(0, 10)}${note?.trim() ? ` : ${note.trim()}` : ''}`;
+  await db
+    .update(videoShorts)
+    .set({
+      status: 'published',
+      publishedAt: new Date(),
+      youtubeVideoId: youtubeVideoId ?? row.youtubeVideoId,
+      notes: row.notes ? `${row.notes}\n${stamp}` : stamp,
+      updatedAt: new Date(),
+    })
+    .where(eq(videoShorts.id, id));
+}
+
 export interface PublishPreview {
   configured: boolean;
   privacy: PrivacyStatus;

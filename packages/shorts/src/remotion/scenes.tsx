@@ -9,7 +9,7 @@ import {
 } from 'remotion';
 import { generateHemicycleSeats } from '@elupedia/shared/src/hemicycle-layout.js';
 import { POLITICAL_GROUP_COLORS } from '@elupedia/shared/src/political-group-colors.js';
-import type { BallotFacts } from '../script-facts.js';
+import type { BallotFacts, ChartFacts, ShortFacts } from '../script-facts.js';
 import type { Scene } from '../script-schema.js';
 import { BigText, CountUp, Logo, useReveal } from './components.js';
 import { COLORS, FONT, shortGroupName } from './theme.js';
@@ -80,12 +80,14 @@ const Portrait: React.FC<{ src: string; color: string }> = ({ src, color }) => {
 
 export const TitleScene: React.FC<{
   scene: Scene;
-  ballot: BallotFacts;
+  facts: ShortFacts;
   photos: Record<string, string>;
-}> = ({ scene, ballot, photos }) => {
-  const proposer = scene.lowerThird
-    ? ballot.proposers.find((p) => p.name === scene.lowerThird?.name)
-    : undefined;
+}> = ({ scene, facts, photos }) => {
+  const ballot = facts.ballots[0];
+  const proposer =
+    scene.lowerThird && ballot
+      ? ballot.proposers.find((p) => p.name === scene.lowerThird?.name)
+      : undefined;
   const photo = proposer ? photos[proposer.officialId] : undefined;
   return (
     <Center>
@@ -103,9 +105,9 @@ export const TitleScene: React.FC<{
           {scene.onScreenText}
         </BigText>
       ) : (
-        <BigText size={56}>{ballot.title}</BigText>
+        <BigText size={56}>{ballot?.title ?? facts.topic?.title ?? ''}</BigText>
       )}
-      {scene.kind === 'hook' && ballot.result ? (
+      {scene.kind === 'hook' && ballot?.result ? (
         <ResultBadge result={ballot.result} delay={12} />
       ) : null}
     </Center>
@@ -536,45 +538,148 @@ export const GroupFocusScene: React.FC<{
   );
 };
 
-export const SourceScene: React.FC<{ scene: Scene; ballot: BallotFacts }> = ({
+export const SourceScene: React.FC<{ scene: Scene; facts: ShortFacts }> = ({
   scene,
-  ballot,
-}) => (
-  <Center>
-    <div style={useReveal(0)}>
-      <Logo size={380} />
-    </div>
-    <BigText size={88} color={COLORS.accent} delay={6}>
-      Elupedia
-    </BigText>
-    <BigText size={40} delay={8}>
-      Le vote de chaque élu, scrutin par scrutin
-    </BigText>
-    <div
-      style={{
-        ...useReveal(16),
-        fontFamily: FONT,
-        fontSize: 32,
-        color: COLORS.text,
-        background: COLORS.band,
-        padding: '18px 30px',
-        borderRadius: 14,
-        wordBreak: 'break-all',
-        textAlign: 'center',
-      }}
-    >
-      {scene.onScreenText || ballot.url}
-    </div>
-    <div
-      style={{
-        ...useReveal(24),
-        fontFamily: FONT,
-        fontSize: 26,
-        color: COLORS.muted,
-        textAlign: 'center',
-      }}
-    >
-      Données : {ballot.chamber}, licence ouverte
-    </div>
-  </Center>
-);
+  facts,
+}) => {
+  const ballot = facts.ballots[0];
+  const url = ballot?.url ?? facts.topic?.url ?? '';
+  const chamber = ballot?.chamber ?? facts.topic?.chamber ?? '';
+  const tagline = ballot
+    ? 'Le vote de chaque élu, scrutin par scrutin'
+    : 'Les élus, leurs mandats et leurs équipes';
+  return (
+    <Center>
+      <div style={useReveal(0)}>
+        <Logo size={380} />
+      </div>
+      <BigText size={88} color={COLORS.accent} delay={6}>
+        Elupedia
+      </BigText>
+      <BigText size={40} delay={8}>
+        {tagline}
+      </BigText>
+      <div
+        style={{
+          ...useReveal(16),
+          fontFamily: FONT,
+          fontSize: 32,
+          color: COLORS.text,
+          background: COLORS.band,
+          padding: '18px 30px',
+          borderRadius: 14,
+          wordBreak: 'break-all',
+          textAlign: 'center',
+        }}
+      >
+        {scene.onScreenText || url}
+      </div>
+      <div
+        style={{
+          ...useReveal(24),
+          fontFamily: FONT,
+          fontSize: 26,
+          color: COLORS.muted,
+          textAlign: 'center',
+        }}
+      >
+        Données : {chamber}, licence ouverte
+      </div>
+    </Center>
+  );
+};
+
+/**
+ * Graphique en barres horizontales d'un short « thème » : même grammaire que
+ * les barres de vote (libellé à gauche, valeur à droite, piste arrondie,
+ * entrée en ressort ligne par ligne). La valeur est toujours écrite en
+ * chiffres à côté de la barre : la couleur (celle du groupe quand la barre en
+ * représente un) n'encode rien à elle seule.
+ */
+export const ChartScene: React.FC<{ chart: ChartFacts }> = ({ chart }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const bars = chart.bars.slice(0, MAX_BARS);
+  const max = Math.max(1e-9, ...bars.map((b) => b.value));
+  const dense = bars.length > 9;
+  const rowHeight = dense ? 18 : 26;
+  const fontSize = dense ? 28 : 34;
+  const format = (v: number) =>
+    v.toLocaleString('fr-FR', {
+      minimumFractionDigits: chart.decimals,
+      maximumFractionDigits: chart.decimals,
+    }) + chart.unit;
+  return (
+    <Center top={260}>
+      <BigText size={44}>{chart.title}</BigText>
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: dense ? 12 : 18,
+          fontFamily: FONT,
+        }}
+      >
+        {bars.map((b, i) => {
+          const enter = spring({
+            frame: frame - i * 3,
+            fps,
+            config: { damping: 200 },
+          });
+          const color =
+            (b.group && POLITICAL_GROUP_COLORS[b.group]) || COLORS.accent;
+          return (
+            <div key={b.label} style={{ opacity: enter }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  color: COLORS.text,
+                  fontSize,
+                  fontWeight: 700,
+                  marginBottom: 5,
+                }}
+              >
+                <span>{b.label}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>
+                  {format(b.value * Math.min(1, enter))}
+                  {b.count !== null ? (
+                    <span
+                      style={{
+                        color: COLORS.muted,
+                        fontSize: fontSize * 0.7,
+                        fontWeight: 500,
+                        marginLeft: 12,
+                      }}
+                    >
+                      {b.count} député{b.count > 1 ? 's' : ''}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+              <div
+                style={{
+                  height: rowHeight,
+                  background: 'rgba(148,163,184,0.18)',
+                  borderRadius: rowHeight / 2,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${(b.value / max) * 100 * enter}%`,
+                    height: '100%',
+                    background: color,
+                    borderRadius: rowHeight / 2,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Center>
+  );
+};

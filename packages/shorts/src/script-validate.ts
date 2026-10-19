@@ -75,6 +75,7 @@ export interface ValidationIssue {
     | 'missing_result'
     | 'spoken_acronym'
     | 'bloc_not_unanimous'
+    | 'unknown_chart'
     | 'missing_source';
   message: string;
 }
@@ -114,7 +115,32 @@ export function allowedNumbers(facts: ShortFacts): Set<number> {
       allowed.add(Math.round(b.mostDividedGroup.minorityShare * 100));
     }
   }
+  if (facts.topic) {
+    const t = facts.topic;
+    for (const n of extractNumbers(t.title)) allowed.add(n);
+    for (const n of extractNumbers(t.dateLabel)) allowed.add(n);
+    for (const n of Object.values(t.numbers)) addDecimal(allowed, n);
+    for (const c of t.charts) {
+      for (const n of extractNumbers(c.title)) allowed.add(n);
+      for (const b of c.bars) {
+        for (const n of extractNumbers(b.label)) allowed.add(n);
+        addDecimal(allowed, b.value, c.decimals);
+        if (b.count !== null) allowed.add(b.count);
+      }
+    }
+  }
   return allowed;
+}
+
+/**
+ * Un nombre décimal se dit « 3,6 » : le texte contient alors 3 et 6, qu'il
+ * faut autoriser tels quels, en plus de l'entier arrondi.
+ */
+function addDecimal(allowed: Set<number>, value: number, decimals = 1): void {
+  allowed.add(Math.round(value));
+  allowed.add(Math.floor(value));
+  for (const n of extractNumbers(value.toFixed(decimals).replace('.', ',')))
+    allowed.add(n);
 }
 
 export function countWords(text: string): number {
@@ -172,12 +198,15 @@ export function validateScript(
     }
 
     if (scene.lowerThird) {
-      const known = new Set(
-        facts.ballots.flatMap((b) => [
+      const known = new Set([
+        ...facts.ballots.flatMap((b) => [
           ...b.proposers.map((p) => p.name),
           ...b.groups.map((g) => g.name),
         ]),
-      );
+        ...(facts.topic?.charts ?? []).flatMap((c) =>
+          c.bars.flatMap((b) => (b.group ? [b.group] : [])),
+        ),
+      ]);
       if (!known.has(scene.lowerThird.name)) {
         issues.push({
           code: 'unknown_person',
@@ -239,9 +268,19 @@ export function validateScript(
   }
 
   // Les sigles de groupes sont pour l'écran : à voix haute, le nom complet.
+  const spokenGroups = [
+    ...facts.ballots.flatMap((b) =>
+      b.groups.map((g) => ({ name: g.name, spokenName: g.spokenName })),
+    ),
+    ...(facts.topic?.charts ?? []).flatMap((c) =>
+      c.bars.flatMap((b) =>
+        b.group ? [{ name: b.group, spokenName: b.spokenLabel }] : [],
+      ),
+    ),
+  ];
   for (const scene of script.scenes) {
-    for (const b of facts.ballots) {
-      for (const g of b.groups) {
+    {
+      for (const g of spokenGroups) {
         const acronym = groupAcronym(g.name);
         if (!acronym || PRONOUNCEABLE_ACRONYMS.includes(acronym)) continue;
         const escaped = acronym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -270,9 +309,9 @@ export function validateScript(
       // « La Droite Républicaine » est un groupe, pas le bloc.
       const re = new RegExp(`\\bla ${word}\\b(?! republicaine)`);
       if (!re.test(text)) continue;
-      const ok = facts.ballots.every(
-        (b) => b.blocs[side]?.unanimousPosition != null,
-      );
+      const ok =
+        facts.ballots.length > 0 &&
+        facts.ballots.every((b) => b.blocs[side]?.unanimousPosition != null);
       if (!ok) {
         issues.push({
           code: 'bloc_not_unanimous',
@@ -296,6 +335,17 @@ export function validateScript(
       issues.push({
         code: 'banned_word',
         message: `Description : mot évaluatif proscrit « ${raw} »`,
+      });
+    }
+  }
+
+  for (const scene of script.scenes) {
+    if (scene.visual !== 'chart') continue;
+    const ids = (facts.topic?.charts ?? []).map((c) => c.id);
+    if (!scene.chart || !ids.includes(scene.chart)) {
+      issues.push({
+        code: 'unknown_chart',
+        message: `Scène ${scene.id} : visuel « chart » sans graphique connu (${scene.chart ?? 'null'})`,
       });
     }
   }

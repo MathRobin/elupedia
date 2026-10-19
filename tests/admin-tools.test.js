@@ -48,7 +48,14 @@ describe('Outils d’administration (actions sur les shorts, ingestions, cohére
     expect(src).toContain('publishShorts');
     expect(src).toContain('reviewShort');
     const panel = read('src/app/videos/[id]/ActionsPanel.tsx');
-    for (const s of ['Approuver', 'Rejeter', 'Publier', 'rescript']) {
+    for (const s of [
+      'Approuver',
+      'Rejeter',
+      'Publier',
+      'rescript',
+      'Marquer publié',
+      'markPublished',
+    ]) {
       expect(panel, s).toContain(s);
     }
   });

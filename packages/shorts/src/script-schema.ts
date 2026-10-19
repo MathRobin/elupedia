@@ -23,6 +23,7 @@ export const SCENE_VISUALS = [
   'bars',
   'group_focus',
   'source',
+  'chart',
 ] as const;
 
 export const sceneSchema = z.object({
@@ -43,6 +44,12 @@ export const sceneSchema = z.object({
       "Texte affiché à l'écran (titre, chiffre clé), très court, peut être vide",
     ),
   visual: z.enum(SCENE_VISUALS),
+  chart: z
+    .string()
+    .nullable()
+    .describe(
+      'Identifiant du graphique (facts.topic.charts) pour le visuel « chart », sinon null',
+    ),
   lowerThird: z
     .object({
       name: z.string(),

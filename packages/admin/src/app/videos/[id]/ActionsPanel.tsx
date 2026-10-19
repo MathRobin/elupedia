@@ -18,11 +18,13 @@ import {
   Stack,
   Text,
   Textarea,
+  TextInput,
   Title,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   approveShort,
+  markPublished,
   getShortJob,
   launchShortJob,
   publishPreview,
@@ -84,6 +86,9 @@ export function ActionsPanel(props: Props) {
   const [publishOpened, publishHandlers] = useDisclosure(false);
   const [preview, setPreview] = useState<PublishPreview | null>(null);
   const [privacy, setPrivacy] = useState<string>('public');
+  const [manualOpened, manualHandlers] = useDisclosure(false);
+  const [youtubeInput, setYoutubeInput] = useState('');
+  const [manualNote, setManualNote] = useState('');
   const [rescriptOpened, rescriptHandlers] = useDisclosure(false);
   const [estimate, setEstimate] = useState<string | null>(null);
 
@@ -202,9 +207,19 @@ export function ActionsPanel(props: Props) {
           >
             Publier sur YouTube…
           </Button>
-          {status !== 'approved' ? (
+          <Button
+            size="xs"
+            color="teal"
+            variant="outline"
+            disabled={busy || running || status === 'published'}
+            onClick={manualHandlers.open}
+          >
+            Marquer publié…
+          </Button>
+          {status !== 'approved' && status !== 'published' ? (
             <Text size="xs" c="dimmed">
-              Seul un short approuvé se publie.
+              Seul un short approuvé se publie par le pipeline ; « Marquer
+              publié » enregistre une mise en ligne faite à la main.
             </Text>
           ) : null}
         </Group>
@@ -305,6 +320,46 @@ export function ActionsPanel(props: Props) {
             }
           >
             Confirmer le rejet
+          </Button>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={manualOpened}
+        onClose={manualHandlers.close}
+        title="Marquer ce short comme publié"
+      >
+        <Stack>
+          <Text size="sm">
+            Pour une mise en ligne faite à la main, hors pipeline. Le short
+            passe en « publié » avec la date du jour ; il ne sera plus repris
+            par la publication automatique.
+          </Text>
+          <TextInput
+            label="Lien ou identifiant de la vidéo YouTube (facultatif)"
+            placeholder="https://youtube.com/shorts/…"
+            value={youtubeInput}
+            onChange={(e) => setYoutubeInput(e.currentTarget.value)}
+          />
+          <Textarea
+            label="Note (facultatif, conservée dans les notes)"
+            value={manualNote}
+            onChange={(e) => setManualNote(e.currentTarget.value)}
+            autosize
+            minRows={1}
+          />
+          <Button
+            color="teal"
+            onClick={() =>
+              run(async () => {
+                await markPublished(id, youtubeInput, manualNote);
+                manualHandlers.close();
+                setYoutubeInput('');
+                setManualNote('');
+              }, 'Short marqué publié')
+            }
+          >
+            Confirmer
           </Button>
         </Stack>
       </Modal>
