@@ -30,7 +30,6 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 - `upsert/press-mentions.ts` : `updated` n'est jamais incrémenté (insert-only).
 - `upsert/campaign-accounts.ts` : `skipped` est une constante à 0.
 - `upsert/commune-transparency.ts` : `created` est un total upserté (créés + mis à jour).
-- `reconcile-elections.ts` : division par zéro (`NaN%`) si une table est vide.
 
 ## Logique d'ingestion
 

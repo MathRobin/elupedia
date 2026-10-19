@@ -7,6 +7,13 @@
  * (`senatorial_candidates.official_id` nul). On cherche une fiche par nom,
  * on confirme, et `official_id` est renseigné (avec `matched = true` pour les
  * parrainages). Ouvert aux modérateurs.
+ *
+ * La file ne montre que ce qu'un humain peut trancher : les lignes que
+ * `reconcile` (packages/ingest) a marquées `resolution = 'ambiguous'`, ou
+ * jamais examinées (`null`). Les `no_match` (aucune fiche de ce nom, ex.
+ * maires de 2017 absents du RNE) en sont exclues, et seuls les candidats
+ * sénatoriaux élus y figurent : un candidat battu n'a pas vocation à avoir
+ * une fiche.
  */
 import { and, asc, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import {
@@ -20,6 +27,20 @@ import {
 import { auth } from '@/lib/auth';
 
 const db = createDb();
+
+/** Lignes qu'un humain peut encore trancher (voir en-tête). */
+const sponsorshipPending = and(
+  isNull(sponsorships.officialId),
+  or(isNull(sponsorships.resolution), eq(sponsorships.resolution, 'ambiguous')),
+);
+const senatorialPending = and(
+  isNull(senatorialCandidates.officialId),
+  eq(senatorialCandidates.elected, true),
+  or(
+    isNull(senatorialCandidates.resolution),
+    eq(senatorialCandidates.resolution, 'ambiguous'),
+  ),
+);
 
 async function requireAuthenticatedUser() {
   const session = await auth();
@@ -49,7 +70,7 @@ export async function unresolvedSummary(): Promise<UnresolvedSummary> {
       count: sql<number>`count(*)::int`,
     })
     .from(sponsorships)
-    .where(isNull(sponsorships.officialId))
+    .where(sponsorshipPending)
     .groupBy(sponsorships.type, sponsorships.electionYear)
     .orderBy(desc(sponsorships.electionYear));
   const sc = await db
@@ -62,7 +83,7 @@ export async function unresolvedSummary(): Promise<UnresolvedSummary> {
       senatorialElections,
       eq(senatorialElections.id, senatorialCandidates.electionId),
     )
-    .where(isNull(senatorialCandidates.officialId))
+    .where(senatorialPending)
     .groupBy(senatorialElections.electionYear)
     .orderBy(desc(senatorialElections.electionYear));
   return { sponsorships: sp, senatorialCandidates: sc };
@@ -98,7 +119,7 @@ export async function listUnresolved(
       .from(sponsorships)
       .where(
         and(
-          isNull(sponsorships.officialId),
+          sponsorshipPending,
           eq(sponsorships.electionYear, Number(year)),
           q ? ilike(sponsorships.rawElectedName, `%${q}%`) : undefined,
         ),
@@ -131,7 +152,7 @@ export async function listUnresolved(
     )
     .where(
       and(
-        isNull(senatorialCandidates.officialId),
+        senatorialPending,
         eq(senatorialElections.electionYear, year),
         q
           ? or(
@@ -220,12 +241,12 @@ export async function attachToOfficial(
   if (kind === 'sponsorship') {
     await db
       .update(sponsorships)
-      .set({ officialId, matched: true })
+      .set({ officialId, matched: true, resolution: null })
       .where(and(eq(sponsorships.id, id), isNull(sponsorships.officialId)));
   } else {
     await db
       .update(senatorialCandidates)
-      .set({ officialId })
+      .set({ officialId, resolution: null })
       .where(
         and(
           eq(senatorialCandidates.id, id),

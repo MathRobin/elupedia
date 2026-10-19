@@ -168,7 +168,7 @@ yarn --cwd packages/ingest ingest:wikipedia     # lien Wikipédia via Wikidata
 ### Outils de maintenance
 
 ```bash
-yarn --cwd packages/ingest reconcile                     # rattache les candidats aux élus (official_id manquants)
+yarn --cwd packages/ingest reconcile                     # rattache candidats et parrainages aux élus ; marque le reste no_match / ambiguous
 yarn --cwd packages/ingest dedupe:committees --dry-run   # fusionne « nom » et « nom (abrégé) »
 yarn --cwd packages/ingest check:coherence               # contrôles métier, lecture seule
 yarn --cwd packages/ingest merge:duplicate-officials     # dry-run : fiches AN/Sénat en doublon (même nom + naissance)
