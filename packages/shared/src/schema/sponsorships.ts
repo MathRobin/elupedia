@@ -8,8 +8,9 @@
  * scrutin. La source ne donne que le nom, la fonction et la circonscription
  * de l'élu, en texte libre : les colonnes `raw_*` les conservent telles
  * quelles, et `official_id` n'est renseigné que si le matching par nom
- * normalisé a abouti (`matched`). Le dédoublonnage se fait sur
- * (election_year, type, raw_elected_name).
+ * normalisé a abouti (`matched`) ; `reconcile` complète ensuite les
+ * rattachements et qualifie le reste (`resolution`). Le dédoublonnage se fait
+ * sur (election_year, type, raw_elected_name).
  */
 import {
   pgTable,
@@ -21,6 +22,18 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 import { officials } from './officials.js';
+
+/**
+ * Verdict du dernier `reconcile` sur une ligne encore sans `official_id` :
+ * - no_match  : aucune fiche de ce nom en base (ex. maire de 2017 qui n'est
+ *               plus en fonction, absent du RNE) — rien à rattacher ;
+ * - ambiguous : des fiches existent mais aucune n'est confirmée (homonymes,
+ *               département discordant) — à trancher dans l'admin.
+ * `null` : ligne jamais examinée par `reconcile`.
+ */
+export const reconciliationResolutionEnum = ['no_match', 'ambiguous'] as const;
+export type ReconciliationResolution =
+  (typeof reconciliationResolutionEnum)[number];
 
 export const sponsorships = pgTable('sponsorships', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -36,6 +49,8 @@ export const sponsorships = pgTable('sponsorships', {
   rawDepartment: varchar('raw_department', { length: 255 }),
   publicationDate: date('publication_date'),
   matched: boolean('matched').notNull().default(false),
+  // Voir reconciliationResolutionEnum ; n'a de sens que si official_id est null.
+  resolution: varchar('resolution', { length: 20 }),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

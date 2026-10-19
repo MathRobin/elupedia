@@ -93,6 +93,9 @@ export const senatorialCandidates = pgTable(
     ratioExprimes: real('ratio_exprimes'),
     elected: boolean('elected'),
     officialId: uuid('official_id'),
+    // Verdict de `reconcile` si official_id est null ('no_match' /
+    // 'ambiguous', voir reconciliationResolutionEnum dans sponsorships.ts).
+    resolution: varchar('resolution', { length: 20 }),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
       .notNull(),

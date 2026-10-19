@@ -44,6 +44,12 @@ describe('reconcileTable (via reconcileElections) — pagination par curseur', (
             // Premier select de reconcileElections : la liste des officials.
             return Promise.resolve(officialsRows);
           }
+          if (selectCallCount === 2 || selectCallCount === 3) {
+            // Départements des mandats, puis scrutins sénatoriaux : vides.
+            return Object.assign(Promise.resolve([]), {
+              where: () => Promise.resolve([]),
+            });
+          }
           return {
             where: () => ({
               orderBy: () => ({
@@ -76,6 +82,8 @@ describe('reconcileTable (via reconcileElections) — pagination par curseur', (
               legi_total: 0,
               sena_linked: 0,
               sena_total: 0,
+              spons_linked: 0,
+              spons_total: 0,
             },
           ],
         }),
@@ -86,9 +94,10 @@ describe('reconcileTable (via reconcileElections) — pagination par curseur', (
     // 2 pages consommées pour municipal_candidates (2 + 1, puis page vide
     // implicite via la longueur < BATCH_SIZE) : les 3 candidats sont bien
     // tous vus malgré la pagination, et seul "Jean Dupont" est rattaché.
-    expect(result.muni).toEqual({ updated: 1, total: 3 });
-    expect(result.legi).toEqual({ updated: 0, total: 0 });
-    expect(result.sena).toEqual({ updated: 0, total: 0 });
+    expect(result.muni).toMatchObject({ updated: 1, total: 3 });
+    expect(result.legi).toMatchObject({ updated: 0, total: 0 });
+    expect(result.sena).toMatchObject({ updated: 0, total: 0 });
+    expect(result.sponsorships).toMatchObject({ updated: 0, total: 0 });
     expect(updates).toEqual([
       { table: municipalCandidates, officialId: 'official-1' },
     ]);

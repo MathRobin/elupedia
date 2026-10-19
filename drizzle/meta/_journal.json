@@ -281,6 +281,13 @@
       "when": 1791835499176,
       "tag": "0039_ballots_proposers",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792432252957,
+      "tag": "0040_reconciliation_resolution",
+      "breakpoints": true
     }
   ]
 }
