@@ -45,7 +45,17 @@ export default function ModerationPage() {
 
   return (
     <Stack>
-      <Title order={2}>Queue de modération</Title>
+      <Group gap="sm" align="center">
+        <Title order={2}>Queue de modération</Title>
+        {/* Nombre de liens en attente, mis à jour après chaque action. */}
+        <Badge
+          size="lg"
+          variant="filled"
+          aria-label={`${links.length} en attente`}
+        >
+          {links.length}
+        </Badge>
+      </Group>
 
       {links.length === 0 ? (
         <Text c="dimmed">Aucun lien en attente de modération.</Text>

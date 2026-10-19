@@ -16,7 +16,7 @@
  */
 import { eq, and, inArray } from 'drizzle-orm';
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { externalLinks } from '@elupedia/shared';
+import { externalLinks, normalizeExternalLinkUrl } from '@elupedia/shared';
 import type { DetectedLink } from '../sources/personal-website-scraper.js';
 
 /**
@@ -69,7 +69,7 @@ export async function upsertScrapedLinks(
     await db.insert(externalLinks).values({
       officialId,
       platform: link.platform,
-      url: link.url,
+      url: normalizeExternalLinkUrl(link.url),
       status: 'pending',
       source: 'scraped_personal_website',
       capturedAt: today,

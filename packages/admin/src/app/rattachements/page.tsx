@@ -90,9 +90,29 @@ export default function RattachementsPage() {
     (y, i, a) => a.findIndex((z) => z.value === y.value) === i,
   );
 
+  // Total de la file, tous types et toutes années confondus (les compteurs
+  // par année restent dans les onglets). Recalculé après chaque rattachement.
+  const pendingTotal = summary
+    ? [...summary.sponsorships, ...summary.senatorialCandidates].reduce(
+        (total, group) => total + group.count,
+        0,
+      )
+    : null;
+
   return (
     <Stack gap="lg">
-      <Title order={2}>Rattachements à une fiche élu</Title>
+      <Group gap="sm" align="center">
+        <Title order={2}>Rattachements à une fiche élu</Title>
+        {pendingTotal !== null ? (
+          <Badge
+            size="lg"
+            variant="filled"
+            aria-label={`${pendingTotal} à rattacher`}
+          >
+            {pendingTotal}
+          </Badge>
+        ) : null}
+      </Group>
       <Text size="sm" c="dimmed">
         Enregistrements que l&apos;ingestion n&apos;a pas su relier à une fiche
         (nom non retrouvé). Chercher la bonne fiche, vérifier ses mandats,
