@@ -20,7 +20,7 @@
  * et comptée en `skipped` plutôt que d'interrompre le run.
  */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { officials, mandates } from '@elupedia/shared';
+import { officials, mandates, normalizePersonName } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { RneConseillerFde } from '../sources/rne-conseillers-fde.js';
 import { logger } from '../logger.js';
@@ -64,7 +64,7 @@ function officialKey(
   lastName: string,
   birthDate: string | null,
 ): string {
-  return `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${birthDate ?? ''}`;
+  return `${normalizePersonName(firstName)}|${normalizePersonName(lastName)}|${birthDate ?? ''}`;
 }
 
 // Suffixe numérique en cas de collision de slug (homonymes). `usedSlugs` est
