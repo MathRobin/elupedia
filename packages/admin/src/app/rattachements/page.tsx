@@ -26,6 +26,21 @@ import {
   type UnresolvedSummary,
 } from './actions';
 
+/**
+ * Pré-remplissage de la recherche : le premier mot du nom, civilité retirée.
+ * La source écrit le nom complet (« M. Jean-Pierre DUPONT-MARTIN ») alors
+ * que la fiche élu peut l'écrire autrement : un seul mot ramène presque
+ * toujours la bonne fiche, le nom entier presque jamais.
+ */
+function firstWordOfName(name: string): string {
+  return (
+    name
+      .replace(/^(M\.|Mme|MM\.)\s+/i, '')
+      .trim()
+      .split(/\s+/)[0] ?? ''
+  );
+}
+
 export default function RattachementsPage() {
   const [summary, setSummary] = useState<UnresolvedSummary | null>(null);
   const [kind, setKind] = useState<UnresolvedRow['kind']>('sponsorship');
@@ -173,7 +188,7 @@ export default function RattachementsPage() {
                       size="xs"
                       onClick={() => {
                         setTarget(r);
-                        doSearch(r.name.replace(/^(M\.|Mme|MM\.)\s+/i, ''));
+                        doSearch(firstWordOfName(r.name));
                       }}
                     >
                       Rattacher…
