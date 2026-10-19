@@ -41,7 +41,28 @@ describe('personal-website-scraper (#132)', () => {
       expect(links.map((l) => l.url)).toEqual([
         'https://www.youtube.com/@depute123',
         'https://www.youtube.com/channel/UCabc',
-        'https://www.youtube.com/c/depute123/videos',
+        'https://www.youtube.com/c/depute123',
+      ]);
+    });
+
+    it('drops youtube query strings and channel tabs, rejects search, playlist and root links', () => {
+      const html = `
+        <a href="https://youtube.com/@renepilato?si=I6Xngz1j">Chaîne avec tracking</a>
+        <a href="https://www.youtube.com/channel/UCCaFw8qbWdrdU6MYYGYwH2w/featured">Onglet</a>
+        <a href="http://www.youtube.com/villeanglet">URL historique</a>
+        <a href="https://www.youtube.com/results?search_query=x">Recherche</a>
+        <a href="https://youtube.com/playlist?list=PL123">Playlist</a>
+        <a href="http://www.youtube.com">Racine</a>
+        <a href="https://www.tiktok.com/@vincent_caure?lang=sv-SE">TikTok avec tracking</a>
+        <a href="https://www.instagram.com/capdeviellecolette?hl=fr">Instagram avec tracking</a>
+      `;
+      const links = extractSocialLinks(html, 'https://depute.fr');
+      expect(links.map((l) => l.url)).toEqual([
+        'https://www.youtube.com/@renepilato',
+        'https://www.youtube.com/channel/UCCaFw8qbWdrdU6MYYGYwH2w',
+        'https://www.youtube.com/villeanglet',
+        'https://www.tiktok.com/@vincent_caure',
+        'https://www.instagram.com/capdeviellecolette',
       ]);
     });
 

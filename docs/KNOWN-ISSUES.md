@@ -39,7 +39,7 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 - `main-photos.ts` : `main()` sans `.catch`, une exception sort en unhandled rejection.
 - `run-factchecks.ts` : clé API absente → log puis exit 0, un run planifié « réussit » sans rien faire.
 - `run-press.ts` ne met jamais à jour `officials.press_checked_at` (contrairement à `run-press-maires.ts`) : les deux scripts peuvent traiter deux fois les mêmes élus.
-- `upsert/mayor-addresses.ts` : le cache commune → maire est construit sans filtre `end_date IS NULL`, l'adresse de mairie peut être posée sur un ancien maire. `mayor-social-scrape.ts` a le même défaut (pas de filtre sur le type `maire` actif).
+- `upsert/mayor-social-scrape.ts` : pas de filtre sur le type `maire` actif (anciens maires inclus dans la sélection).
 - `upsert/mayors.ts` : le mandat du prédécesseur est clos avant de vérifier que le successeur a une date de début ; si la ligne RNE n'en a pas, la commune se retrouve sans maire actif.
 - `upsert/affiliations-diff.ts` : `start_date`/`end_date` sont la date du run, pas celle du changement de groupe ; un député présent deux fois dans la source créerait deux affiliations.
 - `upsert/senat-affiliations.ts` : la recherche d'existant ne filtre pas sur `kind`.

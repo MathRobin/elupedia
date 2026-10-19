@@ -42,13 +42,60 @@ function domainToPlatform(hostname: string): SocialPlatform | null {
 }
 
 /**
- * Lien YouTube vers une vidéo précise (lecteur embarqué, page de lecture,
- * short) plutôt que vers une chaîne. On cherche la chaîne de l'élu : ces
- * liens sont écartés, ils ne mèneraient qu'à une vidéo isolée. Les formes de
- * chaîne sont trop variées (/@x, /channel/x, /c/x, /user/x, avec ou sans
- * onglet) pour une liste blanche : on écarte les formes de vidéo connues.
+ * YouTube : une chaîne s'écrit `/@pseudo`, `/channel/<id>`, `/c/<nom>`,
+ * `/user/<nom>` ou, forme historique, `/<nom>` seul. Tout autre premier
+ * segment (vidéo, short, recherche, playlist, flux…) n'est pas une chaîne.
+ * Un onglet de chaîne (`/videos`, `/featured`…) et la query string
+ * (`?si=`, `?sub_confirmation=1`…) sont retirés : même chaîne, même URL.
  */
-const YOUTUBE_VIDEO_PATH = /^\/(embed|watch|shorts)(\/|$)/i;
+const YOUTUBE_CHANNEL_PREFIXES = new Set(['channel', 'c', 'user']);
+const YOUTUBE_RESERVED = new Set([
+  'embed',
+  'watch',
+  'shorts',
+  'live',
+  'results',
+  'playlist',
+  'feed',
+  'hashtag',
+  't',
+  'redirect',
+  'about',
+  'account',
+  'premium',
+  'gaming',
+  'kids',
+  'music',
+  'intl',
+]);
+const YOUTUBE_CHANNEL_TABS = new Set([
+  'videos',
+  'featured',
+  'shorts',
+  'streams',
+  'live',
+  'playlists',
+  'community',
+  'posts',
+  'channels',
+  'about',
+  'podcasts',
+  'releases',
+]);
+
+function canonicalYoutubeChannelUrl(segments: string[]): string | null {
+  const [first, second] = segments;
+  if (!first) return null;
+  if (first.startsWith('@')) return `https://www.youtube.com/${first}`;
+  if (YOUTUBE_CHANNEL_PREFIXES.has(first.toLowerCase())) {
+    return second ? `https://www.youtube.com/${first}/${second}` : null;
+  }
+  if (YOUTUBE_RESERVED.has(first.toLowerCase())) return null;
+  const isLegacyCustomUrl =
+    segments.length === 1 ||
+    (segments.length === 2 && YOUTUBE_CHANNEL_TABS.has(second.toLowerCase()));
+  return isLegacyCustomUrl ? `https://www.youtube.com/${first}` : null;
+}
 
 /**
  * Pseudo Instagram : lettres, chiffres, points et tirets bas, 30 max.
@@ -76,7 +123,9 @@ const TIKTOK_HANDLE = /^@[A-Za-z0-9._]{1,24}$/;
  * Instagram et TikTok ont une forme de profil unique, on la vérifie
  * strictement : tout le reste (post /p/…, reel, hashtag /explore/tags/…,
  * musique /music/…, vidéo /@x/video/…, image CDN) est écarté. Le suffixe
- * `/profilecard` d'Instagram est ramené au profil.
+ * `/profilecard` d'Instagram est ramené au profil. YouTube : voir
+ * canonicalYoutubeChannelUrl. Dans tous les cas la query string est
+ * abandonnée (`?hl=fr`, `?lang=`, `?igsh=`… : même compte, même URL).
  */
 function canonicalProfileUrl(
   platform: SocialPlatform,
@@ -102,7 +151,7 @@ function canonicalProfileUrl(
       return `https://www.tiktok.com/${handle}`;
     }
     case 'youtube':
-      return YOUTUBE_VIDEO_PATH.test(url.pathname) ? null : url.href;
+      return canonicalYoutubeChannelUrl(segments);
   }
 }
 
