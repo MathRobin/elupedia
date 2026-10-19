@@ -93,9 +93,25 @@ export interface MergeSummary {
   dryRun: boolean;
 }
 
+/** Lettres accentuées courantes et leur équivalent ASCII, pour `translate`. */
+const ACCENTED = 'àâäáãåéèêëíìîïóòôöõúùûüçñÀÂÄÁÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÇÑ';
+const UNACCENTED = 'aaaaaaeeeeiiiiooooouuuucnAAAAAAEEEEIIIIOOOOOUUUUCN';
+
 /**
- * Paires de fiches désignant la même personne. Même nom et prénom
- * (insensible à la casse), et :
+ * Équivalent SQL de `normalizePersonName` (packages/shared) : accents
+ * retirés par `translate` (l'extension unaccent n'est pas installée),
+ * minuscules, toute séquence hors lettres/chiffres ramenée à un espace.
+ * Les deux doivent rester alignés pour qu'une paire que l'ingestion
+ * rapproche soit aussi vue comme telle ici, et inversement.
+ */
+function normalizedNameSql(column: ReturnType<typeof sql>) {
+  return sql`trim(regexp_replace(lower(translate(${column}, ${ACCENTED}, ${UNACCENTED})), '[^a-z0-9]+', ' ', 'g'))`;
+}
+
+/**
+ * Paires de fiches désignant la même personne. Même nom et prénom au sens
+ * de normalizedNameSql (casse, accents, tirets et espaces ignorés : le RNE
+ * écrit « Jean Yves BONY », l'AN « Jean-Yves Bony »), et :
  * - soit la même date de naissance ;
  * - soit une date de naissance absente d'un côté (fiche créée par les
  *   résultats des sénatoriales, pas encore complétée par l'open data Sénat)
@@ -112,6 +128,8 @@ export async function findDuplicateOfficialPairs(
     with ranked as (
       select
         id, first_name, last_name, birth_date, slug, an_id, senat_id,
+        ${normalizedNameSql(sql`first_name`)} as first_name_key,
+        ${normalizedNameSql(sql`last_name`)} as last_name_key,
         (case when senat_id is not null then 2 else 0 end)
           + (case when an_id is not null then 1 else 0 end) as score
       from officials
@@ -132,8 +150,8 @@ export async function findDuplicateOfficialPairs(
       dup.an_id as dup_an_id
     from ranked kept
     join ranked dup
-      on lower(dup.last_name) = lower(kept.last_name)
-     and lower(dup.first_name) = lower(kept.first_name)
+      on dup.last_name_key = kept.last_name_key
+     and dup.first_name_key = kept.first_name_key
      and dup.id <> kept.id
     where kept.score > dup.score
       and dup.senat_id is null
