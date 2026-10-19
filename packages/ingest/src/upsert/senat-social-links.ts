@@ -13,7 +13,11 @@
  * rafraîchie). Le statut d'une ligne existante n'est jamais modifié.
  */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { officials, externalLinks } from '@elupedia/shared';
+import {
+  officials,
+  externalLinks,
+  normalizeExternalLinkUrl,
+} from '@elupedia/shared';
 import { eq, and } from 'drizzle-orm';
 import type { SenatSocialLinkData } from '../sources/senat-reseaux-sociaux.js';
 import { logger } from '../logger.js';
@@ -61,21 +65,22 @@ export async function upsertSenatSocialLinks(
       )
       .limit(1);
 
+    const url = normalizeExternalLinkUrl(link.url);
     if (existing.length === 0) {
       await db.insert(externalLinks).values({
         officialId,
         platform: link.platform,
-        url: link.url,
+        url,
         status: 'published',
         source: 'official',
         capturedAt: new Date().toISOString().slice(0, 10),
       });
       summary.created++;
-    } else if (existing[0].url !== link.url) {
+    } else if (existing[0].url !== url) {
       await db
         .update(externalLinks)
         .set({
-          url: link.url,
+          url,
           capturedAt: new Date().toISOString().slice(0, 10),
           updatedAt: new Date(),
         })

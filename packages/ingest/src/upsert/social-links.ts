@@ -13,7 +13,11 @@
  * députés sans fiche `officials` sont ignorés silencieusement.
  */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { officials, externalLinks } from '@elupedia/shared';
+import {
+  officials,
+  externalLinks,
+  normalizeExternalLinkUrl,
+} from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import type { SocialLinkData } from '../sources/an-reseaux-sociaux.js';
 
@@ -57,21 +61,22 @@ export async function upsertSocialLinks(
 
     const existing = existingByKey.get(`${officialId}|${link.platform}`);
 
+    const url = normalizeExternalLinkUrl(link.url);
     if (!existing) {
       newRows.push({
         officialId,
         platform: link.platform,
-        url: link.url,
+        url,
         status: 'published',
         source: 'official',
         capturedAt: today,
       });
       summary.created++;
-    } else if (existing.url !== link.url) {
+    } else if (existing.url !== url) {
       await db
         .update(externalLinks)
         .set({
-          url: link.url,
+          url,
           capturedAt: today,
           updatedAt: new Date(),
         })
