@@ -544,7 +544,7 @@ export const SourceScene: React.FC<{ scene: Scene; facts: ShortFacts }> = ({
 }) => {
   const ballot = facts.ballots[0];
   const url = ballot?.url ?? facts.topic?.url ?? '';
-  const chamber = ballot?.chamber ?? facts.topic?.chamber ?? '';
+  const chamber = ballot?.chamber ?? facts.topic?.dataSourceLabel ?? '';
   const tagline = ballot
     ? 'Le vote de chaque élu, scrutin par scrutin'
     : 'Les élus, leurs mandats et leurs équipes';
@@ -654,7 +654,7 @@ export const ChartScene: React.FC<{ chart: ChartFacts }> = ({ chart }) => {
                         marginLeft: 12,
                       }}
                     >
-                      {b.count} député{b.count > 1 ? 's' : ''}
+                      {b.count} {chart.countUnit}
                     </span>
                   ) : null}
                 </span>

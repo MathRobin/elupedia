@@ -3,10 +3,10 @@ import { buildDescription } from '../description.js';
 import { validateScript } from '../script-validate.js';
 import {
   buildStaffersFacts,
-  formatMean,
   staffersScript,
   type DeputyStaffCount,
 } from './staffers.js';
+import { formatDecimal } from './common.js';
 
 const deputies: DeputyStaffCount[] = [
   ...Array.from({ length: 4 }, () => ({
@@ -113,10 +113,11 @@ describe('staffersScript', () => {
   });
 });
 
-describe('formatMean', () => {
+describe('formatDecimal', () => {
   it('uses a comma and drops a trailing ,0 when spoken', () => {
-    expect(formatMean(3.03)).toBe('3,0');
-    expect(formatMean(3.03, true)).toBe('3');
-    expect(formatMean(4.07, true)).toBe('4,1');
+    expect(formatDecimal(3.03)).toBe('3,0');
+    expect(formatDecimal(3.03, 1, true)).toBe('3');
+    expect(formatDecimal(4.07, 1, true)).toBe('4,1');
+    expect(formatDecimal(0.15, 2)).toBe('0,15');
   });
 });

@@ -4,22 +4,16 @@ import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
 import { validateScript } from './script-validate.js';
 import { DEFAULT_OUTPUT_DIR, writeReadingSheet } from './voiceover.js';
-import {
-  buildStaffersFacts,
-  loadDeputyStaffCounts,
-  loadStaffersAsOf,
-  staffersScript,
-} from './topics/staffers.js';
+import { TOPICS } from './topics/index.js';
 
 /**
  * CLI : crée un short « thème » (sans scrutin) : faits calculés depuis la
  * base, script de gabarit validé, short inséré en `draft` avec sa fiche de
  * lecture. Ensuite : enregistrer les prises, puis `make <id>`.
  *
- * Usage : yarn --cwd packages/shorts topic staffers [--dry-run] [--out <dir>]
+ * Usage : yarn --cwd packages/shorts topic <thème> [--dry-run] [--out <dir>]
+ * Thèmes : voir `topics/index.ts`.
  */
-
-const TOPICS = ['staffers'] as const;
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -29,9 +23,10 @@ const { values, positionals } = parseArgs({
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
-const topic = positionals[0] as (typeof TOPICS)[number] | undefined;
+const topicKey = positionals[0];
+const topic = topicKey ? TOPICS[topicKey] : undefined;
 
-if (values.help || !topic || !TOPICS.includes(topic)) {
+if (values.help || !topic) {
   console.log(
     [
       'Usage: yarn --cwd packages/shorts topic <thème> [options]',
@@ -40,8 +35,7 @@ if (values.help || !topic || !TOPICS.includes(topic)) {
       'validé comme un script généré, short en draft avec sa fiche de lecture.',
       '',
       'Thèmes :',
-      "  staffers   l'enveloppe collaborateurs des députés (crédit collaborateur,",
-      '             collaborateurs par député, moyenne par groupe)',
+      ...Object.values(TOPICS).map((t) => `  ${t.key.padEnd(24)} ${t.summary}`),
       '',
       'Options :',
       '  --dry-run     Affiche faits et script sans rien écrire',
@@ -57,12 +51,8 @@ const outputDir =
 async function main(): Promise<number> {
   const db = createDb();
   const shortId = values['dry-run'] ? 'dry-run' : crypto.randomUUID();
-  const facts = buildStaffersFacts(
-    shortId,
-    await loadDeputyStaffCounts(db),
-    await loadStaffersAsOf(db),
-  );
-  const script = staffersScript(facts);
+  const facts = topic!.build(shortId, await topic!.load(db));
+  const script = topic!.script(facts);
   const issues = validateScript(script, facts);
   if (issues.length > 0) {
     for (const i of issues) logger.error(`${i.code} : ${i.message}`);
@@ -79,7 +69,7 @@ async function main(): Promise<number> {
   const stored: StoredScript = {
     version: 1,
     generatedAt: new Date().toISOString(),
-    model: `topic:${topic}`,
+    model: `topic:${topic!.key}`,
     attempts: 1,
     usage: { inputTokens: 0, outputTokens: 0 },
     facts,
@@ -89,7 +79,7 @@ async function main(): Promise<number> {
     id: shortId,
     status: 'draft',
     score: 0,
-    scoreDetails: { kind: 'topic', topic },
+    scoreDetails: { kind: 'topic', topic: topic!.key },
     script: stored,
   });
   const { file } = await writeReadingSheet(

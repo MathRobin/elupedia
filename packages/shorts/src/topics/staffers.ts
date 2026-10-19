@@ -4,23 +4,28 @@ import { mandates, staffers } from '@elupedia/shared';
 import {
   SITE_URL,
   formatDateLabel,
-  groupAcronym,
-  spokenGroupName,
   type ChartBar,
   type ShortFacts,
 } from '../script-facts.js';
-import type { Scene, ShortScript } from '../script-schema.js';
-import { MAX_WORDS_PER_SEC, countWords } from '../script-validate.js';
+import type { ShortScript } from '../script-schema.js';
+import {
+  NON_INSCRITS,
+  NUMBER_WORDS,
+  byValueDesc,
+  formatDecimal,
+  formatInt,
+  groupBar,
+  round,
+  sortBars,
+  withDurations,
+  type TopicDefinition,
+} from './common.js';
 
 /**
- * Short « thème » : l'enveloppe collaborateurs des députés. Pas de scrutin,
- * pas de modèle : les faits sont calculés depuis la base (`staffers` ×
- * mandats de député en cours) et repris de pages officielles de l'Assemblée
- * (crédit collaborateur), le script est un gabarit rempli avec ces chiffres,
- * puis validé par les mêmes garde-fous que les scripts générés
- * (`script-validate.ts` : tout nombre cité doit exister dans les faits).
- *
- * Appelé par `main-topic.ts` (`yarn --cwd packages/shorts topic staffers`).
+ * Thème « staffers » : l'enveloppe collaborateurs des députés. Faits calculés
+ * depuis la base (`staffers` en poste × mandats de député en cours) et repris
+ * de pages officielles de l'Assemblée (crédit collaborateur) ; script de
+ * gabarit validé par `script-validate.ts` comme un script généré.
  *
  * Pièges : les constantes `CREDIT_*` viennent de la fiche de synthèse de
  * l'Assemblée (voir `SOURCES`), à vérifier à chaque revalorisation ; les
@@ -57,22 +62,24 @@ export const SOURCES = [
   },
 ];
 
-export const ELUPEDIA_URL = `${SITE_URL}/elus`;
-
 /** Un député en fonction et son nombre de collaborateurs en poste. */
 export interface DeputyStaffCount {
   politicalGroup: string | null;
   staffers: number;
 }
 
-const NON_INSCRITS = /non[ -]inscrit/i;
+export interface StaffersRows {
+  deputies: DeputyStaffCount[];
+  asOf: string;
+}
+
 /** Au-delà, les députés sont regroupés dans une barre « N et plus ». */
 const DISTRIBUTION_CAP = 6;
 
 export async function loadDeputyStaffCounts(
   db: NeonHttpDatabase,
 ): Promise<DeputyStaffCount[]> {
-  const rows = await db
+  return db
     .select({
       politicalGroup: mandates.politicalGroup,
       staffers: sql<number>`count(${staffers.id})::int`,
@@ -87,7 +94,6 @@ export async function loadDeputyStaffCounts(
     )
     .where(and(eq(mandates.type, 'depute'), isNull(mandates.endDate)))
     .groupBy(mandates.officialId, mandates.politicalGroup);
-  return rows;
 }
 
 export async function loadStaffersAsOf(db: NeonHttpDatabase): Promise<string> {
@@ -95,20 +101,6 @@ export async function loadStaffersAsOf(db: NeonHttpDatabase): Promise<string> {
     .select({ at: sql<string>`max(${staffers.updatedAt})::date::text` })
     .from(staffers);
   return row?.at ?? new Date().toISOString().slice(0, 10);
-}
-
-function formatInt(n: number): string {
-  return n.toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0');
-}
-
-/** « 3,6 » ; « 3 » plutôt que « 3,0 » à voix haute. */
-export function formatMean(v: number, spoken = false): string {
-  const s = v.toFixed(1).replace('.', ',');
-  return spoken && s.endsWith(',0') ? s.slice(0, -2) : s;
-}
-
-function spokenGroup(name: string): string {
-  return spokenGroupName(name).replace(/\s*&\s*/g, ' et ');
 }
 
 export function buildStaffersFacts(
@@ -146,17 +138,11 @@ export function buildStaffersFacts(
     g.staffers += d.staffers;
     byGroup.set(d.politicalGroup, g);
   }
-  const groups: ChartBar[] = [...byGroup.entries()]
-    .map(([name, g]) => ({
-      label: groupAcronym(name) ?? name,
-      spokenLabel: spokenGroup(name),
-      value: Math.round((g.staffers / g.deputies) * 100) / 100,
-      group: name,
-      count: g.deputies,
-    }))
-    .sort((a, b) =>
-      a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }),
-    );
+  const groups = sortBars(
+    [...byGroup.entries()].map(([name, g]) =>
+      groupBar(name, round(g.staffers / g.deputies, 2), g.deputies),
+    ),
+  );
 
   return {
     shortId,
@@ -172,7 +158,7 @@ export function buildStaffersFacts(
         maxStaffersPerDeputy: MAX_STAFFERS_PER_DEPUTY,
         deputies: deputyCount,
         staffers: total,
-        meanStaffers: Math.round(mean * 10) / 10,
+        meanStaffers: round(mean, 1),
       },
       charts: [
         {
@@ -180,6 +166,7 @@ export function buildStaffersFacts(
           title: 'Collaborateurs par député',
           unit: '',
           decimals: 0,
+          countUnit: 'députés',
           bars: distribution,
         },
         {
@@ -187,35 +174,18 @@ export function buildStaffersFacts(
           title: 'Moyenne par groupe',
           unit: '',
           decimals: 1,
+          countUnit: 'députés',
           bars: groups,
         },
       ],
-      url: ELUPEDIA_URL,
+      url: `${SITE_URL}/elus`,
+      elupediaLabel:
+        'Les collaborateurs de chaque député, sur sa fiche Elupedia',
+      dataSourceLabel: 'Assemblée nationale',
       sources: SOURCES,
     },
   };
 }
-
-/** Durée d'une scène d'après son texte, au débit de lecture retenu. */
-function durationFor(voiceover: string, min = 3): number {
-  return Math.min(
-    15,
-    Math.max(min, Math.ceil(countWords(voiceover) / (MAX_WORDS_PER_SEC - 0.1))),
-  );
-}
-
-const NUMBER_WORDS = [
-  'zéro',
-  'un',
-  'deux',
-  'trois',
-  'quatre',
-  'cinq',
-  'six',
-  'sept',
-  'huit',
-  'neuf',
-];
 
 export function staffersScript(facts: ShortFacts): ShortScript {
   const t = facts.topic;
@@ -225,10 +195,9 @@ export function staffersScript(facts: ShortFacts): ShortScript {
   const distribution = t.charts[0]!.bars;
   const groups = t.charts[1]!.bars;
 
-  const ranked = [...distribution]
-    .filter((b) => !b.label.includes('plus'))
-    .sort((a, b) => b.value - a.value);
-  const [first, second] = ranked;
+  const [first, second] = byValueDesc(
+    distribution.filter((b) => !b.label.includes('plus')),
+  );
   const capBar = distribution.find((b) => b.label.includes('plus'))!;
   const word = (label: string) => NUMBER_WORDS[Number(label)] ?? label;
 
@@ -238,8 +207,9 @@ export function staffersScript(facts: ShortFacts): ShortScript {
   const middle = byMean.slice(1, -1);
   const midLow = middle[0] ?? low;
   const midHigh = middle[middle.length - 1] ?? high;
+  const mean = (v: number, spoken = true) => formatDecimal(v, 1, spoken);
 
-  const drafts: Omit<Scene, 'durationSec'>[] = [
+  const scenes = withDurations([
     {
       id: 's1',
       kind: 'hook',
@@ -271,7 +241,7 @@ export function staffersScript(facts: ShortFacts): ShortScript {
     {
       id: 's4',
       kind: 'groups',
-      voiceover: `Par groupe, la moyenne va de ${formatMean(low.value, true)} collaborateurs pour ${low.spokenLabel} à ${formatMean(high.value, true)} pour ${high.spokenLabel}. Les autres groupes se situent entre ${formatMean(midLow.value, true)} et ${formatMean(midHigh.value, true)}.`,
+      voiceover: `Par groupe, la moyenne va de ${mean(low.value)} collaborateurs pour ${low.spokenLabel} à ${mean(high.value)} pour ${high.spokenLabel}. Les autres groupes se situent entre ${mean(midLow.value)} et ${mean(midHigh.value)}.`,
       onScreenText: t.charts[1]!.title,
       visual: 'chart',
       chart: t.charts[1]!.id,
@@ -287,16 +257,12 @@ export function staffersScript(facts: ShortFacts): ShortScript {
       chart: null,
       lowerThird: null,
     },
-  ];
-  const scenes: Scene[] = drafts.map((s) => ({
-    ...s,
-    durationSec: durationFor(s.voiceover),
-  }));
+  ]);
 
   return {
     title: 'Combien de collaborateurs pour un député ?',
     scenes,
-    description: `Chaque député dispose d'un crédit collaborateur de ${formatInt(n.creditMonthlyEur!)} € bruts par mois pour salarier jusqu'à ${n.maxStaffersPerDeputy} collaborateurs, les cotisations patronales étant prises en charge par l'Assemblée nationale. Au ${t.dateLabel}, les ${formatInt(n.deputies!)} députés en fonction déclarent ${formatInt(n.staffers!)} collaborateurs dans les données ouvertes de l'Assemblée, soit ${formatMean(n.meanStaffers!)} en moyenne ; la moyenne par groupe va de ${formatMean(low.value)} (${low.spokenLabel}) à ${formatMean(high.value)} (${high.spokenLabel}).`,
+    description: `Chaque député dispose d'un crédit collaborateur de ${formatInt(n.creditMonthlyEur!)} € bruts par mois pour salarier jusqu'à ${n.maxStaffersPerDeputy} collaborateurs, les cotisations patronales étant prises en charge par l'Assemblée nationale. Au ${t.dateLabel}, les ${formatInt(n.deputies!)} députés en fonction déclarent ${formatInt(n.staffers!)} collaborateurs dans les données ouvertes de l'Assemblée, soit ${mean(n.meanStaffers!, false)} en moyenne ; la moyenne par groupe va de ${mean(low.value, false)} (${low.spokenLabel}) à ${mean(high.value, false)} (${high.spokenLabel}).`,
     hashtags: [
       '#AssembléeNationale',
       '#Députés',
@@ -305,3 +271,16 @@ export function staffersScript(facts: ShortFacts): ShortScript {
     ],
   };
 }
+
+export const staffersTopic: TopicDefinition<StaffersRows> = {
+  key: 'staffers',
+  summary:
+    "l'enveloppe collaborateurs des députés : crédit mensuel, collaborateurs par député, moyenne par groupe",
+  load: async (db) => ({
+    deputies: await loadDeputyStaffCounts(db),
+    asOf: await loadStaffersAsOf(db),
+  }),
+  build: (shortId, rows) =>
+    buildStaffersFacts(shortId, rows.deputies, rows.asOf),
+  script: staffersScript,
+};
