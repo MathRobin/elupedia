@@ -15,7 +15,13 @@
  * élu ayant un mandat en cours. Les liens déjà présents ne sont jamais
  * modifiés : un élu avec un lien est simplement sauté.
  */
-import { createDb, officials, externalLinks, mandates } from '@elupedia/shared';
+import {
+  createDb,
+  officials,
+  externalLinks,
+  mandates,
+  normalizeExternalLinkUrl,
+} from '@elupedia/shared';
 import { eq, and, or, isNull } from 'drizzle-orm';
 
 import { logger } from './logger.js';
@@ -102,7 +108,7 @@ export async function runWikipedia(): Promise<StepResult[]> {
               await db.insert(externalLinks).values({
                 officialId: official.id,
                 platform: 'wikipedia_fr',
-                url,
+                url: normalizeExternalLinkUrl(url),
                 status: 'published',
                 source: 'wikipedia_api',
                 capturedAt: new Date().toISOString().slice(0, 10),

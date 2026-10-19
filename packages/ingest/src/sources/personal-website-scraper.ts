@@ -42,6 +42,71 @@ function domainToPlatform(hostname: string): SocialPlatform | null {
 }
 
 /**
+ * Lien YouTube vers une vidéo précise (lecteur embarqué, page de lecture,
+ * short) plutôt que vers une chaîne. On cherche la chaîne de l'élu : ces
+ * liens sont écartés, ils ne mèneraient qu'à une vidéo isolée. Les formes de
+ * chaîne sont trop variées (/@x, /channel/x, /c/x, /user/x, avec ou sans
+ * onglet) pour une liste blanche : on écarte les formes de vidéo connues.
+ */
+const YOUTUBE_VIDEO_PATH = /^\/(embed|watch|shorts)(\/|$)/i;
+
+/**
+ * Pseudo Instagram : lettres, chiffres, points et tirets bas, 30 max.
+ * Segments réservés qui ne sont pas des comptes (publications, reels,
+ * hashtags, stories…).
+ */
+const INSTAGRAM_HANDLE = /^[A-Za-z0-9._]{1,30}$/;
+const INSTAGRAM_RESERVED = new Set([
+  'p',
+  'reel',
+  'reels',
+  'stories',
+  'explore',
+  'accounts',
+  'tags',
+  'share',
+  'direct',
+]);
+
+/** Pseudo TikTok (après le « @ ») : lettres, chiffres, points et tirets bas. */
+const TIKTOK_HANDLE = /^@[A-Za-z0-9._]{1,24}$/;
+
+/**
+ * URL canonique du profil si le lien désigne bien un compte, sinon null.
+ * Instagram et TikTok ont une forme de profil unique, on la vérifie
+ * strictement : tout le reste (post /p/…, reel, hashtag /explore/tags/…,
+ * musique /music/…, vidéo /@x/video/…, image CDN) est écarté. Le suffixe
+ * `/profilecard` d'Instagram est ramené au profil.
+ */
+function canonicalProfileUrl(
+  platform: SocialPlatform,
+  url: URL,
+): string | null {
+  const segments = url.pathname.split('/').filter(Boolean);
+  switch (platform) {
+    case 'instagram': {
+      if (segments.length === 2 && segments[1] === 'profilecard') {
+        segments.pop();
+      }
+      const [handle] = segments;
+      if (segments.length !== 1 || !handle) return null;
+      if (INSTAGRAM_RESERVED.has(handle.toLowerCase())) return null;
+      if (!INSTAGRAM_HANDLE.test(handle)) return null;
+      return `https://www.instagram.com/${handle}`;
+    }
+    case 'tiktok': {
+      const [handle] = segments;
+      if (segments.length !== 1 || !handle || !TIKTOK_HANDLE.test(handle)) {
+        return null;
+      }
+      return `https://www.tiktok.com/${handle}`;
+    }
+    case 'youtube':
+      return YOUTUBE_VIDEO_PATH.test(url.pathname) ? null : url.href;
+  }
+}
+
+/**
  * Lit le robots.txt du site et renvoie false uniquement si la racine est
  * interdite pour tous les robots ou pour ElupediaBot. Toute erreur (pas de
  * fichier, timeout, URL invalide) vaut autorisation.
@@ -83,7 +148,10 @@ export async function checkRobotsTxt(
 /**
  * Extrait les liens vers les plateformes supportées d'un document HTML.
  * `baseUrl` sert à résoudre les URL relatives ; les liens non http(s) ou
- * invalides sont ignorés.
+ * invalides sont ignorés, ainsi que tout lien qui ne désigne pas un compte
+ * (vidéo YouTube, post ou hashtag Instagram, vidéo ou musique TikTok ; voir
+ * canonicalProfileUrl). Les profils Instagram et TikTok sont renvoyés sous
+ * forme canonique (www, sans slash final).
  */
 export function extractSocialLinks(
   html: string,
@@ -100,7 +168,8 @@ export function extractSocialLinks(
         continue;
       const platform = domainToPlatform(resolved.hostname);
       if (!platform) continue;
-      const canonical = resolved.href;
+      const canonical = canonicalProfileUrl(platform, resolved);
+      if (!canonical) continue;
       if (seen.has(canonical)) continue;
       seen.add(canonical);
       results.push({ platform, url: canonical });
