@@ -23,10 +23,13 @@ type Row = Record<string, unknown>;
  * (le filtrage SQL n'est pas simulé : seuls les mandats actifs y figurent),
  * les écritures sont enregistrées pour être vérifiées.
  */
-function createDb(initial: { officials?: Row[]; active?: Row[] } = {}) {
-  const store = {
+function createDb(
+  initial: { officials?: Row[]; active?: Row[]; aliases?: Row[] } = {},
+) {
+  const store: Record<string, Row[]> = {
     officials: initial.officials ?? [],
     mandates: initial.active ?? [],
+    official_aliases: initial.aliases ?? [],
   };
   const calls = {
     officialInserts: [] as Row[][],
@@ -69,7 +72,7 @@ function createDb(initial: { officials?: Row[]; active?: Row[] } = {}) {
     select: () => ({
       from: (t: unknown) => {
         const name = tableName(t);
-        const rows = store[name as 'officials' | 'mandates'] ?? [];
+        const rows = store[name] ?? [];
         return Object.assign(Promise.resolve(rows), {
           where: () => Promise.resolve(rows),
         });
@@ -298,5 +301,24 @@ describe('upsertConseillersEpci', () => {
     expect(calls.officialInserts[0][0]).toMatchObject({ firstName: 'Anne' });
     expect(r.officials).toBe(1);
     expect(saveCheckpoint).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('alias de fiche', () => {
+  it('rattache une ligne dont la clé est un alias à la fiche cible sans créer de doublon', async () => {
+    const { db, calls } = createDb({
+      officials: [existingOfficial({ id: 'off-1', birthDate: '1990-10-31' })],
+      aliases: [
+        {
+          aliasKey: officialKey('Juvénal', 'TURPIN', '1980-10-31'),
+          officialId: 'off-1',
+        },
+      ],
+    });
+    await upsertConseillersEpci(db, [row({ birthDate: '1980-10-31' })]);
+    expect(calls.officialInserts).toEqual([]);
+    expect(calls.mandateInserts.flat().map((m) => m.officialId)).toEqual([
+      'off-1',
+    ]);
   });
 });

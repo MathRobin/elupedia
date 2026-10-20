@@ -44,7 +44,11 @@ function createMockDb(selectQueue: unknown[][]) {
   const updates: { table: string; set: Record<string, unknown> }[] = [];
   const db = {
     select: () => ({
-      from: () => chain(selectQueue[selectCallIndex++] ?? []),
+      from: (t: unknown) =>
+        (t as Record<symbol, string>)[Symbol.for('drizzle:Name')] ===
+        'official_aliases'
+          ? chain([])
+          : chain(selectQueue[selectCallIndex++] ?? []),
     }),
     insert: (table: unknown) => {
       const name = getTableName(table);

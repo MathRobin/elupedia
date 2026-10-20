@@ -16,6 +16,7 @@ export { POLITICAL_GROUP_URLS } from './political-group-urls.js';
 export { buildHatvpSlug, buildHatvpUrl } from './hatvp-url.js';
 export { slugifyText } from './slugify.js';
 export { normalizePersonName } from './person-name.js';
+export { officialAliasKey } from './official-alias-key.js';
 export {
   normalizeExternalLinkUrl,
   externalLinkComparisonKey,

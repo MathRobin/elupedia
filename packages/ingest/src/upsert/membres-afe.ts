@@ -22,6 +22,10 @@ import { officials, mandates, normalizePersonName } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { RneMembreAfe } from '../sources/rne-membres-afe.js';
 import { logger } from '../logger.js';
+import {
+  applyOfficialAliases,
+  loadOfficialAliases,
+} from './official-aliases.js';
 
 // Pas de département français pour ces élus : même constante que pour les
 // conseillers des Français de l'étranger (conseillers-fde) et les
@@ -100,6 +104,12 @@ async function resolveOfficials(
       { id: official.id, slug: official.slug },
     );
   }
+  // Identités alternatives (fusions de doublons, corrections) : la clé source
+  // redirige vers la fiche cible au lieu de recréer une fiche.
+  applyOfficialAliases(officialByKey, await loadOfficialAliases(db), (id) => {
+    const o = allOfficials.find((x) => x.id === id);
+    return o ? { id: o.id, slug: o.slug } : undefined;
+  });
 
   const takenSlugs = new Set(
     allOfficials.filter((o) => o.slug).map((o) => o.slug!),

@@ -18,6 +18,8 @@ import {
   createDb,
   dataProvenance,
   mandates,
+  officialAliasKey,
+  officialAliases,
   officials,
 } from '@elupedia/shared';
 import { auth } from '@/lib/auth';
@@ -128,6 +130,18 @@ export interface OfficialDetail {
     before: unknown;
     after: unknown;
   }[];
+  /** Identités alternatives reconnues par les ingestions RNE (voir official_aliases). */
+  aliases: OfficialAlias[];
+}
+
+export interface OfficialAlias {
+  id: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string | null;
+  source: string;
+  note: string | null;
+  createdAt: string;
 }
 
 export async function getOfficial(id: string): Promise<OfficialDetail | null> {
@@ -168,7 +182,21 @@ export async function getOfficial(id: string): Promise<OfficialDetail | null> {
       ),
     )
     .orderBy(desc(dataProvenance.fetchedAt));
+  const aliases = await db
+    .select()
+    .from(officialAliases)
+    .where(eq(officialAliases.officialId, id))
+    .orderBy(desc(officialAliases.createdAt));
   return {
+    aliases: aliases.map((a) => ({
+      id: a.id,
+      firstName: a.firstName,
+      lastName: a.lastName,
+      birthDate: a.birthDate,
+      source: a.source,
+      note: a.note,
+      createdAt: a.createdAt.toISOString(),
+    })),
     id: o.id,
     firstName: o.firstName,
     lastName: o.lastName,
@@ -293,4 +321,68 @@ export async function reopenMandate(mandateId: string): Promise<void> {
     .set({ endDate: null, updatedAt: new Date() })
     .where(eq(mandates.id, mandateId));
   await trace('mandates', mandateId, 'endDate', m.endDate, null, by);
+}
+
+/**
+ * Ajoute une identité alternative : les ingestions qui rapprochent par
+ * nom + prénom + date de naissance rattacheront cette écriture à la fiche.
+ */
+export async function addOfficialAlias(
+  officialId: string,
+  firstName: string,
+  lastName: string,
+  birthDate: string,
+  note: string,
+): Promise<void> {
+  const by = await requireAdmin();
+  const first = firstName.trim();
+  const last = lastName.trim();
+  const birth = birthDate.trim() || null;
+  if (!first || !last) throw new Error('Prénom et nom requis');
+  if (birth !== null && !DATE.test(birth)) {
+    throw new Error('Date attendue au format AAAA-MM-JJ');
+  }
+  const [o] = await db
+    .select({
+      firstName: officials.firstName,
+      lastName: officials.lastName,
+      birthDate: officials.birthDate,
+    })
+    .from(officials)
+    .where(eq(officials.id, officialId))
+    .limit(1);
+  if (!o) throw new Error('Fiche introuvable');
+  const aliasKey = officialAliasKey(first, last, birth);
+  if (aliasKey === officialAliasKey(o.firstName, o.lastName, o.birthDate)) {
+    throw new Error(
+      "Cette écriture est déjà celle de la fiche : pas d'alias à ajouter",
+    );
+  }
+  const [existing] = await db
+    .select({ officialId: officialAliases.officialId })
+    .from(officialAliases)
+    .where(eq(officialAliases.aliasKey, aliasKey))
+    .limit(1);
+  if (existing && existing.officialId !== officialId) {
+    throw new Error(
+      `Cette écriture est déjà un alias de la fiche ${existing.officialId}`,
+    );
+  }
+  await db
+    .insert(officialAliases)
+    .values({
+      officialId,
+      firstName: first,
+      lastName: last,
+      birthDate: birth,
+      aliasKey,
+      source: 'admin_manual',
+      note: note.trim() ? `${note.trim()} (${by})` : by,
+    })
+    .onConflictDoNothing();
+}
+
+export async function removeOfficialAlias(aliasId: string): Promise<void> {
+  await requireAdmin();
+  await db.delete(officialAliases).where(eq(officialAliases.id, aliasId));
 }

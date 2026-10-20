@@ -40,6 +40,10 @@ import { eq, and, isNull } from 'drizzle-orm';
 import type { RneConseillerEpci } from '../sources/rne-conseillers-epci.js';
 import { logger } from '../logger.js';
 import {
+  applyOfficialAliases,
+  loadOfficialAliases,
+} from './official-aliases.js';
+import {
   loadCheckpoint,
   saveCheckpoint,
   clearCheckpoint,
@@ -146,6 +150,12 @@ export async function upsertConseillersEpci(
   for (const o of allOfficials) {
     officialByKey.set(officialKey(o.firstName, o.lastName, o.birthDate), o.id);
   }
+  // Identités alternatives (fusions de doublons, corrections) : la clé source
+  // redirige vers la fiche cible au lieu de recréer une fiche.
+  const knownIds = new Set(allOfficials.map((o) => o.id));
+  applyOfficialAliases(officialByKey, await loadOfficialAliases(db), (id) =>
+    knownIds.has(id) ? id : undefined,
+  );
   const usedSlugs = new Set(
     allOfficials.filter((o) => o.slug).map((o) => o.slug!),
   );

@@ -18,6 +18,8 @@ import {
   campaignAccounts,
   declarationSnapshots,
   sponsorships,
+  officialAliases,
+  officialAliasKey,
 } from '@elupedia/shared';
 import { auth } from '@/lib/auth';
 
@@ -88,6 +90,7 @@ export async function listDuplicates(): Promise<DuplicateGroup[]> {
 }
 
 const CHILD_TABLES = [
+  officialAliases,
   mandates,
   votes,
   staffers,
@@ -209,6 +212,37 @@ export async function mergeOfficials(
       updated_at = NOW()
       WHERE id = '${keepId}';
     DELETE FROM officials WHERE id = '${removeId}';
-  END $$;`),
+  END $;`),
   );
+
+  // L'identité de la fiche supprimée devient un alias de la fiche conservée :
+  // la prochaine ingestion qui l'écrit ainsi (RNE avec une autre date de
+  // naissance, par exemple) la rattachera au lieu de recréer le doublon.
+  const removedKey = officialAliasKey(
+    remove.firstName,
+    remove.lastName,
+    remove.birthDate,
+  );
+  const keptKey = officialAliasKey(
+    keep.firstName,
+    keep.lastName,
+    keep.birthDate ?? remove.birthDate,
+  );
+  if (removedKey !== keptKey) {
+    await db
+      .insert(officialAliases)
+      .values({
+        officialId: keepId,
+        firstName: remove.firstName,
+        lastName: remove.lastName,
+        birthDate: remove.birthDate,
+        aliasKey: removedKey,
+        source: 'admin_merge',
+        note: `Fusion de la fiche ${removeId} (${remove.slug ?? 'sans slug'})`,
+      })
+      .onConflictDoUpdate({
+        target: officialAliases.aliasKey,
+        set: { officialId: keepId },
+      });
+  }
 }
