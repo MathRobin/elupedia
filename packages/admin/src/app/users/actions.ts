@@ -1,5 +1,13 @@
 'use server';
 
+/**
+ * Actions serveur de /users : comptes de l'admin (table `users`). Écritures :
+ * `updateUserRole` modifie `users.role`, `deleteUser` supprime la ligne,
+ * `inviteUser` insère un compte (email + rôle) sans mot de passe : celui-ci
+ * est posé ensuite avec `yarn --cwd packages/admin set-password <email>`.
+ * Rôles acceptés : admin et moderator. Réservé au rôle admin
+ * (`requireAdmin`, vérifié à chaque appel) ; chaque écriture revalide /users.
+ */
 import { eq } from 'drizzle-orm';
 import { createDb, users } from '@elupedia/shared';
 import { auth } from '@/lib/auth';

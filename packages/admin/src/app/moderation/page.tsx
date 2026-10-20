@@ -1,5 +1,13 @@
 'use client';
 
+/**
+ * Page /moderation (rendu client) : tableau des liens externes en attente
+ * avec boutons Approuver / Rejeter / Supprimer, rechargé après chaque
+ * décision. Actions serveur : listPendingLinks, moderateLink (./actions.ts,
+ * rôles admin et moderator). Le lien vers la fiche publique est construit à
+ * partir de prénom-nom en minuscules, pas du slug : il peut être faux pour
+ * les noms accentués ou composés.
+ */
 import { useEffect, useState } from 'react';
 import { Table, Button, Group, Title, Stack, Badge, Text } from '@mantine/core';
 import { listPendingLinks, moderateLink } from './actions';

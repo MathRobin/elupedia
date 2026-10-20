@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * Page /login (rendu client) : formulaire email + mot de passe envoyé au
+ * fournisseur `credentials` d'Auth.js via signIn (lib/auth.ts), sans
+ * redirection automatique pour afficher l'erreur sur place ; succès → push
+ * vers /. Seule page publique avec /api/auth (voir proxy.ts). Aucun rôle
+ * requis ; un utilisateur déjà connecté peut la rouvrir.
+ */
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';

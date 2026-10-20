@@ -216,7 +216,12 @@ Dérogations documentées dans leur en-tête : `main-decorations`, `main-madada`
 
 ### Rapprochement des élus entre sources
 
-Une personne est identifiée, dans l'ordre : par son identifiant source quand il existe (`officials.an_id`, `senat_id`, `europarl_id`), sinon par le triplet (prénom, nom, date de naissance) normalisé, sinon (Sénat uniquement) par le slug. Les sources RNE et les résultats électoraux n'ont que nom + prénom (± naissance) : les homonymes stricts sont un risque connu (voir `docs/KNOWN-ISSUES.md`). Pour les mandats, l'index unique `(official_id, type, start_date)` est la clé ; un mandat « en cours » côté source est d'abord cherché par date de début exacte, puis par statut actif (`upsert/officials.ts`).
+Une personne est identifiée, dans l'ordre : par son identifiant source quand il existe (`officials.an_id`, `senat_id`, `europarl_id`), sinon par le triplet (prénom, nom, date de naissance), sinon (Sénat uniquement) par le slug. Les noms sont comparés via `normalizePersonName` (`packages/shared`) : casse, accents, tirets et espaces ignorés, car le RNE écrit « Jean Yves BONY » là où l'AN écrit « Jean-Yves Bony ». Les upserts RNE consultent aussi `official_aliases` (identités alternatives d'une fiche, posées par l'admin lors d'une fusion ou à la main, voir `docs/DOMAINS.md`). Les sources RNE et les résultats électoraux n'ont que nom + prénom (± naissance) : les homonymes stricts restent un risque connu (voir `docs/KNOWN-ISSUES.md`). Pour les mandats, l'index unique `(official_id, type, start_date)` est la clé ; un mandat « en cours » côté source est d'abord cherché par date de début exacte, puis par statut actif (`upsert/mandate-match.ts`).
+
+Deux outils complètent ces règles a posteriori :
+
+- `merge:duplicate-officials` (`merge-duplicate-officials.ts`, dry-run par défaut, `--apply` pour écrire, lancé en fin du DAG `ingest-senat`) fusionne les fiches qui désignent la même personne : même nom normalisé et même date de naissance, ou date absente d'un côté mais mandat sénateur actif commençant le même jour. La fiche la plus « sourcée » est conservée (matricule Sénat, puis `an_id`, puis mandat en cours / nombre de mandats / plus récente) ; les lignes dépendantes sont déplacées, les doublons par clé naturelle supprimés (`NATURAL_KEYS`), le slug canonique repris.
+- `reconcile` (`reconcile-elections.ts` + `official-resolver.ts`) rattache les candidats aux élections et les parrainages sans `official_id` : nom normalisé, repli sur le premier prénom, département du mandat pour départager les homonymes. Le verdict est écrit dans `resolution` (`no_match` : aucune fiche de ce nom, rien à faire ; `ambiguous` : à trancher dans l'admin, page Rattachements), recalculé à chaque run.
 
 ### Historisation des mandats locaux (RNE)
 
@@ -228,7 +233,7 @@ Photos existantes (`mayor-photos`), coordonnées GPS déjà géocodées, `an_uid
 
 ### Fichiers annexes produits par l'ingestion
 
-- `packages/ingest/ingest-report*.json` : rapports de run (compteurs par étape)
+- `packages/ingest/ingest-report*.json` : rapports de run (compteurs par étape), un par script planifié (`ingest-report-<script>.json`, `ingest-report.json` pour le run complet) ; la page Ingestions de l'admin en lit la date et le résultat, un script sans rapport y apparaît sans date
 - `packages/ingest/madada-cache.json` : cache des réponses MaDaDa
 - `~/.elupedia/checkpoints/` : reprises des ingestions longues (maires, adresses mairies)
 - `data_provenance` : outre les provenances, sert de stockage de curseurs d'ingestion incrémentale (`source_table = 'europarl_questions_cursor'`, `'europarl_sittings'`)

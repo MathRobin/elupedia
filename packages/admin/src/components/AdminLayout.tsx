@@ -1,5 +1,11 @@
 'use client';
 
+/**
+ * Coquille de l'admin (AppShell Mantine) : header avec titre et burger (menu
+ * replié sous le point de rupture sm), navbar contenant AdminSidebar, zone
+ * principale pour la page. Monté par app/layout.tsx autour de toutes les
+ * pages, /login comprise. L'état ouvert/fermé du menu mobile est local.
+ */
 import { AppShell, Burger, Group, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { AdminSidebar } from './AdminSidebar';

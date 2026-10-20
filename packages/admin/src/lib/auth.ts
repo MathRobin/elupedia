@@ -1,3 +1,13 @@
+/**
+ * Configuration Auth.js (NextAuth v5) de l'admin : fournisseur `credentials`
+ * (email + mot de passe comparé au `users.password_hash` bcrypt), session
+ * JWT, page de connexion /login. Le rôle est lu dans `users` à la connexion
+ * (callback `jwt`) puis recopié dans `session.user.role` : un changement de
+ * rôle ne prend effet qu'à la reconnexion. Exporte handlers (route
+ * /api/auth), auth (proxy.ts et actions serveur), signIn, signOut.
+ * L'adaptateur Drizzle ne sert qu'aux tables users/accounts/
+ * verification_tokens ; aucun fournisseur OAuth n'est configuré.
+ */
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';

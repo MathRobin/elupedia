@@ -28,12 +28,12 @@ avant de lancer la commande ci-dessous — le conteneur s'y connecte via
 docker run --rm --network host \
   -v "$(pwd)":/work -w /work/packages/e2e \
   -e HOME=/tmp \
-  mcr.microsoft.com/playwright:v1.63.0-noble \
+  mcr.microsoft.com/playwright:v1.64.0-noble \
   npx playwright test visual --update-snapshots
 
 # Les fichiers créés appartiennent à root (conteneur) : rendre la main
 docker run --rm -v "$(pwd)":/work -w /work \
-  mcr.microsoft.com/playwright:v1.63.0-noble \
+  mcr.microsoft.com/playwright:v1.64.0-noble \
   chown -R "$(id -u)":"$(id -g)" packages/e2e/tests/visual.spec.ts-snapshots
 ```
 
@@ -41,7 +41,7 @@ Vérifier ensuite le diff (`git diff` sur les PNG n'est pas lisible — ouvrir
 les images) avant de committer : une baseline mise à jour sans revue valide
 n'importe quel changement visuel futur par erreur.
 
-La version de l'image Docker (`v1.63.0-noble`) doit rester synchronisée avec
+La version de l'image Docker (`v1.64.0-noble`) doit rester synchronisée avec
 la version de `@playwright/test` dans `package.json` — sinon les navigateurs
 utilisés en local et en CI peuvent diverger.
 
