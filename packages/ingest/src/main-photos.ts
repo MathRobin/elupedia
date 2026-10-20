@@ -6,11 +6,12 @@
  * Commande : `yarn --cwd packages/ingest ingest:photos`
  *
  * Exception à la convention main/run du package : pas de `run-photos.ts`, le
- * main appelle directement l'upsert via runStep. Code de sortie 1 si l'étape
- * a échoué.
+ * main appelle directement l'upsert via runStep. Écrit
+ * ingest-report-photos.json. Code de sortie 1 si l'étape a échoué.
  */
 import { createDb } from '@elupedia/shared';
 import { runStep, printSummary } from './run-helpers.js';
+import { detectChanges, writeChangeReport } from './utils/change-detector.js';
 import { uploadPhotos } from './upsert/upload-photos.js';
 import { logger } from './logger.js';
 
@@ -32,6 +33,8 @@ async function main() {
   ];
 
   printSummary('Photos', results, logger);
+  // Date et résultat du dernier run, lus par l'admin (page Ingestions).
+  writeChangeReport(detectChanges(results), 'ingest-report-photos.json');
 
   const hasErrors = results.some((result) => result.error);
   process.exit(hasErrors ? 1 : 0);

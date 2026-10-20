@@ -5,7 +5,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { detectChanges, writeChangeReport } from './change-detector.js';
+import {
+  detectChanges,
+  reportFromCounts,
+  writeChangeReport,
+} from './change-detector.js';
 
 const reportPath = resolve(import.meta.dirname, 'test-ingest-report.json');
 
@@ -72,5 +76,29 @@ describe('writeChangeReport', () => {
     const content = JSON.parse(readFileSync(reportPath, 'utf-8'));
     expect(content.hasChanges).toBe(true);
     expect(content.totalCreated).toBe(5);
+  });
+});
+
+describe('reportFromCounts', () => {
+  it('builds the same report shape from plain counters', () => {
+    expect(
+      reportFromCounts('madada', { created: 3, updated: 10, errors: 2 }),
+    ).toEqual({
+      hasChanges: true,
+      totalCreated: 3,
+      totalUpdated: 10,
+      totalErrors: 2,
+      changedSources: ['madada'],
+    });
+  });
+
+  it('reports no change when nothing was created or updated', () => {
+    expect(reportFromCounts('reconcile', { created: 0 })).toEqual({
+      hasChanges: false,
+      totalCreated: 0,
+      totalUpdated: 0,
+      totalErrors: 0,
+      changedSources: [],
+    });
   });
 });

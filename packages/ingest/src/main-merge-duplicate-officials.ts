@@ -12,11 +12,27 @@
 import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { mergeDuplicateOfficials } from './merge-duplicate-officials.js';
+import {
+  reportFromCounts,
+  writeChangeReport,
+} from './utils/change-detector.js';
 
 const dryRun = !process.argv.includes('--apply');
 
 mergeDuplicateOfficials(createDb(), { dryRun })
-  .then(() => process.exit(0))
+  .then((summary) => {
+    // Seul un run réel laisse une trace pour l'admin (page Ingestions).
+    if (!dryRun) {
+      writeChangeReport(
+        reportFromCounts('merge-duplicate-officials', {
+          created: summary.pairs,
+          updated: summary.moved,
+        }),
+        'ingest-report-merge-duplicate-officials.json',
+      );
+    }
+    process.exit(0);
+  })
   .catch((error) => {
     logger.error(`Fusion des fiches en doublon failed: ${error}`);
     if (error?.cause)

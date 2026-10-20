@@ -16,6 +16,10 @@ import { createDb } from '@elupedia/shared';
 import { officials } from '@elupedia/shared';
 import { logger } from './logger.js';
 import {
+  reportFromCounts,
+  writeChangeReport,
+} from './utils/change-detector.js';
+import {
   searchDecorations,
   fetchFicheDetail,
 } from './sources/legion-honneur.js';
@@ -138,10 +142,23 @@ async function main() {
   logger.info(
     `Done: ${found} officials matched, ${totalDecorations} decorations, ${errors} errors`,
   );
+  return { found, totalDecorations, errors };
 }
 
 main()
-  .then(() => process.exit(0))
+  .then(({ found, totalDecorations, errors }) => {
+    // Date et résultat du dernier run, lus par l'admin (page Ingestions) :
+    // created = décorations trouvées, updated = élus rapprochés.
+    writeChangeReport(
+      reportFromCounts('decorations', {
+        created: totalDecorations,
+        updated: found,
+        errors,
+      }),
+      'ingest-report-decorations.json',
+    );
+    process.exit(0);
+  })
   .catch((error) => {
     logger.error(`Decorations ingestion failed: ${error}`);
     process.exit(1);
