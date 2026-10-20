@@ -124,7 +124,7 @@ export function allowedNumbers(facts: ShortFacts): Set<number> {
       for (const n of extractNumbers(c.title)) allowed.add(n);
       for (const b of c.bars) {
         for (const n of extractNumbers(b.label)) allowed.add(n);
-        addDecimal(allowed, b.value, c.decimals);
+        addDecimal(allowed, b.value, Math.max(1, c.decimals));
         if (b.count !== null) allowed.add(b.count);
       }
     }
@@ -136,11 +136,13 @@ export function allowedNumbers(facts: ShortFacts): Set<number> {
  * Un nombre décimal se dit « 3,6 » : le texte contient alors 3 et 6, qu'il
  * faut autoriser tels quels, en plus de l'entier arrondi.
  */
-function addDecimal(allowed: Set<number>, value: number, decimals = 1): void {
+function addDecimal(allowed: Set<number>, value: number, decimals = 2): void {
   allowed.add(Math.round(value));
   allowed.add(Math.floor(value));
-  for (const n of extractNumbers(value.toFixed(decimals).replace('.', ',')))
-    allowed.add(n);
+  for (let d = 1; d <= Math.max(1, decimals); d++) {
+    for (const n of extractNumbers(value.toFixed(d).replace('.', ',')))
+      allowed.add(n);
+  }
 }
 
 export function countWords(text: string): number {
@@ -309,9 +311,11 @@ export function validateScript(
       // « La Droite Républicaine » est un groupe, pas le bloc.
       const re = new RegExp(`\\bla ${word}\\b(?! republicaine)`);
       if (!re.test(text)) continue;
-      const ok =
-        facts.ballots.length > 0 &&
-        facts.ballots.every((b) => b.blocs[side]?.unanimousPosition != null);
+      // Sans scrutin (short « thème »), « la gauche » ne décrit pas un vote.
+      if (facts.ballots.length === 0) continue;
+      const ok = facts.ballots.every(
+        (b) => b.blocs[side]?.unanimousPosition != null,
+      );
       if (!ok) {
         issues.push({
           code: 'bloc_not_unanimous',

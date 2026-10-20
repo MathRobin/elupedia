@@ -127,6 +127,8 @@ export interface ChartFacts {
   unit: string;
   /** Décimales affichées (0 pour des effectifs, 1 pour une moyenne). */
   decimals: number;
+  /** Unité de `bars[].count` à l'écran (« députés », « questions », « comptes »). */
+  countUnit: string;
   bars: ChartBar[];
 }
 
@@ -148,6 +150,10 @@ export interface TopicFacts {
   numbers: Record<string, number>;
   charts: ChartFacts[];
   url: string;
+  /** Ce que la page Elupedia apporte, ex. « Les collaborateurs de chaque député, sur sa fiche Elupedia ». */
+  elupediaLabel: string;
+  /** Producteur des données, pour « Données : … » (ex. « Assemblée nationale », « CNCCFP »). */
+  dataSourceLabel: string;
   sources: SourceLink[];
 }
 
