@@ -57,6 +57,7 @@ export const NATURAL_KEYS: Record<string, readonly string[]> = {
   campaign_accounts: ['cnccfp_id'],
   sponsorships: ['type', 'election_year', 'candidate_name'],
   decorations: ['arko_ref', 'order_name'],
+  official_aliases: ['alias_key'],
   // Candidats : `official_id` est un rattachement facultatif (sans FK) posé
   // par reconcile ; une personne n'est candidate qu'une fois par scrutin.
   municipal_candidates: ['election_id'],

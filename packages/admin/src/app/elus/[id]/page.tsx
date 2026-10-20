@@ -18,8 +18,10 @@ import {
   Title,
 } from '@mantine/core';
 import {
+  addOfficialAlias,
   endMandate,
   getOfficial,
+  removeOfficialAlias,
   reopenMandate,
   updateOfficialField,
   type OfficialDetail,
@@ -75,6 +77,13 @@ export default function OfficialPage() {
   const { id } = useParams<{ id: string }>();
   const [o, setO] = useState<OfficialDetail | null | undefined>(undefined);
   const [endDrafts, setEndDrafts] = useState<Record<string, string>>({});
+  const [alias, setAlias] = useState({
+    firstName: '',
+    lastName: '',
+    birthDate: '',
+    note: '',
+  });
+  const [aliasError, setAliasError] = useState<string | null>(null);
   const reload = useCallback(() => getOfficial(id).then(setO), [id]);
   useEffect(() => {
     reload();
@@ -238,6 +247,129 @@ export default function OfficialPage() {
             ))}
           </Table.Tbody>
         </Table>
+      </Paper>
+
+      <Paper withBorder p="md">
+        <Title order={4} mb="sm">
+          Alias de rapprochement
+        </Title>
+        <Text size="sm" c="dimmed" mb="sm">
+          Écritures alternatives (prénom, nom, date de naissance) sous
+          lesquelles les ingestions RNE doivent reconnaître cette fiche : année
+          de naissance erronée dans un fichier source, prénom composé tronqué…
+          Les fusions de doublons en ajoutent automatiquement.
+        </Text>
+        {o.aliases.length > 0 ? (
+          <Table mb="sm">
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Prénom</Table.Th>
+                <Table.Th>Nom</Table.Th>
+                <Table.Th>Naissance</Table.Th>
+                <Table.Th>Origine</Table.Th>
+                <Table.Th>Note</Table.Th>
+                <Table.Th />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {o.aliases.map((a) => (
+                <Table.Tr key={a.id}>
+                  <Table.Td>{a.firstName}</Table.Td>
+                  <Table.Td>{a.lastName}</Table.Td>
+                  <Table.Td>{a.birthDate ?? '—'}</Table.Td>
+                  <Table.Td>{a.source}</Table.Td>
+                  <Table.Td>{a.note ?? ''}</Table.Td>
+                  <Table.Td>
+                    <Button
+                      size="xs"
+                      variant="subtle"
+                      color="red"
+                      onClick={async () => {
+                        await removeOfficialAlias(a.id);
+                        await reload();
+                      }}
+                    >
+                      Retirer
+                    </Button>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        ) : (
+          <Text size="sm" c="dimmed" mb="sm">
+            Aucun alias.
+          </Text>
+        )}
+        <Group align="flex-end" gap="xs">
+          <TextInput
+            label="Prénom"
+            size="xs"
+            value={alias.firstName}
+            onChange={(e) =>
+              setAlias({ ...alias, firstName: e.currentTarget.value })
+            }
+          />
+          <TextInput
+            label="Nom"
+            size="xs"
+            value={alias.lastName}
+            onChange={(e) =>
+              setAlias({ ...alias, lastName: e.currentTarget.value })
+            }
+          />
+          <TextInput
+            label="Naissance (AAAA-MM-JJ)"
+            size="xs"
+            w={160}
+            value={alias.birthDate}
+            onChange={(e) =>
+              setAlias({ ...alias, birthDate: e.currentTarget.value })
+            }
+          />
+          <TextInput
+            label="Note"
+            size="xs"
+            value={alias.note}
+            onChange={(e) =>
+              setAlias({ ...alias, note: e.currentTarget.value })
+            }
+            style={{ flex: 1 }}
+          />
+          <Button
+            size="xs"
+            variant="light"
+            disabled={!alias.firstName.trim() || !alias.lastName.trim()}
+            onClick={async () => {
+              setAliasError(null);
+              try {
+                await addOfficialAlias(
+                  o.id,
+                  alias.firstName,
+                  alias.lastName,
+                  alias.birthDate,
+                  alias.note,
+                );
+                setAlias({
+                  firstName: '',
+                  lastName: '',
+                  birthDate: '',
+                  note: '',
+                });
+                await reload();
+              } catch (e) {
+                setAliasError(String(e instanceof Error ? e.message : e));
+              }
+            }}
+          >
+            Ajouter
+          </Button>
+        </Group>
+        {aliasError ? (
+          <Text size="xs" c="red" mt="xs">
+            {aliasError}
+          </Text>
+        ) : null}
       </Paper>
 
       {o.corrections.length > 0 ? (

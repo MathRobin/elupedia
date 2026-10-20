@@ -26,6 +26,10 @@ import { eq, and, isNull } from 'drizzle-orm';
 import type { RneMaire } from '../sources/rne-maires.js';
 import { logger } from '../logger.js';
 import {
+  applyOfficialAliases,
+  loadOfficialAliases,
+} from './official-aliases.js';
+import {
   loadCheckpoint,
   saveCheckpoint,
   clearCheckpoint,
@@ -134,6 +138,12 @@ export async function upsertMayors(db: NeonHttpDatabase, maires: RneMaire[]) {
       { id: official.id, slug: official.slug },
     );
   }
+  // Identités alternatives (fusions de doublons, corrections) : la clé source
+  // redirige vers la fiche cible au lieu de recréer une fiche.
+  applyOfficialAliases(officialByKey, await loadOfficialAliases(db), (id) => {
+    const o = allOfficials.find((x) => x.id === id);
+    return o ? { id: o.id, slug: o.slug } : undefined;
+  });
 
   const usedSlugs = new Set(
     allOfficials

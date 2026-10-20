@@ -22,6 +22,10 @@ import { officials, mandates, normalizePersonName } from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { RneConseillerDep } from '../sources/rne-conseillers-dep.js';
 import { logger } from '../logger.js';
+import {
+  applyOfficialAliases,
+  loadOfficialAliases,
+} from './official-aliases.js';
 
 const MANDATE_TYPE = 'conseiller_departemental' as const;
 
@@ -109,6 +113,12 @@ export async function upsertConseillersDep(
       { id: official.id, slug: official.slug },
     );
   }
+  // Identités alternatives (fusions de doublons, corrections) : la clé source
+  // redirige vers la fiche cible au lieu de recréer une fiche.
+  applyOfficialAliases(officialByKey, await loadOfficialAliases(db), (id) => {
+    const o = allOfficials.find((x) => x.id === id);
+    return o ? { id: o.id, slug: o.slug } : undefined;
+  });
 
   const usedSlugs = new Set(
     allOfficials

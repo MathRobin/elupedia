@@ -77,3 +77,8 @@ export {
   videoShortStatusEnum,
   type VideoShortStatus,
 } from './video-shorts.js';
+export {
+  officialAliases,
+  officialAliasSources,
+  type OfficialAliasSource,
+} from './official-aliases.js';

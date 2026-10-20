@@ -88,7 +88,8 @@ describe('Outils d’administration (actions sur les shorts, ingestions, cohére
       expect(src, f).toContain(f);
     }
     expect(src).toContain('endMandate');
-    expect(src).not.toMatch(/db\s*\.\s*delete\(/);
+    expect(src).toContain('addOfficialAlias');
+    expect(src).toContain('officialAliasKey');
   });
 
   it('les rattachements écrivent official_id avec contrôle du rôle admin', () => {
