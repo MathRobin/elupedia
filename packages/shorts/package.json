@@ -17,17 +17,17 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.133.0",
+    "@anthropic-ai/sdk": "^0.134.0",
     "@elupedia/shared": "*",
     "@neondatabase/serverless": "^1.2.0",
     "@remotion/bundler": "4.0.535",
     "@remotion/renderer": "4.0.535",
     "drizzle-orm": "^0.45.4",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "remotion": "4.0.535",
     "winston": "^3.19.0",
-    "zod": "^4.6.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@remotion/cli": "4.0.535",
