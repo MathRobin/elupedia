@@ -75,6 +75,15 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 - `ActivityItem` vit dans `sources/an-activite.ts` alors qu'il est partagé AN/Sénat/PE (place logique : `schemas.ts`).
 - `sources/senat.ts` et `sources/senat-adresses.ts` exportent chacun un `GENERAL_URL` identique.
 
+## Admin
+
+- `app/moderation/page.tsx` : le lien vers la fiche publique est construit en `prénom-nom` minuscules et non depuis `officials.slug` ; cassé pour les accents, les noms composés et les slugs suffixés (`-1`).
+- `components/RequireRole.tsx` compare strictement le rôle (`userRole !== role`) : un admin ne passe pas une garde `role="moderator"` (aucune page ne le demande aujourd'hui).
+- `lib/auth.ts` : le rôle est figé dans le JWT à la connexion ; un changement via `/users` ne prend effet qu'à la reconnexion de l'intéressé.
+- `app/elus/doublons` : le tiroir ne compare que les deux premières fiches d'un groupe et la fusion ne traite que la première « autre » fiche ; les compteurs `sponsorships` et `official_aliases` sont calculés mais pas affichés ; `getDuplicateDetails` fait 16 requêtes par fiche.
+- `app/users` : suppression de compte sans confirmation.
+- Autorisation en deux couches : `proxy.ts` ne fait que rediriger les anonymes vers `/login` ; les rôles ne sont vérifiés que par chaque action serveur et par `RequireRole` côté affichage (la sidebar ne filtre pas, `/elus/doublons` n'a pas de garde d'affichage).
+
 ## Site
 
 - `api/commune/[code].ts` : la doc annonce 400 pour un code INSEE invalide (c'est une redirection 302) et un CORS ouvert (aucun en-tête `Access-Control-*` n'est posé) ; `selectDistinctOn([officials.id])` sans `orderBy`, le mandat renvoyé pour un cumulant est non déterministe.

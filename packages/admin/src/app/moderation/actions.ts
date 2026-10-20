@@ -1,5 +1,13 @@
 'use server';
 
+/**
+ * Actions serveur de /moderation : file des liens externes (réseaux sociaux
+ * détectés par l'ingestion, `external_links.status = 'pending'`) et décision.
+ * `moderateLink` écrit `external_links.status` (published, rejected ou
+ * deleted : le lien n'est jamais supprimé physiquement) puis revalide
+ * /moderation. Ouvert aux rôles admin et moderator
+ * (`requireAuthenticatedUser`, vérifié à chaque appel).
+ */
 import { eq } from 'drizzle-orm';
 import { createDb, externalLinks, officials } from '@elupedia/shared';
 import { auth } from '@/lib/auth';

@@ -1,5 +1,13 @@
 'use client';
 
+/**
+ * Navigation latérale de l'admin : sections (Élus, Vidéos, Données,
+ * Modération, Utilisateurs) et liens déclarés dans `navItems`, seul endroit
+ * à modifier pour ajouter une page. Le lien actif est calculé sur
+ * usePathname : égalité ou préfixe du chemin, sauf si un autre lien de la
+ * même section est un préfixe plus précis (/videos vs /videos/derive).
+ * Aucun filtrage par rôle : les pages réservées se protègent elles-mêmes.
+ */
 import { NavLink } from '@mantine/core';
 import { usePathname } from 'next/navigation';
 

@@ -1,5 +1,13 @@
 'use client';
 
+/**
+ * Page /users (rendu client) : gestion des comptes de l'admin. Formulaire
+ * d'invitation (email + rôle), tableau des comptes avec changement de rôle en
+ * ligne et suppression. Actions serveur : listUsers, updateUserRole,
+ * deleteUser, inviteUser (./actions.ts). Enveloppée dans RequireRole
+ * role="admin" (message « Accès refusé » sinon) ; le rôle est aussi exigé
+ * côté serveur par les actions. Pas de confirmation avant suppression.
+ */
 import { useEffect, useState } from 'react';
 import {
   Table,

@@ -1,5 +1,15 @@
 'use client';
 
+/**
+ * Page /elus/doublons (rendu client) : liste les groupes de fiches élus en
+ * double et ouvre un tiroir de comparaison (identifiants, dates, photo,
+ * volumes de données rattachées) pour choisir la fiche à conserver puis
+ * fusionner. Actions serveur : listDuplicates, getDuplicateDetails,
+ * mergeOfficials (./actions.ts, rôle admin exigé côté serveur ; la page
+ * n'a pas de garde RequireRole). Le tiroir ne compare que les deux premières
+ * fiches du groupe ; TABLE_LABELS n'affiche pas les compteurs sponsorships
+ * et official_aliases pourtant renvoyés par l'action.
+ */
 import { useEffect, useState } from 'react';
 import {
   Badge,

@@ -1,5 +1,16 @@
 'use server';
 
+/**
+ * Actions serveur de /elus/doublons : détection et fusion des fiches élus en
+ * double (même prénom, nom et département sur au moins un mandat). Réservé
+ * au rôle admin (`requireAdmin`, vérifié à chaque appel).
+ * `mergeOfficials(keepId, removeId)` écrit en base : réaffecte `official_id`
+ * de toutes les tables filles (CHILD_TABLES) vers la fiche conservée, lui
+ * copie les champs manquants (an_id, senat_id, dates, photo, slug), supprime
+ * la fiche doublon, puis enregistre son identité dans `official_aliases`
+ * (source `admin_merge`) pour que l'ingestion ne la recrée pas. Le SQL est
+ * assemblé à la main (sql.raw) : les deux ids sont validés comme UUID avant.
+ */
 import { eq, sql, getTableName } from 'drizzle-orm';
 import {
   createDb,
@@ -212,7 +223,7 @@ export async function mergeOfficials(
       updated_at = NOW()
       WHERE id = '${keepId}';
     DELETE FROM officials WHERE id = '${removeId}';
-  END $;`),
+  END $$;`),
   );
 
   // L'identité de la fiche supprimée devient un alias de la fiche conservée :

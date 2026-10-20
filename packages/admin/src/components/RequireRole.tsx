@@ -1,5 +1,13 @@
 'use client';
 
+/**
+ * Garde d'accès côté client : n'affiche ses enfants que si le rôle de la
+ * session Auth.js (useSession, injecté par le callback `session` de
+ * lib/auth.ts) est exactement `role` ; Loader pendant le chargement, alerte
+ * « Accès refusé » sinon. Comparaison stricte : un admin n'est pas accepté
+ * là où role="moderator" est demandé. Protection d'affichage seulement : les
+ * actions serveur revérifient le rôle de leur côté.
+ */
 import { useSession } from 'next-auth/react';
 import { Alert, Container, Loader } from '@mantine/core';
 
