@@ -89,11 +89,21 @@ export async function describeCron(cron: string | null): Promise<string> {
   return cron;
 }
 
+/**
+ * Clés des rapports qu'une commande de DAG peut produire : `ingest:a:b` →
+ * `a-b` (fichier ingest-report-a-b.json), `ingest` seul → clé vide
+ * (ingest-report.json), et les outils `reconcile` / `merge:duplicate-officials`
+ * sous leur propre nom.
+ */
 function reportKeysFromCommand(command: string): string[] {
   const keys: string[] = [];
   const m = command.match(/ingest:([a-z-]+(?::[a-z-]+)*)/);
   if (m) keys.push(m[1].replace(/:/g, '-'));
   if (/yarn --cwd packages\/ingest ingest\b(?!:)/.test(command)) keys.push('');
+  const tool = command.match(
+    /yarn --cwd packages\/ingest (reconcile|merge:duplicate-officials)\b/,
+  );
+  if (tool) keys.push(tool[1].replace(/:/g, '-'));
   return keys;
 }
 

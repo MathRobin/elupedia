@@ -11,14 +11,18 @@
  * logique (lecture des sources, upserts) vit dans le `run-*.ts`, testable
  * sans processus ni process.exit().
  *
- * Pas de rapport de changements ici (contrairement aux autres mains) : ce
- * script n'est pas suivi d'un rebuild conditionnel. Logique dans `run-factchecks.ts`.
+ * Écrit ingest-report-factchecks.json (date et résultat du dernier run, lus par
+ * l'admin) ; pas de rebuild conditionnel derrière. Logique dans `run-factchecks.ts`.
  */
 import { runFactChecks } from './run-factchecks.js';
+import { detectChanges, writeChangeReport } from './utils/change-detector.js';
 import { logger } from './logger.js';
 
 runFactChecks()
-  .then(() => process.exit(0))
+  .then((results) => {
+    writeChangeReport(detectChanges(results), 'ingest-report-factchecks.json');
+    process.exit(0);
+  })
   .catch((error) => {
     logger.error(`Fact-check ingestion failed: ${error}`);
     process.exit(1);

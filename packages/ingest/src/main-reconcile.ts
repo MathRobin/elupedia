@@ -11,9 +11,20 @@
 import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { reconcileElections } from './reconcile-elections.js';
+import {
+  reportFromCounts,
+  writeChangeReport,
+} from './utils/change-detector.js';
 
 reconcileElections(createDb())
-  .then(() => process.exit(0))
+  .then(({ totalUpdated }) => {
+    // Date et résultat du dernier run, lus par l'admin (page Ingestions).
+    writeChangeReport(
+      reportFromCounts('reconcile', { created: totalUpdated }),
+      'ingest-report-reconcile.json',
+    );
+    process.exit(0);
+  })
   .catch((error) => {
     // `${error}` seul n'affiche que le message de premier niveau — pour les
     // erreurs du driver Neon/Postgres, la vraie cause (timeout réseau, etc.)

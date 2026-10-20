@@ -44,6 +44,25 @@ export function detectChanges(results: StepResult[]): ChangeReport {
   };
 }
 
+/**
+ * Rapport pour un script à compteurs maison (sans StepResult) : `created` et
+ * `updated` au sens de l'étape, `errors` = nombre d'erreurs non bloquantes
+ * rencontrées. Même forme que detectChanges, lisible par l'admin.
+ */
+export function reportFromCounts(
+  source: string,
+  counts: { created: number; updated?: number; errors?: number },
+): ChangeReport {
+  const updated = counts.updated ?? 0;
+  return {
+    hasChanges: counts.created + updated > 0,
+    totalCreated: counts.created,
+    totalUpdated: updated,
+    totalErrors: counts.errors ?? 0,
+    changedSources: counts.created + updated > 0 ? [source] : [],
+  };
+}
+
 /** Écrit le rapport en JSON indenté (chemin relatif au cwd du script). */
 export function writeChangeReport(
   report: ChangeReport,

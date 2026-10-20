@@ -19,6 +19,10 @@ import { fileURLToPath } from 'node:url';
 import { createDb, mandates, communeTransparency } from '@elupedia/shared';
 import { eq } from 'drizzle-orm';
 import { logger } from './logger.js';
+import {
+  reportFromCounts,
+  writeChangeReport,
+} from './utils/change-detector.js';
 import { fetchMadadaStats, type MadadaBody } from './sources/madada.js';
 import { upsertCommuneTransparency } from './upsert/commune-transparency.js';
 import { fetchMadadaRequests } from './sources/madada-requests.js';
@@ -117,6 +121,17 @@ async function main() {
   // Run complet : le cache n'a plus de raison d'être (il serait réutilisé
   // tel quel au prochain lancement, avec des stats périmées).
   if (fs.existsSync(CACHE_PATH)) fs.unlinkSync(CACHE_PATH);
+
+  // Date et résultat du dernier run, lus par l'admin (page Ingestions) :
+  // created = communes upsertées, updated = demandes individuelles.
+  writeChangeReport(
+    reportFromCounts('madada', {
+      created: result.created,
+      updated: totalRequests,
+      errors,
+    }),
+    'ingest-report-madada.json',
+  );
 }
 
 main().catch((err) => {
