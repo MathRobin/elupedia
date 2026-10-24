@@ -5,9 +5,9 @@ __metadata:
   version: 10
   cacheKey: 10c0
 
-"@anthropic-ai/sdk@npm:^0.134.0":
-  version: 0.134.0
-  resolution: "@anthropic-ai/sdk@npm:0.134.0"
+"@anthropic-ai/sdk@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@anthropic-ai/sdk@npm:1.0.0"
   dependencies:
     "@opentelemetry/api": "npm:^1.4.1"
     json-schema-to-ts: "npm:^3.1.1"
@@ -19,7 +19,7 @@ __metadata:
       optional: true
   bin:
     anthropic-ai-sdk: bin/cli
-  checksum: 10c0/6b338eba2b219b6eb081dfb7420fe4410a6ae5846f3bf93ac05bf5499581b3b4eecb657dcc1d38a27e3cb5ddb1563d6f0363043e096342de13c8eeb31dc9d9c4
+  checksum: 10c0/9044653c8fb7e1a1e951c7a43f636defa103fe2ec1c1d5d198bdcb8aa3b9d6a5d5e92de6ba2fdac078335bc15aae1fc7757569b9d4e7f5f820c88e6f68dfba92
   languageName: node
   linkType: hard
 
@@ -1220,7 +1220,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@elupedia/shorts@workspace:packages/shorts"
   dependencies:
-    "@anthropic-ai/sdk": "npm:^0.134.0"
+    "@anthropic-ai/sdk": "npm:^1.0.0"
     "@elupedia/shared": "npm:*"
     "@neondatabase/serverless": "npm:^1.2.0"
     "@remotion/bundler": "npm:4.0.535"
