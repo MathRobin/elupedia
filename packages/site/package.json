@@ -10,26 +10,26 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/react": "^7.0.1",
+    "@astrojs/react": "^7.1.1",
     "@astrojs/sitemap": "^3.7.4",
-    "@astrojs/vercel": "^11.0.13",
+    "@astrojs/vercel": "^11.0.16",
     "@elupedia/shared": "*",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/typography": "^0.5.20",
     "@vercel/analytics": "^2.0.1",
-    "astro": "^7.3.8",
+    "astro": "^7.4.2",
     "date-fns": "^4.4.0",
     "qrcode-generator": "^2.0.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "satori": "^0.57.2",
-    "tarteaucitronjs": "^1.36.0"
+    "satori": "^0.63.2",
+    "tarteaucitronjs": "^1.37.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "tailwindcss": "^4.3.3",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   }
 }
