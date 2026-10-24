@@ -20,20 +20,20 @@
     "@anthropic-ai/sdk": "^0.134.0",
     "@elupedia/shared": "*",
     "@neondatabase/serverless": "^1.2.0",
-    "@remotion/bundler": "4.0.535",
-    "@remotion/renderer": "4.0.535",
+    "@remotion/bundler": "4.0.537",
+    "@remotion/renderer": "4.0.537",
     "drizzle-orm": "^0.45.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "remotion": "4.0.535",
+    "remotion": "4.0.537",
     "winston": "^3.19.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@remotion/cli": "4.0.535",
+    "@remotion/cli": "4.0.537",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "tsx": "^4.23.15",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   }
 }
