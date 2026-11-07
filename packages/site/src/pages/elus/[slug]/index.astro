@@ -21,7 +21,7 @@
  */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getDb } from '../../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText, MANDATE_TYPE_LABELS } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText, MANDATE_TYPE_LABELS, MANDATE_TYPE_DESCRIPTIONS, pickPrimaryMandate } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray, gte, lte, sql, count } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -88,9 +88,12 @@ const mandateRows = await db
   .where(slugFilter)
   .orderBy(mandates.endDate, desc(mandates.startDate));
 
-// Élu + mandat principal (en cours, sinon le plus récent). Un élu sans aucun
-// mandat n'a pas de fiche : retour à l'annuaire.
-const primaryMandateRow = mandateRows.find((r) => !r.endDate) ?? mandateRows[0] ?? null;
+// Élu + mandat principal : parmi les mandats en cours, le plus prioritaire
+// (parlementaire avant local, voir pickPrimaryMandate), sinon le dernier échu.
+// Un député aussi conseiller communautaire reste présenté comme député, avec
+// ses votes et son activité. Un élu sans aucun mandat n'a pas de fiche :
+// retour à l'annuaire.
+const primaryMandateRow = pickPrimaryMandate(mandateRows);
 
 if (!primaryMandateRow) return Astro.redirect('/elus');
 
@@ -1178,7 +1181,7 @@ for (const sp of deputySponsorships) {
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <dt class="text-sm text-slate-500 dark:text-slate-400">Type</dt>
-            <dd class="font-medium dark:text-white">{mandateLabel}</dd>
+            <dd class="font-medium dark:text-white" title={MANDATE_TYPE_DESCRIPTIONS[deputy.mandateType]}>{mandateLabel}</dd>
           </div>
           {deputy.district && (
             <div>
@@ -1257,7 +1260,7 @@ for (const sp of deputySponsorships) {
               <div class="relative">
                 <div class={`absolute -left-[calc(1rem+5px)] top-1 h-2.5 w-2.5 rounded-full ${m.endDate ? 'bg-slate-300 dark:bg-slate-600' : 'bg-indigo-500'}`}></div>
                 <div class="flex items-center gap-2">
-                  <span class="font-medium text-sm dark:text-white">{mandateTypeLabels[m.type] ?? m.type}</span>
+                  <span class="font-medium text-sm dark:text-white" title={MANDATE_TYPE_DESCRIPTIONS[m.type]}>{mandateTypeLabels[m.type] ?? m.type}</span>
                   {!m.endDate && (
                     <span class="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/20 dark:text-green-400">En cours</span>
                   )}

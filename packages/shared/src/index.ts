@@ -21,7 +21,13 @@ export {
   normalizeExternalLinkUrl,
   externalLinkComparisonKey,
 } from './external-link-url.js';
-export { MANDATE_TYPE_LABELS, mandateTypeLabel } from './mandate-labels.js';
+export {
+  MANDATE_TYPE_LABELS,
+  MANDATE_TYPE_DESCRIPTIONS,
+  MANDATE_TYPE_PRIORITY,
+  mandateTypeLabel,
+  pickPrimaryMandate,
+} from './mandate-labels.js';
 export { generateHemicycleSeats } from './hemicycle-layout.js';
 export {
   POLITICAL_GROUP_ORDER,

@@ -23,6 +23,7 @@ import {
   mandates,
   ballots,
   MANDATE_TYPE_LABELS,
+  pickPrimaryMandate,
 } from '@elupedia/shared';
 import { eq, or } from 'drizzle-orm';
 
@@ -195,7 +196,9 @@ export const GET: APIRoute = async ({ url }) => {
 
     // Une ligne par mandat : on décrit l'élu par son mandat en cours, à
     // défaut par le premier mandat renvoyé.
-    const row = rows.find((r) => !r.endDate) ?? rows[0];
+    // Même règle que la fiche : mandat en cours le plus prioritaire (parlementaire
+    // avant local), sinon le dernier échu.
+    const row = pickPrimaryMandate(rows);
     if (!row)
       return new Response('Not found', { status: 404, headers: corsHeaders() });
 

@@ -9,7 +9,7 @@
  * `profileUrl` sont vérifiés par tests/embed-card.test.js.
  */
 import { getDb } from '../../../lib/db.js';
-import { officials, mandates, mandateTypeLabel } from '@elupedia/shared';
+import { officials, mandates, mandateTypeLabel, pickPrimaryMandate } from '@elupedia/shared';
 import { eq, or, desc } from 'drizzle-orm';
 
 export const prerender = false;
@@ -46,7 +46,9 @@ const officialMandateRows = await db
   .orderBy(mandates.endDate, desc(mandates.startDate));
 
 // Mandat mis en avant : le mandat en cours, sinon le plus récent.
-const row = officialMandateRows.find((r) => !r.endDate) ?? officialMandateRows[0] ?? null;
+// Même règle que la fiche : mandat en cours le plus prioritaire (parlementaire
+// avant local), sinon le dernier échu.
+const row = pickPrimaryMandate(officialMandateRows);
 // 404 nue (pas de redirection) : la carte est destinée à une iframe.
 if (!row) return new Response(null, { status: 404 });
 
