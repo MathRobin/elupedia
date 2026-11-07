@@ -27,14 +27,40 @@ export default function IngestionsPage() {
   const ageDays = (iso: string) =>
     Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 
+  // Un DAG peut produire plusieurs rapports (plusieurs commandes) : on retient
+  // le plus récent. Les DAGs sont triés du dernier run au plus ancien, ceux
+  // sans rapport en fin de liste, dans l'ordre des fichiers.
+  const dagRows = data.dags
+    .map((d) => {
+      const reports = d.reportKeys
+        .map((k) => reportByKey.get(k))
+        .filter((r): r is NonNullable<typeof r> => Boolean(r));
+      reports.forEach((r) => used.add(r.key));
+      const latest = [...reports].sort((a, b) =>
+        b.writtenAt.localeCompare(a.writtenAt),
+      )[0];
+      return { dag: d, latest };
+    })
+    .sort((a, b) => {
+      if (a.latest && b.latest)
+        return b.latest.writtenAt.localeCompare(a.latest.writtenAt);
+      if (a.latest) return -1;
+      if (b.latest) return 1;
+      return a.dag.file.localeCompare(b.dag.file);
+    });
+  const otherReports = data.reports
+    .filter((r) => !used.has(r.key))
+    .sort((a, b) => b.writtenAt.localeCompare(a.writtenAt));
+
   return (
     <Stack gap="lg">
       <Title order={2}>Ingestions</Title>
       <Text size="sm" c="dimmed">
         DAGs lus dans <Code>{data.dagsDir}</Code>, rapports de fin de run dans{' '}
         <Code>{data.reportsDir}</Code>. La date d&apos;un rapport est celle de
-        la fin du dernier run de la commande, planifié ou lancé à la main.
-        L&apos;état en direct de Dagu n&apos;est pas remonté (API locale
+        la fin du dernier run de la commande, planifié ou lancé à la main. Les
+        DAGs sont triés du dernier run au plus ancien, ceux sans rapport à la
+        fin. L&apos;état en direct de Dagu n&apos;est pas remonté (API locale
         authentifiée).
       </Text>
 
@@ -53,14 +79,7 @@ export default function IngestionsPage() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {data.dags.map((d) => {
-              const reports = d.reportKeys
-                .map((k) => reportByKey.get(k))
-                .filter((r): r is NonNullable<typeof r> => Boolean(r));
-              reports.forEach((r) => used.add(r.key));
-              const latest = reports.sort((a, b) =>
-                b.writtenAt.localeCompare(a.writtenAt),
-              )[0];
+            {dagRows.map(({ dag: d, latest }) => {
               return (
                 <Table.Tr key={d.file}>
                   <Table.Td>
@@ -137,7 +156,7 @@ export default function IngestionsPage() {
         <Title order={4} mb="sm">
           Autres rapports (commandes hors DAG ou lancées à la main)
         </Title>
-        {data.reports.filter((r) => !used.has(r.key)).length === 0 ? (
+        {otherReports.length === 0 ? (
           <Text size="sm" c="dimmed">
             Aucun.
           </Text>
@@ -151,27 +170,23 @@ export default function IngestionsPage() {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {data.reports
-                .filter((r) => !used.has(r.key))
-                .map((r) => (
-                  <Table.Tr key={r.file}>
-                    <Table.Td>{r.file}</Table.Td>
-                    <Table.Td>{formatDate(r.writtenAt)}</Table.Td>
-                    <Table.Td>
-                      <Badge
-                        color={r.totalErrors > 0 ? 'red' : 'green'}
-                        variant="light"
-                      >
-                        {r.totalErrors > 0
-                          ? `${r.totalErrors} erreur(s)`
-                          : 'OK'}
-                      </Badge>{' '}
-                      <Text span size="xs">
-                        {r.totalCreated} créés · {r.totalUpdated} mis à jour
-                      </Text>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
+              {otherReports.map((r) => (
+                <Table.Tr key={r.file}>
+                  <Table.Td>{r.file}</Table.Td>
+                  <Table.Td>{formatDate(r.writtenAt)}</Table.Td>
+                  <Table.Td>
+                    <Badge
+                      color={r.totalErrors > 0 ? 'red' : 'green'}
+                      variant="light"
+                    >
+                      {r.totalErrors > 0 ? `${r.totalErrors} erreur(s)` : 'OK'}
+                    </Badge>{' '}
+                    <Text span size="xs">
+                      {r.totalCreated} créés · {r.totalUpdated} mis à jour
+                    </Text>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
             </Table.Tbody>
           </Table>
         )}
