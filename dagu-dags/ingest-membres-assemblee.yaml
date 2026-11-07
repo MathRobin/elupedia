@@ -1,6 +1,7 @@
 # Cron documenté dans docs/INGESTION-SCHEDULE.md (créneau isolé, décalé de 4
 # jours vs ingest-maires.yaml pour éviter toute contention sur officials/mandates).
-name: Ingest — Membres assemblée statut particulier (RNE)
+name: ingest-membres-assemblee
+description: Ingest — Membres assemblée statut particulier (RNE)
 schedule: '0 22 5/5 * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}

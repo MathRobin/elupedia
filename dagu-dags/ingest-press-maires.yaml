@@ -3,7 +3,8 @@
 # Vérifier que Dagu/systemd interprète bien ce cron en UTC (TZ=UTC),
 # sinon les horaires réels seront décalés par rapport au calendrier
 # documenté dans docs/INGESTION-SCHEDULE.md.
-name: Ingest — Presse (tous mandats)
+name: ingest-press-maires
+description: Ingest — Presse (tous mandats)
 schedule: '0 */5 * * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}

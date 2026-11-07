@@ -4,6 +4,36 @@ Chaque pipeline d'ingestion a son propre DAG dans `dagu-dags/ingest-*.yaml`,
 avec son propre `schedule` cron. Dagu tourne en local via systemd, sur un dépôt
 déjà cloné (pas de checkout distant).
 
+## Brancher Dagu sur le dépôt (poste local)
+
+Dagu tourne via `systemd` (`dagu.service`, `dagu start-all`, `DAGU_HOME=/var/lib/dagu`,
+UI sur `http://127.0.0.1:8080`). Par défaut il ne sert que ses DAGs d'exemple : il faut
+le pointer sur `dagu-dags/` et lui donner le répertoire de travail et les secrets.
+
+```yaml
+# /var/lib/dagu/config.yaml (à créer)
+dags_dir: /usr/airporting/elupedia/dagu-dags
+tz: UTC # les crons des DAGs sont en UTC
+auth:
+  mode: none # UI servie sur 127.0.0.1 uniquement ; sinon créer un compte via /setup
+```
+
+```yaml
+# /var/lib/dagu/base.yaml (hérité par tous les DAGs ; le fichier existe, tout y est commenté)
+working_dir: /usr/airporting/elupedia # les étapes font `git pull` puis `yarn --cwd packages/ingest …`
+dotenv: /usr/airporting/elupedia/.env # DATABASE_URL, MAPS_S3_*, AWS_*, clés API référencées par ${…}
+catchup_window: '' # sinon tout cron manqué dans les 6 h est rejoué au redémarrage
+```
+
+Puis `sudo systemctl restart dagu`, et vérifier avec `DAGU_HOME=/var/lib/dagu dagu ls`
+(les 24 DAGs doivent apparaître). Lancement manuel : `DAGU_HOME=/var/lib/dagu dagu start
+ingest-photos` ; suivi : `dagu status ingest-photos`, `journalctl -u dagu -f`, logs par
+étape dans `/var/lib/dagu/logs/dags/<nom>/`. Le checkout `/usr/airporting/elupedia` doit
+rester sur `main` et propre (chaque DAG commence par `git pull`).
+
+Convention des fichiers : `name` est le slug du fichier (Dagu 2 n'accepte que
+`[A-Za-z0-9._-]`), le libellé lisible est dans `description` (affiché par l'admin).
+
 ## Principes
 
 - **Une seule base Postgres (Neon), un seul compute** (2 CU max, auto-suspend 5 min) :

@@ -1,6 +1,7 @@
 # Cron documenté dans docs/INGESTION-SCHEDULE.md (créneau mensuel dédié : les
 # cinq créneaux "tous les 5 jours à 22:00" des autres jobs RNE sont pleins).
-name: Ingest — Conseillers communautaires (RNE)
+name: ingest-conseillers-epci
+description: Ingest — Conseillers communautaires (RNE)
 schedule: '30 7 12 * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}

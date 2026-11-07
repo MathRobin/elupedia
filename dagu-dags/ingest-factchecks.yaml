@@ -3,7 +3,8 @@
 # Vérifier que Dagu/systemd interprète bien ce cron en UTC (TZ=UTC),
 # sinon les horaires réels seront décalés par rapport au calendrier
 # documenté dans docs/INGESTION-SCHEDULE.md.
-name: Ingest — Vérification des faits
+name: ingest-factchecks
+description: Ingest — Vérification des faits
 schedule: '30 3 * * 2'
 env:
   - DATABASE_URL: ${DATABASE_URL}

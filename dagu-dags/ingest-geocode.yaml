@@ -3,7 +3,8 @@
 # Vérifier que Dagu/systemd interprète bien ce cron en UTC (TZ=UTC),
 # sinon les horaires réels seront décalés par rapport au calendrier
 # documenté dans docs/INGESTION-SCHEDULE.md.
-name: Ingest — Géocodage des adresses
+name: ingest-geocode
+description: Ingest — Géocodage des adresses
 schedule: '30 3 * * 0'
 env:
   - DATABASE_URL: ${DATABASE_URL}
