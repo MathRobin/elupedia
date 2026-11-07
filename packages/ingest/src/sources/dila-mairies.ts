@@ -80,11 +80,20 @@ function parseAddress(raw: string | null): ApiAddress | undefined {
   }
 }
 
+/** Taille de la colonne `addresses.phone` en base. */
+const MAX_PHONE_LENGTH = 50;
+
+/**
+ * Premier numéro de la liste. Une même `valeur` contient parfois plusieurs
+ * numéros séparés par « / » (« 03 81 86 00 76 /06 21 05 86 63 /… »), au-delà
+ * de la colonne : on garde le premier, comme pour les adresses de l'AN.
+ */
 function parsePhone(raw: string | null): string | undefined {
   if (!raw) return undefined;
   try {
     const phones = JSON.parse(raw) as { valeur: string }[];
-    return phones[0]?.valeur || undefined;
+    const first = phones[0]?.valeur?.split('/')[0]?.trim();
+    return first ? first.substring(0, MAX_PHONE_LENGTH) : undefined;
   } catch {
     return undefined;
   }

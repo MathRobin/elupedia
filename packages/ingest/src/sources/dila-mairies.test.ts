@@ -52,6 +52,15 @@ describe('fetchDilaMairies', () => {
     });
   });
 
+  it('keeps only the first number when several are packed in one value', async () => {
+    const record = makeRecord({
+      telephone:
+        '[{"valeur":"03 81 86 00 76 /06 21 05 86 63 /06 32 41 30 70/ 06 40 22 65 81","description":""}]',
+    });
+    const result = await fetchDilaMairies(makeFetch([record]));
+    expect(result[0].phone).toBe('03 81 86 00 76');
+  });
+
   it('handles missing optional fields', async () => {
     const record = makeRecord({
       telephone: null,
