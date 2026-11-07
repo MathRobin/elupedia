@@ -10,7 +10,12 @@
  */
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../../lib/db.js';
-import { officials, mandates, MANDATE_TYPE_LABELS } from '@elupedia/shared';
+import {
+  officials,
+  mandates,
+  MANDATE_TYPE_LABELS,
+  pickPrimaryMandate,
+} from '@elupedia/shared';
 import { eq, or } from 'drizzle-orm';
 import { renderOgImage } from '../../../../lib/og.js';
 import { createElement as h } from 'react';
@@ -53,7 +58,9 @@ export const GET: APIRoute = async ({ params }) => {
 
   // Une ligne par mandat : on décrit l'élu par son mandat en cours, à défaut
   // par le premier mandat renvoyé.
-  const row = rows.find((r) => !r.endDate) ?? rows[0];
+  // Même règle que la fiche : mandat en cours le plus prioritaire (parlementaire
+  // avant local), sinon le dernier échu.
+  const row = pickPrimaryMandate(rows);
   if (!row) return new Response(null, { status: 404 });
 
   const fullName = `${row.firstName} ${row.lastName}`;

@@ -9,6 +9,10 @@
  *
  * Piège : `president` n'est produit par aucune ingestion ; il n'existe ici
  * que pour être exclu explicitement par `main-press-maires.ts`.
+ *
+ * Le fichier porte aussi l'ordre de priorité entre mandats cumulés
+ * (pickPrimaryMandate) et une description courte des mandats peu connus
+ * (MANDATE_TYPE_DESCRIPTIONS, affichée en infobulle).
  */
 export const MANDATE_TYPE_LABELS: Record<string, string> = {
   depute: 'Député',
@@ -31,4 +35,73 @@ export const MANDATE_TYPE_LABELS: Record<string, string> = {
  */
 export function mandateTypeLabel(type: string): string {
   return MANDATE_TYPE_LABELS[type] ?? type;
+}
+
+/**
+ * Explication en une phrase des mandats dont l'intitulé ne parle pas de
+ * lui-même, pour une infobulle. Les mandats nationaux évidents n'en ont pas.
+ */
+export const MANDATE_TYPE_DESCRIPTIONS: Record<string, string> = {
+  conseiller_communautaire:
+    "Élu siégeant au conseil de l'intercommunalité (métropole, communauté urbaine, d'agglomération ou de communes) dont dépend sa commune ; désigné lors des élections municipales.",
+  conseiller_arrondissement:
+    "Élu d'un conseil d'arrondissement de Paris, Lyon ou Marseille, instance de proximité de la commune.",
+  membre_assemblee_statut_particulier:
+    "Membre d'une assemblée de collectivité à statut particulier (Corse, Guyane, Martinique, Métropole de Lyon, collectivités d'outre-mer).",
+  conseiller_francais_etranger:
+    "Élu d'un conseil consulaire, représentant les Français établis dans une circonscription à l'étranger.",
+  membre_afe:
+    "Membre de l'Assemblée des Français de l'étranger, élu par les conseillers des Français de l'étranger.",
+};
+
+/**
+ * Ordre dans lequel un mandat est retenu comme « principal » quand un élu en
+ * cumule plusieurs en cours : les mandats parlementaires d'abord (ils portent
+ * votes, activité, commissions, collaborateurs : les masquer parce qu'un
+ * mandat local plus récent existe serait un contresens), puis exécutifs et
+ * assemblées, puis les mandats dérivés d'une autre élection (communautaire,
+ * arrondissement). Un type inconnu passe en dernier.
+ */
+export const MANDATE_TYPE_PRIORITY: readonly string[] = [
+  'depute',
+  'senateur',
+  'eurodepute',
+  'president',
+  'maire',
+  'conseiller_regional',
+  'conseiller_departemental',
+  'membre_assemblee_statut_particulier',
+  'membre_afe',
+  'conseiller_francais_etranger',
+  'conseiller_communautaire',
+  'conseiller_arrondissement',
+];
+
+/**
+ * Mandat « principal » d'un élu : parmi les mandats en cours, celui de type
+ * le plus prioritaire (MANDATE_TYPE_PRIORITY), à type égal le plus récent ;
+ * sans mandat en cours, le dernier échu. `null` si la liste est vide. Les
+ * lignes doivent au moins porter `mandateType`, `startDate` et `endDate`.
+ */
+export function pickPrimaryMandate<
+  T extends {
+    mandateType: string;
+    startDate?: string | null;
+    endDate: string | null;
+  },
+>(rows: readonly T[]): T | null {
+  if (rows.length === 0) return null;
+  const rank = (type: string) => {
+    const index = MANDATE_TYPE_PRIORITY.indexOf(type);
+    return index === -1 ? MANDATE_TYPE_PRIORITY.length : index;
+  };
+  const byPriority = (a: T, b: T) =>
+    rank(a.mandateType) - rank(b.mandateType) ||
+    (b.startDate ?? '').localeCompare(a.startDate ?? '');
+  const active = rows.filter((row) => !row.endDate);
+  if (active.length > 0) return [...active].sort(byPriority)[0];
+  return [...rows].sort(
+    (a, b) =>
+      (b.endDate ?? '').localeCompare(a.endDate ?? '') || byPriority(a, b),
+  )[0];
 }
