@@ -3,7 +3,8 @@
 # Vérifier que Dagu/systemd interprète bien ce cron en UTC (TZ=UTC),
 # sinon les horaires réels seront décalés par rapport au calendrier
 # documenté dans docs/INGESTION-SCHEDULE.md.
-name: Ingest — Décorations
+name: ingest-decorations
+description: Ingest — Décorations
 schedule: '30 3 * * 5'
 env:
   - DATABASE_URL: ${DATABASE_URL}

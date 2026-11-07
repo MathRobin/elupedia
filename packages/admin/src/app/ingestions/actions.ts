@@ -119,6 +119,7 @@ export async function loadIngestionsDashboard(): Promise<IngestionsDashboard> {
     .sort()) {
     const doc = loadYaml(await readFile(path.join(dagsDir, file), 'utf8')) as {
       name?: string;
+      description?: string;
       schedule?: string;
       steps?: { name?: string; command?: string }[];
     };
@@ -127,7 +128,9 @@ export async function loadIngestionsDashboard(): Promise<IngestionsDashboard> {
       .filter((c) => c.startsWith('yarn --cwd packages/'));
     dags.push({
       file,
-      name: doc.name ?? file,
+      // Dagu 2 n'accepte dans `name` que [A-Za-z0-9._-] : le libellé lisible
+      // est dans `description`, `name` est le slug du fichier.
+      name: doc.description ?? doc.name ?? file,
       schedule: doc.schedule ?? null,
       scheduleLabel: await describeCron(doc.schedule ?? null),
       commands,

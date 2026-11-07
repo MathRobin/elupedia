@@ -2,7 +2,8 @@
 # Un short par exécution, le plus ancien d'abord : le rythme quotidien espace
 # les mises en ligne. Cron en UTC (16:00 = 18:00 Paris) — voir
 # docs/INGESTION-SCHEDULE.md. Aucun accès aux tables d'ingestion.
-name: Publish — Shorts YouTube
+name: publish-shorts
+description: Publish — Shorts YouTube
 schedule: '0 16 * * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}

@@ -5,7 +5,8 @@
 # vidéo des seuls shorts dont la voix off a été importée à la main
 # (`voiceover sheet` / `voiceover import`, packages/shorts).
 # Cron en UTC — voir docs/INGESTION-SCHEDULE.md.
-name: Ingest — Votes AN + Sénat
+name: ingest-votes
+description: Ingest — Votes AN + Sénat
 schedule: '30 12 * * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}
