@@ -12,6 +12,9 @@ import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { shortsOutputDir } from './shorts-files';
+import { repoRoot } from './repo-root';
+
+export { repoRoot };
 
 export const SHORT_JOBS = {
   make: {
@@ -60,10 +63,6 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function jobsDir(shortId: string): string {
   return path.join(shortsOutputDir(), shortId, 'jobs');
-}
-
-export function repoRoot(): string {
-  return path.resolve(process.cwd(), '..', '..');
 }
 
 export async function readShortJob(
