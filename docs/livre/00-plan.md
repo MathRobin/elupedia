@@ -31,4 +31,4 @@ Données figées au **9 novembre 2026** (à rappeler en tête de livre).
 
 ## Pipeline
 
-Typst (JSON → PDF), gabarit par chapitre et gabarit d'annuaire. `packages/book` génère `out/data.json` depuis la base (`yarn --cwd packages/book data`) puis compile `typst/main.typ` (`yarn --cwd packages/book build`, binaire `typst` requis). Les catégories de parrains reprennent celles des shorts pour que le livre et la vidéo donnent les mêmes chiffres. Le gabarit n'affiche pour l'instant que les tableaux ; le texte des chapitres reste dans `docs/livre/`.
+Typst (JSON → PDF), gabarit par chapitre et gabarit d'annuaire. `packages/book` génère `out/data.json` depuis la base (`yarn --cwd packages/book data`) puis compile `typst/main.typ` (`yarn --cwd packages/book build`, binaire `typst` requis). Les catégories de parrains reprennent celles des shorts pour que le livre et la vidéo donnent les mêmes chiffres. Le gabarit affiche l'introduction de chaque chapitre (`packages/book/chapitres/*.md`, texte brut, paragraphes séparés par une ligne vide) puis son tableau. Les brouillons et notes de travail restent dans `docs/livre/`.

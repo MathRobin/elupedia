@@ -34,7 +34,7 @@ Les maires fournissent plus des deux tiers des parrainages. Il y a environ 35 00
 
 ## À rédiger
 
-- [ ] Introduction narrative (le moment du parrainage, la règle de 1962)
+- [x] Introduction (dans `packages/book/chapitres/`)
 - [ ] Carte par département
 - [ ] Encadré « 2017 contre 2022 »
 - [ ] Note de méthode et d'écarts

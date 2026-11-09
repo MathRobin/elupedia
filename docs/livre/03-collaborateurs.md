@@ -48,7 +48,7 @@ Les écarts entre groupes sont faibles : de 3,1 (HOR) à 4,1 (LFI-NFP) collabora
 
 ## À rédiger
 
-- [ ] Introduction : à quoi servent les collaborateurs
+- [x] Introduction (dans `packages/book/chapitres/`)
 - [x] Tableau par groupe
 - [ ] Histogramme de la distribution
 - [ ] Encadré « Crédit : combien et pour quoi »

@@ -51,7 +51,7 @@ Dix rubriques de l'indexation de l'Assemblée regroupent les questions les plus 
 
 ## À rédiger
 
-- [ ] Introduction : à quoi sert une question écrite
+- [x] Introduction (dans `packages/book/chapitres/`)
 - [ ] Tableau par groupe, avec les non-inscrits à part
 - [ ] Carte des questions par département
 - [ ] Encadré sur les délais de réponse par ministère
