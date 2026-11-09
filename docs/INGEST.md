@@ -173,9 +173,12 @@ yarn --cwd packages/ingest dedupe:committees --dry-run   # fusionne « nom » et
 yarn --cwd packages/ingest check:coherence               # contrôles métier, lecture seule
 yarn --cwd packages/ingest merge:duplicate-officials     # dry-run : fiches AN/Sénat en doublon (même nom + naissance)
 yarn --cwd packages/ingest merge:duplicate-officials --apply   # fusionne : garde la fiche Sénat, supprime la fiche AN
+yarn --cwd packages/ingest rebuild:site --report ingest-report-an.json   # appelle le Deploy Hook Vercel si le rapport a des changements
 ```
 
 `merge:duplicate-officials` corrige un héritage : avant le rapprochement nom + prénom + date de naissance entre sources, un sénateur décrit à la fois par l'open data Sénat et par le jeu AMO30 de l'AN recevait deux fiches. La fiche Sénat est conservée ; elle reçoit l'`an_id`, les champs qu'elle n'avait pas et toutes les lignes dépendantes de la fiche AN, sauf celles qu'elle possède déjà (même clé naturelle par table, voir `NATURAL_KEYS` dans `src/merge-duplicate-officials.ts`). Le slug de la fiche AN disparaît.
+
+`rebuild:site` est l'étape finale de chaque DAG Dagu : il lit les rapports `ingest-report-*.json` passés en `--report` et, si l'un d'eux a `hasChanges`, fait un POST sur `VERCEL_DEPLOY_HOOK_URL` pour reconstruire les pages statiques du site. Pas plus d'un déclenchement par 20 minutes (état dans `.rebuild-site-state.json`, ignoré par git) ; variable absente ou rapport illisible = simple avertissement, seul un échec de l'appel HTTP fait sortir en erreur.
 
 ## Planification
 

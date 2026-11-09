@@ -10,6 +10,7 @@ description: Ingest — Votes AN + Sénat
 schedule: '30 12 * * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}
+  - VERCEL_DEPLOY_HOOK_URL: ${VERCEL_DEPLOY_HOOK_URL}
   - ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
 steps:
   - name: git-pull
@@ -42,3 +43,9 @@ steps:
     command: yarn --cwd packages/shorts render
     depends:
       - script-shorts
+  # Rebuild Vercel des pages statiques si l'ingestion a changé quelque chose
+  # (utils/deploy-hook.ts : hook VERCEL_DEPLOY_HOOK_URL, 20 min minimum entre deux).
+  - name: rebuild-site
+    command: yarn --cwd packages/ingest rebuild:site --report ingest-report-an.json --report ingest-report-senat.json
+    depends:
+      - votes-senat
