@@ -50,6 +50,12 @@ Convention des fichiers : `name` est le slug du fichier (Dagu 2 n'accepte que
   `ingest:an:partial` (variante manuelle de `ingest:an`), l'étape `campaign-accounts`
   du pipeline générique (CNCCFP — publié une fois par cycle électoral, pas de rythme
   récurrent pertinent ; à relancer manuellement quand un nouveau cycle est publié).
+- **Rebuild du site en fin de DAG** : chaque `ingest-*.yaml` se termine par l'étape
+  `rebuild-site` (`yarn --cwd packages/ingest rebuild:site --report …`), qui appelle le
+  Deploy Hook Vercel `VERCEL_DEPLOY_HOOK_URL` si un rapport de run signale des
+  changements, au plus une fois par 20 min. Le hook se crée dans le projet Vercel
+  (Settings → Git → Deploy Hooks, branche `main`) ; sans la variable, l'étape log un
+  avertissement et le site attend le prochain merge.
 
 ## Créneau haute fréquence — toutes les 5h (00:00, 05:00, 10:00, 15:00, 20:00 UTC)
 
@@ -184,8 +190,8 @@ render` (rendu Remotion : Chrome headless, quelques minutes par short, CPU
 
 ## Secrets requis
 
-Chaque workflow attend `secrets.DATABASE_URL` (déjà configuré pour le déploiement
-dans `ci.yml`). Les workflows touchant S3 (`ingest-photos.yml`, `ingest-maps.yml`)
+Chaque DAG lit `DATABASE_URL` et `VERCEL_DEPLOY_HOOK_URL` (rebuild du site en fin
+de DAG) dans le `.env` de la racine via `base.yaml`. Les workflows touchant S3 (`ingest-photos.yml`, `ingest-maps.yml`)
 attendent en plus `MAPS_S3_BUCKET`, `MAPS_S3_REGION`, `AWS_ACCESS_KEY_ID`,
 `AWS_SECRET_ACCESS_KEY` (et `MAPS_BASE_URL` pour les cartes) — tous déjà présents
 dans les secrets du dépôt.

@@ -8,6 +8,7 @@ description: Ingest — Vérification des faits
 schedule: '30 3 * * 2'
 env:
   - DATABASE_URL: ${DATABASE_URL}
+  - VERCEL_DEPLOY_HOOK_URL: ${VERCEL_DEPLOY_HOOK_URL}
 steps:
   - name: git-pull
     command: git pull
@@ -23,3 +24,9 @@ steps:
     command: yarn --cwd packages/ingest ingest:factchecks
     depends:
       - install-dependencies
+  # Rebuild Vercel des pages statiques si l'ingestion a changé quelque chose
+  # (utils/deploy-hook.ts : hook VERCEL_DEPLOY_HOOK_URL, 20 min minimum entre deux).
+  - name: rebuild-site
+    command: yarn --cwd packages/ingest rebuild:site --report ingest-report-factchecks.json
+    depends:
+      - ingestion-verification-des-faits

@@ -8,6 +8,7 @@ description: Ingest — Cartes statiques (S3)
 schedule: '30 6 1 * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}
+  - VERCEL_DEPLOY_HOOK_URL: ${VERCEL_DEPLOY_HOOK_URL}
   - MAPS_S3_BUCKET: ${MAPS_S3_BUCKET}
   - MAPS_S3_REGION: ${MAPS_S3_REGION}
   - MAPS_BASE_URL: ${MAPS_BASE_URL}
@@ -28,3 +29,9 @@ steps:
     command: yarn --cwd packages/ingest ingest --only maps
     depends:
       - install-dependencies
+  # Rebuild Vercel des pages statiques si l'ingestion a changé quelque chose
+  # (utils/deploy-hook.ts : hook VERCEL_DEPLOY_HOOK_URL, 20 min minimum entre deux).
+  - name: rebuild-site
+    command: yarn --cwd packages/ingest rebuild:site --report ingest-report.json
+    depends:
+      - generation-et-upload-des-cartes-statiques
