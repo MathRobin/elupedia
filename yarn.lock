@@ -1172,6 +1172,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@elupedia/book@workspace:packages/book":
+  version: 0.0.0-use.local
+  resolution: "@elupedia/book@workspace:packages/book"
+  dependencies:
+    "@elupedia/shared": "npm:*"
+    drizzle-orm: "npm:^0.45.4"
+    tsx: "npm:^4.23.15"
+    vitest: "npm:^5.0.4"
+  languageName: unknown
+  linkType: soft
+
 "@elupedia/e2e@workspace:packages/e2e":
   version: 0.0.0-use.local
   resolution: "@elupedia/e2e@workspace:packages/e2e"

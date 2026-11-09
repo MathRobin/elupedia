@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/shared" },
     { "path": "packages/ingest" },
-    { "path": "packages/shorts" }
+    { "path": "packages/shorts" },
+    { "path": "packages/book" }
   ]
 }
