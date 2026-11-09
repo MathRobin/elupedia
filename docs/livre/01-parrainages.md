@@ -29,7 +29,7 @@ Les maires fournissent plus des deux tiers des parrainages. Il y a environ 35 00
 ## Précautions
 
 - Les noms de parrains sont publics (publication officielle). Dans le livre, on s'en tient aux agrégats : aucun maire cité nominativement, sauf contexte documentaire neutre.
-- L'écart de total (13 377 en base contre 13 427 au total officiel) vient de 50 lignes perdues à l'ingestion, la source en contenant 13 427 ; cause à trouver, à indiquer en note de méthode.
+- L'écart de total (13 377 en base contre 13 427 au total officiel) vient de 50 lignes d'élus homonymes écartées à l'ingestion, la source en contenant 13 427 ; à corriger dans l'ingestion et à indiquer en note de méthode tant que ce n'est pas fait.
 - Les catégories sont un regroupement sur le libellé de fonction, le même que celui de la vidéo (`categoryOf` dans `sponsorships-2022.ts`). « Autres élus » inclut par exemple les conseillers de Paris et les présidents d'EPCI.
 
 ## À rédiger
