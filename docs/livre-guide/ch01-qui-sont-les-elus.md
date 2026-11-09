@@ -65,7 +65,7 @@ Trois remarques aident à lire ce tableau.
 
 **Les effectifs de la base ne sont pas un décompte officiel des sièges.** L'Assemblée nationale compte 577 sièges, mais la base recense 565 députés : l'écart peut venir de sièges non pourvus ou de données à rafraîchir. De même, le nombre de sénateurs et d'eurodéputés dans la base peut différer du nombre de sièges fixé par les textes. Pour un nombre de sièges officiel, il faut se reporter à la loi et au site de l'institution. Ici, on parle de « 565 députés recensés », pas des « 577 députés ».
 
-**Le nombre de conseillers communautaires est précis, mais mérite une précision.** La base compte 62 127 mandats pour 62 123 personnes : quatre personnes ont deux mandats communautaires. On retient le nombre de personnes.
+**Conseillers communautaires : mandats et personnes diffèrent légèrement.** La base compte 62 127 mandats pour 62 123 personnes : quatre personnes ont deux mandats communautaires. On retient le nombre de personnes.
 
 > **Figure à produire** — Diagramme en barres horizontales du nombre d'élus par type de mandat, en échelle logarithmique (ou en deux graphiques : mandats locaux, puis mandats nationaux et autres). Données : tableau ci-dessus. Source : Elupedia, au 9 novembre 2026. Ne pas utiliser la couleur seule pour distinguer les barres : étiqueter chaque barre.
 
@@ -77,7 +77,7 @@ Pourquoi la loi s'en préoccupe-t-elle ? Parce qu'une fonction exécutive locale
 
 > **Ce que dit la loi** — Depuis 2017, la loi interdit en principe à un député, à un sénateur ou à un eurodéputé d'exercer en même temps une fonction exécutive locale : maire, adjoint au maire, président ou vice-président d'un conseil départemental, régional ou d'une intercommunalité, par exemple. Un parlementaire peut en revanche rester simple conseiller municipal, départemental, régional ou communautaire. Plus largement, la loi prévoit en principe qu'un élu ne peut exercer qu'une seule fonction exécutive locale. Références : loi organique du 14 février 2014 relative à l'interdiction du cumul de fonctions exécutives locales avec le mandat de député ou de sénateur, et loi du 14 février 2014 relative à l'interdiction du cumul de fonctions exécutives locales avec le mandat de représentant au Parlement européen ; Code électoral.
 
-Que montrent les données ? D'abord, le cumul n'est pas un phénomène marginal chez les élus locaux. **30 492 élus** ont au moins deux mandats actifs au 9 novembre 2026, et **1 624** en ont au moins trois. Une grande part de ce chiffre tient à un cumul précis : **28 655 maires** détiennent aussi un mandat de conseiller communautaire. Autrement dit, au moins 28 655 des 30 492 élus aux mandats multiples sont des maires qui siègent aussi dans leur intercommunalité. Ce cumul relève du fonctionnement de l'intercommunalité, dont les conseillers sont issus des conseils municipaux.
+Que montrent les données ? D'abord, le cumul n'est pas un phénomène marginal chez les élus locaux. **30 492 élus** ont au moins deux mandats actifs au 9 novembre 2026, et **1 624** en ont au moins trois. Une grande part de ce chiffre tient à un cumul précis : **28 655 maires** détiennent aussi un mandat de conseiller communautaire. Au moins 28 655 des 30 492 élus aux mandats multiples sont donc des maires qui siègent aussi dans leur intercommunalité. Ce cumul relève du fonctionnement de l'intercommunalité, dont les conseillers sont issus des conseils municipaux.
 
 > **Chiffres** — Élus locaux ayant plusieurs mandats actifs, au 9 novembre 2026
 >
@@ -102,7 +102,7 @@ Chez les parlementaires, la loi n'interdit pas les mandats de simple conseiller.
 >
 > Réserve : les lignes ne s'additionnent pas, car un même élu peut cumuler plusieurs mandats. La base ne dit pas si l'élu exerce, dans ce conseil, une fonction exécutive : on ne peut pas déduire de ces chiffres qu'un cumul respecte ou non la loi. Source : Assemblée nationale, Sénat et Répertoire national des élus, via Elupedia, au 9 novembre 2026.
 
-Deux précautions de lecture. D'abord, ces chiffres comptent des mandats de _conseiller_ : la loi les autorise en principe. Ensuite, les dates de fin de mandat ne sont pas toujours mises à jour dans les sources publiques. Si un mandat est terminé dans la réalité mais encore affiché comme actif, il gonfle le décompte. Pour cette raison, ce livre ne cite pas de chiffre sur le cumul d'un mandat parlementaire et d'un mandat de maire : la loi l'interdit en principe depuis 2017, et un écart entre le droit et les données relèverait d'abord d'une date non mise à jour ou d'une fonction de maire délégué, à vérifier au cas par cas.
+D'abord, ces chiffres comptent des mandats de _conseiller_ : la loi les autorise. Ensuite, les dates de fin de mandat ne sont pas toujours mises à jour dans les sources publiques. Si un mandat est terminé dans la réalité mais encore affiché comme actif, il gonfle le décompte. Pour cette raison, ce livre ne cite pas de chiffre sur le cumul d'un mandat parlementaire et d'un mandat de maire : la loi l'interdit en principe depuis 2017, et un écart entre le droit et les données relèverait d'abord d'une date non mise à jour ou d'une fonction de maire délégué, à vérifier au cas par cas.
 
 ## 4. Un renouvellement par vagues
 
@@ -166,7 +166,7 @@ La loi prévoit qu'un député est élu pour cinq ans. Mais quelle est la durée
 
 Cette moyenne se lit avec prudence. Elle porte sur des _mandats_, pas sur des _carrières_ : un député réélu à plusieurs reprises compte pour plusieurs mandats. Elle englobe toutes les fins de mandat. Un mandat peut se terminer avant cinq ans pour des raisons variées : démission, décès, remplacement par un suppléant lorsque le titulaire devient membre du gouvernement, ou encore dissolution de l'Assemblée. La base ne distingue pas ces causes dans ce calcul.
 
-Retenez simplement que la durée prévue par la loi et la durée vécue ne coïncident pas toujours. Les chapitres suivants reviennent sur les règles qui fixent ces durées et sur la façon dont on devient élu.
+La durée prévue par la loi et la durée vécue ne coïncident pas toujours. Les chapitres suivants reviennent sur les règles qui fixent ces durées et sur la façon dont on devient élu.
 
 > **À retenir** —
 >

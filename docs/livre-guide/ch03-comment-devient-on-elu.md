@@ -8,7 +8,7 @@ Un **scrutin** est une opération de vote qui désigne un ou plusieurs élus. Le
 
 Dans le **suffrage direct**, les électeurs choisissent eux-mêmes leurs élus. Dans le **suffrage indirect**, les électeurs élisent d'abord des délégués, et ce sont ces délégués qui choisissent les élus. Les sénateurs relèvent de la seconde famille. Tous les autres scrutins de ce chapitre relèvent de la première.
 
-Voici les sept grands scrutins nationaux et locaux, avec la durée du mandat que la loi prévoit en principe.
+Le tableau suivant présente les sept grands scrutins nationaux et locaux, avec la durée du mandat que la loi prévoit en principe.
 
 | Scrutin         | Qui est élu                                              | Électeurs                | Durée du mandat |
 | --------------- | -------------------------------------------------------- | ------------------------ | --------------- |
@@ -22,7 +22,7 @@ Voici les sept grands scrutins nationaux et locaux, avec la durée du mandat que
 
 L'élection présidentielle a ses propres règles, notamment le système des parrainages. Elle fait l'objet du chapitre 8 et n'est pas détaillée ici.
 
-Deux précisions sur ce tableau. Le mandat est une durée maximale : un élu peut le quitter avant son terme (démission, décès) ou l'Assemblée nationale peut être dissoute (voir plus bas). Et la durée est celle que la loi prévoit aujourd'hui ; elle a déjà changé par le passé pour certains mandats, notamment pour les sénateurs et pour le président de la République.
+Le mandat est une durée maximale : un élu peut le quitter avant son terme (démission, décès) ou l'Assemblée nationale peut être dissoute (voir plus bas). Et la durée est celle que la loi prévoit aujourd'hui ; elle a déjà changé par le passé pour certains mandats, notamment pour les sénateurs et pour le président de la République.
 
 ### Le calendrier réel n'est pas régulier
 
@@ -60,7 +60,7 @@ Le seuil de 12,5 % se calcule sur les **inscrits**, pas sur les votants. Plus la
 
 ### Les départementales : un binôme par canton
 
-Les départements sont divisés en **cantons**. Dans chaque canton, les électeurs élisent deux conseillers départementaux, une femme et un homme, qui se présentent ensemble en **binôme**. Chaque binôme a deux remplaçants, eux aussi un homme et une femme. Le scrutin est majoritaire à deux tours. Le seuil pour se maintenir au second tour est en principe le même que pour les législatives : 12,5 % des inscrits.
+Les départements sont divisés en **cantons**. Dans chaque canton, les électeurs élisent deux conseillers départementaux, une femme et un homme, qui se présentent ensemble en **binôme**. Chaque binôme a deux remplaçants, eux aussi un homme et une femme. Le scrutin est majoritaire à deux tours. Le seuil pour se maintenir au second tour est le même que pour les législatives : 12,5 % des inscrits.
 
 Cette règle du binôme a été conçue pour obtenir une assemblée composée à parts égales de femmes et d'hommes. Elle s'applique depuis 2015.
 
@@ -74,7 +74,7 @@ La prime majoritaire a un objectif : dégager une majorité capable de gouverner
 
 ### Les européennes : une liste nationale
 
-Pour les européennes, la France forme depuis 2019 une seule circonscription. Chaque parti ou groupement présente une liste nationale. Il n'y a qu'un tour. Les sièges sont répartis à la proportionnelle entre les listes qui ont obtenu au moins 5 % des suffrages exprimés. La France dispose en principe de 81 sièges au Parlement européen depuis 2024.
+Pour les européennes, la France forme depuis 2019 une seule circonscription. Chaque parti ou groupement présente une liste nationale. Il n'y a qu'un tour. Les sièges sont répartis à la proportionnelle entre les listes qui ont obtenu au moins 5 % des suffrages exprimés. La France dispose de 81 sièges au Parlement européen depuis 2024.
 
 ### Les municipales : une règle qui dépend de la taille de la commune
 

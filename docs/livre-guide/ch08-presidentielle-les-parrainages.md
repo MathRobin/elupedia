@@ -81,7 +81,7 @@ Le taux de rattachement progresse fortement entre les deux dates : environ 55 % 
 
 ### Répartition par fonction du parrain en 2022
 
-La liste publiée indique la fonction de chaque parrain. Voici la répartition pour 2022, sur la base des 13 377 parrainages recensés par Elupedia.
+La liste publiée indique la fonction de chaque parrain. La répartition pour 2022 porte sur les 13 377 parrainages recensés par Elupedia.
 
 > **Chiffres** — Parrainages de 2022 par fonction du parrain (fonction telle qu'elle figure sur la liste du Conseil constitutionnel) :
 >
@@ -104,7 +104,7 @@ Le nombre de parrainages reçus par une même personne varie beaucoup. En 2022, 
 
 Un parrainage est une **autorisation de candidature**. En signant, l'élu permet à une personne de se présenter devant les électeurs. Il n'engage pas son vote ni celui de ses administrés.
 
-Quelques précisions utiles pour lire les listes :
+Pour lire les listes :
 
 - **Un parrain n'est pas un soutien politique.** Un élu peut présenter un candidat dont il ne partage pas le programme, par exemple parce qu'il estime que le pluralisme des candidatures est souhaitable. Le texte de la loi ne lui demande pas de justifier sa démarche, et la liste publiée n'en donne pas les raisons.
 - **Le parrainage ne vaut pas consigne de vote.** Le parrain reste libre de voter pour un autre candidat, ou de ne pas voter.

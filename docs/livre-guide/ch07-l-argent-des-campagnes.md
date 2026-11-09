@@ -6,7 +6,7 @@ Faire campagne coûte de l'argent : affiches, tracts, salles, déplacements, sit
 
 Dans une élection, les candidats ne partent pas avec les mêmes moyens. Certains disposent d'un réseau de donateurs, d'un parti qui les soutient ou d'un patrimoine personnel. D'autres commencent avec peu. Si rien n'était fixé, la capacité à financer une campagne pèserait lourd dans le résultat. La loi cherche donc à limiter cet écart, avec trois outils principaux.
 
-Le premier est le **plafond de dépenses**. Pour chaque élection, la loi prévoit en principe une somme que le candidat ne doit pas dépasser pendant sa campagne. Ce plafond dépend du type d'élection et, en général, de la taille de la circonscription, c'est-à-dire du territoire où l'on se présente. Un candidat à une élection locale n'a donc pas le même plafond qu'un candidat dans une grande circonscription. Les montants sont fixés par les textes et révisés ; ils ne sont pas repris ici.
+Le premier est le **plafond de dépenses**. Pour chaque élection, la loi prévoit une somme que le candidat ne doit pas dépasser pendant sa campagne. Ce plafond dépend du type d'élection et, en général, de la taille de la circonscription, c'est-à-dire du territoire où l'on se présente. Un candidat à une élection locale n'a donc pas le même plafond qu'un candidat dans une grande circonscription. Les montants sont fixés par les textes et révisés ; ils ne sont pas repris ici.
 
 Le deuxième est l'**encadrement des dons**. La loi limite le montant qu'une personne peut donner à un candidat. Elle interdit en principe les dons des entreprises et des autres personnes morales, c'est-à-dire des organisations dotées d'une existence juridique propre, comme une société ou une association. Les partis politiques font exception : ils peuvent aider un candidat. Les dons en espèces sont, eux, plafonnés à un faible montant. Là encore, les montants exacts changent avec les textes et ne sont pas cités ici.
 
@@ -20,9 +20,9 @@ Un quatrième élément complète le dispositif : l'État rembourse une partie d
 
 ### Le mandataire financier
 
-Un candidat n'encaisse pas lui-même l'argent de sa campagne. Il désigne un **mandataire financier**. C'est la personne chargée, en son nom, de recevoir les dons et de payer les dépenses. La loi prévoit en principe deux formules : une personne physique, ou une association de financement électorale, c'est-à-dire une association créée pour cet usage. Le candidat déclare son mandataire à la préfecture.
+Un candidat n'encaisse pas lui-même l'argent de sa campagne. Il désigne un **mandataire financier**. C'est la personne chargée, en son nom, de recevoir les dons et de payer les dépenses. La loi prévoit deux formules : une personne physique, ou une association de financement électorale, c'est-à-dire une association créée pour cet usage. Le candidat déclare son mandataire à la préfecture.
 
-Ce mécanisme a un effet pratique. Les recettes d'une campagne passent par un **compte bancaire unique**, ouvert par le mandataire pour la campagne. Les dons sont encaissés sur ce compte, les dépenses en sortent. Si une dépense est payée autrement, par exemple par le candidat lui-même, elle doit en principe être rattachée au compte de campagne et déclarée comme apport personnel.
+Ce mécanisme a un effet pratique. Les recettes d'une campagne passent par un **compte bancaire unique**, ouvert par le mandataire pour la campagne. Les dons sont encaissés sur ce compte, les dépenses en sortent. Si une dépense est payée autrement, par exemple par le candidat lui-même, elle doit être rattachée au compte de campagne et déclarée comme apport personnel.
 
 ### La période de décompte
 
@@ -36,7 +36,7 @@ Le **compte de campagne** est le document de synthèse. Il retrace, en deux colo
 
 Le compte est en principe présenté par un **expert-comptable**, qui vérifie sa cohérence et y appose son visa, c'est-à-dire sa signature attestant qu'il a examiné les pièces. Il est ensuite déposé auprès de la commission de contrôle, dans un délai fixé par la loi après l'élection.
 
-Tous les candidats ne sont pas tenus d'en déposer un. La loi prévoit des cas où l'obligation s'applique et des cas où elle ne s'applique pas, selon la taille de la circonscription, le type d'élection, le nombre de voix obtenues et le fait d'avoir reçu ou non des dons. Retenez ceci : **l'absence de compte au dossier ne signifie pas, par elle-même, qu'une règle a été enfreinte**. Il faut d'abord savoir si le candidat était concerné par l'obligation.
+Tous les candidats ne sont pas tenus d'en déposer un. La loi prévoit des cas où l'obligation s'applique et des cas où elle ne s'applique pas, selon la taille de la circonscription, le type d'élection, le nombre de voix obtenues et le fait d'avoir reçu ou non des dons. **L'absence de compte au dossier ne signifie pas, par elle-même, qu'une règle a été enfreinte**. Il faut d'abord savoir si le candidat était concerné par l'obligation.
 
 > **Ce que dit la loi** — Le Code électoral prévoit en principe que le candidat à certaines élections désigne un mandataire, recueille ses fonds par son intermédiaire et dépose un compte de campagne après le scrutin (articles L. 52-4 et L. 52-12). Il prévoit aussi qu'un candidat ayant obtenu moins de 1 % des suffrages exprimés et n'ayant bénéficié d'aucun don de personne physique n'est pas tenu de déposer un compte. Ce seuil et ses conditions sont à vérifier dans le texte en vigueur avant toute application à un cas précis.
 
@@ -65,8 +65,6 @@ Dans la base d'Elupedia, les décisions sont notées par un code. Quatre revienn
 | R    | Rejeté                     | La commission n'a pas accepté le compte. La décision est motivée par l'un des manquements que la loi prévoit.                                                   |
 | DD   | Non déposé                 | La commission n'a pas de compte dans le délai prévu.                                                                                                            |
 
-Deux précisions s'imposent.
-
 D'abord, **« approuvé après réformation » n'est pas un échec**. Une réformation est une modification que la commission apporte elle-même au compte. Elle peut être mineure : une facture mal imputée, une dépense hors période. Le compte est accepté, avec une correction.
 
 Ensuite, le code **DD** est traduit « non déposé » dans la base. Il ne dit rien des raisons. Un compte peut ne pas être déposé parce que le candidat n'y était pas tenu, par exemple parce qu'il était sous le seuil de suffrages sans avoir reçu de dons ; la loi prévoit aussi des cas où le dépôt était requis. La base ne distingue pas ces situations. Elle enregistre la décision, pas l'histoire du dossier. Le sens exact de ce code est d'ailleurs l'un des points que nous signalons à la vérification (voir les notes) : lisez-le avec cette réserve.
@@ -81,7 +79,7 @@ Une décision de la commission a des suites, qui dépendent de sa nature. Cette 
 
 **Rejeté.** La loi prévoit en principe que le rejet d'un compte prive le candidat du remboursement de l'État. Selon la gravité du manquement relevé, le rejet peut aussi être suivi d'une **saisine du juge de l'élection**. C'est le juge qui décide ensuite d'une éventuelle sanction. Pour les élections législatives et sénatoriales, il s'agit du Conseil constitutionnel ; pour d'autres élections, le tribunal administratif. Le juge peut prononcer une **inéligibilité**, c'est-à-dire l'interdiction de se présenter à une élection pendant une durée fixée par la loi (à vérifier). Il peut aussi ne pas en prononcer : la sanction dépend de la nature du manquement, de son caractère volontaire ou non, de la bonne foi du candidat et de son montant. Un rejet n'entraîne donc pas automatiquement une inéligibilité.
 
-**Non déposé.** Quand un compte était exigé et n'a pas été déposé dans le délai, la loi prévoit en principe des suites comparables : la commission peut saisir le juge, qui peut aussi prononcer une inéligibilité. Mais, comme on l'a vu, de nombreux candidats n'étaient pas tenus de déposer. Dans ces cas, aucune suite n'est prévue.
+**Non déposé.** Quand un compte était exigé et n'a pas été déposé dans le délai, la loi prévoit des suites comparables : la commission peut saisir le juge, qui peut aussi prononcer une inéligibilité. Mais, comme on l'a vu, de nombreux candidats n'étaient pas tenus de déposer. Dans ces cas, aucune suite n'est prévue.
 
 Notez la différence de nature. La **commission** contrôle les comptes et rend une décision administrative. Le **juge de l'élection** est un tribunal. Il décide s'il y a lieu de sanctionner. La première ne sanctionne pas par elle-même une inéligibilité ; elle peut en saisir le second.
 
@@ -147,7 +145,7 @@ Pour résumer une série de montants, on utilise souvent deux indicateurs. La **
 
 Trois remarques.
 
-**La moyenne 2022 n'est pas citée.** Une valeur manifestement aberrante figure dans les données de cette élection, probablement une erreur de saisie ou de publication. Elle fausserait fortement la moyenne. Plutôt que de publier un chiffre trompeur, nous ne citons que la médiane de 2022. C'est un exemple concret de ce qu'il faut faire face à une donnée publique : ne pas calculer mécaniquement, mais regarder d'abord si les valeurs sont plausibles.
+**La moyenne 2022 n'est pas citée.** Une valeur manifestement aberrante figure dans les données de cette élection, probablement une erreur de saisie ou de publication. Elle fausserait fortement la moyenne. Plutôt que de publier un chiffre trompeur, nous ne citons que la médiane de 2022. Face à une donnée publique, on regarde d'abord si les valeurs sont plausibles avant de calculer.
 
 **Les médianes des deux élections législatives sont proches** : 5 234 € en 2022 et 5 126 € en 2024. Pour la moitié des comptes avec montant, les dépenses retenues sont donc de l'ordre de quelques milliers d'euros. Elles restent très loin des plafonds, que la loi fixe à un niveau bien supérieur pour ce type d'élection.
 
@@ -157,19 +155,19 @@ La moyenne de 2024 (9 279 €) est nettement supérieure à la médiane (5 126 �
 
 ## Comment lire un compte de campagne
 
-Si vous ouvrez un compte de campagne publié, vous trouverez des lignes dont le vocabulaire est précis. Voici les définitions.
+Si vous ouvrez un compte de campagne publié, vous trouverez des lignes dont le vocabulaire est précis. Les définitions suivent.
 
 - **Dépenses déclarées.** Ce que le candidat, par son mandataire, a inscrit au compte comme dépenses de campagne.
 - **Dépenses retenues.** Ce que la commission admet après examen. Elle peut en retirer une partie, par exemple une dépense sans rapport avec la campagne, ou hors période, ou sans justificatif.
 - **Recettes.** Tout ce qui finance la campagne : dons, apports, remboursement attendu.
 - **Dons de personnes physiques.** Les sommes versées par des particuliers, dans la limite que fixe la loi. Un reçu est remis à chaque donateur.
-- **Apport personnel.** Les sommes que le candidat avance lui-même pour sa campagne. La loi limite en principe le remboursement par l'État à cette part, ce qui explique que l'apport personnel soit une ligne à part.
+- **Apport personnel.** Les sommes que le candidat avance lui-même pour sa campagne. La loi limite le remboursement par l'État à cette part, ce qui explique que l'apport personnel soit une ligne à part.
 - **Apport d'un parti politique.** Les sommes ou les prestations fournies par un parti ou un groupement. Les partis sont une exception à l'interdiction des dons de personnes morales.
 - **Remboursement de l'État.** Le montant, s'il y a lieu, que l'État rembourse au candidat après la décision de la commission.
 
 Pour lire un compte sans se perdre, trois questions suffisent. Quel est le total des dépenses retenues, et est-il sous le plafond ? D'où viennent les recettes : plutôt des dons, d'un apport personnel, d'un parti ? Quelle est la décision de la commission ? Ces trois points donnent déjà une image fidèle du dossier, sans qu'il soit nécessaire d'entrer dans chaque facture.
 
-Une précaution de lecture : un compte déposé et approuvé n'est pas le signe d'une campagne « bonne » ou « mauvaise », et un compte rejeté n'est pas, par lui-même, la preuve d'une intention de contourner la loi. Un compte décrit des flux d'argent. La décision de la commission dit si ces flux respectent les règles. Rien de plus.
+Un compte déposé et approuvé n'est pas le signe d'une campagne « bonne » ou « mauvaise », et un compte rejeté n'est pas, par lui-même, la preuve d'une intention de contourner la loi. Un compte décrit des flux d'argent. La décision de la commission dit si ces flux respectent les règles. Rien de plus.
 
 > **À retenir** —
 >

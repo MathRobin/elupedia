@@ -31,7 +31,7 @@ Ce livre ne juge pas la décentralisation et n'en tire aucune conclusion sur ce 
 
 ## Ce que fait chaque niveau, concrètement
 
-Les compétences sont fixées par la loi, notamment par le Code général des collectivités territoriales. Il serait impossible de toutes les citer. Voici les plus visibles, niveau par niveau. Elles ont évolué avec les réformes récentes : tout ce qui dépend de lois récentes est signalé comme tel.
+Les compétences sont fixées par la loi, notamment par le Code général des collectivités territoriales. Il serait impossible de toutes les citer. Les plus visibles sont présentées niveau par niveau. Elles ont évolué avec les réformes récentes : tout ce qui dépend de lois récentes est signalé comme tel.
 
 ### La commune
 
@@ -45,7 +45,7 @@ Beaucoup de communes sont petites. Pour mutualiser leurs moyens, elles se regrou
 
 L'intercommunalité n'exerce que les compétences que les communes lui ont transférées ou que la loi lui impose. Selon le type d'EPCI, il peut s'agir de la **collecte et du traitement des déchets**, du **développement économique** (zones d'activités), des **transports urbains**, de l'**eau et de l'assainissement**, ou encore du **plan local d'urbanisme** à l'échelle de plusieurs communes. Le détail varie d'un territoire à l'autre : c'est l'un des points où il faut consulter la fiche de sa propre intercommunalité plutôt que de s'en tenir à une règle générale.
 
-Deux précisions s'imposent. D'une part, les transferts de l'eau et de l'assainissement aux intercommunalités ont fait l'objet de plusieurs lois successives, avec des calendriers et des possibilités de report : la situation d'un territoire donné dépend de ces textes et de ses choix locaux. D'autre part, même quand l'urbanisme est intercommunal, la délivrance des permis de construire reste, dans la plupart des cas, au maire. Ces deux points sont à vérifier avant édition.
+D'une part, les transferts de l'eau et de l'assainissement aux intercommunalités ont fait l'objet de plusieurs lois successives, avec des calendriers et des possibilités de report : la situation d'un territoire donné dépend de ces textes et de ses choix locaux. D'autre part, même quand l'urbanisme est intercommunal, la délivrance des permis de construire reste, dans la plupart des cas, au maire. Ces deux points sont à vérifier avant édition.
 
 ### Le département
 
@@ -109,11 +109,11 @@ Ce système, qui a remplacé l'ancienne tutelle de l'État sur les collectivité
 
 Au-dessus de l'État, l'**Union européenne** fixe des règles dans les domaines que lui confient les traités : marché intérieur, concurrence, politique commerciale, une partie de l'agriculture, de l'environnement, de la protection des données. Elle agit par des **règlements**, applicables directement dans les États membres, et par des **directives**, que chaque État doit transposer dans son droit national. Le Parlement européen participe à l'adoption de ces textes, avec le Conseil de l'Union européenne, qui rassemble les gouvernements : c'est la procédure dite « législative ordinaire ». Les eurodéputés français sont élus par les électeurs français, au suffrage universel direct.
 
-Concrètement, une décision locale peut être encadrée par une règle européenne : une collectivité qui lance un marché public doit respecter les règles de mise en concurrence ; un agriculteur qui demande une aide doit se conformer à une politique commune. Ce qui est européen est à vérifier au cas par cas, domaine par domaine.
+Une décision locale peut être encadrée par une règle européenne : une collectivité qui lance un marché public doit respecter les règles de mise en concurrence ; un agriculteur qui demande une aide doit se conformer à une politique commune. Ce qui est européen est à vérifier au cas par cas, domaine par domaine.
 
 ## Le tableau « Qui décide de quoi ? »
 
-Voici une vue d'ensemble pour les sujets que le lecteur rencontre le plus souvent. Le tableau est simplifié : il indique le niveau qui décide principalement et celui qui intervient souvent à ses côtés. Des exceptions existent, selon les territoires, les lois récentes et les choix locaux : en cas de doute, consultez le service concerné de votre mairie ou de votre préfecture.
+Le tableau suivant donne une vue d'ensemble des sujets que le lecteur rencontre le plus souvent. Il est simplifié : il indique le niveau qui décide principalement et celui qui intervient souvent à ses côtés. Des exceptions existent, selon les territoires, les lois récentes et les choix locaux : en cas de doute, consultez le service concerné de votre mairie ou de votre préfecture.
 
 | Thème                                                    | Niveau principal                                                      | Niveau associé                        |
 | -------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------- |
@@ -150,11 +150,11 @@ Quelques explications pour mieux lire ce tableau.
 
 ## Qui est élu à chaque niveau, et combien sont-ils ?
 
-À chaque niveau correspondent des assemblées et un exécutif élus. Voici comment cela se présente.
+À chaque niveau correspondent des assemblées et un exécutif élus.
 
 **La commune.** Les électeurs élisent un **conseil municipal** au suffrage universel direct. Le conseil municipal élit ensuite le **maire** en son sein. Le maire est l'exécutif de la commune : il prépare et fait exécuter les décisions, dirige les services municipaux, et peut déléguer certaines tâches à des adjoints. Les conseillers municipaux eux-mêmes (hors maires) ne sont pas dans la base de données d'Elupedia : le chiffre de 34 824 maires ne dit donc rien sur leur nombre total.
 
-**L'intercommunalité.** Les conseillers communautaires ne sont pas élus lors d'un scrutin à part : ils sont issus des conseils municipaux. Dans les communes les plus peuplées, ils sont désignés lors des municipales, sur les mêmes listes (c'est ce qu'on appelle le « fléchage »). Dans les petites communes, ils sont désignés dans l'ordre du tableau du conseil municipal, à commencer par le maire. Le conseil communautaire élit ensuite son **président**. Autrement dit, les électeurs ne votent pas directement pour l'intercommunalité, mais le choix des conseillers communautaires découle de leur vote municipal.
+**L'intercommunalité.** Les conseillers communautaires ne sont pas élus lors d'un scrutin à part : ils sont issus des conseils municipaux. Dans les communes les plus peuplées, ils sont désignés lors des municipales, sur les mêmes listes (c'est ce qu'on appelle le « fléchage »). Dans les petites communes, ils sont désignés dans l'ordre du tableau du conseil municipal, à commencer par le maire. Le conseil communautaire élit ensuite son **président**. Les électeurs ne votent donc pas directement pour l'intercommunalité, mais le choix des conseillers communautaires découle de leur vote municipal.
 
 **Le département.** Les électeurs élisent des **conseillers départementaux**, par canton, au scrutin appelé binominal : deux candidats, un homme et une femme, se présentent ensemble. L'assemblée élit ensuite le **président du département**, qui dirige l'administration départementale.
 

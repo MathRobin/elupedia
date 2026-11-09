@@ -40,7 +40,7 @@ Pendant longtemps, l'identité des collaborateurs d'un parlementaire est restée
 
 **L'interdiction d'employer certains proches.** La loi pour la confiance dans la vie politique de 2017 interdit à un parlementaire d'employer comme collaborateur un membre de sa famille proche. La liste des proches visés est fixée par la loi ; elle comprend notamment le conjoint, le partenaire de pacte civil de solidarité (pacs) et le concubin, ainsi que certains ascendants et descendants. La même loi étend des règles comparables aux ministres et aux exécutifs locaux. Avant cette loi, l'emploi de proches par un parlementaire était possible, dans certaines limites ; la loi de 2017 a mis fin à cette possibilité pour les parlementaires.
 
-Il faut noter que ces interdictions portent sur le lien familial entre l'élu et la personne employée. Elles ne signifient pas que les collaborateurs doivent être sans lien personnel avec l'élu, ni qu'un emploi est suspect par principe. Elles fixent un cadre, que l'assemblée et, en cas de contestation, la justice peuvent faire respecter.
+Ces interdictions portent sur le lien familial entre l'élu et la personne employée. Elles ne signifient pas que les collaborateurs doivent être sans lien personnel avec l'élu, ni qu'un emploi est suspect par principe. Elles fixent un cadre, que l'assemblée et, en cas de contestation, la justice peuvent faire respecter.
 
 > **Ce que dit la loi** — La loi pour la confiance dans la vie politique du 15 septembre 2017 interdit aux parlementaires d'employer un membre de leur famille proche comme collaborateur. Le texte définit précisément la liste des liens de parenté concernés et prévoit les conséquences d'un manquement. Pour la liste exacte et la rédaction en vigueur, consulter la loi sur le site Légifrance, ainsi que les pages de la Haute Autorité pour la transparence de la vie publique consacrées aux collaborateurs.
 
@@ -114,7 +114,7 @@ Enfin, **la responsabilité d'une décision revient à l'élu**. Une équipe pr�
 
 ## Comment lire une liste de collaborateurs ?
 
-Une liste de collaborateurs donne une impression de précision : des noms, des dates, parfois des fonctions. Cette impression est trompeuse si l'on oublie ce que la liste mesure réellement. Voici cinq précautions.
+Une liste de collaborateurs donne une impression de précision : des noms, des dates, parfois des fonctions. Cette impression est trompeuse si l'on oublie ce que la liste mesure réellement. Cinq précautions aident à ne pas s'y tromper.
 
 1. **Une liste est une déclaration, pas un organigramme.** Elle dit qui est déclaré auprès de l'élu, pas qui fait quoi.
 2. **Le nombre ne mesure pas l'activité.** Une équipe nombreuse peut travailler à temps partiel ; une petite équipe peut travailler à plein temps. Les données ne distinguent pas ces situations.

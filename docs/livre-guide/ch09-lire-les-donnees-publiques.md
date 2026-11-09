@@ -20,7 +20,7 @@ Un huitième acteur, hors administration, apparaît au chapitre 6 : la plateform
 
 Le plus souvent, ces données sont diffusées sous la **Licence Ouverte 2.0**, une licence conçue pour l'administration française. Elle vous autorise à copier, modifier, vendre et republier les données, y compris à des fins commerciales. En contrepartie, elle impose de **citer la source** et de **mentionner la date de la dernière mise à jour**. C'est la raison pour laquelle chaque chiffre de ce livre porte sa source et sa date. Une exception : les parrainages du Conseil constitutionnel relèvent du domaine public, sans obligation de citation, que nous respectons tout de même.
 
-> **Ce que dit la loi** — Depuis la loi du 7 octobre 2016 pour une République numérique, les administrations doivent en principe mettre en ligne leurs documents administratifs sous forme électronique, et la réutilisation des informations publiques est en principe libre, sous réserve des données personnelles et de quelques autres exceptions. La Licence Ouverte 2.0 précise les conditions de cette réutilisation : indiquer la source et la date de mise à jour.
+> **Ce que dit la loi** — Depuis la loi du 7 octobre 2016 pour une République numérique, les administrations doivent en principe mettre en ligne leurs documents administratifs sous forme électronique, et la réutilisation des informations publiques est libre, sous réserve des données personnelles et de quelques autres exceptions. La Licence Ouverte 2.0 précise les conditions de cette réutilisation : indiquer la source et la date de mise à jour.
 
 Une donnée ouverte n'est pas une donnée complète ni une donnée parfaite. Elle a été produite pour une raison administrative (organiser un scrutin, constater des comptes, tenir un répertoire) et non pour répondre à votre question. Il faut donc apprendre à la lire.
 
@@ -60,7 +60,7 @@ Un exemple : les parrainages de l'élection présidentielle de 2022. Le Conseil 
 
 > **Dans les données** — Les parrainages ne sont pas seulement ceux des personnes devenues candidates : le fichier contient aussi ceux de personnes qui n'ont pas atteint le seuil de présentations nécessaire. Le nombre total de lignes n'est donc pas le nombre de parrainages d'un candidat donné. Voir le chapitre 8.
 
-Remonter à la source primaire signifie rechercher le producteur d'origine : l'Assemblée pour ses scrutins, le Conseil constitutionnel pour ses parrainages, la CNCCFP pour ses décisions. Un site qui republie un chiffre n'est pas une source, c'est un relais.
+Remonter à la source primaire signifie rechercher le producteur d'origine : l'Assemblée pour ses scrutins, le Conseil constitutionnel pour ses parrainages, la CNCCFP pour ses décisions. Un site qui republie un chiffre ne fait que le relayer.
 
 ### Question 4. Quelle définition ?
 
@@ -164,7 +164,7 @@ Vous n'avez pas besoin d'être statisticien pour contrôler un chiffre. Trois ge
 
 ### La méthode d'Elupedia
 
-Elupedia est une encyclopédie ouverte des élus français. Elle reprend des données publiques et les rassemble dans une base unique. Voici sa méthode, en cinq points.
+Elupedia est une encyclopédie ouverte des élus français. Elle reprend des données publiques et les rassemble dans une base unique. Sa méthode tient en cinq points.
 
 - **Sources.** Uniquement des données publiques sous licence ouverte, listées en fin de livre. Pas de donnée de presse dans ce livre.
 - **Mises à jour automatiques.** Des programmes d'ingestion lisent régulièrement les sources officielles et mettent la base à jour. Chaque programme peut être relancé sans créer de doublons.

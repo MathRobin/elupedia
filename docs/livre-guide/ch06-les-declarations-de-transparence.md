@@ -53,7 +53,7 @@ La liste des personnes soumises à l'obligation est fixée par la loi. Elle ne c
 - **Les responsables d'exécutifs locaux** : maires de communes de plus de 20 000 habitants, présidents de conseils départementaux, présidents de conseils régionaux, et présidents de certains établissements publics de coopération intercommunale (les EPCI, ces regroupements de communes), selon leur taille ou leur budget. Les adjoints au maire et certains élus ayant reçu une délégation de signature sont aussi concernés dans les plus grandes communes, selon des seuils qu'il faut vérifier.
 - **D'autres responsables publics** qui ne sont pas des élus : membres de cabinets ministériels, directeurs d'administration, dirigeants de certains organismes publics, collaborateurs du Président de la République, etc. Cette liste n'entre pas dans l'objet de ce livre.
 
-Pour les élus, retenez deux conséquences.
+Pour les élus, cela a deux conséquences.
 
 D'abord, **la grande majorité des élus locaux n'est pas soumise à ces déclarations**. Un maire d'une petite commune, un conseiller municipal, un conseiller départemental ou régional qui n'est pas président de son assemblée ne dépose en principe aucune déclaration à la HATVP. La loi a placé le seuil sur le niveau de responsabilité, pas sur le nombre d'élus. La base d'Elupedia compte 34 824 maires actifs au 9 novembre 2026 : seule une petite fraction d'entre eux dirige une commune de plus de 20 000 habitants.
 
@@ -67,7 +67,7 @@ Une déclaration n'est pas un document que l'on remplit une fois. Elle suit un c
 
 **1. Le dépôt au début du mandat.** La personne dépose ses déclarations auprès de la HATVP après sa prise de fonctions. La loi prévoit en principe un délai de quelques semaines : deux mois sont fréquemment cités, mais le délai exact peut varier selon la fonction (à vérifier). Le dépôt se fait aujourd'hui par un téléservice en ligne.
 
-**2. Les actualisations.** Lorsque la situation change de façon substantielle pendant le mandat, la personne doit en principe déposer une déclaration modificative. Un exemple de changement : l'acquisition d'une part dans une société, ou l'exercice d'une nouvelle fonction. La loi fixe le principe ; les modalités sont précisées par les textes d'application.
+**2. Les actualisations.** Lorsque la situation change de façon substantielle pendant le mandat, la personne doit déposer une déclaration modificative. Un exemple de changement : l'acquisition d'une part dans une société, ou l'exercice d'une nouvelle fonction. La loi fixe le principe ; les modalités sont précisées par les textes d'application.
 
 **3. Le contrôle.** La HATVP examine les déclarations. Elle peut demander des précisions à la personne. Pour le patrimoine, elle peut demander à l'administration fiscale des informations sur la situation fiscale de la personne. Pour les intérêts, elle cherche d'éventuelles omissions et les risques de conflits d'intérêts. Elle peut formuler des recommandations ou, lorsqu'un conflit lui paraît possible, enjoindre à la personne d'y mettre fin (à vérifier).
 
@@ -77,9 +77,7 @@ Une déclaration n'est pas un document que l'on remplit une fois. Elle suit un c
 
 ### Et si une déclaration manque ou est inexacte ?
 
-La loi prévoit des sanctions. Ne pas déposer une déclaration, ou omettre de façon substantielle une partie du patrimoine ou des intérêts, ou en donner une évaluation mensongère, peut constituer une infraction pénale. La loi prévoit alors en principe des peines d'amende et d'emprisonnement, et elle permet au juge de prononcer, en plus, l'inéligibilité (l'interdiction de se présenter à une élection pendant un temps) ou l'interdiction d'exercer une fonction publique. Les peines précises, leur montant et leur durée doivent être relus à la source avant publication (voir les notes).
-
-Deux précisions sont utiles pour éviter les contresens.
+La loi prévoit des sanctions. Ne pas déposer une déclaration, ou omettre de façon substantielle une partie du patrimoine ou des intérêts, ou en donner une évaluation mensongère, peut constituer une infraction pénale. La loi prévoit alors des peines d'amende et d'emprisonnement, et elle permet au juge de prononcer, en plus, l'inéligibilité (l'interdiction de se présenter à une élection pendant un temps) ou l'interdiction d'exercer une fonction publique. Les peines précises, leur montant et leur durée doivent être relus à la source avant publication (voir les notes).
 
 - Le contrôle par la HATVP n'est pas un jugement. L'autorité peut transmettre un dossier au procureur de la République ; c'est la justice, et non la HATVP, qui décide s'il y a infraction.
 - Une déclaration publiée sans observation ne signifie pas non plus « validée » au sens où tout aurait été vérifié ligne à ligne. Elle indique qu'elle a été déposée et qu'elle a passé le contrôle de forme et de cohérence mené par l'autorité.
@@ -134,7 +132,7 @@ Une conséquence pratique : si vous cherchez la déclaration d'un élu et qu'ell
 
 Ce livre ne donne aucun montant de patrimoine individuel, et n'en donnera pas. C'est une décision éditoriale, pour deux raisons.
 
-**La première tient à la loi.** La loi encadre la publication des déclarations de patrimoine et leur réutilisation. Elle prévoit des conditions de consultation différentes selon les fonctions, et elle punit en principe de sanctions pénales la divulgation ou la publication de certaines informations contenues dans une déclaration de patrimoine hors des cas permis par la loi. Les termes exacts, les cas où une publication est permise et les peines doivent être vérifiés avant impression (voir les notes). Le principe est le suivant : le droit de consulter n'emporte pas un droit de republier à sa guise.
+**La première tient à la loi.** La loi encadre la publication des déclarations de patrimoine et leur réutilisation. Elle prévoit des conditions de consultation différentes selon les fonctions, et elle punit de sanctions pénales la divulgation ou la publication de certaines informations contenues dans une déclaration de patrimoine hors des cas permis par la loi. Les termes exacts, les cas où une publication est permise et les peines doivent être vérifiés avant impression (voir les notes). Le principe est le suivant : le droit de consulter n'emporte pas un droit de republier à sa guise.
 
 **La seconde est une règle de méthode.** Ce livre présente des agrégats et non des personnes. Un montant de patrimoine, même public, est une donnée personnelle fine ; le placer dans un livre, hors de son contexte, en fait un chiffre sans explication. Il invite à la comparaison entre personnes, alors que les situations ne sont pas comparables : âge, profession avant le mandat, héritage, taille du foyer, situation familiale, valeur d'un bien selon la date d'estimation.
 
@@ -144,7 +142,7 @@ Si vous souhaitez consulter une déclaration de patrimoine, la voie à suivre es
 
 ## Lire une déclaration : ce qu'elle prouve, ce qu'elle ne prouve pas
 
-Une déclaration est un document utile à condition de savoir à quoi il sert. Voici une liste de repères.
+Une déclaration est un document utile à condition de savoir à quoi il sert. Quelques repères :
 
 **Ce qu'une déclaration permet.**
 

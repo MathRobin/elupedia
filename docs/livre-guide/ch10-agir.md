@@ -4,13 +4,13 @@ Vous avez lu comment les élus sont choisis, ce qu'ils décident et comment lire
 
 ## 1. Suivre ses élus : où trouver l'information
 
-Suivre un élu ne demande ni abonnement ni intermédiaire. Presque tout ce qu'une assemblée fait en public est publié, mais à des endroits différents selon le niveau. Voici les sources de base, de la plus générale à la plus locale.
+Suivre un élu ne demande ni abonnement ni intermédiaire. Presque tout ce qu'une assemblée fait en public est publié, mais à des endroits différents selon le niveau. Les sources de base vont de la plus générale à la plus locale.
 
 **Le Journal officiel de la République française.** C'est le recueil où sont publiés les lois, les décrets, les arrêtés ministériels et un grand nombre d'actes officiels, dont les décrets de convocation des électeurs. Il est consultable gratuitement en ligne sur le site Légifrance. Ce que dit le Journal officiel fait foi : c'est la référence en cas de doute sur la date ou le contenu d'un texte.
 
 **Les sites des assemblées parlementaires.** L'Assemblée nationale et le Sénat publient sur leurs sites les comptes rendus des séances, les textes en discussion, les résultats des votes publics, les questions écrites et leurs réponses, ainsi que la composition de leurs commissions. Le Parlement européen publie de même ses travaux, ses votes et la liste de ses membres. Chaque député, sénateur ou eurodéputé dispose d'une fiche sur le site de son assemblée, avec ses mandats, ses interventions et, selon les cas, ses déclarations.
 
-**Les sites et affichages des collectivités.** Les communes, les départements, les régions et les intercommunalités publient en principe l'ordre du jour de leurs séances, leurs délibérations et leurs comptes rendus. Dans une petite commune, cela se limite souvent à un affichage en mairie. Dans une grande collectivité, c'est un espace dédié du site internet. La loi encadre cette publicité (voir la section 3), mais la qualité de la mise en ligne varie beaucoup d'un endroit à l'autre.
+**Les sites et affichages des collectivités.** Les communes, les départements, les régions et les intercommunalités publient l'ordre du jour de leurs séances, leurs délibérations et leurs comptes rendus. Dans une petite commune, cela se limite souvent à un affichage en mairie. Dans une grande collectivité, c'est un espace dédié du site internet. La loi encadre cette publicité (voir la section 3), mais la qualité de la mise en ligne varie beaucoup d'un endroit à l'autre.
 
 **Les organismes de contrôle.** La Haute Autorité pour la transparence de la vie publique publie les déclarations de certains élus (chapitre 6). La Commission nationale des comptes de campagne et des financements politiques (CNCCFP) publie ses décisions sur les comptes de campagne (chapitre 7). Le Conseil constitutionnel publie les listes de parrainages de l'élection présidentielle (chapitre 8). Le ministère de l'Intérieur publie les résultats électoraux et un répertoire des élus.
 
@@ -22,7 +22,7 @@ Un conseil de méthode : suivre un élu, c'est surtout suivre ce qu'il fait au s
 
 ## 2. Contacter un élu
 
-Un élu est joignable. Un député ou un sénateur reçoit courriers et messages ; un maire tient en principe des permanences ou des rendez-vous ; un conseiller départemental ou régional est joignable par son assemblée. Les coordonnées officielles se trouvent sur les sites des assemblées et des collectivités. Ce livre n'en donne aucune : elles changent après chaque élection.
+Un élu est joignable. Un député ou un sénateur reçoit courriers et messages ; un maire tient des permanences ou des rendez-vous ; un conseiller départemental ou régional est joignable par son assemblée. Les coordonnées officielles se trouvent sur les sites des assemblées et des collectivités. Ce livre n'en donne aucune : elles changent après chaque élection.
 
 Quelques pratiques facilitent l'échange, quel que soit l'élu.
 
@@ -42,7 +42,7 @@ Les assemblées locales se réunissent en séance publique. C'est un droit pour 
 
 > **Ce que dit la loi** — Le Code général des collectivités territoriales prévoit que les séances du conseil municipal sont publiques. Le conseil peut toutefois décider de se réunir à huis clos, c'est-à-dire sans public, sur demande d'un petit nombre de ses membres ou du maire. Des règles analogues existent pour les conseils départementaux et régionaux. Les séances du conseil municipal sont annoncées par une convocation, accompagnée d'une note de synthèse sur les affaires à l'ordre du jour, et le compte rendu est affiché ou publié dans un délai bref. Toute personne peut demander à consulter, sur place, les procès-verbaux, les budgets et les comptes de la commune. (Référence présumée : Code général des collectivités territoriales, articles L. 2121-11, L. 2121-12, L. 2121-18, L. 2121-25 et L. 2121-26 pour la commune ; livres III et IV de la deuxième partie du même code pour le département et la région. À vérifier.)
 
-En pratique, voici comment se préparer.
+La préparation se fait en quelques gestes.
 
 **Repérer la date et l'ordre du jour.** L'ordre du jour est la liste des points que l'assemblée examinera. Il est joint à la convocation que reçoivent les élus quelques jours avant la séance, et il est en principe rendu public par affichage ou sur le site de la collectivité. Le consulter avant de venir permet de savoir si un sujet qui vous intéresse sera abordé.
 
@@ -50,7 +50,7 @@ En pratique, voici comment se préparer.
 
 **Lire le procès-verbal et le compte rendu.** Ils jouent deux rôles distincts. Le compte rendu est un résumé des délibérations, publié rapidement. Le procès-verbal est le document plus détaillé, souvent approuvé à la séance suivante. Les délibérations adoptées sont ensuite transmises au préfet dans le cadre du contrôle de légalité, c'est-à-dire la vérification, par l'État, que les décisions locales respectent la loi.
 
-Les mêmes principes valent, avec des variantes, pour les intercommunalités, dont 62 123 conseillers communautaires actifs dans la base d'Elupedia (au 9 novembre 2026) : leurs séances sont elles aussi en principe publiques, et leurs délibérations consultables. Ce sont des assemblées moins connues, qui décident pourtant de compétences importantes, comme les transports ou les déchets. Pour les assemblées nationales, les séances publiques de l'Assemblée nationale et du Sénat sont ouvertes au public dans les tribunes, selon des modalités d'accueil fixées par chaque assemblée, et sont retransmises en ligne.
+Les mêmes principes valent, avec des variantes, pour les intercommunalités, dont 62 123 conseillers communautaires actifs dans la base d'Elupedia (au 9 novembre 2026) : leurs séances sont elles aussi publiques, et leurs délibérations consultables. Ce sont des assemblées moins connues, qui décident pourtant de compétences importantes, comme les transports ou les déchets. Pour les assemblées nationales, les séances publiques de l'Assemblée nationale et du Sénat sont ouvertes au public dans les tribunes, selon des modalités d'accueil fixées par chaque assemblée, et sont retransmises en ligne.
 
 ## 4. Demander un document administratif
 
@@ -92,7 +92,7 @@ Voter est la forme d'action la plus répandue. Les règles pratiques sont simple
 
 **S'inscrire sur les listes électorales.** Pour voter, il faut être inscrit sur la liste électorale d'une commune. L'inscription n'est pas toujours automatique : elle l'est pour les jeunes qui atteignent 18 ans et qui ont effectué leur recensement citoyen, mais pas pour un déménagement ou pour une première inscription après 18 ans. La démarche se fait en ligne, sur le site de l'administration française, ou en mairie, avec un justificatif d'identité et de domicile. Depuis 2019, la date limite n'est plus fixée au 31 décembre de l'année précédente : on peut s'inscrire jusqu'à quelques semaines avant un scrutin, la date exacte dépendant de l'élection. (Référence présumée : Code électoral, article L. 17 et suivants ; date limite, sixième vendredi précédant le scrutin dans le cas général. À vérifier.)
 
-**Voter par procuration.** Un électeur absent le jour du vote peut donner procuration à un autre électeur, qui votera à sa place. La procuration peut s'établir en ligne, puis se valide dans un commissariat, une gendarmerie ou auprès d'une autorité habilitée. Chaque mandataire ne peut en principe détenir qu'un nombre limité de procurations. Cette règle a changé à plusieurs reprises : le détail est à lire sur le site officiel de l'administration française avant de faire la démarche. (Référence présumée : Code électoral, articles L. 71 et suivants. À vérifier.)
+**Voter par procuration.** Un électeur absent le jour du vote peut donner procuration à un autre électeur, qui votera à sa place. La procuration peut s'établir en ligne, puis se valide dans un commissariat, une gendarmerie ou auprès d'une autorité habilitée. Chaque mandataire ne peut détenir qu'un nombre limité de procurations. Cette règle a changé à plusieurs reprises : le détail est à lire sur le site officiel de l'administration française avant de faire la démarche. (Référence présumée : Code électoral, articles L. 71 et suivants. À vérifier.)
 
 **Le vote des citoyens européens aux municipales.** Un citoyen d'un autre État de l'Union européenne qui réside en France peut voter aux élections municipales, ainsi qu'aux élections européennes, s'il s'inscrit sur une liste électorale complémentaire. Il peut aussi être élu conseiller municipal. Il ne peut en revanche pas être maire ou adjoint, ni participer à l'élection des sénateurs. (Référence présumée : article 88-3 de la Constitution et Code électoral, articles LO 227-1 et suivants. À vérifier.)
 
@@ -112,7 +112,7 @@ Tout citoyen qui remplit les conditions peut être candidat. Ce chapitre ne déc
 
 **Le mandataire financier et le compte de campagne.** Un candidat à une élection qui dépasse un certain niveau doit désigner un mandataire, personne ou association qui recueille les dons et règle les dépenses, puis tenir un compte de campagne présenté à la CNCCFP. Le chapitre 7 détaille ces règles et ce que les données permettent d'en lire. Le seuil de population des communes concernées par cette obligation est à vérifier. (Référence présumée : Code électoral, article L. 52-4 et suivants. À vérifier.)
 
-**Le cumul et les incompatibilités.** Une candidature réussie ne signifie pas que l'on peut tout cumuler. La loi limite le cumul de mandats, en particulier entre un mandat parlementaire et une fonction exécutive locale (maire, président de département ou de région). Le chapitre 1 décrit ces règles ; le chapitre 3 explique comment on devient élu, des conditions de candidature aux modes de scrutin. L'élu qui se trouve en situation de cumul doit en principe choisir et renoncer à l'un des mandats.
+**Le cumul et les incompatibilités.** Une candidature réussie ne signifie pas que l'on peut tout cumuler. La loi limite le cumul de mandats, en particulier entre un mandat parlementaire et une fonction exécutive locale (maire, président de département ou de région). Le chapitre 1 décrit ces règles ; le chapitre 3 explique comment on devient élu, des conditions de candidature aux modes de scrutin. L'élu qui se trouve en situation de cumul doit choisir et renoncer à l'un des mandats.
 
 Se présenter ne demande pas forcément un parti. Beaucoup de candidatures locales sont sans étiquette : la loi n'impose pas d'appartenir à un parti, même si le soutien d'une organisation facilite souvent la collecte de moyens et de parrainages. Pour l'élection présidentielle, les conditions sont particulières : il faut réunir des parrainages d'élus (chapitre 8).
 
@@ -120,7 +120,7 @@ Se présenter ne demande pas forcément un parti. Beaucoup de candidatures local
 
 Les données publiques contiennent des erreurs, comme tout fichier géré à grande échelle : mandat non mis à jour, mauvais rattachement, faute de saisie. Le chapitre 9 en décrit les causes. Chacun peut contribuer à les corriger, avec un principe simple : **on corrige à la source**.
 
-Une donnée traverse en général plusieurs étapes : elle est saisie par une administration, publiée en données ouvertes, puis reprise par des outils tiers, dont Elupedia. Corriger la dernière étape sans corriger la première condamne l'erreur à revenir à la prochaine mise à jour. Voici donc la marche à suivre.
+Une donnée traverse en général plusieurs étapes : elle est saisie par une administration, publiée en données ouvertes, puis reprise par des outils tiers, dont Elupedia. Corriger la dernière étape sans corriger la première condamne l'erreur à revenir à la prochaine mise à jour. La marche à suivre en découle.
 
 1. **Identifier la source de la donnée.** Une fiche d'Elupedia indique d'où vient chaque information : Assemblée nationale, Sénat, Parlement européen, Répertoire national des élus, HATVP, CNCCFP, ministère de l'Intérieur.
 2. **Contacter l'organisme qui la produit.** Pour les mandats locaux, le répertoire des élus est tenu à partir des déclarations des mairies et des préfectures : c'est généralement la préfecture, via la mairie, qui rectifie. Pour un parlementaire, l'assemblée concernée. Pour une déclaration d'intérêts, la HATVP. Pour un compte de campagne, la CNCCFP.
