@@ -1,8 +1,8 @@
-# Livre Elupedia — plan de travail (brouillon)
+# Livre Elupedia : plan de travail (brouillon)
 
 Public : grand public. Format : autoédition en impression à la demande, environ 150 pages. Pas de date de sortie. Cartes : oui (mention © OpenStreetMap, partage à l'identique). Collaborateurs : jamais nommés, agrégats uniquement.
 
-Données figées au **9 novembre 2026** (à rappeler en tête de livre).
+Données figées au 9 novembre 2026 (à rappeler en tête de livre).
 
 ## Structure (environ 150 pages)
 
@@ -12,7 +12,7 @@ Données figées au **9 novembre 2026** (à rappeler en tête de livre).
 | 1. Parrainages                 | 20    | Les élus qui soutiennent les candidats : maires, présidentielles 2017 et 2022          |
 | 2. Comptes de campagne         | 20    | Coût et remboursement d'une campagne législative (2022, 2024)                          |
 | 3. Collaborateurs              | 14    | L'enveloppe des députés, par groupe, sans aucun nom                                    |
-| 3. Questions écrites           | 16    | Auteurs, rythme et sujets des questions au gouvernement                                |
+| 4. Questions écrites           | 16    | Auteurs, rythme et sujets des questions au gouvernement                                |
 | 5. L'âge des députés           | 8     | Court : moyenne, médiane, extrêmes, par groupe                                         |
 | 6. Les sénatoriales de 2026    | 14    | Scrutin, sièges, sortants, élus par nuance                                             |
 | Annexe : annuaire              | 40    | Députés, sénateurs, eurodéputés (sans contacts, sans photos au départ)                 |
@@ -24,11 +24,13 @@ Données figées au **9 novembre 2026** (à rappeler en tête de livre).
 
 ## Points à vérifier avant publication
 
-1. Le total 2022 en base (13 377) diffère du total officiel (13 427) : à expliquer ou à citer le total officiel.
-2. Comptes 2024 : dépenses retenues très inférieures à 2022. Il faut vérifier la part de comptes non encore arrêtés par la CNCCFP avant toute comparaison.
-3. Questions écrites : le statut de réponse est vide dans les données, la part répondue se déduit de la date de réponse ; à confirmer.
-4. Annuaire : ni décorations (rattachement par nom, risque d'homonymes) ni commissions (143 députés sur 565 renseignés) ; groupes des sénateurs à vérifier (voir `docs/KNOWN-ISSUES.md`). Pas de coordonnées, de photos ni de dates de naissance.
-5. Relecture juridique (diffamation, RGPD) avant impression, même sans budget : au minimum une relecture par une personne du métier.
+1. Total des parrainages 2022 : 13 377 lignes en base contre 13 427 au total officiel. Le jeu de données du Conseil constitutionnel sur data.gouv.fr compte bien 13 427 lignes (fichier du 7 mars 2022, vérifié par l'API tabulaire de data.gouv.fr), et la base ne contient pas de doublon : les 50 lignes manquantes sont perdues à l'ingestion. Elles se répartissent sur 12 candidats (Pécresse 11, Hidalgo 7, Macron 6, Zemmour 6, Poutou 4, Arthaud 4, Le Pen 3, Dupont-Aignan 3, Jadot 2, Lassalle 2, Asselineau 1, Kazib 1). Cause non établie, à vérifier en comparant le CSV source et la base (hypothèse : lignes ignorées par `fetchParrainages` quand elles ont moins de 8 colonnes, par exemple un champ sur plusieurs lignes). En attendant, citer le total officiel.
+2. Comptes 2024 : dépenses retenues très inférieures à 2022. L'hypothèse de comptes non encore arrêtés par la CNCCFP n'est pas confirmée par nos données : chaque compte 2024 porte un code de décision, et les dépenses retenues ne sont absentes que pour les 813 comptes non déposés et 57 comptes de code AD. L'écart subsiste à code de décision égal (6 702 € contre 12 004 € en moyenne pour les comptes approuvés sans réformation). Cause à établir, à vérifier avant toute comparaison. Le nombre de rejets (85) correspond à un chiffre attribué au président de la CNCCFP (environ 3 200 dossiers traités, 85 rejets), relevé dans un extrait de recherche et non retrouvé dans le compte rendu de son audition du 14 mai 2025 : à vérifier.
+3. Questions écrites : le statut de réponse est vide parce que l'ingestion ne l'alimente que pour les amendements (`sources/an-activite.ts`) ; à vérifier si le fichier de l'Assemblée le fournit. La part répondue (64 %) se déduit de la date de réponse. Confirmé : le délai de deux mois (article 135 du Règlement de l'Assemblée), et l'existence des questions « signalées » (réponse sous dix jours). Un chiffre cité par l'Assemblée (11,6 % de réponses dans les deux mois en avril 2025) va dans le sens de nos délais médians, sans avoir été recoupé : à vérifier.
+4. Règle reprise dans l'introduction du chapitre 1 : la liste complète des parrains est publiée depuis la loi organique n° 2016-506 du 25 avril 2016 (auparavant, 500 noms tirés au sort). Confirmé.
+5. Députés : 565 en fonction dans la base pour 577 sièges (565 circonscriptions distinctes, 12 manquent). Les totaux des chapitres collaborateurs, questions écrites et âge portent sur ces 565. À vérifier : sièges vacants ou mandats non ingérés.
+6. Annuaire : pas de commissions (143 députés sur 565 renseignés) ; pas de décorations (aucun parlementaire en fonction n'en a de vérifiée depuis le rattachement par date de naissance) ; groupes des sénateurs à vérifier (voir `docs/KNOWN-ISSUES.md`). Pas de coordonnées, de photos ni de dates de naissance.
+7. Relecture juridique (diffamation, RGPD) avant impression, même sans budget : au minimum une relecture par une personne du métier.
 
 ## Pipeline
 

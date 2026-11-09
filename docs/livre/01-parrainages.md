@@ -21,16 +21,16 @@ Les maires fournissent plus des deux tiers des parrainages. Il y a environ 35 00
 
 ## Angles possibles
 
-- **La géographie** : une carte des départements par nombre de parrainages par habitant. Les cartes sont sous ODbL, mention « © OpenStreetMap » obligatoire.
-- **Le seuil des 500** : combien de candidats l'atteignent, et avec quelle marge.
-- **Les petites communes** : la part des parrains dont la commune compte moins de 500 habitants (à calculer avec les données communales).
-- **Les doubles parrains** : un élu ne peut parrainer qu'un candidat, mais plusieurs mandats d'une même personne se recoupent (à vérifier).
+- La géographie : une carte des départements par nombre de parrainages par habitant. Les cartes sont sous ODbL, mention « © OpenStreetMap » obligatoire.
+- Le seuil des 500 : combien de candidats l'atteignent, et avec quelle marge.
+- Les petites communes : la part des parrains dont la commune compte moins de 500 habitants (à calculer avec les données communales).
+- Les doubles parrains : un élu ne peut parrainer qu'un candidat, mais plusieurs mandats d'une même personne se recoupent (à vérifier).
 
 ## Précautions
 
 - Les noms de parrains sont publics (publication officielle). Dans le livre, on s'en tient aux agrégats : aucun maire cité nominativement, sauf contexte documentaire neutre.
-- Les écarts de total (13 377 contre 13 427) viennent de lignes en double ou non lues à l'ingestion ; à indiquer en note de méthode.
-- Les catégories sont un regroupement sur le libellé de fonction, le même que celui de la vidéo (`categoryOf` dans `sponsorships-2022.ts`). « Autres élus » inclut notamment les conseillers de Paris et les présidents d'EPCI.
+- L'écart de total (13 377 en base contre 13 427 au total officiel) vient de 50 lignes perdues à l'ingestion, la source en contenant 13 427 ; cause à trouver, à indiquer en note de méthode.
+- Les catégories sont un regroupement sur le libellé de fonction, le même que celui de la vidéo (`categoryOf` dans `sponsorships-2022.ts`). « Autres élus » inclut par exemple les conseillers de Paris et les présidents d'EPCI.
 
 ## À rédiger
 

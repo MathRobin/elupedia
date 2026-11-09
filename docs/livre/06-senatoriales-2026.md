@@ -16,7 +16,7 @@
 - Les nuances sont celles des préfectures, pas des groupes du Sénat : à ne pas présenter comme un rapport de forces au Sénat. Le groupe d'appartenance se lit sur les fiches des sénateurs (annuaire).
 - Le sexe des candidats n'est pas renseigné pour 2026 : pas d'analyse de la parité tant que ce n'est pas fait.
 - Les agrégats de participation (inscrits, votants, blancs, nuls) ne sont pas publiés sur le site source : pas de taux de participation.
-- Les noms présentés comptent, en scrutin de liste, tous les noms des listes : ce n'est pas le nombre de candidats en lice pour un siège.
+- Les noms présentés comptent, en scrutin de liste, tous les noms des listes : le total dépasse largement le nombre de candidats en lice pour un siège.
 
 ## À rédiger
 
