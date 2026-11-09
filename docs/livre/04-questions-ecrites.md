@@ -2,7 +2,7 @@
 
 > Brouillon. Données au 9 novembre 2026, Assemblée nationale (17e législature, depuis octobre 2024), Licence Ouverte 2.0. Les données du Sénat remontent à 1978 mais ne servent pas de base de comparaison ici.
 
-Un député peut poser une question écrite à un ministre. Le ministre répond, en principe, dans un délai de deux mois, et la réponse est publiée au Journal officiel. C'est l'outil le plus utilisé pour porter un sujet local ou technique : il ne demande ni séance ni vote.
+Un député peut poser une question écrite à un ministre. Le ministre dispose de deux mois pour répondre, et la réponse est publiée au Journal officiel. Elle ne demande ni séance ni vote, ce qui en fait un outil simple pour porter un sujet local ou technique.
 
 ## Chiffres
 
@@ -38,15 +38,15 @@ Dix rubriques de l'indexation de l'Assemblée regroupent les questions les plus 
 
 ## Angles possibles
 
-- **Les territoires** : la carte des questions par département d'élection, rapportée au nombre de députés.
-- **Les réponses** : délai selon le ministère, part des questions sans réponse, question « signalée » (à vérifier).
-- **L'écart entre groupes** : la moyenne par député masque de fortes différences à l'intérieur de chaque groupe (écart entre le premier et le dernier quartile).
+- Les territoires : la carte des questions par département d'élection, rapportée au nombre de députés.
+- Les réponses : délai selon le ministère, part des questions sans réponse, questions « signalées » (réponse promise sous dix jours, procédure à vérifier).
+- L'écart entre groupes : la moyenne par député masque de fortes différences à l'intérieur de chaque groupe (écart entre le premier et le dernier quartile).
 
 ## Précautions
 
-- Le nombre de questions mesure une activité, pas la qualité du travail d'un député : à écrire dans le texte, sans classement nominatif.
+- Le nombre de questions ne dit rien de la qualité du travail d'un député : à écrire dans le texte, sans classement nominatif.
 - Aucun député n'est cité nominativement pour son nombre de questions, ni en tête ni en queue du classement.
-- Le statut de la réponse n'est pas renseigné dans nos données (champ vide) : la part répondue se déduit de la présence d'une date de réponse. Les questions récentes n'ont pas encore de réponse, donc le délai moyen sous-estime le délai réel.
+- Le statut de la réponse est vide dans nos données, l'ingestion ne l'alimentant pas pour les questions (à vérifier dans le fichier de l'Assemblée) : la part répondue se déduit de la présence d'une date de réponse. Le délai de deux mois est rarement respecté d'après des statistiques citées par l'Assemblée (à vérifier). Les questions récentes n'ont pas encore de réponse, donc le délai moyen sous-estime le délai réel.
 - Le rattachement au groupe se fait sur le mandat en cours : les députés qui ont changé de groupe sont comptés dans leur groupe actuel.
 
 ## À rédiger

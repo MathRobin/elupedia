@@ -18,16 +18,16 @@ Chaque candidat aux législatives dépose un compte de campagne auprès de la Co
 
 ## Comparaison 2022 et 2024
 
-Les dépenses retenues 2024 sont très inférieures à celles de 2022 (moyenne 9 279 € contre 28 654 €). Avant d'écrire quoi que ce soit là-dessus, il faut vérifier si une partie des comptes 2024 n'est pas encore arrêtée par la Commission : leurs dépenses « retenues » sont alors nulles. Cette comparaison ne doit pas être publiée tant que ce point n'est pas levé.
+Les dépenses retenues 2024 sont très inférieures à celles de 2022 (moyenne 9 279 € contre 28 654 €). L'hypothèse de comptes 2024 non encore arrêtés par la Commission n'est pas confirmée : chaque compte porte un code de décision, et les dépenses retenues ne sont absentes que pour les comptes non déposés et 57 comptes de code AD. L'écart se retrouve à code de décision égal (6 702 € contre 12 004 € pour les comptes approuvés sans réformation). La cause reste à établir (à vérifier), et la comparaison ne doit pas être publiée tant que ce point n'est pas levé.
 
 Le nombre de comptes baisse aussi (4 010 contre 6 290), ce qui correspond aux deux scrutins : les législatives de 2024 ont eu moins de candidats que celles de 2022. À confirmer avec les chiffres officiels du ministère de l'Intérieur.
 
 ## Angles possibles
 
-- **Le coût d'une voix** : remboursement rapporté aux suffrages exprimés.
-- **Qui est remboursé** : seuls ceux qui dépassent 5 % des suffrages le sont ; les 1 974 remboursés de 2024 sur 4 010 comptes, soit environ un sur deux.
-- **Les comptes non déposés** : 993 en 2022, 813 en 2024, à ventiler selon la taille des candidats.
-- **Les comptes rejetés** : conséquences (inéligibilité éventuelle) à expliquer avec soin, sans nommer.
+- Le coût d'une voix : remboursement rapporté aux suffrages exprimés.
+- Qui est remboursé : seuls ceux qui dépassent 5 % des suffrages le sont ; les 1 974 remboursés de 2024 sur 4 010 comptes, soit environ un sur deux.
+- Les comptes non déposés : 993 en 2022, 813 en 2024, à ventiler selon la taille des candidats.
+- Les comptes rejetés : conséquences (inéligibilité éventuelle) à expliquer avec soin, sans nommer.
 
 ## Précautions
 

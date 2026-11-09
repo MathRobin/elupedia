@@ -13,9 +13,9 @@ Sur 565 députés en fonction dont la date de naissance est connue :
 
 ## Angles possibles
 
-- **La pyramide des âges** de l'Assemblée comparée à celle de la population (à ajouter avec une source Insee, avec sa licence).
-- **Par groupe** : l'âge moyen de chaque groupe, avec le nombre de députés. Prudence sur les petits groupes.
-- **L'âge d'éligibilité** : l'âge minimal pour être élu député est de 18 ans. À reprendre de la fiche de synthèse n°3 de l'Assemblée.
+- La pyramide des âges de l'Assemblée comparée à celle de la population (à ajouter avec une source Insee, avec sa licence).
+- Par groupe : l'âge moyen de chaque groupe, avec le nombre de députés. Prudence sur les petits groupes.
+- L'âge d'éligibilité : l'âge minimal pour être élu député est de 18 ans. À reprendre de la fiche de synthèse n°3 de l'Assemblée.
 
 ## Précautions
 

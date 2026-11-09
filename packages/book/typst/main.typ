@@ -70,8 +70,14 @@
 #apres-intro
 #include "../out/chapitres/05-age-des-deputes.typ"
 
-= Crédits et licences
-Données : Assemblée nationale, Sénat, HATVP, CNCCFP, Conseil constitutionnel (Licence Ouverte 2.0). Cartes : © les contributeurs d'OpenStreetMap (ODbL).
+
+= Les sénatoriales de 2026
+#intro("06-senatoriales-2026.md")
+#apres-intro
+#tableau(data.tables.senatoriales)
+#v(0.8em)
+#tableau(data.tables.senatorialesNuances)
+#source[Source : Sénat, senatoriales2026.senat.fr. Données arrêtées au #data.asOf.]
 
 #heading(numbering: none)[Annexe : annuaire des parlementaires]
 Parlementaires en fonction au #data.asOf. L'annuaire ne reprend ni coordonnées, ni photos, ni dates de naissance.
@@ -94,3 +100,6 @@ Parlementaires en fonction au #data.asOf. L'annuaire ne reprend ni coordonnées,
 
 #heading(level: 2, numbering: none)[Eurodéputés]
 #annuaire(data.directory.eurodeputes)
+
+= Crédits et licences
+Données : Assemblée nationale, Sénat, HATVP, CNCCFP, Conseil constitutionnel (Licence Ouverte 2.0). Cartes : © les contributeurs d'OpenStreetMap (ODbL).

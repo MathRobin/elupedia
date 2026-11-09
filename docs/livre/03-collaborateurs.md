@@ -36,9 +36,9 @@ Les écarts entre groupes sont faibles : de 3,1 (HOR) à 4,1 (LFI-NFP) collabora
 
 ## Angles possibles
 
-- **Par groupe politique** : moyenne, minimum et maximum, avec le nombre de députés dans chaque groupe (les non-inscrits ne forment pas un groupe : à traiter à part).
-- **La distribution** : combien de députés avec 1, 2, 3… 8 collaborateurs ? Un histogramme est plus clair qu'une moyenne.
-- **Le crédit et son usage** : rapporter le nombre de collaborateurs au crédit mensuel de 11 463 €. Les constantes de `packages/shorts/src/topics/staffers.ts` viennent de la fiche de l'Assemblée et sont à revérifier à chaque revalorisation.
+- Par groupe politique : moyenne, minimum et maximum, avec le nombre de députés dans chaque groupe (les non-inscrits ne forment pas un groupe : à traiter à part).
+- La distribution : combien de députés avec 1, 2, 3… 8 collaborateurs ? Un histogramme est plus clair qu'une moyenne.
+- Le crédit et son usage : rapporter le nombre de collaborateurs au crédit mensuel de 11 463 €. Les constantes de `packages/shorts/src/topics/staffers.ts` viennent de la fiche de l'Assemblée et sont à revérifier à chaque revalorisation.
 
 ## Précautions
 

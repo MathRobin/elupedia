@@ -99,8 +99,9 @@ yarn --cwd packages/admin set-password <email> [--create --role admin]   # (re)d
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
 
-# Ingestion décorations (Légion d'honneur, ONM, Médaille militaire)
+# Ingestion décorations (Légion d'honneur, ONM, Médaille militaire) ; rattachement sur nom + date de naissance
 yarn --cwd packages/ingest ingest:decorations
+yarn --cwd packages/ingest reconcile:decorations   # revérifie les rattachements existants : dry-run, --apply (avec --backup), --restore <fichier>
 
 # Dédoublonnage des commissions (fusionne « nom » et « nom (abrégé) »)
 yarn --cwd packages/ingest dedupe:committees --dry-run

@@ -7,6 +7,8 @@ import {
   buildCampaignTable,
   buildDirectory,
   buildGroupTable,
+  buildSenate2026Summary,
+  buildSenateNuanceTable,
   buildSponsorshipsTable,
   type Directory,
   type Table,
@@ -15,6 +17,8 @@ import {
   loadCampaignAccounts,
   loadDeputiesAge,
   loadDirectory,
+  loadSenate2026,
+  loadSenate2026Nuances,
   loadSponsorships,
   loadStaffersByGroup,
   loadWrittenQuestionsByGroup,
@@ -39,15 +43,25 @@ export interface BookData {
 
 export async function buildBookData(): Promise<BookData> {
   const db = createDb();
-  const [sponsorships, campaigns, staffers, questions, age, directory] =
-    await Promise.all([
-      loadSponsorships(db),
-      loadCampaignAccounts(db),
-      loadStaffersByGroup(db),
-      loadWrittenQuestionsByGroup(db),
-      loadDeputiesAge(db),
-      loadDirectory(db),
-    ]);
+  const [
+    sponsorships,
+    campaigns,
+    staffers,
+    questions,
+    age,
+    directory,
+    senate,
+    senateNuances,
+  ] = await Promise.all([
+    loadSponsorships(db),
+    loadCampaignAccounts(db),
+    loadStaffersByGroup(db),
+    loadWrittenQuestionsByGroup(db),
+    loadDeputiesAge(db),
+    loadDirectory(db),
+    loadSenate2026(db),
+    loadSenate2026Nuances(db),
+  ]);
   return {
     asOf: new Date().toISOString().slice(0, 10),
     tables: {
@@ -56,6 +70,8 @@ export async function buildBookData(): Promise<BookData> {
       collaborateurs: buildGroupTable(staffers, 'Collaborateurs'),
       questions: buildGroupTable(questions, 'Questions écrites'),
       age: buildAgeTable(age),
+      senatoriales: buildSenate2026Summary(senate),
+      senatorialesNuances: buildSenateNuanceTable(senateNuances),
     },
     directory: buildDirectory(directory),
   };

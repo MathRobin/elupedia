@@ -1,0 +1,5 @@
+Les sénateurs ne sont pas élus directement par les citoyens. Ils le sont par des grands électeurs : les députés, les sénateurs, les conseillers régionaux et départementaux, et surtout les délégués des conseils municipaux, qui forment l'essentiel du collège. Le mandat dure six ans, et le Sénat est renouvelé par moitié tous les trois ans.
+
+Le mode de scrutin dépend du nombre de sièges à pourvoir dans le département. Quand il y en a un ou deux, le scrutin est majoritaire à deux tours. À partir de trois sièges, c'est un scrutin de liste proportionnel, à la plus forte moyenne.
+
+Le renouvellement du 27 septembre 2026 a porté sur une série de circonscriptions : une partie des départements et les Français établis hors de France. Ce chapitre résume le scrutin (sièges, tours, sénateurs sortants) et la répartition des élus selon les nuances attribuées par les préfectures. Ces nuances ne sont pas des appartenances à un groupe du Sénat, et le même courant peut apparaître sous plusieurs libellés : le tableau les regroupe lorsque seul le préfixe « Liste » les distingue.

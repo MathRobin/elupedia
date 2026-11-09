@@ -159,7 +159,8 @@ Malgré son nom, couvre tous les types de mandat (1500 élus vivants aléatoires
 ```bash
 yarn --cwd packages/ingest ingest:photos        # sauvegarde S3 des photos officielles
 yarn --cwd packages/ingest ingest:hatvp-status  # statut de publication des déclarations HATVP (scraping)
-yarn --cwd packages/ingest ingest:decorations   # Légion d'honneur, ONM, Médaille militaire (base Léonore)
+yarn --cwd packages/ingest ingest:decorations   # Légion d'honneur, ONM, Médaille militaire (base Léonore) ; rattachement sur nom + date de naissance
+yarn --cwd packages/ingest reconcile:decorations   # revérifie les rattachements existants (dry-run ; --apply, --backup, --restore)
 yarn --cwd packages/ingest ingest:factchecks    # Google Fact Check API (clé GOOGLE_FACTCHECK_API_KEY requise)
 yarn --cwd packages/ingest ingest:madada        # demandes CADA par commune via MaDaDa.fr (cache madada-cache.json)
 yarn --cwd packages/ingest ingest:wikipedia     # lien Wikipédia via Wikidata
