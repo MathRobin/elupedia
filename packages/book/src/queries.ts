@@ -5,6 +5,8 @@ import type {
   CampaignRow,
   DirectoryRow,
   GroupCountRow,
+  SenateElectionRow,
+  SenateNuanceRow,
   SponsorshipFunctionRow,
 } from './facts.js';
 
@@ -185,5 +187,70 @@ export async function loadDirectory(db: Db): Promise<DirectoryRow[]> {
     groupAffiliation: x.group_aff,
     europeanGroup: x.euro_group,
     nationalParty: x.national_party,
+  }));
+}
+
+export async function loadSenate2026(db: Db): Promise<SenateElectionRow[]> {
+  const r = await rows<{
+    round: number;
+    scrutin_type: string;
+    circ: number;
+    seats: number;
+    voters: number;
+    candidates: number;
+    elected: number;
+    outgoing: number;
+    outgoing_elected: number;
+  }>(
+    db,
+    sql`select e.round, e.scrutin_type,
+          count(distinct e.id)::int as circ,
+          coalesce(max(s.seats), 0)::int as seats,
+          coalesce(max(s.voters), 0)::int as voters,
+          count(c.id)::int as candidates,
+          (count(c.id) filter (where c.elected))::int as elected,
+          (count(c.id) filter (where c.sortant))::int as outgoing,
+          (count(c.id) filter (where c.sortant and c.elected))::int as outgoing_elected
+        from senatorial_elections e
+        left join senatorial_candidates c on c.election_id = e.id
+        join (
+          select round, scrutin_type,
+                 sum(sieges_a_pourvoir) as seats, sum(electeurs_senatoriaux) as voters
+          from senatorial_elections where election_year = '2026'
+          group by round, scrutin_type
+        ) s on s.round = e.round and s.scrutin_type = e.scrutin_type
+        where e.election_year = '2026'
+        group by e.round, e.scrutin_type`,
+  );
+  return r.map((x) => ({
+    round: x.round,
+    scrutinType: x.scrutin_type,
+    circumscriptions: x.circ,
+    seats: x.seats,
+    voters: x.voters,
+    candidates: x.candidates,
+    elected: x.elected,
+    outgoing: x.outgoing,
+    outgoingElected: x.outgoing_elected,
+  }));
+}
+
+export async function loadSenate2026Nuances(
+  db: Db,
+): Promise<SenateNuanceRow[]> {
+  const r = await rows<{ nuance: string; candidates: number; elected: number }>(
+    db,
+    sql`select coalesce(c.nuance, '') as nuance,
+          count(*)::int as candidates,
+          (count(*) filter (where c.elected))::int as elected
+        from senatorial_candidates c
+        join senatorial_elections e on e.id = c.election_id
+        where e.election_year = '2026' and c.nuance is not null and c.nuance <> ''
+        group by 1`,
+  );
+  return r.map((x) => ({
+    nuance: x.nuance,
+    candidates: x.candidates,
+    elected: x.elected,
   }));
 }

@@ -4,8 +4,11 @@ import {
   buildCampaignTable,
   buildDirectory,
   buildGroupTable,
+  buildSenate2026Summary,
+  buildSenateNuanceTable,
   buildSponsorshipsTable,
   displayLastName,
+  normalizeNuance,
   groupShortName,
   sponsorCategoryOf,
 } from './facts.js';
@@ -202,5 +205,81 @@ describe('displayLastName', () => {
     expect(displayLastName('LE PEN')).toBe('Le Pen');
     expect(displayLastName('Dupont-Aignan')).toBe('Dupont-Aignan');
     expect(displayLastName('X')).toBe('X');
+  });
+});
+
+describe('normalizeNuance', () => {
+  it('fusionne les libellés qui ne diffèrent que par le préfixe « Liste »', () => {
+    expect(normalizeNuance('Liste des Républicains')).toBe('Les Républicains');
+    expect(normalizeNuance('Les Républicains')).toBe('Les Républicains');
+    expect(normalizeNuance('Liste divers droite')).toBe('Divers droite');
+    expect(normalizeNuance("Liste d'union à gauche")).toBe('Union à gauche');
+    expect(normalizeNuance('Liste du Parti socialiste')).toBe(
+      'Parti socialiste',
+    );
+  });
+});
+
+describe('buildSenateNuanceTable', () => {
+  it('additionne les libellés fusionnés et regroupe le reste', () => {
+    const t = buildSenateNuanceTable(
+      [
+        { nuance: 'Liste divers droite', candidates: 10, elected: 3 },
+        { nuance: 'Divers droite', candidates: 2, elected: 1 },
+        { nuance: 'Parti socialiste', candidates: 4, elected: 2 },
+        { nuance: 'Divers', candidates: 5, elected: 0 },
+      ],
+      2,
+    );
+    expect(t.rows).toEqual([
+      ['Divers droite', '12', '4'],
+      ['Parti socialiste', '4', '2'],
+      ['Autres nuances', '5', '0'],
+    ]);
+  });
+});
+
+describe('buildSenate2026Summary', () => {
+  it('résume sièges, tours et sortants réélus', () => {
+    const t = buildSenate2026Summary([
+      {
+        round: 1,
+        scrutinType: 'majoritaire',
+        circumscriptions: 2,
+        seats: 3,
+        voters: 100,
+        candidates: 9,
+        elected: 2,
+        outgoing: 3,
+        outgoingElected: 2,
+      },
+      {
+        round: 1,
+        scrutinType: 'proportionnel',
+        circumscriptions: 1,
+        seats: 4,
+        voters: 200,
+        candidates: 20,
+        elected: 4,
+        outgoing: 1,
+        outgoingElected: 1,
+      },
+      {
+        round: 2,
+        scrutinType: 'majoritaire',
+        circumscriptions: 1,
+        seats: 1,
+        voters: 50,
+        candidates: 3,
+        elected: 1,
+        outgoing: 0,
+        outgoingElected: 0,
+      },
+    ]);
+    const get = (label: string) => t.rows.find((r) => r[0] === label)?.[1];
+    expect(get('Sièges à pourvoir')).toBe('7');
+    expect(get('Élus au premier tour')).toBe('6');
+    expect(get('Élus au second tour')).toBe('1 (1 circonscription)');
+    expect(get('… élus au premier tour')).toMatch(/^3 \(75/);
   });
 });

@@ -14,13 +14,13 @@ Données figées au **9 novembre 2026** (à rappeler en tête de livre).
 | 3. Collaborateurs              | 14    | L'enveloppe des députés, par groupe, sans aucun nom                                    |
 | 3. Questions écrites           | 16    | Auteurs, rythme et sujets des questions au gouvernement                                |
 | 5. L'âge des députés           | 8     | Court : moyenne, médiane, extrêmes, par groupe                                         |
-| 6. Chapitre à choisir          | 14    | Décorations, déclarations HATVP, sénatoriales 2026…                                    |
+| 6. Les sénatoriales de 2026    | 14    | Scrutin, sièges, sortants, élus par nuance                                             |
 | Annexe : annuaire              | 40    | Députés, sénateurs, eurodéputés (sans contacts, sans photos au départ)                 |
 | Crédits et licences            | 4     | Attribution de chaque source (Licence Ouverte 2.0, ODbL)                               |
 
 ## État des brouillons
 
-- `01-parrainages.md`, `02-comptes-de-campagne.md`, `03-collaborateurs.md`, `04-questions-ecrites.md`, `05-age-des-deputes.md` : brouillons rédigés à partir de requêtes en lecture seule sur la base, au 9 novembre 2026.
+- `01-parrainages.md`, `02-comptes-de-campagne.md`, `03-collaborateurs.md`, `04-questions-ecrites.md`, `05-age-des-deputes.md`, `06-senatoriales-2026.md` : brouillons rédigés à partir de requêtes en lecture seule sur la base, au 9 novembre 2026.
 
 ## Points à vérifier avant publication
 

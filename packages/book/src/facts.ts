@@ -300,3 +300,119 @@ export function buildDirectory(rows: DirectoryRow[]): Directory {
     },
   };
 }
+
+/** « 1 circonscription », « 34 circonscriptions ». */
+function circonscriptions(n: number): string {
+  return `${formatInt(n)} circonscription${n > 1 ? 's' : ''}`;
+}
+
+export interface SenateElectionRow {
+  round: number;
+  scrutinType: string;
+  circumscriptions: number;
+  seats: number;
+  voters: number;
+  candidates: number;
+  elected: number;
+  outgoing: number;
+  outgoingElected: number;
+}
+
+/** Résumé du scrutin sénatorial : circonscriptions, sièges, élus par tour, sortants. */
+export function buildSenate2026Summary(rows: SenateElectionRow[]): Table {
+  const sum = (
+    f: (r: SenateElectionRow) => number,
+    pick?: (r: SenateElectionRow) => boolean,
+  ) => rows.filter(pick ?? (() => true)).reduce((n, r) => n + f(r), 0);
+  const first = (r: SenateElectionRow) => r.round === 1;
+  const second = (r: SenateElectionRow) => r.round === 2;
+  const type = (t: string) => (r: SenateElectionRow) =>
+    first(r) && r.scrutinType === t;
+  const out = sum((r) => r.outgoing, first);
+  const outElected = sum((r) => r.outgoingElected, first);
+  return {
+    headers: ['Scrutin sénatorial de 2026', ''],
+    rows: [
+      [
+        'Circonscriptions (premier tour)',
+        formatInt(sum((r) => r.circumscriptions, first)),
+      ],
+      ['Sièges à pourvoir', formatInt(sum((r) => r.seats, first))],
+      [
+        '… en scrutin majoritaire',
+        `${formatInt(sum((r) => r.seats, type('majoritaire')))} (${circonscriptions(sum((r) => r.circumscriptions, type('majoritaire')))})`,
+      ],
+      [
+        '… en scrutin proportionnel',
+        `${formatInt(sum((r) => r.seats, type('proportionnel')))} (${circonscriptions(sum((r) => r.circumscriptions, type('proportionnel')))})`,
+      ],
+      [
+        'Grands électeurs (premier tour)',
+        formatInt(sum((r) => r.voters, first)),
+      ],
+      ['Élus au premier tour', formatInt(sum((r) => r.elected, first))],
+      [
+        'Élus au second tour',
+        `${formatInt(sum((r) => r.elected, second))} (${circonscriptions(sum((r) => r.circumscriptions, second))})`,
+      ],
+      ['Sénateurs sortants candidats', formatInt(out)],
+      [
+        '… élus au premier tour',
+        `${formatInt(outElected)} (${formatPercent(outElected, out)})`,
+      ],
+    ],
+  };
+}
+
+export interface SenateNuanceRow {
+  nuance: string;
+  candidates: number;
+  elected: number;
+}
+
+/**
+ * Libellé de nuance sans le préfixe « Liste » : les préfectures qualifient
+ * tantôt la liste (« Liste des Républicains »), tantôt le candidat (« Les
+ * Républicains »), pour la même étiquette.
+ */
+export function normalizeNuance(raw: string): string {
+  let s = raw
+    .trim()
+    .replace(/^Liste\s+(?:du |des |de la |de |d')?/i, '')
+    .trim();
+  if (/^républicains$/i.test(s)) s = 'Les Républicains';
+  return s.charAt(0).toLocaleUpperCase('fr') + s.slice(1);
+}
+
+/** Élus par nuance (libellés des préfectures, fusionnés sur le préfixe « Liste »), les plus nombreux d'abord. */
+export function buildSenateNuanceTable(
+  rows: SenateNuanceRow[],
+  top = 12,
+): Table {
+  const merged = new Map<string, { candidates: number; elected: number }>();
+  for (const r of rows) {
+    const k = normalizeNuance(r.nuance);
+    const m = merged.get(k) ?? { candidates: 0, elected: 0 };
+    m.candidates += r.candidates;
+    m.elected += r.elected;
+    merged.set(k, m);
+  }
+  const sorted = [...merged.entries()].sort(
+    (a, b) => b[1].elected - a[1].elected || b[1].candidates - a[1].candidates,
+  );
+  const head = sorted.slice(0, top);
+  const rest = sorted.slice(top);
+  const lines = head.map(([label, v]) => [
+    label,
+    formatInt(v.candidates),
+    formatInt(v.elected),
+  ]);
+  if (rest.length > 0) {
+    lines.push([
+      'Autres nuances',
+      formatInt(rest.reduce((n, [, v]) => n + v.candidates, 0)),
+      formatInt(rest.reduce((n, [, v]) => n + v.elected, 0)),
+    ]);
+  }
+  return { headers: ['Nuance', 'Noms présentés', 'Élus'], rows: lines };
+}
