@@ -1,14 +1,14 @@
 # Chapitre 6. Les déclarations de transparence
 
-Un élu manie des décisions publiques, parfois de l'argent public, et il a une vie privée, des biens, des activités en dehors de son mandat. Comment s'assurer que les deux ne se mélangent pas ? Depuis une loi de 2013, certains élus doivent remplir des déclarations, qui sont contrôlées par une autorité indépendante et en partie rendues publiques. Ce chapitre explique qui déclare quoi, à qui, ce que le public peut consulter, et surtout ce qu'une déclaration permet de conclure, et ce qu'elle ne permet pas.
+Un élu prend des décisions publiques, parfois sur de l'argent public, et il a aussi une vie privée, des biens, des activités en dehors de son mandat. Comment s'assurer que les deux ne se mélangent pas ? Depuis une loi de 2013, certains élus déposent des déclarations, contrôlées par une autorité indépendante et en partie rendues publiques. Ce chapitre explique qui déclare quoi, à qui, ce que le public peut consulter, et ce qu'une déclaration permet de conclure ou non.
 
 ## Pourquoi des déclarations ? L'origine de la HATVP
 
-L'idée est ancienne : celui qui exerce un pouvoir public doit pouvoir rendre compte de ses intérêts, c'est-à-dire de tout ce qui pourrait influencer, ou sembler influencer, ses décisions. Pendant longtemps, en France, ce contrôle était morcelé. Des commissions existaient pour certaines fonctions, avec des pouvoirs limités et peu de publicité.
+Celui qui exerce un pouvoir public doit pouvoir rendre compte de ses intérêts, c'est-à-dire de tout ce qui pourrait influencer, ou sembler influencer, ses décisions. Pendant longtemps, le contrôle était morcelé en France : des commissions existaient pour certaines fonctions, avec des pouvoirs limités et peu de publicité.
 
-La loi du 11 octobre 2013 relative à la transparence de la vie publique a changé le cadre. Elle a créé la **Haute Autorité pour la transparence de la vie publique**, la HATVP. Cette loi a été adoptée avec une loi organique du même jour, qui concerne les parlementaires. Une loi organique est un texte qui précise l'application de la Constitution ; elle suit une procédure d'adoption un peu plus exigeante qu'une loi ordinaire.
+La loi du 11 octobre 2013 relative à la transparence de la vie publique a changé le cadre. Elle a créé la **Haute Autorité pour la transparence de la vie publique**, la HATVP. Une loi organique du même jour fixe les règles pour les parlementaires. Une loi organique est un texte qui précise l'application de la Constitution ; sa procédure d'adoption est plus exigeante que celle d'une loi ordinaire.
 
-La HATVP est une **autorité administrative indépendante**. Cela signifie qu'elle fait partie de l'État, mais qu'elle ne reçoit pas d'instructions du gouvernement pour exercer ses missions. Elle reçoit les déclarations, les contrôle, en publie une partie et peut saisir la justice lorsqu'elle constate un manquement. D'autres lois sont venues compléter ce dispositif, notamment une loi de 2017 sur la confiance dans la vie politique. Les règles décrites plus bas ont donc évolué depuis 2013 et peuvent évoluer encore.
+La HATVP est une **autorité administrative indépendante** : elle fait partie de l'État, mais ne reçoit pas d'instructions du gouvernement pour exercer ses missions. Elle reçoit les déclarations, les contrôle, en publie une partie et peut saisir la justice en cas de manquement. D'autres lois ont complété le dispositif, dont une loi de 2017 sur la confiance dans la vie politique. Les règles décrites plus bas ont évolué depuis 2013 et peuvent évoluer encore.
 
 Deux notions servent de base à tout le reste.
 
@@ -19,152 +19,142 @@ Deux notions servent de base à tout le reste.
 
 ## Deux déclarations, deux questions
 
-Les responsables concernés déposent en principe deux types de documents. Ils répondent à deux questions différentes.
+Les responsables concernés déposent en principe deux documents, qui répondent à deux questions différentes.
 
 ### La déclaration de patrimoine : « Que possède la personne ? »
 
-La **déclaration de situation patrimoniale** décrit les biens et les dettes de la personne et de son foyer fiscal, à une date donnée. Y figurent, en termes simples, les biens immobiliers, les comptes bancaires et les placements, les véhicules, les objets de valeur, les parts dans des sociétés et les dettes. Elle sert à une question précise : le patrimoine de la personne a-t-il évolué de façon cohérente avec ses revenus pendant la durée du mandat ? Pour y répondre, la HATVP compare la déclaration faite au début avec celle faite à la fin.
-
-Le patrimoine est une donnée particulièrement sensible. Pour cette raison, la loi en limite la publicité et la réutilisation, comme on le verra plus loin.
+La **déclaration de situation patrimoniale** décrit les biens et les dettes de la personne et de son foyer fiscal, à une date donnée : biens immobiliers, comptes bancaires et placements, véhicules, objets de valeur, parts dans des sociétés, dettes. Elle sert à vérifier que le patrimoine a évolué de façon cohérente avec les revenus pendant le mandat. La HATVP compare pour cela la déclaration du début de mandat avec celle de la fin. Le patrimoine étant une donnée sensible, la loi en limite la publicité et la réutilisation, comme on le verra plus loin.
 
 ### La déclaration d'intérêts et d'activités : « Que fait la personne, et avec qui ? »
 
-La **déclaration d'intérêts et d'activités** ne porte pas sur la valeur des biens. Elle liste les liens que la personne entretient avec des organisations et des activités. La loi demande en principe de déclarer :
+La **déclaration d'intérêts et d'activités** ne porte pas sur la valeur des biens. Elle liste les liens de la personne avec des organisations et des activités. La loi demande en principe de déclarer :
 
-- les activités professionnelles exercées au cours des cinq dernières années, ce que l'on appelle la période de référence ;
-- les fonctions de direction ou d'administration dans des organismes publics ou privés, comme une entreprise, une association ou une fondation ;
+- les activités professionnelles exercées au cours des cinq dernières années, la période de référence ;
+- les fonctions de direction ou d'administration dans des organismes publics ou privés (entreprise, association, fondation) ;
 - les participations financières dans le capital d'une société ;
 - les activités de conseil ;
 - les activités bénévoles qui pourraient donner lieu à un conflit d'intérêts ;
 - les fonctions électives en cours, hors de la fonction principale ;
 - les activités professionnelles du conjoint, du partenaire ou du concubin, selon des règles précises ;
-- les collaborateurs parlementaires (pour les parlementaires), voir le chapitre 5.
+- les collaborateurs parlementaires, pour les parlementaires (voir le chapitre 5).
 
-Cette seconde déclaration est celle que l'on rend le plus largement publique, car elle décrit des liens, et non des sommes. L'objectif est de permettre à un citoyen, un journaliste ou une association de repérer un lien d'intérêt avant ou après une décision.
+C'est la déclaration que l'on rend le plus largement publique, car elle décrit des liens et non des sommes. Elle permet à un citoyen, un journaliste ou une association de repérer un lien d'intérêt avant ou après une décision.
 
 > **Ce que dit la loi** — La loi du 11 octobre 2013 distingue la déclaration de situation patrimoniale et la déclaration d'intérêts et d'activités. Chacune a son contenu, son calendrier et sa publicité propres. Source : loi n° 2013-907 du 11 octobre 2013 (articles relatifs aux déclarations), Légifrance.
 
 ## Qui doit déclarer ?
 
-La liste des personnes soumises à l'obligation est fixée par la loi. Elle ne couvre pas tous les élus : c'est un point souvent mal compris. Les grandes catégories sont les suivantes, d'après la loi en vigueur (liste à confirmer avant impression, voir les notes de vérification).
+La loi fixe la liste des personnes soumises à l'obligation. Elle ne couvre pas tous les élus, ce qui est souvent mal compris. Les grandes catégories sont les suivantes (liste à confirmer avant impression, voir les notes de vérification).
 
 - **Les parlementaires** : députés, sénateurs et eurodéputés français.
-- **Les membres du gouvernement.** On n'en dit rien de plus ici : le livre ne parle pas des personnes en fonction.
-- **Les responsables d'exécutifs locaux** : maires de communes de plus de 20 000 habitants, présidents de conseils départementaux, présidents de conseils régionaux, et présidents de certains établissements publics de coopération intercommunale (les EPCI, ces regroupements de communes), selon leur taille ou leur budget. Les adjoints au maire et certains élus ayant reçu une délégation de signature sont aussi concernés dans les plus grandes communes, selon des seuils qu'il faut vérifier.
-- **D'autres responsables publics** qui ne sont pas des élus : membres de cabinets ministériels, directeurs d'administration, dirigeants de certains organismes publics, collaborateurs du Président de la République, etc. Cette liste n'entre pas dans l'objet de ce livre.
+- **Les membres du gouvernement.** Le livre ne parle pas des personnes en fonction et n'en dit rien de plus.
+- **Les responsables d'exécutifs locaux** : maires de communes de plus de 20 000 habitants, présidents de conseils départementaux et régionaux, présidents d'établissements publics de coopération intercommunale (les EPCI, regroupements de communes) de plus de 20 000 habitants ou de plus de 5 millions d'euros de recettes de fonctionnement. Les adjoints et vice-présidents titulaires d'une délégation de fonction ou de signature sont aussi concernés dans les communes et EPCI de plus de 100 000 habitants, selon des seuils qu'il faut vérifier.
+- **D'autres responsables publics**, qui ne sont pas des élus : membres de cabinets ministériels, directeurs d'administration, dirigeants de certains organismes publics. Cette liste sort de l'objet du livre.
 
-Pour les élus, cela a deux conséquences.
+Cela a deux conséquences pour les élus.
 
-D'abord, **la grande majorité des élus locaux n'est pas soumise à ces déclarations**. Un maire d'une petite commune, un conseiller municipal, un conseiller départemental ou régional qui n'est pas président de son assemblée ne dépose en principe aucune déclaration à la HATVP. La loi a placé le seuil sur le niveau de responsabilité, pas sur le nombre d'élus. La base d'Elupedia compte 34 824 maires actifs au 9 novembre 2026 : seule une petite fraction d'entre eux dirige une commune de plus de 20 000 habitants.
+D'abord, la grande majorité des élus locaux n'est pas soumise à ces déclarations. Un maire d'une petite commune, un conseiller municipal, un conseiller départemental ou régional qui ne préside pas son assemblée ne dépose en principe aucune déclaration à la HATVP. Le seuil porte sur le niveau de responsabilité, pas sur le nombre d'élus. La base d'Elupedia compte 34 824 maires actifs au 9 novembre 2026 : seule une petite fraction dirige une commune de plus de 20 000 habitants.
 
-Ensuite, d'autres obligations existent en dehors de la HATVP. Un élu local peut, par exemple, avoir à signaler au sein de son assemblée un intérêt personnel dans une affaire qui y est discutée, et à ne pas participer à la décision. Ce mécanisme est local et relève du droit des collectivités ; il ne produit pas de déclaration publique à la HATVP.
+Ensuite, d'autres obligations existent hors de la HATVP. Un élu local peut avoir à signaler, au sein de son assemblée, un intérêt personnel dans une affaire discutée, et à ne pas participer à la décision. Ce mécanisme relève du droit des collectivités et ne produit pas de déclaration publique à la HATVP.
 
-> **Chiffres** — Dans la base d'Elupedia, 34 824 maires ont un mandat actif, 565 députés sont recensés et 350 sénateurs ont un mandat actif. Seuls certains d'entre eux sont soumis à l'obligation de déclaration (voir ci-dessus). Source : Assemblée nationale, Sénat, Répertoire national des élus, via Elupedia, au 9 novembre 2026. Réserve : l'Assemblée compte 577 sièges ; l'écart avec 565 correspond à des sièges non pourvus ou à des données à rafraîchir.
+> **Chiffres** — Dans la base d'Elupedia, 34 824 maires ont un mandat actif, 565 députés sont recensés et 350 sénateurs ont un mandat actif. Seuls certains d'entre eux sont soumis à l'obligation de déclaration. Source : Assemblée nationale, Sénat, Répertoire national des élus, via Elupedia, au 9 novembre 2026. Réserve : l'Assemblée compte 577 sièges ; l'écart avec 565 correspond à des sièges non pourvus ou à des données à rafraîchir.
 
 ## Le cycle d'une déclaration : dépôt, contrôle, publication
 
-Une déclaration n'est pas un document que l'on remplit une fois. Elle suit un cycle, que l'on peut résumer en cinq étapes.
+Une déclaration n'est pas remplie une seule fois. Elle suit un cycle en cinq étapes.
 
-**1. Le dépôt au début du mandat.** La personne dépose ses déclarations auprès de la HATVP après sa prise de fonctions. La loi prévoit en principe un délai de quelques semaines : deux mois sont fréquemment cités, mais le délai exact peut varier selon la fonction (à vérifier). Le dépôt se fait aujourd'hui par un téléservice en ligne.
-
-**2. Les actualisations.** Lorsque la situation change de façon substantielle pendant le mandat, la personne doit déposer une déclaration modificative. Un exemple de changement : l'acquisition d'une part dans une société, ou l'exercice d'une nouvelle fonction. La loi fixe le principe ; les modalités sont précisées par les textes d'application.
-
-**3. Le contrôle.** La HATVP examine les déclarations. Elle peut demander des précisions à la personne. Pour le patrimoine, elle peut demander à l'administration fiscale des informations sur la situation fiscale de la personne. Pour les intérêts, elle cherche d'éventuelles omissions et les risques de conflits d'intérêts. Elle peut formuler des recommandations ou, lorsqu'un conflit lui paraît possible, enjoindre à la personne d'y mettre fin (à vérifier).
-
-**4. La publication.** Les déclarations d'intérêts et d'activités de la plupart des responsables concernés sont publiées sur le site de la HATVP, une fois leur contrôle effectué. Les déclarations de patrimoine obéissent à un régime différent selon les fonctions, avec des informations en moins : par exemple, certaines mentions personnelles sont occultées. Pour les parlementaires, les règles de consultation du patrimoine ont changé depuis 2013 et il faut les vérifier à la source avant de les citer.
-
-**5. La déclaration de fin de mandat.** À la fin du mandat, la personne dépose une nouvelle déclaration de patrimoine, pour permettre la comparaison entre le début et la fin. Le délai de dépôt est en principe de quelques semaines suivant la fin des fonctions, et la HATVP peut ensuite la contrôler (à vérifier).
+1. **Le dépôt au début du mandat.** La personne dépose ses déclarations auprès de la HATVP après sa prise de fonctions, en principe dans un délai de deux mois (délai à vérifier selon la fonction). Le dépôt se fait par un téléservice en ligne.
+2. **Les actualisations.** Si la situation change de façon substantielle pendant le mandat, par exemple avec l'acquisition d'une part dans une société ou une nouvelle fonction, la personne dépose une déclaration modificative. Les textes d'application précisent les modalités.
+3. **Le contrôle.** La HATVP examine les déclarations et peut demander des précisions à la personne. Pour le patrimoine, elle peut interroger l'administration fiscale. Pour les intérêts, elle cherche les omissions et les risques de conflit. Elle peut formuler des recommandations ou, lorsqu'un conflit lui paraît possible, enjoindre à la personne d'y mettre fin (à vérifier). Elle ne peut pas adresser une telle injonction à un député ou à un sénateur : leurs conflits d'intérêts relèvent des bureaux des assemblées.
+4. **La publication.** Les déclarations d'intérêts et d'activités sont publiées sur le site de la HATVP une fois leur contrôle effectué. Les déclarations de patrimoine obéissent à un autre régime. Celles des parlementaires ne sont pas publiées en ligne : tout électeur peut les consulter en préfecture, sur rendez-vous et sans pouvoir les copier, certaines mentions étant occultées. Ces règles ont changé depuis 2013 et il faut les vérifier à la source avant de les citer.
+5. **La déclaration de fin de mandat.** À la fin du mandat, la personne dépose une nouvelle déclaration de patrimoine, pour comparer début et fin. Le délai de dépôt est de quelques semaines autour de la fin des fonctions, et la HATVP peut ensuite la contrôler (à vérifier).
 
 ### Et si une déclaration manque ou est inexacte ?
 
-La loi prévoit des sanctions. Ne pas déposer une déclaration, ou omettre de façon substantielle une partie du patrimoine ou des intérêts, ou en donner une évaluation mensongère, peut constituer une infraction pénale. La loi prévoit alors des peines d'amende et d'emprisonnement, et elle permet au juge de prononcer, en plus, l'inéligibilité (l'interdiction de se présenter à une élection pendant un temps) ou l'interdiction d'exercer une fonction publique. Les peines précises, leur montant et leur durée doivent être relus à la source avant publication (voir les notes).
+Ne pas déposer une déclaration, omettre de façon substantielle une partie du patrimoine ou des intérêts, ou en donner une évaluation mensongère est une infraction pénale : trois ans d'emprisonnement et 45 000 euros d'amende, selon l'article 26 de la loi de 2013. Le juge peut y ajouter l'interdiction des droits civiques, dont le droit d'être candidat, et l'interdiction d'exercer une fonction publique. Les durées et les peines complémentaires doivent être relues à la source avant publication (voir les notes).
 
-- Le contrôle par la HATVP n'est pas un jugement. L'autorité peut transmettre un dossier au procureur de la République ; c'est la justice, et non la HATVP, qui décide s'il y a infraction.
-- Une déclaration publiée sans observation ne signifie pas non plus « validée » au sens où tout aurait été vérifié ligne à ligne. Elle indique qu'elle a été déposée et qu'elle a passé le contrôle de forme et de cohérence mené par l'autorité.
+- Le contrôle par la HATVP n'est pas un jugement. L'autorité peut transmettre un dossier au procureur de la République ; la justice, et non la HATVP, décide s'il y a infraction.
+- Une déclaration publiée sans observation n'est pas « validée » ligne à ligne. Elle a été déposée et a passé le contrôle de forme et de cohérence de l'autorité.
 
 > **Ce que dit la loi** — La loi du 11 octobre 2013 impose le dépôt des déclarations auprès de la HATVP dans un délai fixé par la loi après l'entrée en fonctions, leur actualisation en cas de changement important et le dépôt d'une déclaration de patrimoine en fin de mandat. Elle sanctionne le défaut de déclaration, l'omission substantielle et l'évaluation mensongère. Source : loi n° 2013-907 du 11 octobre 2013, Légifrance.
 
 ## Ce que contiennent les déclarations d'intérêts dans les données
 
-Les déclarations d'intérêts publiées par la HATVP sont des documents structurés : chaque déclaration est découpée en rubriques et chaque rubrique en lignes. Elupedia a repris, pour les députés, les sénateurs et les maires soumis à l'obligation, les lignes de ces déclarations. Cette section donne une idée de ce que l'on y trouve, sans citer personne.
+Les déclarations d'intérêts publiées par la HATVP sont structurées : chaque déclaration est découpée en rubriques, chaque rubrique en lignes. Elupedia a repris les lignes de ces déclarations pour les députés, les sénateurs et les maires soumis à l'obligation. Les catégories sont les suivantes.
 
-Les grandes catégories de lignes sont les suivantes.
-
-- **Organes dirigeants** : des fonctions de direction, d'administration ou de surveillance dans une organisation, par exemple une association, une société, un établissement public.
-- **Fonctions électives annexes** : les autres mandats exercés par la personne en plus de sa fonction principale.
-- **Participations financières** : des parts détenues dans le capital d'une société.
-- **Activités professionnelles** : les métiers exercés pendant la période couverte, par exemple dans le secteur privé ou comme profession libérale.
-- **Activités de conseil** : des missions de conseil, c'est-à-dire d'accompagnement ou d'expertise rémunérée auprès d'une organisation.
-- **Activités bénévoles** : des engagements non rémunérés, qui sont à déclarer lorsqu'ils pourraient faire naître un conflit d'intérêts (cette catégorie n'a pas de chiffre dans les données utilisées pour ce livre).
+- **Organes dirigeants** : fonctions de direction, d'administration ou de surveillance dans une organisation (association, société, établissement public).
+- **Fonctions électives annexes** : les autres mandats exercés en plus de la fonction principale.
+- **Participations financières** : parts détenues dans le capital d'une société.
+- **Activités professionnelles** : les métiers exercés pendant la période couverte, dans le secteur privé ou en profession libérale par exemple.
+- **Activités de conseil** : missions d'accompagnement ou d'expertise rémunérée auprès d'une organisation.
+- **Activités bénévoles** : engagements non rémunérés, à déclarer lorsqu'ils pourraient faire naître un conflit d'intérêts (pas de chiffre pour cette catégorie dans les données utilisées).
 
 > **Chiffres** — Au 9 novembre 2026, la base d'Elupedia contient des lignes de déclaration d'intérêts pour 1 395 élus. Par catégorie : « organes dirigeants », 17 640 lignes concernant 1 147 élus ; « fonctions électives annexes », 6 477 lignes pour 1 188 élus ; « participations financières », 3 114 lignes pour 580 élus ; « activités professionnelles », 2 708 lignes pour 930 élus ; « activités de conseil », 238 lignes pour 102 élus. Source : HATVP, via Elupedia, au 9 novembre 2026. Réserves : la base ne reprend que les déclarations des députés, sénateurs et maires soumis à l'obligation ; la HATVP en publie davantage. Un élu peut figurer dans plusieurs catégories : les nombres d'élus ne s'additionnent donc pas. Les lignes ne sont pas des personnes : un même élu peut avoir plusieurs lignes dans une même catégorie.
 
-### Comment lire ces chiffres, et comment ne pas les lire
+### Comment lire ces chiffres
 
-Ces chiffres décrivent le contenu d'une base de données à un instant donné. Ils appellent trois remarques.
+Ces chiffres décrivent le contenu d'une base à un instant donné. Trois remarques.
 
-**Une ligne n'est pas un élu.** La catégorie « organes dirigeants » compte 17 640 lignes pour 1 147 élus. Cela signifie que ces élus déclarent, en moyenne, plusieurs fonctions de ce type. Mais la moyenne cache les écarts, et le livre ne publie volontairement ni valeur maximale, ni cas individuel. Une fonction de direction dans une association locale et une fonction dans une grande société sont deux choses très différentes, et la catégorie ne les distingue pas.
+Une ligne n'est pas un élu. La catégorie « organes dirigeants » compte 17 640 lignes pour 1 147 élus : ces élus déclarent en moyenne plusieurs fonctions de ce type. La moyenne cache des écarts, et le livre ne publie ni valeur maximale ni cas individuel. Une fonction dans une association locale et une fonction dans une grande société sont très différentes, et la catégorie ne les distingue pas.
 
-**On ne calcule pas de « part d'élus qui déclarent ».** C'est la réserve la plus importante de ce chapitre. Le nombre de 1 395 élus ayant au moins une ligne ne se divise pas par le nombre total d'élus de la base : une grande partie des élus n'est pas soumise à l'obligation (voir plus haut), et la base ne contient les déclarations que d'une partie des personnes soumises. Un tel quotient donnerait un pourcentage sans signification. Ce que l'on peut dire : « la base contient des lignes pour 1 395 élus », et rien de plus.
+On ne calcule pas de « part d'élus qui déclarent ». C'est la réserve principale de ce chapitre. Les 1 395 élus ayant au moins une ligne ne se divisent pas par le nombre total d'élus de la base : une grande partie des élus n'est pas soumise à l'obligation, et la base ne contient que les déclarations d'une partie des personnes soumises. Le pourcentage obtenu n'aurait aucun sens. On peut dire : « la base contient des lignes pour 1 395 élus ».
 
-**Une catégorie vide n'est pas une preuve d'absence.** Un élu sans ligne dans les « participations financières » n'a peut-être aucune participation, ou n'est pas dans le périmètre de la base, ou sa déclaration n'est pas encore publiée (voir la section suivante). Les données ne permettent pas de trancher à sa place.
+Une catégorie vide n'est pas une preuve d'absence. Un élu sans ligne dans les « participations financières » peut n'avoir aucune participation, être hors du périmètre de la base, ou ne pas avoir sa déclaration publiée (voir la section suivante). Les données ne permettent pas de trancher.
 
 > **Figure à produire** — Barres horizontales : nombre de lignes de déclaration d'intérêts par catégorie (organes dirigeants, fonctions électives annexes, participations financières, activités professionnelles, activités de conseil), avec en second repère le nombre d'élus concernés, sans pourcentage et sans total. Source : HATVP, via Elupedia, au 9 novembre 2026. Les catégories se distinguent par leur étiquette et par leur position, pas par la couleur seule.
 
 ## Déposée, mais pas encore publiée
 
-Entre le moment où une personne dépose sa déclaration et celui où elle apparaît sur le site de la HATVP, il s'écoule du temps. La HATVP contrôle d'abord ; elle publie ensuite. Pendant cette période, la déclaration existe mais le public ne peut pas encore la lire.
+Entre le dépôt d'une déclaration et sa publication sur le site de la HATVP, il s'écoule du temps : la HATVP contrôle d'abord, publie ensuite. Pendant cette période, la déclaration existe mais le public ne peut pas encore la lire.
 
-Elupedia enregistre ce cas avec un statut particulier, que l'on peut appeler « en attente » (`pending` dans la base). Il désigne des élus dont la déclaration est déposée, selon les informations de la HATVP, mais pas encore publiée.
+Elupedia enregistre ce cas sous un statut « en attente » (`pending` dans la base). Il est posé lorsque la fiche de l'élu sur le site de la HATVP annonce une publication à venir, pour un député, un sénateur ou un maire de commune de plus de 20 000 habitants dont la base ne contient encore aucune ligne de déclaration d'intérêts. Il est effacé dès que les lignes sont présentes.
 
-> **Chiffres** — Au 9 novembre 2026, 189 élus ont dans la base une déclaration au statut « déposée mais pas encore publiée ». Source : HATVP, via Elupedia, au 9 novembre 2026. Réserve : ce statut est un état provisoire, qui évolue au fil des contrôles ; il ne dit rien du contenu de la déclaration ni de la date de dépôt.
+> **Chiffres** — Au 9 novembre 2026, 189 élus ont dans la base une déclaration au statut « déposée mais pas encore publiée ». Source : HATVP, via Elupedia, au 9 novembre 2026. Réserve : ce statut est provisoire et évolue au fil des contrôles ; il ne dit rien du contenu de la déclaration ni de la date de dépôt.
 
-Que signifie ce statut, et que ne signifie-t-il pas ?
+Ce que ce statut signifie, et ce qu'il ne signifie pas :
 
-- Il signifie qu'une étape du cycle (le contrôle, la mise en forme, la publication) n'est pas terminée.
-- Il ne signifie pas que la personne a oublié de déclarer : au contraire, la déclaration a été déposée.
-- Il ne signifie pas non plus qu'un problème a été détecté. Un délai de publication peut avoir des causes ordinaires : le volume de dossiers à traiter, une demande de précisions à la personne, une période de renouvellement de nombreux élus.
-- Il ne permet pas de calculer un « retard » : la base ne contient pas de date de dépôt exploitable pour cela.
+- Une étape du cycle (contrôle, mise en forme, publication) n'est pas terminée.
+- La personne n'a pas oublié de déclarer : la déclaration a été déposée.
+- Aucun problème n'a été détecté pour autant. Un délai de publication a des causes ordinaires : volume de dossiers, demande de précisions à la personne, renouvellement de nombreux élus.
+- Il ne permet pas de calculer un « retard » : la base ne contient pas de date de dépôt exploitable.
 
-Une conséquence pratique : si vous cherchez la déclaration d'un élu et qu'elle manque, la première hypothèse à écarter est celle d'une publication en cours. Pour un élu soumis à l'obligation, le site de la HATVP reste la source de référence, avant toute conclusion.
+Si la déclaration d'un élu manque, la première hypothèse à écarter est donc une publication en cours. Pour un élu soumis à l'obligation, le site de la HATVP reste la source de référence.
 
 ## Pourquoi ce livre ne publie aucun montant de patrimoine
 
-Ce livre ne donne aucun montant de patrimoine individuel, et n'en donnera pas. C'est une décision éditoriale, pour deux raisons.
+Ce livre ne donne aucun montant de patrimoine individuel. C'est une décision éditoriale, pour deux raisons.
 
-**La première tient à la loi.** La loi encadre la publication des déclarations de patrimoine et leur réutilisation. Elle prévoit des conditions de consultation différentes selon les fonctions, et elle punit de sanctions pénales la divulgation ou la publication de certaines informations contenues dans une déclaration de patrimoine hors des cas permis par la loi. Les termes exacts, les cas où une publication est permise et les peines doivent être vérifiés avant impression (voir les notes). Le principe est le suivant : le droit de consulter n'emporte pas un droit de republier à sa guise.
+La première tient à la loi. Elle encadre la publication des déclarations de patrimoine et leur réutilisation, avec des conditions de consultation différentes selon les fonctions. Elle punit pénalement la divulgation de certaines informations d'une déclaration de patrimoine hors des cas permis. Les termes exacts, les cas permis et les peines doivent être vérifiés avant impression (voir les notes). Le droit de consulter n'emporte pas un droit de republier.
 
-**La seconde est une règle de méthode.** Ce livre présente des agrégats et non des personnes. Un montant de patrimoine, même public, est une donnée personnelle fine ; le placer dans un livre, hors de son contexte, en fait un chiffre sans explication. Il invite à la comparaison entre personnes, alors que les situations ne sont pas comparables : âge, profession avant le mandat, héritage, taille du foyer, situation familiale, valeur d'un bien selon la date d'estimation.
+La seconde est une règle de méthode. Ce livre présente des agrégats, pas des personnes. Un montant de patrimoine, même public, est une donnée personnelle fine ; placé hors de son contexte, il devient un chiffre sans explication et invite à comparer des situations qui ne se comparent pas : âge, profession avant le mandat, héritage, taille du foyer, date d'estimation d'un bien.
 
-Pour la même raison, Elupedia n'extrait pas le patrimoine des déclarations. La base ne contient aucun montant individuel de patrimoine, et ce livre n'en cite aucun. Les montants annuels associés aux activités professionnelles ne sont pas non plus présentés : dans les documents, les montants nets et bruts sont mélangés et ne peuvent pas être comparés sans erreur.
+Pour la même raison, Elupedia n'extrait pas le patrimoine des déclarations : la base ne contient aucun montant individuel de patrimoine. Les montants annuels des activités professionnelles ne sont pas présentés non plus, car les montants nets et bruts y sont mélangés et ne peuvent pas être comparés sans erreur.
 
-Si vous souhaitez consulter une déclaration de patrimoine, la voie à suivre est celle que la loi organise : le site de la HATVP et les modalités de consultation qu'il décrit. Le chapitre 9 montre plus généralement comment s'orienter dans les sources publiques.
+Pour consulter une déclaration de patrimoine, il faut suivre la voie que la loi organise : le site de la HATVP et les modalités de consultation qu'il décrit. Le chapitre 9 montre comment s'orienter dans les sources publiques.
 
 ## Lire une déclaration : ce qu'elle prouve, ce qu'elle ne prouve pas
-
-Une déclaration est un document utile à condition de savoir à quoi il sert. Quelques repères :
 
 **Ce qu'une déclaration permet.**
 
 - Savoir quels liens la personne déclare avoir avec des organisations, des sociétés ou des activités, à la date de la déclaration.
-- Repérer un lien d'intérêt possible avec un sujet sur lequel la personne est appelée à décider ou à voter.
-- Comparer, pour une même personne, les déclarations successives (début et fin de mandat, actualisations).
+- Repérer un lien d'intérêt possible avec un sujet sur lequel la personne décide ou vote.
+- Comparer les déclarations successives d'une même personne (début et fin de mandat, actualisations).
 - Voir si la personne a rempli son obligation de dépôt.
 
 **Ce qu'une déclaration ne prouve pas.**
 
-- Elle ne prouve pas l'existence d'un conflit d'intérêts. Avoir une participation financière dans une société, ou une fonction dans une association, n'est ni interdit ni suspect en soi. Le conflit naît d'une situation précise : un lien, un sujet, une décision. La déclaration fournit le premier élément, pas les deux autres.
-- Elle ne prouve pas non plus l'absence de conflit. Un lien non déclaré, une situation postérieure à la déclaration ou une catégorie mal remplie peuvent échapper au document.
-- Elle ne prouve pas la véracité de chaque ligne : elle est établie sur l'honneur et la HATVP contrôle sans tout refaire.
-- Elle ne donne pas de montants fiables pour les comparaisons entre personnes.
+- L'existence d'un conflit d'intérêts. Une participation financière dans une société ou une fonction dans une association n'est ni interdite ni suspecte en soi. Le conflit naît d'une situation précise : un lien, un sujet, une décision. La déclaration fournit le premier élément, pas les deux autres.
+- L'absence de conflit. Un lien non déclaré, une situation postérieure à la déclaration ou une catégorie mal remplie peuvent échapper au document.
+- La véracité de chaque ligne : elle est établie sur l'honneur et la HATVP contrôle sans tout refaire.
+- Des montants fiables pour comparer des personnes.
 
-**Une déclaration n'est pas une accusation.** Le dépôt d'une déclaration est une obligation légale : la personne fait ce que la loi lui demande. Le contenu d'une déclaration est la description de sa situation, pas un aveu. Lire une déclaration, c'est consulter un document, comme on consulte un registre. Une mention dans une rubrique ne dit rien d'un comportement.
+Le dépôt d'une déclaration est une obligation légale, et son contenu décrit une situation sans constituer un aveu. Lire une déclaration, c'est consulter un registre ; une mention dans une rubrique ne dit rien d'un comportement.
 
-Enfin, pour tirer une information fiable de plusieurs déclarations, trois réflexes aident :
+Trois réflexes aident à tirer une information fiable de plusieurs déclarations :
 
-1. **Regarder la date.** Une déclaration décrit une situation à un moment ; elle peut avoir changé depuis.
-2. **Rester dans la catégorie.** Une fonction de direction n'est pas une participation financière, et une activité de conseil n'est pas un emploi salarié.
-3. **Rapprocher avec prudence.** Un lien déclaré et un vote ne sont pas, à eux seuls, une explication du vote. Ce rapprochement relève d'une enquête, avec les précautions d'une enquête, et non d'une lecture rapide.
+1. Regarder la date : une déclaration décrit une situation à un moment, qui a pu changer depuis.
+2. Rester dans la catégorie : une fonction de direction n'est pas une participation financière, et une activité de conseil n'est pas un emploi salarié.
+3. Rapprocher avec prudence : un lien déclaré et un vote ne suffisent pas à expliquer le vote. Ce rapprochement relève d'une enquête, avec ses précautions.
 
 > **À retenir** —
 >
@@ -180,38 +170,39 @@ Enfin, pour tirer une information fiable de plusieurs déclarations, trois réfl
 
 ## Notes de vérification (hors livre)
 
-### Affirmations juridiques et institutionnelles (toutes à vérifier)
+Vérification du 2026-11-09. Les pages Légifrance n'ont pas pu être lues directement (une page a renvoyé une erreur 404) : les verdicts s'appuient sur les pages de la HATVP et sur les résultats de recherche de Légifrance.
 
-- Création de la HATVP par la loi n° 2013-907 du 11 octobre 2013, et loi organique n° 2013-906 du même jour : à vérifier (numéros, date). Statut d'autorité administrative indépendante : à vérifier.
-- Loi de 2017 « pour la confiance dans la vie politique » (loi organique et loi ordinaire du 15 septembre 2017) : citée seulement par son objet, sans numéro ; à vérifier si on la nomme.
-- Définition du conflit d'intérêts (article 2 de la loi 2013-907) : formulation à comparer au texte.
-- Contenu de la déclaration d'intérêts : liste des rubriques et période de référence (cinq ans ?) à vérifier ; activités du conjoint et collaborateurs : à vérifier (articles LO135-1 du code électoral pour les députés, et textes équivalents, ainsi que l'article 11 de la loi 2013-907 pour les autres assujettis).
-- Liste des assujettis : parlementaires nationaux et européens ; gouvernement ; exécutifs locaux : seuil des 20 000 habitants pour les maires, présidents de conseils départementaux et régionaux, présidents d'EPCI selon un seuil de population ou de budget (budget de 5 millions d'euros ? à vérifier), adjoints et titulaires de délégation de signature dans les communes de plus de 100 000 habitants (à vérifier ; je n'ai écrit que « selon des seuils »). Les eurodéputés sont-ils soumis au même régime que les députés ? à vérifier.
-- Délai de dépôt après la prise de fonctions (deux mois ?), délai de dépôt en fin de mandat (deux mois avant la fin ? après ?) : le texte reste volontairement vague, à préciser.
-- Obligation de déclaration modificative en cas de changement substantiel : à vérifier.
-- Pouvoirs de la HATVP : demande d'informations à l'administration fiscale, injonction de mettre fin à un conflit d'intérêts, saisine du procureur : à vérifier.
-- Publication : déclarations d'intérêts publiées sur le site de la HATVP ; régime des déclarations de patrimoine (consultation en préfecture pour les parlementaires, publication sur le site pour d'autres, mentions occultées) : à vérifier absolument, car les règles ont changé ; j'ai écrit seulement un régime « différent selon les fonctions ».
-- Sanctions : peines d'emprisonnement et d'amende pour défaut de déclaration, omission substantielle ou évaluation mensongère (article 26 de la loi 2013-907 : trois ans et 45 000 euros ? à vérifier), peines complémentaires d'inéligibilité et d'interdiction des droits civiques ou d'exercer une fonction publique : à vérifier. Aucun montant n'a été écrit dans le texte.
-- Encadrement de la divulgation et de la réutilisation des déclarations de patrimoine, avec sanctions pénales : à vérifier (article 12 de la loi 2013-907, article L.O. 135-2 du code électoral ?). L'énoncé du texte est volontairement général.
-- Obligations locales de déport (conflit d'intérêts d'un conseiller dans une affaire délibérée) : référence présumée à l'article L.2131-11 du code général des collectivités territoriales pour les conseillers municipaux ; à vérifier, et la loi de 2013 sur la prévention des conflits d'intérêts des élus locaux peut aussi s'appliquer.
+### Affirmations juridiques et institutionnelles
+
+| Affirmation                                                                                                                                                                                                                                          | Verdict                                                                                                               | Source et date                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Création de la HATVP par la loi n° 2013-907 du 11 octobre 2013 ; loi organique n° 2013-906 du même jour                                                                                                                                              | Confirmé (numéros et date, via les intitulés et la décision 2013-676 DC)                                              | https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000028056315 ; https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000028056546 (2026-11-09)                                                         |
+| Statut d'autorité administrative indépendante                                                                                                                                                                                                        | Non vérifiable (pas lu dans une source ouverte ce jour)                                                               | -                                                                                                                                                                                              |
+| Seuils : maires de plus de 20 000 habitants ; présidents d'EPCI de plus de 20 000 habitants ou 5 millions d'euros de recettes de fonctionnement ; adjoints et vice-présidents avec délégation dans les communes et EPCI de plus de 100 000 habitants | Confirmé (texte du livre complété avec ces seuils)                                                                    | https://www.hatvp.fr/presse/elections-municipales-et-intercommunales-2026-vos-obligations-declaratives-aupres-de-la-haute-autorite/ (2026-11-09)                                               |
+| Délai de dépôt de deux mois après la prise de fonctions                                                                                                                                                                                              | Confirmé pour les collaborateurs et les adjoints/vice-présidents (deux mois) ; non confirmé pour toutes les fonctions | https://www.hatvp.fr/presse/les-presidents-et-vice-presidents-depci-ainsi-que-leurs-collaborateurs-doivent-declarer-leur-patrimoine-et-leurs-interets-dans-un-delai-de-deux-mois/ (2026-11-09) |
+| Délai de fin de mandat                                                                                                                                                                                                                               | Non vérifiable (la HATVP a fixé des échéances propres aux municipales 2026, pas une règle générale)                   | -                                                                                                                                                                                              |
+| Sanction : 3 ans d'emprisonnement, 45 000 euros d'amende (art. 26) ; interdiction des droits civiques (jusqu'à 10 ans selon la HATVP) et de fonction publique                                                                                        | Corrigé (peines ajoutées au texte) ; durée de l'inéligibilité à relire sur le texte consolidé                         | https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000028057477 ; https://www.hatvp.fr/la-haute-autorite/la-deontologie-des-responsables-publics/controle-du-patrimoine/ (2026-11-09)      |
+| Déclaration de patrimoine des parlementaires : consultation en préfecture, non publiée en ligne ; déclaration d'intérêts publiée sur hatvp.fr                                                                                                        | Corrigé (précision ajoutée)                                                                                           | https://www.hatvp.fr/wordpress/wp-content/uploads/2025/01/HATVP_guide-des-declarations-2025.pdf (2026-11-09)                                                                                   |
+| Divulgation d'informations d'une déclaration de patrimoine punie de 45 000 euros d'amende                                                                                                                                                            | Confirmé par un rapport HATVP ; article exact non retrouvé (rester général dans le texte)                             | https://www.hatvp.fr/rapports_activite/rapport_2019/pdf/Rapport%20d'activit%C3%A9%202019_Mission_1.pdf (2026-11-09)                                                                            |
+| Pouvoirs de la HATVP : droit de communication auprès de l'administration fiscale, injonction de faire cesser un conflit, information du procureur ; pas d'injonction sur les intérêts d'un parlementaire                                             | Confirmé (précision sur les parlementaires ajoutée)                                                                   | https://www.hatvp.fr/wordpress/wp-content/uploads/2026/05/HATVP_Rapport-dactivite-2025-planches.pdf (2026-11-09)                                                                               |
+| Définition du conflit d'intérêts (art. 2) ; période de référence de cinq ans ; rubriques de la déclaration d'intérêts ; activités du conjoint                                                                                                        | Non vérifiable (texte non lu)                                                                                         | -                                                                                                                                                                                              |
+| Déclaration modificative en cas de changement substantiel ; loi de 2017 ; déport local (art. L2131-11 CGCT)                                                                                                                                          | Non vérifiable                                                                                                        | -                                                                                                                                                                                              |
 
 ### Chiffres utilisés
 
-C04 (34 824 maires actifs), C08 (565 députés recensés, avec la réserve sur les 577 sièges), C11 (350 sénateurs actifs), C90, C91, C92, C93, C94, C95, C96. Les réserves de la section E ont été reprises : périmètre limité aux députés, sénateurs et maires soumis à l'obligation ; pas de part d'élus qui déclarent ; pas de montants de patrimoine ; pas de montants d'activités.
+C04 (34 824), C08 (565, réserve sur les 577 sièges), C11 (350), C90 à C96. Réserves reprises : périmètre limité aux députés, sénateurs et maires soumis à l'obligation ; pas de part d'élus qui déclarent ; pas de montant de patrimoine ni d'activités. Aucun pourcentage dérivé dans le chapitre.
 
 ### Points sensibles
 
-- Aucune personne n'est nommée. Aucun cas fictif.
-- Risque éditorial : la section « déposée mais pas encore publiée » ne doit pas être lue comme un retard ou une faute ; la rédaction est volontairement neutre et précise que la base ne contient pas de date de dépôt exploitable (à confirmer côté données).
-- Statut `pending` : le sens exact (déposée mais pas encore publiée) est celui indiqué dans la demande de rédaction et dans `02-chiffres.md` ; à confirmer côté code d'ingestion.
-- La phrase sur « une grande partie des élus non soumise à l'obligation » est qualitative ; aucun chiffre de population assujettie n'a été donné, faute de source dans `02-chiffres.md`. Une phrase chiffrée sur le nombre de maires de communes de plus de 20 000 habitants serait utile, mais demande une donnée de population de communes absente de `02-chiffres.md`.
-- Les « activités bénévoles » sont mentionnées sans chiffre : la catégorie n'a pas d'identifiant Cxx.
-- Renvois aux chapitres 5 (collaborateurs) et 9 (lire les données) : à confirmer avec le plan final.
+- Aucune personne nommée, aucun cas fictif.
+- Statut `pending` (C96), vérifié dans le code : `sources/hatvp-status.ts` lit la fiche nominative du site de la HATVP et renvoie `pending` si la page contient « publication à venir ». `upsert/hatvp-status.ts` ne vérifie que les députés et sénateurs en mandat actif et les maires actifs de communes d'au moins 20 000 habitants, sans lignes `interests`, puis efface `pending` dès que des intérêts existent. Il ne pose jamais `none`. Le sens « déposée, publication à venir » est donc celui du site de la HATVP, lu par un texte de page (fragile si le libellé change) ; la base ne stocke pas de date de dépôt. Les 189 élus sont ceux marqués lors du dernier run.
+- Les eurodéputés ne sont pas dans le périmètre du statut `pending`.
+- La section sur le statut ne doit pas être lue comme un retard ou une faute.
+- Renvois aux chapitres 5 et 9 : à confirmer avec le plan final.
 
 ### Manques
 
-- Chiffres sur le nombre d'assujettis à la HATVP (parlementaires, élus locaux) : non disponibles dans le dossier de chiffres ; à ajouter après vérification à la source.
-- Calendrier exact des délais de dépôt et de publication.
-- Détail des sanctions et des peines.
-- Exemple chiffré de rubrique de patrimoine (volontairement absent par décision éditoriale).
-- Régime applicable aux membres du gouvernement et aux eurodéputés, non détaillé.
+- Nombre d'assujettis à la HATVP (parlementaires, élus locaux) et nombre de maires de communes de plus de 20 000 habitants.
+- Délais exacts de dépôt (fonctions autres que collaborateurs et adjoints) et de fin de mandat.
+- Texte consolidé de l'article 26 (durée de l'inéligibilité) et article exact sur la divulgation du patrimoine.
+- Régime des membres du gouvernement et des eurodéputés.

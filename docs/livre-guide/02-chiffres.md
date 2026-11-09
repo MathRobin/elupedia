@@ -38,7 +38,9 @@ Notation : « actif » = mandat sans date de fin ou avec une date de fin dans le
 Réserves :
 
 - C03 : la base compte 62 127 mandats pour 62 123 personnes (quatre personnes ont deux mandats communautaires). On cite le nombre de personnes (62 123).
-- C08 : ne pas dire « les 577 députés ». Dire « 565 députés recensés ».
+- C08 : ne pas dire « les 577 députés ». Dire « 565 députés recensés ». Contrôle du 9 novembre 2026 : 565 mandats actifs pour 565 personnes et 565 circonscriptions distinctes, sans doublon. Il manque donc 12 circonscriptions dans les données (sièges vacants ou lacune d'ingestion : à trancher).
+- C11 : 350 mandats actifs pour 350 personnes distinctes, aucune date de fin future (183 mandats débutés en 2026, 158 en 2023). Si le plafond légal est de 348 sièges, deux mandats sont périmés dans les données : à confirmer avec le Sénat.
+- C13 : 82 mandats pour 82 personnes, aucun doublon : l'écart avec les 81 sièges français est à expliquer (remplacement non clos ?).
 - C14, C16 : un conseiller municipal simple n'est pas dans la base, donc le cumul est sous-estimé pour les élus qui ont aussi un mandat de conseiller municipal.
 
 ### Cumul des mandats parlementaires (agrégats, mandats actifs au 9/11/2026)
@@ -52,7 +54,7 @@ Réserves :
 | C25 | Sénateurs ayant aussi un mandat de conseiller communautaire | 82     | 23,4 %         |
 | C26 | Sénateurs ayant aussi un mandat de conseiller régional      | 42     | 12,0 %         |
 
-Réserve : les lignes ne s'additionnent pas (un élu peut cumuler plusieurs mandats). **Ne pas utiliser** les cas « député/sénateur et maire » (11 et 23 dans la base) : la loi interdit ce cumul depuis 2017, donc ces lignes sont probablement des mandats de maire délégué ou des dates de fin non mises à jour. À vérifier avant toute mention.
+Réserve : les lignes ne s'additionnent pas (un élu peut cumuler plusieurs mandats). **Ne pas utiliser** les cas « député/sénateur et maire » (11 et 23 dans la base, soit 34 personnes). Contrôle du 9 novembre 2026 : ces 34 mandats de maire ont tous débuté entre le 15 et le 30 mars 2026 (municipales) et aucun n'est un maire délégué. La loi interdit ce cumul depuis 2017 : ce sont sans doute des mandats acquis aux municipales, en attente du choix de l'élu, dont la date de fin n'est pas saisie. À vérifier avant toute mention.
 
 ### Âges (mandats actifs, calculés à la date de lecture)
 
@@ -96,14 +98,14 @@ Source : ministère de l'Intérieur via data.gouv.fr, tables `legislative_electi
 
 ### Sénatoriales
 
-| ID  | Chiffre                                                                                         | Valeur                                              |
-| --- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| C50 | Sénatoriales 2026 : départements au premier tour / sièges à pourvoir                            | 64 / 178                                            |
-| C51 | Sénatoriales 2026 : « grands électeurs » inscrits au premier tour                               | 92 257                                              |
-| C52 | Sénatoriales 2026 : départements ayant eu un second tour / sièges concernés                     | 14 / 26 (sur ces 14 départements, 11 365 électeurs) |
-| C53 | Sénatoriales 2026 : candidats enregistrés                                                       | 1 762 (environ 9,9 par siège)                       |
-| C54 | Sénatoriales 2026 : sénateurs sortants candidats / réélus                                       | 134 / 100                                           |
-| C55 | Sénatoriales 2023, premier tour : électeurs sénatoriaux votants / inscrits dans 45 départements | 76 678 / 77 808 (98,5 %)                            |
+| ID  | Chiffre                                                                                         | Valeur                                                                                                                                                                                                                         |
+| --- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| C50 | Sénatoriales 2026 : départements au premier tour / sièges à pourvoir                            | 64 / 178                                                                                                                                                                                                                       |
+| C51 | Sénatoriales 2026 : « grands électeurs » inscrits au premier tour                               | 92 257                                                                                                                                                                                                                         |
+| C52 | Sénatoriales 2026 : départements ayant eu un second tour                                        | 14 (11 365 électeurs). La base indique 26 sièges pour ce second tour mais 19 élus seulement au second tour (159 au premier, 178 au total) : **ne pas citer le nombre de sièges du second tour**, à recouper avec data.senat.fr |
+| C53 | Sénatoriales 2026 : candidats enregistrés                                                       | 1 762 (environ 9,9 par siège)                                                                                                                                                                                                  |
+| C54 | Sénatoriales 2026 : sénateurs sortants candidats / réélus                                       | 134 / 100                                                                                                                                                                                                                      |
+| C55 | Sénatoriales 2023, premier tour : électeurs sénatoriaux votants / inscrits dans 45 départements | 76 678 / 77 808 (98,5 %)                                                                                                                                                                                                       |
 
 Réserve : les résultats 2026 sont ceux ingérés après scrutin (`senatorial_candidates.elected`). À recouper avec data.senat.fr avant impression. Le sexe des candidats n'est pas renseigné pour 2026 : pas de statistique de parité sénatoriale.
 
@@ -135,7 +137,7 @@ Réserves : composition du moment, à ne citer qu'en tableau daté, avec la ment
 | C72 | Scrutins publics de l'Assemblée enregistrés entre le 8 octobre 2024 et le 4 novembre 2026 | 6 306 (6 246 ordinaires, 45 solennels, 15 motions de censure)        |
 | C73 | Motions de censure enregistrées entre le 8 octobre 2024 et le 25 février 2026             | 15 (8 au titre de l'article 49, alinéa 2 ; 7 au titre de l'alinéa 3) |
 
-Réserve importante : **la base est incomplète sur les motions de censure.** Elle ne contient pas la motion du 4 décembre 2024, qui a été adoptée. Toutes les motions de la base sont marquées « rejetées ». **Interdit d'écrire « aucune motion n'a été adoptée »** ou de s'appuyer sur ces 15 comme sur un total. Pour la règle (majorité requise, effet), citer la Constitution, pas la base.
+Réserve importante : **la base est incomplète pour décembre 2024.** Elle ne compte que 22 scrutins ce mois-là, contre 118 à 209 pour les autres mois (octobre 2024 à mars 2025). Elle ne contient pas la motion du 4 décembre 2024, qui a été adoptée. Le total C72 (6 306) est donc sous-évalué. Toutes les motions de la base sont marquées « rejetées ». **Interdit d'écrire « aucune motion n'a été adoptée »** ou de s'appuyer sur ces 15 comme sur un total. Pour la règle (majorité requise, effet), citer la Constitution, pas la base.
 
 ### Questions écrites
 
@@ -202,20 +204,20 @@ Réserves :
 
 ## G. Parrainages présidentiels
 
-| ID   | Chiffre                                                                          | Valeur                                                      |
-| ---- | -------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| C110 | Parrainages validés, élection 2017 / dont rattachés à un élu de la base          | 14 296 / 7 836                                              |
-| C111 | Parrainages validés, élection 2022 / dont rattachés à un élu de la base          | 13 377 / 11 816                                             |
-| C112 | Parrainages 2022 donnés par un maire (fonction brute « Maire »)                  | 8 677 (64,9 %)                                              |
-| C113 | Parrainages 2022 par conseiller départemental (hommes et femmes)                 | 1 589 (11,9 %)                                              |
-| C114 | Parrainages 2022 par conseiller régional                                         | 1 088 (8,1 %)                                               |
-| C115 | Parrainages 2022 par « maire délégué d'une commune associée ou déléguée »        | 342 (2,6 %)                                                 |
-| C116 | Parrainages 2022 par député (hommes et femmes)                                   | 530 (4,0 %)                                                 |
-| C117 | Parrainages 2022 par sénateur                                                    | 191 (1,4 %)                                                 |
-| C118 | Parrainages 2022 : plus grand nombre reçu par une même personne / deuxième       | 2 625 / 2 092 (sans nom : « le candidat le plus parrainé ») |
-| C119 | Signatures de référendums d'initiative partagée (RIP) enregistrées : 2019 / 2023 | 248 / 244                                                   |
+| ID   | Chiffre                                                                                                                                       | Valeur                                                      |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| C110 | Parrainages validés, élection 2017 / dont rattachés à un élu de la base                                                                       | 14 296 / 7 836                                              |
+| C111 | Parrainages validés, élection 2022 / dont rattachés à un élu de la base                                                                       | 13 377 / 11 816                                             |
+| C112 | Parrainages 2022 donnés par un maire (fonction brute « Maire »)                                                                               | 8 677 (64,9 %)                                              |
+| C113 | Parrainages 2022 par conseiller départemental (hommes et femmes)                                                                              | 1 589 (11,9 %)                                              |
+| C114 | Parrainages 2022 par conseiller régional                                                                                                      | 1 088 (8,1 %)                                               |
+| C115 | Parrainages 2022 par « maire délégué d'une commune associée ou déléguée »                                                                     | 342 (2,6 %)                                                 |
+| C116 | Parrainages 2022 par député (hommes et femmes)                                                                                                | 530 (4,0 %)                                                 |
+| C117 | Parrainages 2022 par sénateur                                                                                                                 | 191 (1,4 %)                                                 |
+| C118 | Parrainages 2022 : plus grand nombre reçu par une même personne / deuxième                                                                    | 2 625 / 2 092 (sans nom : « le candidat le plus parrainé ») |
+| C119 | Soutiens de parlementaires à une proposition de loi référendaire (RIP) : 2019 (aéroports de Paris) / 2023 (âge légal de départ à la retraite) | 248 / 244                                                   |
 
-Réserves : la base contient aussi les parrainages de personnes qui n'ont pas atteint le seuil de 500 présentations et n'ont donc pas été candidates. Le Conseil constitutionnel a publié 13 427 parrainages en 2022 ; la base en compte 13 377 (écart de 50 : à expliquer ou à citer comme « plus de 13 000 »). Aucun nom de candidat dans le livre : on parle de « candidat » ou « candidate » sans le nommer.
+Réserves : contrôle du 9 novembre 2026 : aucun doublon dans les 13 377 lignes de 2022, les 13 427 lignes existent à la source (API tabulaire de data.gouv.fr, vérifié par la session du livre d'enquêtes) : 50 lignes sont donc perdues à l'ingestion, cause non trouvée. Les lignes « RIP » ne portent que sur des parlementaires ; les totaux officiels sont à recouper (C119). La base contient aussi les parrainages de personnes qui n'ont pas atteint le seuil de 500 présentations et n'ont donc pas été candidates. Le Conseil constitutionnel a publié 13 427 parrainages en 2022 ; la base en compte 13 377 (écart de 50 : à expliquer ou à citer comme « plus de 13 000 »). Aucun nom de candidat dans le livre : on parle de « candidat » ou « candidate » sans le nommer.
 
 ## H. Transparence communale (MaDada)
 
