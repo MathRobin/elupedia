@@ -146,6 +146,39 @@ describe('upsertOfficials', () => {
     });
   });
 
+  it('inserts a government member without birth date with birthDate null, not an empty string', async () => {
+    const { db, store } = createMockDb();
+    const { upsertOfficials } = await import('./officials.js');
+
+    await upsertOfficials(db as never, [
+      {
+        ...mockDepute,
+        id_an: 'PA759830',
+        prenom: 'Emmanuelle',
+        nom: 'Wargon',
+        date_naissance: '',
+        mandat_type: 'gouvernement',
+        allMandates: [
+          {
+            type: 'ministre',
+            nom_circo: '',
+            num_deptmt: '',
+            num_circo: 0,
+            mandat_debut: '2020-07-07',
+            mandat_fin: '2022-05-16',
+            intitule: 'Ministre délégué chargé du Logement',
+          },
+        ],
+      },
+    ]);
+
+    expect(store.officials).toHaveLength(1);
+    expect(store.officials[0]).toMatchObject({
+      anId: 'PA759830',
+      birthDate: null,
+    });
+  });
+
   it('is idempotent — second run does not create duplicates', async () => {
     const { db, store } = createMockDb();
     const { upsertOfficials } = await import('./officials.js');
