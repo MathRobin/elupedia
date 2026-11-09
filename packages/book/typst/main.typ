@@ -24,6 +24,19 @@
 
 #let apres-intro = v(0.5em)
 
+// Tableau long (annuaire) : coupé entre les pages, en-tête répété, police réduite.
+#let annuaire(t, colonnes: (3fr, 2fr, 3fr)) = {
+  set text(size: 7.5pt, hyphenate: false)
+  set par(justify: false)
+  table(
+    columns: colonnes,
+    stroke: (x: none, y: 0.3pt),
+    inset: (x: 3pt, y: 2.5pt),
+    table.header(..t.headers.map(h => strong(h))),
+    ..t.rows.flatten(),
+  )
+}
+
 #let source(body) = text(size: 8pt, style: "italic")[#body]
 
 #let tableau(t) = block(breakable: false, table(
@@ -73,3 +86,25 @@
 
 = Crédits et licences
 Données : Assemblée nationale, Sénat, HATVP, CNCCFP, Conseil constitutionnel (Licence Ouverte 2.0). Cartes : © les contributeurs d'OpenStreetMap (ODbL).
+
+#heading(numbering: none)[Annexe : annuaire des parlementaires]
+Parlementaires en fonction au #data.asOf. L'annuaire ne reprend ni coordonnées, ni photos, ni dates de naissance.
+
+#heading(level: 2, numbering: none)[Groupes de l'Assemblée nationale]
+#table(
+  columns: (1fr, 4fr, 1fr),
+  stroke: (x: none, y: 0.3pt),
+  inset: (x: 3pt, y: 2.5pt),
+  align: (left, left, right),
+  table.header(..data.directory.groupesAssemblee.headers.map(h => strong(h))),
+  ..data.directory.groupesAssemblee.rows.flatten(),
+)
+
+#heading(level: 2, numbering: none)[Députés]
+#annuaire(data.directory.deputes)
+
+#heading(level: 2, numbering: none)[Sénateurs]
+#annuaire(data.directory.senateurs, colonnes: (2.5fr, 4fr, 2fr))
+
+#heading(level: 2, numbering: none)[Eurodéputés]
+#annuaire(data.directory.eurodeputes)

@@ -12,6 +12,13 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 - `schema/senatorial-elections.ts` : clé unique `(election_id, nom, prenom)`, deux homonymes dans un même scrutin s'écraseraient.
 - `normalize()` est dupliquée à l'identique dans `main-decorations.ts`, `upsert/decorations.ts` et `reconcile-elections.ts`.
 
+## Annuaire du livre (`packages/book`)
+
+- Appartenances de groupe des sénateurs (`affiliations`, `kind = 'group'`, `end_date is null`) : plusieurs lignes restent ouvertes pour une même personne (anciens députés devenus sénateurs, groupes renommés). L'annuaire retient la plus récente par date de début, ce qui écarte les groupes de l'Assemblée mais laisse deux libellés pour le centre (« Union Centriste » et « Union Centriste et Indépendants », 29 et 34 sénateurs) et 3 sénateurs sans groupe. À vérifier avant impression.
+- Deux fiches d'élus en fonction ont un nom de famille tout en majuscules (« HERVE » pour un sénateur, probablement « Hervé » ; « HORTEFEUX »). L'annuaire les met en casse de titre mais ne peut pas restaurer l'accent : à corriger dans la base.
+- Commissions permanentes de l'Assemblée : seuls 143 des 565 députés en fonction en ont une en cours dans `committees` ; les sénateurs ont des doublons (« commission des affaires étrangères » deux fois). L'annuaire du livre n'en reprend donc pas.
+- Décorations : rattachées par nom et prénom seulement (voir plus haut) ; non reprises dans l'annuaire du livre tant que le rattachement n'est pas fiabilisé.
+
 ## Admin (Next 16)
 
 - `packages/admin` doit tourner avec webpack (`--webpack` dans les scripts `dev`/`build`, via `scripts/next.mjs` qui charge aussi le `.env` de la racine) : Turbopack, bundler par défaut de Next 16, ne réécrit pas les imports `./x.js` des paquets partagés vers `.ts` (« Can't resolve './db.js' »). Passer sur Turbopack supposerait de changer la convention d'imports de `@elupedia/shared` et `@elupedia/shorts`, ou une configuration Turbopack équivalente à `extensionAlias` quand elle existera.

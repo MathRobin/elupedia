@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAgeTable,
   buildCampaignTable,
+  buildDirectory,
   buildGroupTable,
   buildSponsorshipsTable,
+  displayLastName,
+  groupShortName,
   sponsorCategoryOf,
 } from './facts.js';
 import { formatDecimal, formatInt, formatPercent } from './format.js';
@@ -105,5 +108,99 @@ describe('buildAgeTable', () => {
     });
     expect(t.rows[1]).toEqual(['Âge moyen', '52,0 ans']);
     expect(t.rows[2]).toEqual(['Âge médian', '53 ans']);
+  });
+});
+
+describe('groupShortName', () => {
+  it('prend le sigle entre parenthèses, sinon le nom sans « Groupe »', () => {
+    expect(groupShortName('Rassemblement National (RN)')).toBe('RN');
+    expect(groupShortName('Groupe Les Républicains')).toBe('Les Républicains');
+    expect(groupShortName('Groupe du RDSE')).toBe('RDSE');
+    expect(groupShortName('Groupe CRCE - Kanaky')).toBe('CRCE-K');
+    expect(groupShortName("Sénateurs n'appartenant à aucun groupe")).toBe(
+      'Sans groupe',
+    );
+    expect(groupShortName(null)).toBe('');
+  });
+});
+
+describe('buildDirectory', () => {
+  const base = {
+    department: null,
+    district: null,
+    politicalGroup: null,
+    groupAffiliation: null,
+    europeanGroup: null,
+    nationalParty: null,
+  };
+  const d = buildDirectory([
+    {
+      ...base,
+      type: 'depute',
+      lastName: 'Zola',
+      firstName: 'Émile',
+      department: 'Vendée',
+      district: '2e circonscription',
+      politicalGroup: 'Horizons & Indépendants (HOR)',
+    },
+    {
+      ...base,
+      type: 'depute',
+      lastName: 'Éluard',
+      firstName: 'Paul',
+      politicalGroup: 'Horizons & Indépendants (HOR)',
+    },
+    {
+      ...base,
+      type: 'senateur',
+      lastName: 'Buval',
+      firstName: 'Frédéric',
+      department: 'Martinique',
+      groupAffiliation: 'Groupe du RDSE',
+    },
+    {
+      ...base,
+      type: 'eurodepute',
+      lastName: 'Martin',
+      firstName: 'Anne',
+      europeanGroup: 'PfE',
+      nationalParty: 'RN',
+    },
+  ]);
+  it('trie par nom en ignorant les accents', () => {
+    expect(d.deputes.rows.map((r) => r[0])).toEqual([
+      'Éluard, Paul',
+      'Zola, Émile',
+    ]);
+  });
+  it('met en forme circonscription, groupe et territoire', () => {
+    expect(d.deputes.rows[1]).toEqual([
+      'Zola, Émile',
+      'HOR',
+      'Vendée · 2e circ.',
+    ]);
+    expect(d.senateurs.rows[0]).toEqual([
+      'Buval, Frédéric',
+      'RDSE',
+      'Martinique',
+    ]);
+    expect(d.eurodeputes.rows[0]).toEqual(['Martin, Anne', 'PfE', 'RN']);
+  });
+  it('produit la légende des groupes de l’Assemblée', () => {
+    expect(d.groupesAssemblee.rows).toEqual([
+      ['HOR', 'Horizons & Indépendants', '2'],
+    ]);
+  });
+  it("n'expose ni contact ni date de naissance", () => {
+    expect(d.deputes.headers).toEqual(['Député', 'Groupe', 'Circonscription']);
+  });
+});
+
+describe('displayLastName', () => {
+  it('ramène les noms tout en majuscules en casse de titre', () => {
+    expect(displayLastName('HORTEFEUX')).toBe('Hortefeux');
+    expect(displayLastName('LE PEN')).toBe('Le Pen');
+    expect(displayLastName('Dupont-Aignan')).toBe('Dupont-Aignan');
+    expect(displayLastName('X')).toBe('X');
   });
 });

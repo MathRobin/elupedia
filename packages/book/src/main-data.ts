@@ -5,13 +5,16 @@ import { createDb } from '@elupedia/shared';
 import {
   buildAgeTable,
   buildCampaignTable,
+  buildDirectory,
   buildGroupTable,
   buildSponsorshipsTable,
+  type Directory,
   type Table,
 } from './facts.js';
 import {
   loadCampaignAccounts,
   loadDeputiesAge,
+  loadDirectory,
   loadSponsorships,
   loadStaffersByGroup,
   loadWrittenQuestionsByGroup,
@@ -31,19 +34,20 @@ const DEFAULT_OUT = 'out/data.json';
 export interface BookData {
   asOf: string;
   tables: Record<string, Table>;
+  directory: Directory;
 }
 
 export async function buildBookData(): Promise<BookData> {
   const db = createDb();
-  const [sponsorships, campaigns, staffers, questions, age] = await Promise.all(
-    [
+  const [sponsorships, campaigns, staffers, questions, age, directory] =
+    await Promise.all([
       loadSponsorships(db),
       loadCampaignAccounts(db),
       loadStaffersByGroup(db),
       loadWrittenQuestionsByGroup(db),
       loadDeputiesAge(db),
-    ],
-  );
+      loadDirectory(db),
+    ]);
   return {
     asOf: new Date().toISOString().slice(0, 10),
     tables: {
@@ -53,6 +57,7 @@ export async function buildBookData(): Promise<BookData> {
       questions: buildGroupTable(questions, 'Questions écrites'),
       age: buildAgeTable(age),
     },
+    directory: buildDirectory(directory),
   };
 }
 
@@ -70,7 +75,7 @@ async function main(): Promise<void> {
   });
   const data = await writeBookData(values.out!);
   console.log(
-    `data.json écrit (${Object.keys(data.tables).length} tableaux, données au ${data.asOf})`,
+    `data.json écrit (${Object.keys(data.tables).length} tableaux, annuaire de ${data.directory.deputes.rows.length + data.directory.senateurs.rows.length + data.directory.eurodeputes.rows.length} parlementaires, données au ${data.asOf})`,
   );
 }
 

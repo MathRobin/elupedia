@@ -27,8 +27,9 @@ Données figées au **9 novembre 2026** (à rappeler en tête de livre).
 1. Le total 2022 en base (13 377) diffère du total officiel (13 427) : à expliquer ou à citer le total officiel.
 2. Comptes 2024 : dépenses retenues très inférieures à 2022. Il faut vérifier la part de comptes non encore arrêtés par la CNCCFP avant toute comparaison.
 3. Questions écrites : le statut de réponse est vide dans les données, la part répondue se déduit de la date de réponse ; à confirmer.
-4. Relecture juridique (diffamation, RGPD) avant impression, même sans budget : au minimum une relecture par une personne du métier.
+4. Annuaire : ni décorations (rattachement par nom, risque d'homonymes) ni commissions (143 députés sur 565 renseignés) ; groupes des sénateurs à vérifier (voir `docs/KNOWN-ISSUES.md`). Pas de coordonnées, de photos ni de dates de naissance.
+5. Relecture juridique (diffamation, RGPD) avant impression, même sans budget : au minimum une relecture par une personne du métier.
 
 ## Pipeline
 
-Typst (JSON → PDF), gabarit par chapitre et gabarit d'annuaire. `packages/book` génère `out/data.json` depuis la base (`yarn --cwd packages/book data`) puis compile `typst/main.typ` (`yarn --cwd packages/book build`, binaire `typst` requis). Les catégories de parrains reprennent celles des shorts pour que le livre et la vidéo donnent les mêmes chiffres. Le gabarit affiche l'introduction de chaque chapitre (`packages/book/chapitres/*.md`, texte brut, paragraphes séparés par une ligne vide) puis son tableau. Les brouillons et notes de travail restent dans `docs/livre/`.
+Typst (JSON → PDF), gabarit par chapitre et gabarit d'annuaire. `packages/book` génère `out/data.json` depuis la base (`yarn --cwd packages/book data`) puis compile `typst/main.typ` (`yarn --cwd packages/book build`, binaire `typst` requis). Les catégories de parrains reprennent celles des shorts pour que le livre et la vidéo donnent les mêmes chiffres. Le gabarit affiche l'introduction de chaque chapitre (`packages/book/chapitres/*.md`, texte brut, paragraphes séparés par une ligne vide) puis son tableau. L'annexe d'annuaire (997 parlementaires en fonction : nom, groupe, territoire) occupe environ 22 pages à ce format. Les brouillons et notes de travail restent dans `docs/livre/`.

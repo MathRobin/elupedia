@@ -3,6 +3,7 @@ import type { createDb } from '@elupedia/shared';
 import type {
   AgeRow,
   CampaignRow,
+  DirectoryRow,
   GroupCountRow,
   SponsorshipFunctionRow,
 } from './facts.js';
@@ -140,4 +141,49 @@ export async function loadDeputiesAge(db: Db): Promise<AgeRow> {
         from dep`,
   );
   return r[0]!;
+}
+
+/**
+ * Parlementaires en fonction pour l'annuaire. Piège : les appartenances
+ * ouvertes (`end_date is null`) de type `group` ne sont pas toujours closes
+ * (anciens députés devenus sénateurs, groupes renommés) : on garde la plus
+ * récente par date de début, ce qui reste à vérifier à la main avant
+ * impression (voir docs/KNOWN-ISSUES.md).
+ */
+export async function loadDirectory(db: Db): Promise<DirectoryRow[]> {
+  const latest = (kind: string) =>
+    sql`(select a.party_or_group from affiliations a
+         where a.official_id = o.id and a.kind = ${kind} and a.end_date is null
+         order by a.start_date desc limit 1)`;
+  const r = await rows<{
+    type: DirectoryRow['type'];
+    last_name: string;
+    first_name: string;
+    department: string | null;
+    district: string | null;
+    political_group: string | null;
+    group_aff: string | null;
+    euro_group: string | null;
+    national_party: string | null;
+  }>(
+    db,
+    sql`select m.type, o.last_name, o.first_name, m.department, m.district,
+          m.political_group,
+          ${latest('group')} as group_aff,
+          ${latest('european_group')} as euro_group,
+          ${latest('national_party')} as national_party
+        from mandates m join officials o on o.id = m.official_id
+        where m.end_date is null and m.type in ('depute', 'senateur', 'eurodepute')`,
+  );
+  return r.map((x) => ({
+    type: x.type,
+    lastName: x.last_name,
+    firstName: x.first_name,
+    department: x.department,
+    district: x.district,
+    politicalGroup: x.political_group,
+    groupAffiliation: x.group_aff,
+    europeanGroup: x.euro_group,
+    nationalParty: x.national_party,
+  }));
 }

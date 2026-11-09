@@ -188,3 +188,115 @@ export function buildAgeTable(a: AgeRow): Table {
     ],
   };
 }
+
+export interface DirectoryRow {
+  type: 'depute' | 'senateur' | 'eurodepute';
+  lastName: string;
+  firstName: string;
+  department: string | null;
+  district: string | null;
+  politicalGroup: string | null;
+  /** Dernier groupe parlementaire ouvert (Sénat) ; voir le piège dans `queries.ts`. */
+  groupAffiliation: string | null;
+  europeanGroup: string | null;
+  nationalParty: string | null;
+}
+
+export interface Directory {
+  deputes: Table;
+  senateurs: Table;
+  eurodeputes: Table;
+  /** Légende des sigles des groupes de l'Assemblée. */
+  groupesAssemblee: Table;
+}
+
+/**
+ * Nom court d'un groupe : sigle entre parenthèses s'il existe (« … (RN) » →
+ * « RN »), sinon nom sans le préfixe « Groupe » ; « CRCE-K » regroupe les
+ * deux libellés du groupe communiste du Sénat.
+ */
+export function groupShortName(raw: string | null): string {
+  if (!raw) return '';
+  const sigle = /\(([^)]+)\)\s*$/.exec(raw)?.[1];
+  if (sigle) return sigle;
+  if (/CRCE/.test(raw)) return 'CRCE-K';
+  if (/aucun groupe/i.test(raw)) return 'Sans groupe';
+  return raw.replace(/^Groupe (du |de |des )?/i, '').trim();
+}
+
+const collator = new Intl.Collator('fr', { sensitivity: 'base' });
+
+function byName(a: DirectoryRow, b: DirectoryRow): number {
+  return (
+    collator.compare(a.lastName, b.lastName) ||
+    collator.compare(a.firstName, b.firstName)
+  );
+}
+
+/** Nom tout en majuscules (quelques fiches) ramené en casse de titre : « HORTEFEUX » → « Hortefeux ». */
+export function displayLastName(raw: string): string {
+  if (raw.length < 2 || raw !== raw.toLocaleUpperCase('fr')) return raw;
+  return raw
+    .toLocaleLowerCase('fr')
+    .replace(
+      /(^|[-\s'])(\p{L})/gu,
+      (_m, sep: string, c: string) => sep + c.toLocaleUpperCase('fr'),
+    );
+}
+
+function personName(r: DirectoryRow): string {
+  return `${displayLastName(r.lastName)}, ${r.firstName}`;
+}
+
+function districtLabel(district: string | null): string {
+  return (district ?? '').replace(/circonscription/i, 'circ.');
+}
+
+/** Annuaire des parlementaires en fonction : nom, groupe, territoire. Ni contact, ni photo, ni date de naissance. */
+export function buildDirectory(rows: DirectoryRow[]): Directory {
+  const of = (type: DirectoryRow['type']) =>
+    rows.filter((r) => r.type === type).sort(byName);
+  const deputies = of('depute');
+
+  const groupCounts = new Map<string, { name: string; n: number }>();
+  for (const d of deputies) {
+    const sigle = groupShortName(d.politicalGroup);
+    const name = (d.politicalGroup ?? '').replace(/\s*\([^)]+\)\s*$/, '');
+    const g = groupCounts.get(sigle) ?? { name, n: 0 };
+    g.n += 1;
+    groupCounts.set(sigle, g);
+  }
+
+  return {
+    deputes: {
+      headers: ['Député', 'Groupe', 'Circonscription'],
+      rows: deputies.map((r) => [
+        personName(r),
+        groupShortName(r.politicalGroup),
+        [r.department, districtLabel(r.district)].filter(Boolean).join(' · '),
+      ]),
+    },
+    senateurs: {
+      headers: ['Sénateur', 'Groupe', 'Département'],
+      rows: of('senateur').map((r) => [
+        personName(r),
+        groupShortName(r.groupAffiliation),
+        r.department ?? '',
+      ]),
+    },
+    eurodeputes: {
+      headers: ['Eurodéputé', 'Groupe européen', 'Parti national'],
+      rows: of('eurodepute').map((r) => [
+        personName(r),
+        r.europeanGroup ?? '',
+        r.nationalParty ?? '',
+      ]),
+    },
+    groupesAssemblee: {
+      headers: ['Sigle', 'Groupe', 'Députés'],
+      rows: [...groupCounts.entries()]
+        .sort((a, b) => b[1].n - a[1].n)
+        .map(([sigle, g]) => [sigle, g.name, formatInt(g.n)]),
+    },
+  };
+}
