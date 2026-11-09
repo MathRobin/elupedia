@@ -6,9 +6,11 @@
  * de chaque personne) et `json/organe/` (groupes politiques, commissions…).
  * Les fichiers sont validés avec les schémas Zod de ../schemas.ts.
  *
- * Extrait : un `Depute` par acteur ayant au moins un mandat ASSEMBLEE ou
- * SENAT. Le mandat parlementaire le plus récent fixe le type (`depute` /
- * `senateur`), la circonscription et les dates ; `allMandates` conserve
+ * Extrait : un `Depute` par acteur ayant au moins un mandat ASSEMBLEE, SENAT
+ * ou MINISTERE (membres du Gouvernement, parlementaires ou non : l'AN les
+ * suit pour les questions au gouvernement). Le mandat parlementaire le plus
+ * récent fixe le type (`depute` / `senateur`), la circonscription et les
+ * dates ; `allMandates` conserve
  * l'historique complet des mandats parlementaires. Le groupe est celui du
  * mandat de groupe (GP / GROUPESENAT) encore ouvert.
  *
@@ -33,13 +35,16 @@ import { DEPARTMENT_NAMES } from '@elupedia/shared';
 import { ActeurFileSchema, OrganeFileSchema } from '../schemas.js';
 
 export interface DeputeMandat {
-  type: 'depute' | 'senateur';
+  type:
+    'depute' | 'senateur' | 'premier_ministre' | 'ministre' | 'secretaire_etat';
   nom_circo: string;
   num_deptmt: string;
   num_circo: number;
   mandat_debut: string;
   mandat_fin?: string;
   groupe_sigle?: string;
+  /** Mandats gouvernementaux : intitulé du portefeuille (organe MINISTERE). */
+  intitule?: string;
 }
 
 export interface Depute {
@@ -56,7 +61,8 @@ export interface Depute {
   groupe_sigle?: string;
   slug: string;
   photo_url?: string;
-  mandat_type: 'depute' | 'senateur';
+  /** `gouvernement` : membre du Gouvernement jamais parlementaire. */
+  mandat_type: 'depute' | 'senateur' | 'gouvernement';
   death_date?: string;
   full: unknown;
   allMandates: DeputeMandat[];
@@ -137,7 +143,10 @@ export const GP_FALLBACK: Record<string, string> = {
   PO872880: 'À Droite ! (AD)',
 };
 
-/** Index uid d'organe → libellé « Nom (SIGLE) », pour les groupes seulement. */
+/**
+ * Index uid d'organe → libellé : « Nom (SIGLE) » pour les groupes, intitulé
+ * du portefeuille (« Ministre des Armées ») pour les organes MINISTERE.
+ */
 async function loadOrganes(extractDir: string): Promise<Map<string, string>> {
   const labelsByUid = new Map<string, string>(Object.entries(GP_FALLBACK));
   const organeDir = join(extractDir, 'json', 'organe');
@@ -161,6 +170,8 @@ async function loadOrganes(extractDir: string): Promise<Map<string, string>> {
           ? `${organe.libelle} (${organe.libelleAbrege})`
           : (organe.libelle ?? organe.libelleAbrege ?? '');
       labelsByUid.set(organe.uid, label);
+    } else if (organe.codeType === 'MINISTERE' && organe.libelle) {
+      labelsByUid.set(organe.uid, organe.libelle);
     }
   }
 
@@ -182,6 +193,20 @@ function resolveDepartmentName(lieu: ElectionLieu | undefined): string {
   return (
     lieu?.departement || DEPARTMENT_NAMES[lieu?.numDepartement ?? ''] || ''
   );
+}
+
+/**
+ * Type Elupedia d'un mandat MINISTERE d'après sa qualité AN : « Premier
+ * ministre » ; « Secrétaire d'État » ; tout le reste (ministre, ministre
+ * d'État, ministre délégué, haut-commissaire…) est rangé en `ministre`.
+ */
+function governmentMandateType(
+  libQualite: string | null | undefined,
+): 'premier_ministre' | 'ministre' | 'secretaire_etat' {
+  const qualite = (libQualite ?? '').toLowerCase();
+  if (qualite.includes('premier ministre')) return 'premier_ministre';
+  if (/secr[ée]taire d.[ée]tat/.test(qualite)) return 'secretaire_etat';
+  return 'ministre';
 }
 
 /** Trie en place par date de début décroissante et renvoie le tableau. */
@@ -221,14 +246,22 @@ async function loadActeurs(
       (mandat) =>
         mandat.typeOrgane === 'ASSEMBLEE' || mandat.typeOrgane === 'SENAT',
     );
+    // Membres du Gouvernement : une ligne MINISTERE par portefeuille (les
+    // lignes GOUVERNEMENT, appartenance à une équipe, sont redondantes).
+    const gouvMandats = sortNewestFirst(
+      allMandats.filter((mandat) => mandat.typeOrgane === 'MINISTERE'),
+    );
 
-    // Ministres, collaborateurs, etc. : hors périmètre.
-    if (parlMandats.length === 0) continue;
+    // Collaborateurs, membres d'organes extra-parlementaires… : hors périmètre.
+    if (parlMandats.length === 0 && gouvMandats.length === 0) continue;
 
     // Tri en place : allMandates est donc émis du plus récent au plus ancien.
-    const latestMandat = sortNewestFirst(parlMandats)[0];
+    // Un membre du Gouvernement jamais parlementaire n'a pas de mandat de
+    // référence : les champs de circonscription restent vides.
+    const latestMandat: (typeof parlMandats)[number] | undefined =
+      sortNewestFirst(parlMandats)[0];
 
-    const isSenat = latestMandat.typeOrgane === 'SENAT';
+    const isSenat = latestMandat?.typeOrgane === 'SENAT';
 
     // La photo n'existe que côté AN : on prend la législature du dernier
     // mandat de député, même pour un sénateur ex-député.
@@ -250,7 +283,7 @@ async function loadActeurs(
       ? organes.get(Array.isArray(gpRef) ? gpRef[0] : gpRef)
       : undefined;
 
-    const latestLieu = latestMandat.election?.lieu;
+    const latestLieu = latestMandat?.election?.lieu;
 
     const deathDate =
       typeof etatCivil.dateDeces === 'string' ? etatCivil.dateDeces : undefined;
@@ -269,6 +302,26 @@ async function loadActeurs(
       };
     });
 
+    const governmentMandates: DeputeMandat[] = gouvMandats.map((mandat) => {
+      const ref = mandat.organes?.organeRef;
+      const organeRef = Array.isArray(ref) ? ref[0] : ref;
+      const libQualite = mandat.infosQualite?.libQualite ?? undefined;
+      return {
+        type: governmentMandateType(libQualite),
+        nom_circo: '',
+        num_deptmt: '',
+        num_circo: 0,
+        mandat_debut: mandat.dateDebut,
+        mandat_fin: mandat.dateFin ?? undefined,
+        intitule:
+          (organeRef ? organes.get(organeRef) : undefined) ?? libQualite,
+      };
+    });
+
+    // Référence de la fiche : dernier mandat parlementaire, sinon dernier
+    // mandat gouvernemental.
+    const reference = latestMandat ?? gouvMandats[0];
+
     deputes.push({
       id_an: anId,
       nom: etatCivil.ident.nom,
@@ -281,17 +334,21 @@ async function loadActeurs(
       nom_circo: resolveDepartmentName(latestLieu),
       num_deptmt: latestLieu?.numDepartement ?? '',
       num_circo: parseInt(latestLieu?.numCirco ?? '0', 10),
-      mandat_debut: latestMandat.dateDebut,
-      mandat_fin: latestMandat.dateFin ?? undefined,
+      mandat_debut: reference.dateDebut,
+      mandat_fin: reference.dateFin ?? undefined,
       groupe_sigle: groupeSigle,
       slug: slugify(etatCivil.ident.prenom, etatCivil.ident.nom),
       photo_url: latestAnMandat?.legislature
         ? photoUrl(anId, latestAnMandat.legislature)
         : undefined,
-      mandat_type: isSenat ? 'senateur' : 'depute',
+      mandat_type: latestMandat
+        ? isSenat
+          ? 'senateur'
+          : 'depute'
+        : 'gouvernement',
       death_date: deathDate,
       full: rawJson,
-      allMandates: allParlMandates,
+      allMandates: [...allParlMandates, ...governmentMandates],
     });
   }
 

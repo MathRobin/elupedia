@@ -108,12 +108,17 @@ function makeActeurJson(
   };
 }
 
-function makeOrganeJson(uid: string, libelleAbrege: string, libelle?: string) {
+function makeOrganeJson(
+  uid: string,
+  libelleAbrege: string,
+  libelle?: string,
+  codeType = 'GP',
+) {
   return {
     organe: {
       '@xmlns': 'http://schemas.assemblee-nationale.fr/referentiel',
       uid,
-      codeType: 'GP',
+      codeType,
       libelle: libelle ?? libelleAbrege,
       libelleEdition: libelleAbrege,
       libelleAbrege,
@@ -289,6 +294,113 @@ describe('Assemblée nationale client', () => {
 
     const deputes = await fetchDeputes(mockFetch(zipBuffer));
     expect(deputes).toHaveLength(2);
+  });
+
+  it('includes government members, with the portfolio as mandate label', async () => {
+    const acteur = {
+      acteur: {
+        '@xmlns': 'http://schemas.assemblee-nationale.fr/referentiel',
+        uid: { '#text': 'PA643210' },
+        etatCivil: {
+          ident: { civ: 'M.', prenom: 'Sébastien', nom: 'Lecornu' },
+          infoNaissance: { dateNais: '1986-06-11' },
+        },
+        mandats: {
+          mandat: [
+            {
+              uid: 'PM1',
+              typeOrgane: 'GOUVERNEMENT',
+              dateDebut: '2025-10-11',
+              dateFin: null,
+              infosQualite: { libQualite: 'membre' },
+              organes: { organeRef: 'PO873634' },
+            },
+            {
+              uid: 'PM2',
+              typeOrgane: 'MINISTERE',
+              dateDebut: '2025-10-11',
+              dateFin: null,
+              infosQualite: { libQualite: 'Premier ministre' },
+              organes: { organeRef: 'PO873635' },
+            },
+            {
+              uid: 'PM3',
+              typeOrgane: 'MINISTERE',
+              dateDebut: '2022-05-21',
+              dateFin: '2024-01-09',
+              infosQualite: { libQualite: 'Ministre' },
+              organes: { organeRef: 'PO791603' },
+            },
+            {
+              uid: 'PM4',
+              typeOrgane: 'MINISTERE',
+              dateDebut: '2017-06-22',
+              dateFin: '2018-10-16',
+              infosQualite: { libQualite: "Secrétaire d'État" },
+              organes: { organeRef: 'PO730033' },
+            },
+          ],
+        },
+      },
+    };
+    const zipBuffer = buildZipBuffer(
+      [{ uid: 'PA643210', data: acteur }],
+      [
+        {
+          uid: 'PO873635',
+          data: makeOrganeJson(
+            'PO873635',
+            'PM',
+            'Premier ministre',
+            'MINISTERE',
+          ),
+        },
+        {
+          uid: 'PO791603',
+          data: makeOrganeJson(
+            'PO791603',
+            'ARM',
+            'Ministre des Armées',
+            'MINISTERE',
+          ),
+        },
+      ],
+    );
+
+    const deputes = await fetchDeputes(mockFetch(zipBuffer));
+    expect(deputes).toHaveLength(1);
+    expect(deputes[0].mandat_type).toBe('gouvernement');
+    // Les lignes GOUVERNEMENT (appartenance à une équipe) ne sont pas des mandats.
+    expect(deputes[0].allMandates).toEqual([
+      {
+        type: 'premier_ministre',
+        nom_circo: '',
+        num_deptmt: '',
+        num_circo: 0,
+        mandat_debut: '2025-10-11',
+        mandat_fin: undefined,
+        intitule: 'Premier ministre',
+      },
+      {
+        type: 'ministre',
+        nom_circo: '',
+        num_deptmt: '',
+        num_circo: 0,
+        mandat_debut: '2022-05-21',
+        mandat_fin: '2024-01-09',
+        intitule: 'Ministre des Armées',
+      },
+      {
+        type: 'secretaire_etat',
+        nom_circo: '',
+        num_deptmt: '',
+        num_circo: 0,
+        mandat_debut: '2017-06-22',
+        mandat_fin: '2018-10-16',
+        // Organe absent du ZIP : la qualité sert d'intitulé.
+        intitule: "Secrétaire d'État",
+      },
+    ]);
   });
 
   it('throws on HTTP error', async () => {
