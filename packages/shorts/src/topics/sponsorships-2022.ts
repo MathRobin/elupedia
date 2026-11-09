@@ -26,8 +26,9 @@ import {
  * même département) ; totaux officiels du communiqué du Conseil
  * constitutionnel (constantes `OFFICIAL_*`).
  *
- * Pièges : la liste en base peut différer de quelques dizaines de lignes du
- * total officiel (doublons, lignes non lues) : la voix cite le total
+ * Pièges : la liste en base peut différer du total officiel (ingestion en
+ * retard ou incomplète ; l'écart de 50 lignes de 2022, dû à un dédoublonnage
+ * sur le nom seul, a été corrigé en novembre 2026) : la voix cite le total
  * officiel, les barres montrent la liste telle que reprise, la description
  * donne les deux ; seuls les candidats ayant atteint 500 parrainages sont
  * tracés, par ordre alphabétique, pour ne mettre personne en avant.
