@@ -38,6 +38,17 @@
   )
 }
 
+#let source(body) = text(size: 8pt, style: "italic")[#body]
+
+// Tableau généré depuis `data.json` (chapitre sénatoriales ; les autres chapitres ont leurs tableaux dans le Markdown).
+#let tableau(t) = block(breakable: false, table(
+  columns: t.headers.len(),
+  align: (left, ..range(t.headers.len() - 1).map(_ => right)),
+  stroke: 0.4pt,
+  table.header(..t.headers.map(h => strong(h))),
+  ..t.rows.flatten(),
+))
+
 #align(center + horizon)[
   #text(size: 24pt, weight: "bold")[Elupedia]
   #v(1em)
@@ -78,6 +89,7 @@
 #v(0.8em)
 #tableau(data.tables.senatorialesNuances)
 #source[Source : Sénat, senatoriales2026.senat.fr. Données arrêtées au #data.asOf.]
+#include "../out/chapitres/06-senatoriales-2026.typ"
 
 #heading(numbering: none)[Annexe : annuaire des parlementaires]
 Parlementaires en fonction au #data.asOf. L'annuaire ne reprend ni coordonnées, ni photos, ni dates de naissance.
