@@ -98,7 +98,9 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           .set({
             firstName: depute.prenom,
             lastName: depute.nom,
-            birthDate: depute.date_naissance,
+            // Vide pour certains membres du Gouvernement jamais parlementaires
+            // (dateNais nul côté AN) : une chaîne vide n'est pas une date.
+            birthDate: depute.date_naissance || null,
             photoUrl: depute.photo_url ?? null,
             deathDate: depute.death_date ?? null,
             slug: existing[0].slug ?? computeSlug(),
@@ -136,7 +138,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               anId,
               firstName: depute.prenom,
               lastName: depute.nom,
-              birthDate: depute.date_naissance,
+              birthDate: depute.date_naissance || null,
               photoUrl: depute.photo_url ?? senatMatch[0].photoUrl,
               deathDate: depute.death_date ?? null,
               slug: senatMatch[0].slug ?? computeSlug(),
@@ -151,7 +153,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               firstName: depute.prenom,
               lastName: depute.nom,
               anId,
-              birthDate: depute.date_naissance,
+              birthDate: depute.date_naissance || null,
               photoUrl: depute.photo_url ?? null,
               deathDate: depute.death_date ?? null,
               slug: computeSlug(),
