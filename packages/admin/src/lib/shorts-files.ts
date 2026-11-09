@@ -2,12 +2,13 @@
  * Fichiers produits par le pipeline de shorts (packages/shorts) : vidéo,
  * vignette, texte d'accompagnement. Ils vivent sur la machine qui rend les
  * vidéos, dans `SHORTS_OUTPUT_DIR` (absolu, ou relatif à packages/shorts),
- * sinon dans `packages/shorts/out`. L'admin les lit directement : elle tourne
- * sur la même machine. Utilisé par les actions de /videos et par la route
+ * sinon dans `packages/shorts/out`, sous la racine donnée par repo-root.ts.
+ * L'admin les lit directement : elle tourne sur la même machine. Utilisé par les actions de /videos et par la route
  * /api/videos/[id]/[file] qui les sert au navigateur.
  */
 import { access } from 'node:fs/promises';
 import path from 'node:path';
+import { repoRoot } from './repo-root';
 
 export const SHORT_FILES = {
   'short.mp4': 'video/mp4',
@@ -18,7 +19,7 @@ export const SHORT_FILES = {
 export type ShortFileName = keyof typeof SHORT_FILES;
 
 export function shortsOutputDir(): string {
-  const shortsDir = path.resolve(process.cwd(), '..', 'shorts');
+  const shortsDir = path.join(repoRoot(), 'packages', 'shorts');
   const configured = process.env.SHORTS_OUTPUT_DIR;
   return configured
     ? path.resolve(shortsDir, configured)
