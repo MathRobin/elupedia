@@ -14,13 +14,14 @@ Brouillons du guide pédagogique publié au nom d'Elupedia. Document de travail 
 
 ## Fichiers
 
-| Fichier                                                | Rôle                                                                            |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| [01-bible-editoriale.md](01-bible-editoriale.md)       | Ton, structure d'un chapitre, règles de non-nomination, règles sur les chiffres |
-| [02-chiffres.md](02-chiffres.md)                       | Chiffres calculés depuis la base, avec identifiant, source, requête et réserves |
-| [03-sources-et-licences.md](03-sources-et-licences.md) | Page de crédits et points juridiques à traiter avant impression                 |
-| `ch00-avant-propos.md` à `ch10-agir.md`                | Brouillons des chapitres                                                        |
-| `ch11-glossaire.md`                                    | Glossaire                                                                       |
+| Fichier                                                | Rôle                                                                                   |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| [01-bible-editoriale.md](01-bible-editoriale.md)       | Ton, structure d'un chapitre, règles de non-nomination, règles sur les chiffres        |
+| [02-chiffres.md](02-chiffres.md)                       | Chiffres calculés depuis la base, avec identifiant, source, requête et réserves        |
+| [03-sources-et-licences.md](03-sources-et-licences.md) | Page de crédits et points juridiques à traiter avant impression                        |
+| `ch00-avant-propos.md` à `ch10-agir.md`                | Brouillons des chapitres                                                               |
+| `ch11-glossaire.md`                                    | Glossaire                                                                              |
+| `build/`                                               | Mise en page : `build.py` produit un PDF A5 (Typst) et un EPUB, voir `build/README.md` |
 
 ## Plan
 
@@ -37,18 +38,25 @@ Brouillons du guide pédagogique publié au nom d'Elupedia. Document de travail 
 10. Agir : suivre, interpeller, se présenter
 11. Glossaire
 
-## Volume des brouillons (9 novembre 2026)
+## Volume (9 novembre 2026, après relecture)
 
-Environ 39 800 mots hors notes de vérification, soit à peu près 150 pages A5. Détail : avant-propos 700, chapitres 1 à 10 entre 2 900 et 4 450 mots, glossaire 1 150 (incomplet, à étoffer). Les chapitres 2, 4, 9 et 10 dépassent la cible de 3 500 mots : candidats à des coupes à la relecture éditoriale.
+Environ 35 100 mots hors notes de vérification : avant-propos 650, chapitres 1 à 10 entre 2 500 et 3 650 mots, glossaire de 100 entrées. Le PDF de travail fait 138 pages A5 (corps 11 pt). Les chapitres 2, 4, 9 et 10 ont été ramenés à 3 300 à 3 500 mots.
 
-## Points ouverts connus
+## Relecture du 9 novembre 2026
 
-- Chiffres dérivés calculés par les rédacteurs, non listés dans `02-chiffres.md` : parts de rattachement des parrainages (54,8 % en 2017, 88,3 % en 2022), « autres fonctions » (960 parrainages), écart de votants législatives 2024 moins 2022 (environ 9,7 millions), formulations « un sur cinq », « près de neuf sur dix ». À contrôler ou à ajouter à `02-chiffres.md`.
-- Chiffre C119 (signatures de référendums d'initiative partagée) douteux : à retirer ou à recouper.
-- Motions de censure : la base ne contient pas la motion de décembre 2024 (adoptée). Le chapitre 4 et le chapitre 9 en tiennent compte ; ne jamais écrire « aucune motion adoptée ».
-- Code `DD` des comptes de campagne : sens et dispense de dépôt à confirmer auprès de la CNCCFP.
-- Écart 565 députés recensés / 577 sièges, 350 sénateurs / plafond légal, 82 eurodéputés / 81 : à expliquer avant impression.
-- Références juridiques (lois, articles, seuils, délais) : toutes à vérifier, listées dans les notes de chaque chapitre.
+Chaque chapitre a été vérifié sur des sources en ligne (hatvp.fr, service-public.fr, vie-publique.fr, rapports parlementaires, guides de la CNCCFP), corrigé, coupé, puis débarrassé des tics de rédaction automatique. Le détail de chaque verdict est dans le tableau « Notes de vérification » de chaque chapitre.
+
+Corrections factuelles faites dans le texte, entre autres : seuil de pétition au CESE (150 000 signatures) ; pétition locale (un vingtième des électeurs hors communes) ; suppression du seuil de 1 000 habitants pour le mode de scrutin municipal (lois de 2025, à confirmer) ; interdiction d'employer des proches (ordonnance de 1958, pas la loi de 2017) ; point de départ du délai de décision de la CNCCFP ; article 49 de la Constitution ; référence erronée à l'article 3 de la Constitution retirée.
+
+## Points ouverts
+
+- **Légifrance, conseil-constitutionnel.fr et cnccfp.fr n'étaient pas lisibles par les outils** : une partie des verdicts repose sur des sources secondaires. Une vérification humaine sur Légifrance reste nécessaire, notamment pour les durées de mandat, les seuils des groupes parlementaires, la composition de la CMP et le code `DD` de la CNCCFP (sens et dispense de dépôt).
+- **Anomalies de données constatées** (à ajouter à `docs/KNOWN-ISSUES.md` une fois la PR #355 fusionnée, qui modifie aussi ce fichier) : scrutins de l'Assemblée incomplets en décembre 2024 (22 enregistrés, dont aucune motion de censure, contre 118 à 209 les autres mois) ; 565 députés pour 577 circonscriptions (12 absentes) ; 350 sénateurs actifs dont 183 débutés en 2026 pour 178 sièges renouvelés ; 82 eurodéputés actifs pour 81 sièges ; 34 parlementaires avec un mandat de maire débuté en mars 2026 ; second tour des sénatoriales 2026 : 26 sièges annoncés pour 19 élus ; écart de 50 parrainages 2022 avec le chiffre publié.
+- **Chiffres dérivés** calculés par les rédacteurs, à garder ou à ajouter à `02-chiffres.md` : parts de parrainages rattachés (54,8 % en 2017, 88,3 % en 2022), 960 parrainages d'« autres fonctions », écart de votants législatives 2024 moins 2022 (environ 9,7 millions).
+- **RIP** : les totaux officiels de 2019 (248) et de 2023 (244) sont à recouper sur conseil-constitutionnel.fr.
+- **Écarts à expliquer** : 565 ou 577 députés, 350 ou 348 sénateurs, 82 ou 81 eurodéputés.
+- Les mentions « à vérifier » restent dans le texte à la demande du propriétaire.
+- Adresse de contact d'Elupedia, mentions légales, couverture : à ajouter par l'éditeur.
 
 ## Statut des brouillons
 

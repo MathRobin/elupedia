@@ -2,7 +2,7 @@
 
 En France, plusieurs dizaines de milliers de personnes exercent un mandat électif. Elles votent des lois, gèrent des écoles, des routes, des budgets, des services de proximité. Pourtant, la plupart des gens ne pourraient pas dire facilement qui fait quoi, ni où trouver une information fiable à leur sujet.
 
-Ce livre répond à cette question simple : comment fonctionne le monde des élus, et comment s'en faire une idée juste ? Il n'est pas écrit pour les spécialistes. Il ne demande aucune connaissance préalable du droit ou de la politique.
+Ce livre explique comment fonctionne le monde des élus et comment s'en faire une idée juste. Il s'adresse à tous, sans connaissance préalable du droit ou de la politique.
 
 ## Ce que vous trouverez ici
 
@@ -23,11 +23,11 @@ Vous pouvez les lire dans l'ordre, ou aller directement à celui qui vous intér
 
 ## Ce que ce livre ne fait pas
 
-Il ne juge personne. Il ne dit pas si un système est bon ou mauvais, ni pour qui voter. Il décrit des règles, il donne des chiffres, il explique comment les lire.
+Il ne juge personne, ne dit pas si un système est bon ou mauvais et ne dit pas pour qui voter. Il décrit des règles, donne des chiffres et explique comment les lire.
 
-Il ne cite le nom d'aucune personne. Les chiffres portent sur des ensembles : tous les députés, tous les maires, tous les comptes de campagne d'un scrutin. Nous ne racontons pas de cas particuliers et nous n'en inventons pas. Quand un exemple est donné, c'est un fait réel, vérifiable, ou une règle écrite dans un texte officiel.
+Aucune personne n'y est nommée. Les chiffres portent sur des ensembles : tous les députés, tous les maires, tous les comptes de campagne d'un scrutin. Nous ne racontons pas de cas particuliers et nous n'en inventons pas : chaque exemple est un fait réel et vérifiable, ou une règle écrite dans un texte officiel.
 
-Il n'est pas un manuel de droit. Nous décrivons les règles de façon simple, parfois en les résumant ; le texte de loi reste la référence. Quand la règle dépend d'une loi susceptible d'évoluer, nous le disons.
+Ce n'est pas un manuel de droit. Les règles sont résumées ; le texte de loi reste la référence. Quand une règle dépend d'une loi susceptible d'évoluer, nous le disons.
 
 ## D'où viennent les chiffres
 
@@ -35,7 +35,7 @@ Les chiffres de ce livre ont été calculés à partir de données publiques : c
 
 Tous les chiffres sont **arrêtés au 9 novembre 2026**. Un chiffre sur les élus change : un décès, une démission, un scrutin le modifient. C'est pourquoi les chiffres sont rassemblés dans des encadrés intitulés « Chiffres », avec leur date. Les règles du texte, elles, vieillissent plus lentement.
 
-Une limite doit être connue dès maintenant : **les données ne couvrent pas les conseillers municipaux**, hors maires. Ils sont plusieurs centaines de milliers. Quand nous parlons de « tous les élus » à propos de nos chiffres, il s'agit des élus que couvrent les données, et nous le précisons chaque fois que cela compte.
+Une limite est à connaître dès maintenant : **les données ne couvrent pas les conseillers municipaux**, hors maires. Ils sont plusieurs centaines de milliers. Quand nos chiffres parlent de « tous les élus », il s'agit des élus que couvrent les données, et nous le précisons chaque fois que cela compte.
 
 ## Comment sont présentés les chapitres
 
@@ -46,11 +46,11 @@ Chaque chapitre contient, selon les cas, quatre sortes d'encadrés :
 - **Dans les données** : comment une information se retrouve dans les bases publiques, et ce qu'il faut savoir pour la lire ;
 - **À retenir** : l'essentiel du chapitre en quelques lignes.
 
-À la fin de chaque chapitre, quelques sources officielles permettent d'aller vérifier par vous-même. C'est le principal conseil de ce livre : un chiffre n'a de valeur que si l'on sait d'où il vient.
+À la fin de chaque chapitre, quelques sources officielles permettent d'aller vérifier par vous-même. Un chiffre n'a de valeur que si l'on sait d'où il vient : c'est le principal conseil de ce livre.
 
 ## Un mot sur Elupedia
 
-Elupedia est un projet ouvert. Il rassemble des données publiques sur les élus et les met à disposition de tous. Ce livre n'en est pas une publicité : c'est un guide, qui s'appuie sur ces données, qui en explique les limites et qui renvoie toujours vers les sources officielles. Si vous repérez une erreur, le chapitre 10 explique comment la signaler.
+Elupedia est un projet ouvert. Il rassemble des données publiques sur les élus et les met à disposition de tous. Ce livre est un guide : il s'appuie sur ces données, en explique les limites et renvoie toujours vers les sources officielles. Si vous repérez une erreur, le chapitre 10 explique comment la signaler.
 
 ## Notes de vérification (hors livre)
 
