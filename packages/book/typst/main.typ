@@ -1,7 +1,7 @@
 // Gabarit du livre Elupedia (brouillon).
-// Lit `chapitres/*.md` (introductions) et `out/data.json` (généré par `yarn --cwd packages/book data`) et affiche
-// une introduction puis un tableau par chapitre. Les notes de travail et
-// brouillons restent dans `docs/livre/`.
+// Lit `chapitres/*.md` (introductions), `out/chapitres/*.typ` (texte des brouillons de `docs/livre/`, converti par
+// `yarn --cwd packages/book build`) et `out/data.json` (annuaire). Chaque chapitre affiche son introduction puis le texte
+// du brouillon (chiffres, tableaux, sections de travail en encadrés).
 
 #let data = json("../out/data.json")
 
@@ -24,6 +24,7 @@
 
 #let apres-intro = v(0.5em)
 
+
 // Tableau long (annuaire) : coupé entre les pages, en-tête répété, police réduite.
 #let annuaire(t, colonnes: (3fr, 2fr, 3fr)) = {
   set text(size: 7.5pt, hyphenate: false)
@@ -37,16 +38,6 @@
   )
 }
 
-#let source(body) = text(size: 8pt, style: "italic")[#body]
-
-#let tableau(t) = block(breakable: false, table(
-  columns: t.headers.len(),
-  align: (left, ..range(t.headers.len() - 1).map(_ => right)),
-  stroke: 0.4pt,
-  table.header(..t.headers.map(h => strong(h))),
-  ..t.rows.flatten(),
-))
-
 #align(center + horizon)[
   #text(size: 24pt, weight: "bold")[Elupedia]
   #v(1em)
@@ -57,32 +48,27 @@
 = Parrainages
 #intro("01-parrainages.md")
 #apres-intro
-#tableau(data.tables.parrainages)
-#source[Source : Conseil constitutionnel (data.gouv.fr). Données arrêtées au #data.asOf.]
+#include "../out/chapitres/01-parrainages.typ"
 
 = Comptes de campagne
 #intro("02-comptes-de-campagne.md")
 #apres-intro
-#tableau(data.tables.comptes)
-#source[Source : CNCCFP (data.gouv.fr). Données arrêtées au #data.asOf.]
+#include "../out/chapitres/02-comptes-de-campagne.typ"
 
 = Collaborateurs
 #intro("03-collaborateurs.md")
 #apres-intro
-#tableau(data.tables.collaborateurs)
-#source[Source : Assemblée nationale, collaborateurs parlementaires. Données arrêtées au #data.asOf.]
+#include "../out/chapitres/03-collaborateurs.typ"
 
 = Questions écrites
 #intro("04-questions-ecrites.md")
 #apres-intro
-#tableau(data.tables.questions)
-#source[Source : Assemblée nationale, questions écrites (17e législature). Données arrêtées au #data.asOf.]
+#include "../out/chapitres/04-questions-ecrites.typ"
 
 = L'âge des députés
 #intro("05-age-des-deputes.md")
 #apres-intro
-#tableau(data.tables.age)
-#source[Source : Assemblée nationale. Âge calculé au #data.asOf.]
+#include "../out/chapitres/05-age-des-deputes.typ"
 
 = Crédits et licences
 Données : Assemblée nationale, Sénat, HATVP, CNCCFP, Conseil constitutionnel (Licence Ouverte 2.0). Cartes : © les contributeurs d'OpenStreetMap (ODbL).

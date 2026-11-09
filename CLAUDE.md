@@ -90,7 +90,7 @@ yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approve
 
 # Livre (tableaux depuis la base en lecture seule, puis PDF Typst ; le binaire `typst` est requis pour build)
 yarn --cwd packages/book data    # écrit packages/book/out/data.json (date de gel = date du jour)
-yarn --cwd packages/book build   # data.json puis compilation de typst/main.typ en out/livre.pdf
+yarn --cwd packages/book build   # data.json + texte des brouillons docs/livre/ (out/chapitres/), puis compilation de typst/main.typ en out/livre.pdf ; --sans-notes retire les sections de travail
 
 # Interface d'administration (http://localhost:3001, compte dans la table users ; webpack imposé, .env de la racine chargé par scripts/next.mjs)
 yarn --cwd packages/admin dev
