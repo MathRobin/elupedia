@@ -21,7 +21,7 @@
  */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getDb } from '../../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText, MANDATE_TYPE_LABELS, MANDATE_TYPE_DESCRIPTIONS, pickPrimaryMandate } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText, MANDATE_TYPE_LABELS, MANDATE_TYPE_DESCRIPTIONS, GOVERNMENT_MANDATE_TYPES, pickPrimaryMandate } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray, gte, lte, sql, count } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -607,6 +607,10 @@ if (ungroupedInterests.length > 0) {
 const fullName = `${deputy.firstName} ${deputy.lastName}`;
 const photo = deputy.s3PhotoUrl ?? deputy.photoUrl;
 let mandateLabel = mandateTypeLabels[deputy.mandateType] ?? deputy.mandateType;
+// Membre du Gouvernement : `district` porte l'intitulé du portefeuille
+// (« Ministre des Armées »), plus parlant que le type seul.
+const isGovernment = GOVERNMENT_MANDATE_TYPES.has(deputy.mandateType);
+if (isGovernment && deputy.district) mandateLabel = deputy.district;
 
 const sameAs = deputyLinks
   .map((l) => l.url)
@@ -619,7 +623,9 @@ const worksForName = deputy.mandateType === 'depute'
     ? 'Sénat'
     : deputy.mandateType === 'maire'
       ? deputy.district ?? undefined
-      : undefined;
+      : isGovernment
+        ? 'Gouvernement de la République française'
+        : undefined;
 
 const isParliamentary = deputy.mandateType === 'depute' || deputy.mandateType === 'senateur';
 const isEurodepute = deputy.mandateType === 'eurodepute';
@@ -1183,7 +1189,7 @@ for (const sp of deputySponsorships) {
             <dt class="text-sm text-slate-500 dark:text-slate-400">Type</dt>
             <dd class="font-medium dark:text-white" title={MANDATE_TYPE_DESCRIPTIONS[deputy.mandateType]}>{mandateLabel}</dd>
           </div>
-          {deputy.district && (
+          {deputy.district && !isGovernment && (
             <div>
               <dt class="text-sm text-slate-500 dark:text-slate-400">Circonscription</dt>
               <dd class="font-medium dark:text-white">{deputy.district}</dd>
@@ -1260,7 +1266,9 @@ for (const sp of deputySponsorships) {
               <div class="relative">
                 <div class={`absolute -left-[calc(1rem+5px)] top-1 h-2.5 w-2.5 rounded-full ${m.endDate ? 'bg-slate-300 dark:bg-slate-600' : 'bg-indigo-500'}`}></div>
                 <div class="flex items-center gap-2">
-                  <span class="font-medium text-sm dark:text-white" title={MANDATE_TYPE_DESCRIPTIONS[m.type]}>{mandateTypeLabels[m.type] ?? m.type}</span>
+                  <span class="font-medium text-sm dark:text-white" title={MANDATE_TYPE_DESCRIPTIONS[m.type]}>
+                    {GOVERNMENT_MANDATE_TYPES.has(m.type) && m.district ? m.district : (mandateTypeLabels[m.type] ?? m.type)}
+                  </span>
                   {!m.endDate && (
                     <span class="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/20 dark:text-green-400">En cours</span>
                   )}

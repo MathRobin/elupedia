@@ -57,6 +57,12 @@ export const MandatSchema = z.object({
   typeOrgane: z.string(),
   dateDebut: z.string(),
   dateFin: z.string().optional().nullable(),
+  // Qualité au sein de l'organe (« membre », « Premier ministre »,
+  // « Ministre », « Secrétaire d'État »…) : distingue les mandats MINISTERE.
+  infosQualite: z
+    .object({ libQualite: z.string().optional().nullable() })
+    .optional()
+    .nullable(),
   organes: z
     .object({ organeRef: z.union([z.string(), z.array(z.string())]) })
     .optional()

@@ -32,6 +32,9 @@ const LISTBOX_ID = 'hero-search-listbox';
 
 /** Libellés affichés à côté du nom, par type de mandat. */
 const MANDATE_LABELS: Record<string, string> = {
+  premier_ministre: 'Premier·ère ministre',
+  ministre: 'Ministre',
+  secretaire_etat: "Secrétaire d'État",
   depute: 'Député·e',
   senateur: 'Sénateur·rice',
   maire: 'Maire',
