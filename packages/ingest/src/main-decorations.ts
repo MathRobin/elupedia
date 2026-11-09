@@ -10,7 +10,10 @@
  * distinct (et non par élu), puis on ne garde que les fiches dont le nom
  * correspond exactement et dont le prénom commence par celui d'un élu
  * portant ce nom. Les fiches retenues sont rattachées par
- * upsert/decorations.ts via la clé « nom|prénom » normalisée.
+ * upsert/decorations.ts uniquement si la date de naissance publique de la
+ * fiche est identique à celle de l'élu (voir decoration-match.ts) ; les
+ * autres sont conservées sans official. Rattrapage d'anciens rattachements
+ * à un nom seul : `reconcile:decorations`.
  */
 import { createDb } from '@elupedia/shared';
 import { officials } from '@elupedia/shared';
@@ -23,7 +26,11 @@ import {
   searchDecorations,
   fetchFicheDetail,
 } from './sources/legion-honneur.js';
-import { upsertDecorations } from './upsert/decorations.js';
+import {
+  officialIndexKey,
+  upsertDecorations,
+  type OfficialCandidate,
+} from './upsert/decorations.js';
 
 // Pause entre deux recherches Léonore, pour ne pas saturer le service.
 const DELAY_BETWEEN_SEARCHES_MS = 50;
@@ -48,6 +55,7 @@ async function main() {
       id: officials.id,
       firstName: officials.firstName,
       lastName: officials.lastName,
+      birthDate: officials.birthDate,
     })
     .from(officials);
 
@@ -64,12 +72,15 @@ async function main() {
 
   logger.info(`${byLastName.size} unique last names`);
 
-  // Index « nom|prénom » → id, consommé par upsertDecorations pour le
-  // rattachement. En cas d'homonymie parfaite, le dernier lu gagne.
-  const officialByName = new Map<string, string>();
+  // Index « nom|date de naissance » → fiches, consommé par upsertDecorations
+  // pour le rattachement (les élus sans date de naissance n'y figurent pas).
+  const officialIndex = new Map<string, OfficialCandidate[]>();
   for (const official of allOfficials) {
-    const key = `${normalize(official.lastName)}|${normalize(official.firstName)}`;
-    officialByName.set(key, official.id);
+    if (!official.birthDate) continue;
+    const key = officialIndexKey(official.lastName, official.birthDate);
+    const list = officialIndex.get(key) ?? [];
+    list.push({ id: official.id, firstName: official.firstName });
+    officialIndex.set(key, list);
   }
 
   let searched = 0;
@@ -118,7 +129,7 @@ async function main() {
       }
 
       if (batch.length > 0) {
-        await upsertDecorations(db, batch, officialByName);
+        await upsertDecorations(db, batch, officialIndex);
       }
     } catch (error) {
       errors++;

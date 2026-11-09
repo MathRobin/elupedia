@@ -208,7 +208,7 @@ Cette section résume les conventions qu'il faut connaître avant de plonger dan
 | `services/`, `utils/` | Briques transverses (géocodage, cartes statiques, retry, checkpoints, détection de changement)                                                                     |                                                                                                               |
 | `filters/`            | Critères de l'ingestion AN partielle                                                                                                                               |                                                                                                               |
 
-Dérogations documentées dans leur en-tête : `main-decorations`, `main-madada`, `main-parrainages`, `main-rip-signatures`, `main-photos` portent leur logique sans `run-*` ; `main-reconcile`, `main-dedupe-committees`, `main-check-coherence` sont des outils de maintenance.
+Dérogations documentées dans leur en-tête : `main-decorations`, `main-madada`, `main-parrainages`, `main-rip-signatures`, `main-photos` portent leur logique sans `run-*` ; `main-reconcile`, `main-reconcile-decorations`, `main-dedupe-committees`, `main-check-coherence` sont des outils de maintenance.
 
 ### Contrat `StepResult` et compteurs
 
