@@ -14,6 +14,7 @@ dist/
 .env.*
 !.env.example
 ingest-report*.json
+packages/ingest/.rebuild-site-state.json
 packages/site/public/maps/
 packages/ingest/madada-cache.json
 .claude/settings.local.json
@@ -22,6 +23,7 @@ packages/e2e/playwright-report/
 packages/e2e/.cache/
 packages/shorts/out/
 packages/book/out/
+docs/livre-guide/build/out/
 
 # Généré par Next.js à chaque dev/build, contenu différent selon la commande (même choix que create-next-app)
 packages/admin/next-env.d.ts

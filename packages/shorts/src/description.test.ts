@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDescription } from './description.js';
+import { buildDescription, isSyntheticVoice } from './description.js';
 import { buildBallotFacts, officialSources } from './script-facts.js';
 import type { ShortScript } from './script-schema.js';
 
@@ -71,6 +71,18 @@ describe('officialSources', () => {
 describe('buildDescription', () => {
   const text = buildDescription(facts, script);
 
+  it('tolerates facts stored before sources existed (scripts of October 2026)', () => {
+    const [ballot] = facts.ballots;
+    const legacy = { ...ballot } as Partial<typeof ballot>;
+    delete legacy.sources;
+    const legacyText = buildDescription(
+      { ...facts, ballots: [legacy as typeof ballot] },
+      script,
+    );
+    expect(legacyText).toContain(`sur Elupedia : ${ballot.url}`);
+    expect(legacyText).not.toContain('assemblee-nationale.fr/dyn/17/scrutins');
+  });
+
   it('starts with the factual summary and states the figures', () => {
     expect(text.startsWith(script.description)).toBe(true);
     expect(text).toContain(
@@ -87,6 +99,19 @@ describe('buildDescription', () => {
       'https://www.assemblee-nationale.fr/dyn/17/dossiers/DLR5L17N54847',
     );
     expect(text).toContain('licence ouverte');
+  });
+
+  it('says how the video was made, voice included', () => {
+    expect(text).toContain(
+      'script rédigé par une intelligence artificielle à partir des seuls chiffres officiels, voix enregistrée par l’équipe',
+    );
+    expect(buildDescription(facts, script, { syntheticVoice: true })).toContain(
+      'voix de synthèse',
+    );
+    expect(isSyntheticVoice({ provider: 'elevenlabs' })).toBe(true);
+    expect(isSyntheticVoice({ provider: 'recorded' })).toBe(false);
+    expect(isSyntheticVoice({ provider: 'estimated' })).toBe(false);
+    expect(isSyntheticVoice(null)).toBe(false);
   });
 
   it('ends with the hashtags and stays within the YouTube limit', () => {

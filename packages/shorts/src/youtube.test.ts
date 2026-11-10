@@ -120,6 +120,7 @@ describe('createYoutubeUploader', () => {
           const body = JSON.parse(String(init?.body));
           expect(body.snippet.categoryId).toBe('25');
           expect(body.status.privacyStatus).toBe('public');
+          expect(body.status.containsSyntheticMedia).toBe(true);
           return new Response(null, {
             status: 200,
             headers: { location: 'https://upload.example/session' },

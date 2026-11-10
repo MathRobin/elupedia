@@ -50,6 +50,12 @@ Convention des fichiers : `name` est le slug du fichier (Dagu 2 n'accepte que
   `ingest:an:partial` (variante manuelle de `ingest:an`), l'étape `campaign-accounts`
   du pipeline générique (CNCCFP — publié une fois par cycle électoral, pas de rythme
   récurrent pertinent ; à relancer manuellement quand un nouveau cycle est publié).
+- **Rebuild du site en fin de DAG** : chaque `ingest-*.yaml` se termine par l'étape
+  `rebuild-site` (`yarn --cwd packages/ingest rebuild:site --report …`), qui appelle le
+  Deploy Hook Vercel `VERCEL_DEPLOY_HOOK_URL` si un rapport de run signale des
+  changements, au plus une fois par 20 min. Le hook se crée dans le projet Vercel
+  (Settings → Git → Deploy Hooks, branche `main`) ; sans la variable, l'étape log un
+  avertissement et le site attend le prochain merge.
 
 ## Créneau haute fréquence — toutes les 5h (00:00, 05:00, 10:00, 15:00, 20:00 UTC)
 
@@ -145,35 +151,40 @@ Petits volumes, largement avant le tick `press:maires` de 05:00.
 | Samedi   | `ingest:hatvp-status`                                                   |
 | Dimanche | `ingest --only geocode` (géocode les adresses ingérées dans la semaine) |
 
-## Créneau quotidien — votes AN + Sénat, 12:30 UTC
+## Créneau quotidien — votes AN + Sénat puis short du jour, 17:00 UTC
 
-- `ingest:an --only votes` puis `ingest:senat --only senat-votes` (DAG
-  `ingest-votes.yaml`, les deux étapes en séquence) — les scrutins publics sont
-  publiés par les deux assemblées dès le lendemain de la séance, et les passes
-  complètes hebdomadaires (lundi/mardi 01:30) laissent jusqu'à 6 jours de retard,
-  trop pour exploiter un vote récent (fiches à jour, génération de contenus).
-  Ne touche que `ballots`/`votes`/`ballot_group_positions`, pas `officials` ni
-  `mandates` : pas de contention avec les jobs RNE. Placé à 12:30, après la fin
-  du tick `press:maires` de 10:00 (~11:15 au plus tard) et bien avant celui de
-  15:00.
-- Enchaîne ensuite `yarn --cwd packages/shorts select` (sélection des scrutins
-  candidats à un short vidéo, quelques requêtes seulement) puis
-  `yarn --cwd packages/shorts script` (script des candidats via l'API Claude,
-  variable `ANTHROPIC_API_KEY` à fournir au DAG) et `yarn --cwd packages/shorts
-render` (rendu Remotion : Chrome headless, quelques minutes par short, CPU
-  seulement) des seuls shorts dont la voix off a été importée à la main (la voix
-  est enregistrée par l'équipe : `voiceover sheet` puis `voiceover import`, hors
-  DAG), voir `docs/DOMAINS.md`.
-- Cron `30 12 * * *`.
+- `ingest:an --only votes,ballot-proposers` puis `ingest:senat --only senat-votes`
+  (DAG `ingest-votes.yaml`, les deux étapes en séquence) — les scrutins publics
+  sont publiés par les deux assemblées dès le lendemain de la séance, et les
+  passes complètes hebdomadaires (lundi/mardi 01:30) laissent jusqu'à 6 jours de
+  retard, trop pour exploiter un vote récent (fiches à jour, génération de
+  contenus). Ne touche que `ballots`/`votes`/`ballot_group_positions`, pas
+  `officials` ni `mandates` : pas de contention avec les jobs RNE. Placé à
+  17:00 UTC (18:00 Paris en hiver, 19:00 en été) : après la séance de
+  l'après-midi, entre le tick `press:maires` de 15:00 (fini vers 16:15) et celui
+  de 20:00.
+- Enchaîne ensuite la génération du short du jour : `yarn --cwd packages/shorts
+select` (sélection des scrutins candidats, quelques requêtes), `script`
+  (script des candidats via l'API Claude, `ANTHROPIC_API_KEY`), `voiceover
+generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
+  et `ELEVENLABS_VOICE_ID` ; sans ces variables l'étape échoue et le short attend
+  une voix enregistrée, `voiceover sheet` / `voiceover import`) puis `render`
+  (rendu Remotion : Chrome headless, quelques minutes par short, CPU seulement)
+  des shorts dont la voix est en base. Voir `docs/DOMAINS.md`. Le short est
+  ensuite relu dans l'admin, puis publié dans l'heure qui suit l'approbation
+  (DAG horaire `publish-shorts`).
+- Cron `0 17 * * *`.
 
-## Créneau quotidien — publication des shorts, 16:00 UTC
+## Créneau horaire — publication des shorts
 
-- `yarn --cwd packages/shorts publish --max 1` (DAG `publish-shorts.yaml`) — met
-  en ligne sur YouTube le plus ancien short au statut `approved` (revue humaine
-  faite). Un seul par jour pour espacer les publications ; 16:00 UTC = 18:00 à
-  Paris, créneau de forte audience. Ne lit que `video_shorts` : aucune
-  contention avec les ingestions. Sans short approuvé, le job ne fait rien.
-- Cron `0 16 * * *`.
+- `yarn --cwd packages/shorts publish --max all` (DAG `publish-shorts.yaml`) —
+  met en ligne sur YouTube tous les shorts au statut `approved` (revue humaine
+  faite), les plus anciens d'abord : un short approuvé dans l'admin part dans
+  l'heure. Ne lit que `video_shorts` : aucune contention avec les ingestions.
+  Sans short approuvé, le job ne fait rien (quelques secondes, `git pull` et
+  `yarn install --immutable` compris). Dagu n'empile pas deux exécutions du
+  même DAG : une publication longue décale simplement le tick suivant.
+- Cron `0 * * * *`.
 
 ## Créneau mensuel — 1er du mois, 06:30 UTC
 
@@ -184,8 +195,9 @@ render` (rendu Remotion : Chrome headless, quelques minutes par short, CPU
 
 ## Secrets requis
 
-Chaque workflow attend `secrets.DATABASE_URL` (déjà configuré pour le déploiement
-dans `ci.yml`). Les workflows touchant S3 (`ingest-photos.yml`, `ingest-maps.yml`)
+Chaque DAG lit `DATABASE_URL` et `VERCEL_DEPLOY_HOOK_URL` (rebuild du site en fin
+de DAG) dans le `.env` de la racine via `base.yaml` ; `ingest-votes` y lit aussi
+`ANTHROPIC_API_KEY` et `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID` (short du jour). Les workflows touchant S3 (`ingest-photos.yml`, `ingest-maps.yml`)
 attendent en plus `MAPS_S3_BUCKET`, `MAPS_S3_REGION`, `AWS_ACCESS_KEY_ID`,
 `AWS_SECRET_ACCESS_KEY` (et `MAPS_BASE_URL` pour les cartes) — tous déjà présents
 dans les secrets du dépôt.

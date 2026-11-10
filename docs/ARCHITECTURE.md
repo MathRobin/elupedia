@@ -22,7 +22,7 @@ Scripts Node.js (tsx) lancés par des DAGs **Dagu** (`dagu-dags/`, calendrier da
 - Déclenchement manuel : `yarn --cwd packages/ingest <script>` (liste complète dans `docs/INGEST.md`)
 - Stratégie : upsert idempotent (insert on conflict update, ou select préalable + insert/update) ; un rejeu complet ne crée pas de doublons
 - Résilience : `runStep` (voir `run-helpers.ts`) rejoue fetch + upsert jusqu'à 3 fois avec backoff (`utils/retry.ts`), isole les erreurs par étape et produit un résumé ; les sources qui tolèrent l'absence de données renvoient `[]`/`null` au lieu de lever (google-news, madada, hatvp-status, scraping) pour ne pas faire échouer un DAG entier
-- Détection de changement : `utils/change-detector.ts` compare les compteurs `created`/`updated` et écrit `ingest-report*.json` à la racine du package ; un rebuild du site est déclenché si quelque chose a changé
+- Détection de changement : `utils/change-detector.ts` compare les compteurs `created`/`updated` et écrit `ingest-report*.json` à la racine du package ; l'étape finale `rebuild-site` de chaque DAG (`utils/deploy-hook.ts`) appelle le Deploy Hook Vercel si un rapport signale des changements
 - Orchestration : `run-*.ts` par domaine (ex. `run-an.ts` 8 étapes, `run-senat.ts` 9 étapes, `run-maires.ts` 5 étapes) ; `run.ts` enchaîne l'ensemble pour un run complet
 - Points d'entrée : `main-*.ts` (un par script `package.json`), voir la convention ci-dessous et `docs/INGEST.md`
 
@@ -191,7 +191,7 @@ Le site est déployé sur Vercel. Chaque push sur `main` déclenche un rebuild. 
 - Domaine : `elupedia.fr` (DNS configuré vers Vercel)
 - Variables d'environnement : `DATABASE_URL` configurée sur Vercel pour le build
 - Analytics : Vercel Web Analytics (`@vercel/analytics`, cookieless, injecté dans le layout)
-- Chaîne ingestion → rebuild : chaque workflow d'ingestion (AN, Sénat) expose `has_changes`, qui conditionne un rebuild Vercel via deploy hook
+- Chaîne ingestion → rebuild : chaque DAG Dagu termine par `yarn --cwd packages/ingest rebuild:site --report <rapports>` (`utils/deploy-hook.ts`), qui appelle le Deploy Hook Vercel (`VERCEL_DEPLOY_HOOK_URL`) si un rapport de run a `hasChanges`, au plus une fois par 20 min (état dans `packages/ingest/.rebuild-site-state.json`). Sans ce déclencheur, les pages statiques ne se rafraîchiraient qu'au merge suivant
 
 ## Guide de lecture du code
 

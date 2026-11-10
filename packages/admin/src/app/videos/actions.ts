@@ -15,7 +15,10 @@ import {
   videoShorts,
   type VideoShortStatus,
 } from '@elupedia/shared';
-import { buildDescription } from '@elupedia/shorts/src/description.js';
+import {
+  buildDescription,
+  isSyntheticVoice,
+} from '@elupedia/shorts/src/description.js';
 import type { StoredScript } from '@elupedia/shorts/src/generate-script.js';
 import type { StoredVoiceover } from '@elupedia/shorts/src/voiceover.js';
 import { auth } from '@/lib/auth';
@@ -180,7 +183,9 @@ export async function getVideo(id: string): Promise<VideoDetail | null> {
           ),
       })),
     };
-    description = buildDescription(facts, stored.script);
+    description = buildDescription(facts, stored.script, {
+      syntheticVoice: isSyntheticVoice(voiceover),
+    });
   }
 
   const [video, thumbnail, descriptionFile] = await Promise.all([

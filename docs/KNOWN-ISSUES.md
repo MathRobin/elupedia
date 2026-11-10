@@ -94,6 +94,8 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 
 ## Site
 
+- `components/OfficialsList.tsx` : les filtres par type de mandat sont codés en dur (10 cases) ; les types gouvernementaux (`premier_ministre`, `ministre`, `secretaire_etat`) ne sont pas filtrables et passent toujours le filtre.
+
 - `api/commune/[code].ts` : la doc annonce 400 pour un code INSEE invalide (c'est une redirection 302) et un CORS ouvert (aucun en-tête `Access-Control-*` n'est posé) ; `selectDistinctOn([officials.id])` sans `orderBy`, le mandat renvoyé pour un cumulant est non déterministe.
 - `api/og/official/[slug].png.ts` : initiales `undefined` si le prénom est vide.
 - `api/og/scrutin/[id].png.ts` et `components/BallotsList.tsx` : « Adopté » = `pour > contre` sur les votes stockés, pas un résultat officiel ; une égalité est « Rejeté ».

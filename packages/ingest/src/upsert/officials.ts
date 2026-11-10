@@ -18,7 +18,11 @@
  * Une erreur sur un député interrompt tout le lot (throw).
  */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { officials, mandates } from '@elupedia/shared';
+import {
+  officials,
+  mandates,
+  GOVERNMENT_MANDATE_TYPES,
+} from '@elupedia/shared';
 import { eq, and, isNull } from 'drizzle-orm';
 import type { Depute } from '../sources/assemblee-nationale.js';
 import { writeProvenance } from './provenance.js';
@@ -94,7 +98,9 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
           .set({
             firstName: depute.prenom,
             lastName: depute.nom,
-            birthDate: depute.date_naissance,
+            // Vide pour certains membres du Gouvernement jamais parlementaires
+            // (dateNais nul côté AN) : une chaîne vide n'est pas une date.
+            birthDate: depute.date_naissance || null,
             photoUrl: depute.photo_url ?? null,
             deathDate: depute.death_date ?? null,
             slug: existing[0].slug ?? computeSlug(),
@@ -132,7 +138,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               anId,
               firstName: depute.prenom,
               lastName: depute.nom,
-              birthDate: depute.date_naissance,
+              birthDate: depute.date_naissance || null,
               photoUrl: depute.photo_url ?? senatMatch[0].photoUrl,
               deathDate: depute.death_date ?? null,
               slug: senatMatch[0].slug ?? computeSlug(),
@@ -147,7 +153,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               firstName: depute.prenom,
               lastName: depute.nom,
               anId,
-              birthDate: depute.date_naissance,
+              birthDate: depute.date_naissance || null,
               photoUrl: depute.photo_url ?? null,
               deathDate: depute.death_date ?? null,
               slug: computeSlug(),
@@ -178,14 +184,21 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
         // data Sénat, toujours renseigné en département) : ne pas écraser un
         // département déjà connu par une valeur vide quand cette source (AN)
         // n'a pas l'info pour ce mandat.
-        const department = m.nom_circo || target?.department || null;
+        // Mandat gouvernemental : pas de circonscription ni de groupe,
+        // `district` porte l'intitulé du portefeuille.
+        const isGovernment = GOVERNMENT_MANDATE_TYPES.has(m.type);
+        const department = isGovernment
+          ? null
+          : m.nom_circo || target?.department || null;
 
         // Pas de circonscription numérotée pour un sénateur ; num_circo = 0
         // signifie « inconnu » côté AN.
-        const district =
-          m.type === 'senateur' || m.num_circo === 0
+        const district = isGovernment
+          ? (m.intitule ?? null)
+          : m.type === 'senateur' || m.num_circo === 0
             ? null
             : `${m.num_circo}e circonscription`;
+        const politicalGroup = isGovernment ? null : (m.groupe_sigle ?? null);
 
         if (!target) {
           const [inserted] = await db
@@ -197,7 +210,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               department,
               startDate: m.mandat_debut,
               endDate,
-              politicalGroup: m.groupe_sigle ?? null,
+              politicalGroup,
             })
             .returning({ id: mandates.id });
           existingMandates.push({
@@ -215,7 +228,7 @@ export async function upsertOfficials(db: NeonHttpDatabase, deputes: Depute[]) {
               department,
               startDate: m.mandat_debut,
               endDate,
-              politicalGroup: m.groupe_sigle ?? null,
+              politicalGroup,
               updatedAt: new Date(),
             })
             .where(eq(mandates.id, target.id));

@@ -252,6 +252,9 @@ export async function upsertConseillersEpci(
     // 2. Mandats : insertion groupée, mises à jour et historisations à l'unité
     // (cas rares une fois la première ingestion faite).
     const inserts: (typeof mandates.$inferInsert)[] = [];
+    // Libellé lisible de chaque insertion, pour nommer celles que la base
+    // refuse (index unique official_id + type + start_date).
+    const insertLabels = new Map<string, string>();
     const insertedKeys = new Set<string>();
     for (const c of batch) {
       const officialId = officialByKey.get(
@@ -295,6 +298,7 @@ export async function upsertConseillersEpci(
           continue;
         }
         insertedKeys.add(key);
+        insertLabels.set(key, label);
         inserts.push(values);
       } else if (startDate > active.startDate) {
         try {
@@ -381,12 +385,23 @@ export async function upsertConseillersEpci(
         });
       for (const m of created) addActive(m.officialId, m);
       summary.mandates += created.length;
-      const conflicts = inserts.length - created.length;
-      if (conflicts > 0) {
+      // Lignes refusées par l'index unique : la même fiche a déjà un mandat
+      // communautaire commençant ce jour-là dans un autre EPCI. Vu dans le
+      // RNE : une commune rattachée à deux EPCI (Beaussais-sur-Mer en 2026),
+      // ou deux homonymes de même date de naissance dans deux communes du
+      // même nom (Saint-Rémy, Ain et Calvados). On garde le premier inséré.
+      const createdKeys = new Set(
+        created.map((m) => `${m.officialId}|${m.startDate}`),
+      );
+      const skippedLabels = inserts
+        .map((values) => `${values.officialId}|${values.startDate}`)
+        .filter((key) => !createdKeys.has(key))
+        .map((key) => insertLabels.get(key) ?? key);
+      if (skippedLabels.length > 0) {
         logger.warn(
-          `  ${conflicts} mandat(s) ignoré(s) : même personne, même date de début, déjà un mandat "${MANDATE_TYPE}" (homonyme ou même personne dans deux EPCI)`,
+          `  ${skippedLabels.length} mandat(s) ignoré(s) : même personne, même date de début, déjà un mandat "${MANDATE_TYPE}" (homonyme ou même personne dans deux EPCI) : ${skippedLabels.join(' ; ')}`,
         );
-        summary.skipped += conflicts;
+        summary.skipped += skippedLabels.length;
       }
     }
 

@@ -15,6 +15,9 @@
  * (MANDATE_TYPE_DESCRIPTIONS, affichée en infobulle).
  */
 export const MANDATE_TYPE_LABELS: Record<string, string> = {
+  premier_ministre: 'Premier ministre',
+  ministre: 'Ministre',
+  secretaire_etat: "Secrétaire d'État",
   depute: 'Député',
   senateur: 'Sénateur',
   maire: 'Maire',
@@ -42,6 +45,12 @@ export function mandateTypeLabel(type: string): string {
  * lui-même, pour une infobulle. Les mandats nationaux évidents n'en ont pas.
  */
 export const MANDATE_TYPE_DESCRIPTIONS: Record<string, string> = {
+  premier_ministre:
+    "Chef du Gouvernement, nommé par le président de la République ; le portefeuille et les dates viennent de l'open data de l'Assemblée nationale.",
+  ministre:
+    "Membre du Gouvernement (ministre, ministre d'État, ministre délégué) ; l'intitulé du portefeuille est celui publié par l'Assemblée nationale.",
+  secretaire_etat:
+    "Membre du Gouvernement placé auprès d'un ministre ; l'intitulé est celui publié par l'Assemblée nationale.",
   conseiller_communautaire:
     "Élu siégeant au conseil de l'intercommunalité (métropole, communauté urbaine, d'agglomération ou de communes) dont dépend sa commune ; désigné lors des élections municipales.",
   conseiller_arrondissement:
@@ -55,6 +64,18 @@ export const MANDATE_TYPE_DESCRIPTIONS: Record<string, string> = {
 };
 
 /**
+ * Types de mandat issus de l'open data AN pour les membres du Gouvernement
+ * (mandats `MINISTERE`). Pas de circonscription ni de groupe : `district`
+ * porte l'intitulé du portefeuille, `department` et `political_group` sont
+ * vides.
+ */
+export const GOVERNMENT_MANDATE_TYPES: ReadonlySet<string> = new Set([
+  'premier_ministre',
+  'ministre',
+  'secretaire_etat',
+]);
+
+/**
  * Ordre dans lequel un mandat est retenu comme « principal » quand un élu en
  * cumule plusieurs en cours : les mandats parlementaires d'abord (ils portent
  * votes, activité, commissions, collaborateurs : les masquer parce qu'un
@@ -63,9 +84,12 @@ export const MANDATE_TYPE_DESCRIPTIONS: Record<string, string> = {
  * arrondissement). Un type inconnu passe en dernier.
  */
 export const MANDATE_TYPE_PRIORITY: readonly string[] = [
+  'premier_ministre',
   'depute',
   'senateur',
   'eurodepute',
+  'ministre',
+  'secretaire_etat',
   'president',
   'maire',
   'conseiller_regional',

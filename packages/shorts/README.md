@@ -19,7 +19,7 @@ auto     auto     manuel       auto     manuel        auto
 3. **Voix** (à la main) : tu lis le script et enregistres une prise par scène.
 4. **Rendu** : vidéo 1080×1920 avec sous-titres, hémicycle, barres par groupe.
 5. **Revue** (à la main) : seul gate avant publication.
-6. **Publication** (DAG `publish-shorts`, quotidien) : YouTube, un short par jour.
+6. **Publication** (DAG `publish-shorts`, toutes les heures) : YouTube, dans l'heure qui suit l'approbation.
 
 ## Un short de bout en bout : `make`
 
@@ -75,6 +75,24 @@ publier (aperçu avec blocages et dérive des faits), lancer `make`, `script`,
 `voiceover` ou `render` en tâche de fond avec le journal en direct. La page
 « Dérive des faits » liste les shorts dont les chiffres ne collent plus à la base.
 
+## Voix off : ElevenLabs ou enregistrement
+
+Avec `ELEVENLABS_API_KEY` et `ELEVENLABS_VOICE_ID` dans le `.env` de la racine
+(`ELEVENLABS_MODEL_ID` optionnelle, `eleven_multilingual_v2` par défaut ;
+`ELEVENLABS_SPEED` optionnelle, 0,7 à 1,2, 0,95 par défaut), la voix est
+synthétisée : une prise MP3 par scène dans `out/<id>/recordings/`, avec
+l'horodatage exact des mots (`scene-<id>.words.json`), puis importée comme une
+prise enregistrée.
+
+```bash
+yarn --cwd packages/shorts voiceover generate            # tous les shorts draft sans voix
+yarn --cwd packages/shorts voiceover generate --id <id> --force   # refaire un short
+```
+
+C'est l'étape `voiceover-shorts` du DAG quotidien `ingest-votes` ; `make <id>`
+synthétise aussi les prises manquantes (toutes après un `--rescript`), sauf avec
+`--recorded`. Une prise enregistrée déjà présente est gardée.
+
 ## Enregistrer la voix
 
 ```bash
@@ -96,17 +114,18 @@ silence de tête et de queue, normalise le volume (-16 LUFS) et horodate les mot
 
 ## Commandes
 
-| Commande                                            | Rôle                                            |
-| --------------------------------------------------- | ----------------------------------------------- |
-| `select [--dry-run]`                                | classe les scrutins récents, crée les candidats |
-| `script [--id <id>] [--dry-run]`                    | génère le script d'un ou des candidats          |
-| `voiceover sheet` / `voiceover import --id <id>`    | fiche de lecture / import des prises            |
-| `render [--id <id>] [--force] [--silent] [--draft]` | rend la vidéo et la vignette                    |
-| `make <id>`                                         | script → voix → rendu pour un short             |
-| `review [list\|approve\|reject]`                    | revue humaine                                   |
-| `publish [--max n] [--dry-run]`                     | publication YouTube des shorts approuvés        |
-| `youtube-auth`                                      | autorisation OAuth YouTube, une seule fois      |
-| `preview`                                           | Remotion Studio pour retoucher la composition   |
+| Commande                                            | Rôle                                             |
+| --------------------------------------------------- | ------------------------------------------------ |
+| `select [--dry-run]`                                | classe les scrutins récents, crée les candidats  |
+| `script [--id <id>] [--dry-run]`                    | génère le script d'un ou des candidats           |
+| `voiceover generate [--id <id>] [--force]`          | voix ElevenLabs, prises synthétisées + importées |
+| `voiceover sheet` / `voiceover import --id <id>`    | fiche de lecture / import des prises             |
+| `render [--id <id>] [--force] [--silent] [--draft]` | rend la vidéo et la vignette                     |
+| `make <id>`                                         | script → voix → rendu pour un short              |
+| `review [list\|approve\|reject]`                    | revue humaine                                    |
+| `publish [--max n] [--dry-run]`                     | publication YouTube des shorts approuvés         |
+| `youtube-auth`                                      | autorisation OAuth YouTube, une seule fois       |
+| `preview`                                           | Remotion Studio pour retoucher la composition    |
 
 Chaque commande accepte `--help`.
 

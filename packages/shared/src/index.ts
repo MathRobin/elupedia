@@ -25,6 +25,7 @@ export {
   MANDATE_TYPE_LABELS,
   MANDATE_TYPE_DESCRIPTIONS,
   MANDATE_TYPE_PRIORITY,
+  GOVERNMENT_MANDATE_TYPES,
   mandateTypeLabel,
   pickPrimaryMandate,
 } from './mandate-labels.js';

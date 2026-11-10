@@ -12,6 +12,9 @@ import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { shortsOutputDir } from './shorts-files';
+import { repoRoot } from './repo-root';
+
+export { repoRoot };
 
 export const SHORT_JOBS = {
   make: {
@@ -33,6 +36,10 @@ export const SHORT_JOBS = {
   import: {
     label: 'Importer les prises (voiceover import)',
     args: (id: string) => ['voiceover', 'import', '--id', id],
+  },
+  generate: {
+    label: 'Synthétiser la voix (voiceover generate)',
+    args: (id: string) => ['voiceover', 'generate', '--id', id],
   },
   render: {
     label: 'Rendre la vidéo (render --force)',
@@ -60,10 +67,6 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function jobsDir(shortId: string): string {
   return path.join(shortsOutputDir(), shortId, 'jobs');
-}
-
-export function repoRoot(): string {
-  return path.resolve(process.cwd(), '..', '..');
 }
 
 export async function readShortJob(

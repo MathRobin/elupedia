@@ -60,6 +60,11 @@ const JOB_BUTTONS: {
     label: 'Fiche de lecture',
     when: (p) => p.hasScript && !p.hasVoiceover,
   },
+  {
+    kind: 'generate',
+    label: 'Synthétiser la voix (ElevenLabs)',
+    when: (p) => p.hasScript,
+  },
   { kind: 'import', label: 'Importer les prises', when: (p) => p.hasScript },
   { kind: 'render', label: 'Rendre la vidéo', when: (p) => p.hasScript },
   {
@@ -163,7 +168,7 @@ export function ActionsPanel(props: Props) {
             onClick={() =>
               run(
                 () => approveShort(id),
-                'Short approuvé : il sera publié par le prochain passage de publication',
+                'Short approuvé : il sera publié sur YouTube dans l’heure',
               )
             }
           >

@@ -28,6 +28,17 @@ describe('pickPrimaryMandate', () => {
     ];
     expect(pickPrimaryMandate(rows)?.mandateType).toBe('maire');
   });
+  it('puts the Prime Minister before any parliamentary mandate', () => {
+    const rows = [
+      { mandateType: 'senateur', startDate: '2020-10-01', endDate: null },
+      {
+        mandateType: 'premier_ministre',
+        startDate: '2025-10-11',
+        endDate: null,
+      },
+    ];
+    expect(pickPrimaryMandate(rows)?.mandateType).toBe('premier_ministre');
+  });
   it('ranks unknown types last and returns null for an empty list', () => {
     const rows = [
       { mandateType: 'inconnu', startDate: '2030-01-01', endDate: null },

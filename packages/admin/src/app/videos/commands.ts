@@ -94,8 +94,17 @@ export function videoCommands(id: string, s: VideoState): VideoCommandGroup[] {
       ],
     },
     {
-      label: 'Voix off (enregistrée par vos soins)',
+      label:
+        'Voix off (synthétisée par ElevenLabs, ou enregistrée par vos soins)',
       commands: [
+        {
+          command: `${P} voiceover generate --id ${id}`,
+          title: 'Synthétiser la voix',
+          what: 'Synthétise une prise par scène avec ElevenLabs (ELEVENLABS_API_KEY et ELEVENLABS_VOICE_ID du .env), les dépose dans recordings/ puis les importe. Ce que fait le DAG quotidien ; make le fait aussi quand les clés sont posées.',
+          relevant: needsVoice,
+          caution:
+            'Appel payant à l’API ElevenLabs ; remplace les prises déjà présentes.',
+        },
         {
           command: `${P} voiceover sheet --id ${id}`,
           title: 'Fiche de lecture',
@@ -148,7 +157,7 @@ export function videoCommands(id: string, s: VideoState): VideoCommandGroup[] {
         {
           command: `${P} review approve ${id}`,
           title: 'Approuver',
-          what: 'Passe le short en approuvé : il sera publié par le prochain passage de publish (DAG quotidien ou commande ci-dessous). Refusé sans vidéo rendue.',
+          what: 'Passe le short en approuvé : il sera publié dans l’heure par le DAG publish-shorts (ou tout de suite par la commande ci-dessous). Refusé sans vidéo rendue.',
           relevant: needsReview,
         },
         {

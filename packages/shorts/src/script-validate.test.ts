@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { buildBallotFacts, type ShortFacts } from './script-facts.js';
 import type { ShortScript } from './script-schema.js';
-import { allowedNumbers, validateScript } from './script-validate.js';
+import {
+  allowedNumbers,
+  findLlmPhrases,
+  validateScript,
+} from './script-validate.js';
 
 const facts: ShortFacts = {
   shortId: 'short-1',
@@ -155,6 +159,47 @@ describe('validateScript', () => {
     s.scenes[0].voiceover = 'Un vote HISTORIQUE, enfin, à l’Assemblée.';
     const codes = validateScript(s, facts).map((i) => i.code);
     expect(codes.filter((c) => c === 'banned_word')).toHaveLength(2);
+  });
+
+  it('rejects model-sounding phrases, accents and apostrophes ignored', () => {
+    const s = script();
+    s.scenes[0].voiceover =
+      'Décryptage. En effet, le texte est adopté. Qu’en pensez-vous ?';
+    s.description = 'Ce qu’il faut retenir : le texte est adopté.';
+    s.title = 'Zoom sur le scrutin';
+    const issues = validateScript(s, facts);
+    expect(
+      issues.filter((i) => i.code === 'llm_phrase').map((i) => i.message),
+    ).toEqual([
+      expect.stringContaining('« decryptage »'),
+      expect.stringContaining('« en effet »'),
+      expect.stringContaining("« qu'en pensez-vous »"),
+      expect.stringContaining('Titre : formule artificielle « zoom sur »'),
+      expect.stringContaining(
+        "Description : formule artificielle « ce qu'il faut retenir »",
+      ),
+    ]);
+    expect(issues.map((i) => i.code)).toContain('punctuation');
+    // Une question dans le titre reste admise.
+    s.title = 'Quel âge ont les députés ?';
+    s.scenes[0].voiceover = 'Le texte est adopté.';
+    s.description = 'Le texte est adopté.';
+    expect(
+      validateScript(s, facts).filter((i) => i.code === 'punctuation'),
+    ).toEqual([]);
+  });
+
+  it('does not match phrases inside longer words', () => {
+    expect(findLlmPhrases('La décryptageuse. Il passe en revue.')).toEqual([]);
+    expect(findLlmPhrases('En bref, voilà.')).toEqual(['en bref']);
+  });
+
+  it('rejects spoken punctuation that reads as written text', () => {
+    const s = script();
+    s.scenes[0].voiceover = 'Et maintenant… le résultat !';
+    s.title = 'Et après !';
+    const codes = validateScript(s, facts).map((i) => i.code);
+    expect(codes.filter((c) => c === 'punctuation')).toHaveLength(2);
   });
 
   it('enforces total duration and reading speed', () => {

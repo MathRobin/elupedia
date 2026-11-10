@@ -225,7 +225,7 @@ export function writtenQuestionsScript(facts: ShortFacts): ShortScript {
     {
       id: 's2',
       kind: 'context',
-      voiceover: `Le règlement de l'Assemblée donne deux mois au gouvernement pour répondre, et plafonne à ${n.capPerSession} questions par député et par session. Une question signalée par un président de groupe doit être traitée sous dix jours.`,
+      voiceover: `Le règlement de l'Assemblée donne deux mois au gouvernement pour répondre, et plafonne à ${n.capPerSession} questions par député et par session.`,
       onScreenText: `${n.delayMonths} mois pour répondre`,
       visual: 'title',
       chart: null,
