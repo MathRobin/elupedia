@@ -19,7 +19,7 @@ auto     auto     manuel       auto     manuel        auto
 3. **Voix** (à la main) : tu lis le script et enregistres une prise par scène.
 4. **Rendu** : vidéo 1080×1920 avec sous-titres, hémicycle, barres par groupe.
 5. **Revue** (à la main) : seul gate avant publication.
-6. **Publication** (DAG `publish-shorts`, quotidien) : YouTube, un short par jour.
+6. **Publication** (DAG `publish-shorts`, toutes les heures) : YouTube, dans l'heure qui suit l'approbation.
 
 ## Un short de bout en bout : `make`
 

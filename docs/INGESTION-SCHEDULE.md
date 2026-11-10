@@ -162,7 +162,7 @@ Petits volumes, largement avant le tick `press:maires` de 05:00.
   `officials` ni `mandates` : pas de contention avec les jobs RNE. Placé à
   17:00 UTC (18:00 Paris en hiver, 19:00 en été) : après la séance de
   l'après-midi, entre le tick `press:maires` de 15:00 (fini vers 16:15) et celui
-  de 20:00, et après la publication du short de la veille (16:00).
+  de 20:00.
 - Enchaîne ensuite la génération du short du jour : `yarn --cwd packages/shorts
 select` (sélection des scrutins candidats, quelques requêtes), `script`
   (script des candidats via l'API Claude, `ANTHROPIC_API_KEY`), `voiceover
@@ -171,17 +171,20 @@ generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
   une voix enregistrée, `voiceover sheet` / `voiceover import`) puis `render`
   (rendu Remotion : Chrome headless, quelques minutes par short, CPU seulement)
   des shorts dont la voix est en base. Voir `docs/DOMAINS.md`. Le short est
-  ensuite relu dans l'admin, puis publié par le DAG de 16:00 le lendemain.
+  ensuite relu dans l'admin, puis publié dans l'heure qui suit l'approbation
+  (DAG horaire `publish-shorts`).
 - Cron `0 17 * * *`.
 
-## Créneau quotidien — publication des shorts, 16:00 UTC
+## Créneau horaire — publication des shorts
 
-- `yarn --cwd packages/shorts publish --max 1` (DAG `publish-shorts.yaml`) — met
-  en ligne sur YouTube le plus ancien short au statut `approved` (revue humaine
-  faite). Un seul par jour pour espacer les publications ; 16:00 UTC = 18:00 à
-  Paris, créneau de forte audience. Ne lit que `video_shorts` : aucune
-  contention avec les ingestions. Sans short approuvé, le job ne fait rien.
-- Cron `0 16 * * *`.
+- `yarn --cwd packages/shorts publish --max all` (DAG `publish-shorts.yaml`) —
+  met en ligne sur YouTube tous les shorts au statut `approved` (revue humaine
+  faite), les plus anciens d'abord : un short approuvé dans l'admin part dans
+  l'heure. Ne lit que `video_shorts` : aucune contention avec les ingestions.
+  Sans short approuvé, le job ne fait rien (quelques secondes, `git pull` et
+  `yarn install --immutable` compris). Dagu n'empile pas deux exécutions du
+  même DAG : une publication longue décale simplement le tick suivant.
+- Cron `0 * * * *`.
 
 ## Créneau mensuel — 1er du mois, 06:30 UTC
 

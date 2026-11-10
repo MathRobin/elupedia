@@ -168,7 +168,7 @@ export function ActionsPanel(props: Props) {
             onClick={() =>
               run(
                 () => approveShort(id),
-                'Short approuvé : il sera publié par le prochain passage de publication',
+                'Short approuvé : il sera publié sur YouTube dans l’heure',
               )
             }
           >

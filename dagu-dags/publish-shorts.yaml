@@ -3,8 +3,8 @@
 # les mises en ligne. Cron en UTC (16:00 = 18:00 Paris) — voir
 # docs/INGESTION-SCHEDULE.md. Aucun accès aux tables d'ingestion.
 name: publish-shorts
-description: Publish — Shorts YouTube
-schedule: '0 16 * * *'
+description: Publish — Shorts YouTube approuvés, toutes les heures
+schedule: '0 * * * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}
   - YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID}
@@ -24,6 +24,6 @@ steps:
     depends:
       - enable-corepack
   - name: publish-shorts
-    command: yarn --cwd packages/shorts publish --max 1
+    command: yarn --cwd packages/shorts publish --max all
     depends:
       - install-dependencies
