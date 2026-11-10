@@ -14,7 +14,7 @@ import {
 import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
 import type { ShortFacts } from './script-facts.js';
-import { buildDescription } from './description.js';
+import { buildDescription, isSyntheticVoice } from './description.js';
 import type { StoredVoiceover } from './voiceover.js';
 import type { ShortProps } from './remotion/props.js';
 import { FPS } from './remotion/props.js';
@@ -333,7 +333,9 @@ export async function renderShorts(
       const descriptionFile = path.join(shortDir, DESCRIPTION_FILE);
       await writeFile(
         descriptionFile,
-        buildDescription(stored.facts, stored.script),
+        buildDescription(stored.facts, stored.script, {
+          syntheticVoice: isSyntheticVoice(voiceover),
+        }),
       );
       logger.info(
         `short ${target.id} : ${result.durationSec} s rendues dans ${path.join(options.outputDir, result.videoFile)}, description dans ${descriptionFile}`,
