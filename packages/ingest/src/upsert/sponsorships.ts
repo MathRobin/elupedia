@@ -6,9 +6,15 @@
  *
  * Table écrite : `sponsorships` (`type` = `parrainage_presidentiel` ou
  * `rip_signature`).
- * Clé de rapprochement : (type, election_year, raw_elected_name) où
- * `raw_elected_name` = "NOM Prénom" tel que publié. Rattachement à
- * `officials` par NOM|PRÉNOM sans accents : approximatif, figé à l'insertion.
+ * Clé de dédoublonnage des parrainages : (type, election_year, nom publié,
+ * mandat, circonscription, département, candidat) — voir `sponsorshipKey`.
+ * Le nom seul ne suffit pas : des élus homonymes (communes ou départements
+ * différents) parrainent des candidats, et une clé sur le nom écartait le
+ * second (50 lignes perdues sur 13 427 en 2022). Les signatures RIP gardent
+ * le nom seul (une signature par personne).
+ * Rattachement à `officials` par NOM|PRÉNOM sans accents : approximatif, figé
+ * à l'insertion ; un nom qui apparaît plusieurs fois dans le fichier désigne
+ * des élus différents, il n'est donc pas rattaché (official_id null).
  *
  * Insert-only : une ligne déjà présente n'est jamais réécrite (ni le
  * rattachement, ni les champs bruts) — relancer n'actualise rien, il faut
@@ -46,14 +52,39 @@ async function buildOfficialCache(
   return cache;
 }
 
-/** Noms bruts déjà enregistrés pour ce (type, année) : clé de dédoublonnage. */
-async function buildExistingCache(
+export interface SponsorshipKeyParts {
+  name: string;
+  func: string;
+  circonscription: string | null | undefined;
+  departement: string | null | undefined;
+  candidate: string;
+}
+
+/** Clé de dédoublonnage d'un parrainage : un même nom avec un autre mandat, une autre circonscription ou un autre candidat est un autre parrainage. */
+export function sponsorshipKey(parts: SponsorshipKeyParts): string {
+  return [
+    parts.name,
+    parts.func,
+    parts.circonscription ?? '',
+    parts.departement ?? '',
+    parts.candidate,
+  ].join('|');
+}
+
+/** Lignes déjà enregistrées pour ce (type, année), avec les champs de la clé de dédoublonnage. */
+async function loadExisting(
   db: NeonHttpDatabase,
   electionYear: number,
   type: string,
-): Promise<Set<string>> {
-  const rows = await db
-    .select({ rawElectedName: sponsorships.rawElectedName })
+) {
+  return db
+    .select({
+      rawElectedName: sponsorships.rawElectedName,
+      rawFunction: sponsorships.rawFunction,
+      rawCircumscription: sponsorships.rawCircumscription,
+      rawDepartment: sponsorships.rawDepartment,
+      candidateName: sponsorships.candidateName,
+    })
     .from(sponsorships)
     .where(
       and(
@@ -61,6 +92,35 @@ async function buildExistingCache(
         eq(sponsorships.electionYear, electionYear),
       ),
     );
+}
+
+/** Clés de dédoublonnage des parrainages déjà enregistrés. */
+async function buildExistingKeys(
+  db: NeonHttpDatabase,
+  electionYear: number,
+  type: string,
+): Promise<Set<string>> {
+  const rows = await loadExisting(db, electionYear, type);
+  return new Set(
+    rows.map((row) =>
+      sponsorshipKey({
+        name: row.rawElectedName,
+        func: row.rawFunction,
+        circonscription: row.rawCircumscription,
+        departement: row.rawDepartment,
+        candidate: row.candidateName,
+      }),
+    ),
+  );
+}
+
+/** Noms bruts déjà enregistrés pour ce (type, année) : clé de dédoublonnage des signatures RIP. */
+async function buildExistingCache(
+  db: NeonHttpDatabase,
+  electionYear: number,
+  type: string,
+): Promise<Set<string>> {
+  const rows = await loadExisting(db, electionYear, type);
   return new Set(rows.map((row) => row.rawElectedName));
 }
 
@@ -87,23 +147,43 @@ export async function upsertSponsorships(
   type: string = 'parrainage_presidentiel',
 ): Promise<{ created: number; updated: number; matched: number }> {
   const officialCache = await buildOfficialCache(db);
-  const existingNames = await buildExistingCache(db, electionYear, type);
+  const existingKeys = await buildExistingKeys(db, electionYear, type);
   let created = 0;
   let skipped = 0;
   let matched = 0;
 
+  // Un NOM|PRÉNOM présent plusieurs fois dans le fichier désigne des élus
+  // différents : rattacher par le nom seul en choisirait un au hasard.
+  const nameCounts = new Map<string, number>();
+  for (const row of rows) {
+    const key = `${normalize(row.nom)}|${normalize(row.prenom)}`;
+    nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+  }
+
   const toInsert: (typeof sponsorships.$inferInsert)[] = [];
 
   for (const row of rows) {
-    const officialId = matchOfficial(row, officialCache);
+    const nameKey = `${normalize(row.nom)}|${normalize(row.prenom)}`;
+    const officialId =
+      (nameCounts.get(nameKey) ?? 0) > 1
+        ? null
+        : matchOfficial(row, officialCache);
     if (officialId) matched++;
 
     const rawName = `${row.nom} ${row.prenom}`;
+    const key = sponsorshipKey({
+      name: rawName,
+      func: row.mandat,
+      circonscription: row.circonscription || null,
+      departement: row.departement || null,
+      candidate: row.candidat,
+    });
 
-    if (existingNames.has(rawName)) {
+    if (existingKeys.has(key)) {
       skipped++;
       continue;
     }
+    existingKeys.add(key);
 
     toInsert.push({
       officialId,

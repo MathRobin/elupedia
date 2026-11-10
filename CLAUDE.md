@@ -20,6 +20,7 @@ elupedia/
 │   ├── ingest/    # Scripts de collecte de données (APIs ouvertes)
 │   ├── shorts/    # Pipeline de shorts vidéo (sélection, script LLM, voix off ElevenLabs ou enregistrée, rendu Remotion, puis publication)
 │   ├── site/      # Site public Astro/React
+│   ├── book/      # Livre imprimé : tableaux depuis la base (data.json) et gabarit Typst, brouillons des chapitres dans docs/livre/
 │   └── e2e/       # Tests end-to-end (Playwright)
 ├── docs/          # Documentation projet
 └── tests/         # Tests racine (structure, intégration)
@@ -88,6 +89,10 @@ yarn --cwd packages/shorts review   # revue humaine : liste les draft ; review a
 yarn --cwd packages/shorts youtube-auth   # une fois : autorisation OAuth YouTube, affiche YOUTUBE_REFRESH_TOKEN
 yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approved (YOUTUBE_*) ; --id, --max, --privacy
 
+# Livre (tableaux depuis la base en lecture seule, puis PDF Typst ; le binaire `typst` est requis pour build)
+yarn --cwd packages/book data    # écrit packages/book/out/data.json (date de gel = date du jour)
+yarn --cwd packages/book build   # data.json + texte des brouillons docs/livre/ (out/chapitres/), puis compilation de typst/main.typ en out/livre.pdf ; --sans-notes retire les sections de travail
+
 # Interface d'administration (http://localhost:3001, compte dans la table users ; webpack imposé, .env de la racine chargé par scripts/next.mjs)
 yarn --cwd packages/admin dev
 yarn --cwd packages/admin set-password <email> [--create --role admin]   # (re)définit le mot de passe d'un compte, saisi au clavier sans écho
@@ -95,8 +100,9 @@ yarn --cwd packages/admin set-password <email> [--create --role admin]   # (re)d
 # Réconciliation candidats–élus (rattache les official_id manquants)
 yarn --cwd packages/ingest reconcile
 
-# Ingestion décorations (Légion d'honneur, ONM, Médaille militaire)
+# Ingestion décorations (Légion d'honneur, ONM, Médaille militaire) ; rattachement sur nom + date de naissance
 yarn --cwd packages/ingest ingest:decorations
+yarn --cwd packages/ingest reconcile:decorations   # revérifie les rattachements existants : dry-run, --apply (avec --backup), --restore <fichier>
 
 # Dédoublonnage des commissions (fusionne « nom » et « nom (abrégé) »)
 yarn --cwd packages/ingest dedupe:committees --dry-run

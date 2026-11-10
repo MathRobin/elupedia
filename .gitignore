@@ -22,6 +22,7 @@ packages/e2e/test-results/
 packages/e2e/playwright-report/
 packages/e2e/.cache/
 packages/shorts/out/
+packages/book/out/
 docs/livre-guide/build/out/
 
 # Généré par Next.js à chaque dev/build, contenu différent selon la commande (même choix que create-next-app)

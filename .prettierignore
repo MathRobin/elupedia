@@ -4,3 +4,4 @@ dist/
 .astro/
 **/public/tarteaucitron/
 packages/shorts/out/
+packages/book/out/

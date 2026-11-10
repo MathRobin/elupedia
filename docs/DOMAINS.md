@@ -349,7 +349,8 @@ Next.js 16 (webpack), Auth.js (comptes dans `users`, rôles `admin`/`moderator`)
 - **Commande** : `yarn --cwd packages/ingest ingest:decorations`
 - **Description** : Décorations officielles (Légion d'honneur, Ordre national du Mérite, Médaille militaire) extraites de la base LUD (Liste Unique des Décorés, ~1.4M entrées). Pour chaque official en base, le script cherche par nom de famille dans l'API, puis filtre par prénom et récupère le détail de chaque fiche.
 - **Champs** : nom, prénom, sexe, dates naissance/décès, lieu de naissance, ordre, grade, date décret, date JO, ministère, qualité
-- **Matching** : par nom/prénom normalisé vers `officials.id`
+- **Matching** : nom de famille + date de naissance identiques à celles de l'élu, et prénom de l'élu en préfixe de celui de la fiche (`upsert/decorations.ts`, règles dans `decoration-match.ts`). Une fiche sans date de naissance publique (la plupart des décorations récentes) n'est pas rattachée : un nom seul rattache des homonymes (en novembre 2026, sur 18 058 rattachements par nom, 173 étaient confirmés par la date de naissance). Les fiches non rattachées restent en base avec leur identité civile.
+- **Rattrapage** : `yarn --cwd packages/ingest reconcile:decorations` revérifie les rattachements existants (dry-run par défaut ; `--apply` détache les non confirmés avec sauvegarde JSON, `--restore <fichier>` les rétablit).
 - **API** : Arkotheque CMS (Symfony/Elasticsearch). Filtrage via query params `{moteur}--filtreGroupes[groupes][0][{field}][q][0]=VALUE`. Détail via `/_recherche-api/render-fiche/{moteur}/{fiche}/{restit}/detail/json`.
 
 ## Statut déclaration HATVP

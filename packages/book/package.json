@@ -1,0 +1,19 @@
+{
+  "name": "@elupedia/book",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "data": "tsx --env-file-if-exists=../../.env src/main-data.ts",
+    "build": "tsx --env-file-if-exists=../../.env src/main-build.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@elupedia/shared": "*",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.4"
+  }
+}

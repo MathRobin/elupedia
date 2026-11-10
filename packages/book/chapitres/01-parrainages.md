@@ -1,0 +1,5 @@
+Pour se présenter à l'élection présidentielle, un candidat doit réunir 500 présentations d'élus, plus souvent appelées parrainages. Ces parrains doivent venir d'au moins 30 départements ou collectivités d'outre-mer différents, et pas plus d'un dixième d'entre eux ne peut venir du même département. La règle date de la loi du 6 novembre 1962, qui a instauré l'élection du président de la République au suffrage universel direct.
+
+Les maires, les parlementaires, les conseillers départementaux et régionaux, entre autres, peuvent parrainer. Chacun ne peut le faire qu'une fois par élection. Le Conseil constitutionnel reçoit les formulaires, les valide et publie la liste des parrains. Depuis la réforme de 2016, la liste complète est publiée ; auparavant, seuls cinq cents noms tirés au sort l'étaient.
+
+Ce chapitre regarde ceux qui soutiennent les candidats : quelle fonction ils exercent, et comment cette répartition a évolué entre 2017 et 2022. Les chiffres sont des totaux par catégorie ; aucun parrain n'y est cité par son nom.

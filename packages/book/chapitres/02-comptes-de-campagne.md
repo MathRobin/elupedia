@@ -1,0 +1,5 @@
+Faire campagne coûte de l'argent, et la loi encadre ce que chaque candidat peut dépenser. Pour les élections législatives, le plafond est de 38 000 euros, auxquels s'ajoutent 0,15 euro par habitant de la circonscription, le tout multiplié par un coefficient de revalorisation (1,26 aux dernières élections).
+
+Chaque candidat dépose un compte de campagne auprès de la Commission nationale des comptes de campagne et des financements politiques, la CNCCFP. La Commission vérifie le compte, retient ou écarte des dépenses, puis rend une décision : compte approuvé, approuvé après réformation, rejeté, ou non déposé. Un candidat qui a obtenu plus de 5 % des suffrages exprimés peut être remboursé par l'État, dans la limite de 47,5 % du plafond.
+
+Ce chapitre présente les comptes des législatives de 2022 et de 2024 et des sénatoriales de 2023. Les dépenses indiquées sont celles « retenues » par la Commission, c'est-à-dire arrêtées après son contrôle, et non celles déclarées par les candidats. Les comptes rejetés ou non déposés sont comptés, mais aucun candidat n'est nommé.
