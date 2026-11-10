@@ -247,7 +247,7 @@ export function campaignAccountsScript(facts: ShortFacts): ShortScript {
     {
       id: 's1',
       kind: 'hook',
-      voiceover: `Une campagne pour devenir député a un coût, et il est public. Les comptes des législatives de ${n.electionYear} sont contrôlés par la Commission nationale des comptes de campagne.`,
+      voiceover: `Les comptes de campagne des législatives de ${n.electionYear} sont publics, contrôlés par la Commission nationale des comptes de campagne.`,
       onScreenText: t.title,
       visual: 'title',
       chart: null,
@@ -256,7 +256,7 @@ export function campaignAccountsScript(facts: ShortFacts): ShortScript {
     {
       id: 's2',
       kind: 'context',
-      voiceover: `Les dépenses sont plafonnées : ${formatInt(n.ceilingBase!)} euros par candidat, plus ${formatDecimal(n.perInhabitant!, 2)} euro par habitant, le tout multiplié par ${formatDecimal(n.coefficient!, 2)}. L'État rembourse jusqu'à ${formatDecimal(n.reimbursementPercent!, 1)} % du plafond aux candidats ayant obtenu au moins ${n.thresholdPercent} % des voix.`,
+      voiceover: `Les dépenses sont plafonnées : ${formatInt(n.ceilingBase!)} euros par candidat, plus ${formatDecimal(n.perInhabitant!, 2)} euro par habitant, multiplié par ${formatDecimal(n.coefficient!, 2)}. L'État rembourse jusqu'à ${formatDecimal(n.reimbursementPercent!, 1)} % du plafond aux candidats ayant obtenu au moins ${n.thresholdPercent} % des voix.`,
       onScreenText: 'Plafond et remboursement',
       visual: 'title',
       chart: null,

@@ -35,7 +35,7 @@ function expectSound(facts: ShortFacts, script: ShortScript) {
   expect(validateScript(script, facts)).toEqual([]);
   const total = script.scenes.reduce((s, sc) => s + sc.durationSec, 0);
   expect(total).toBeGreaterThanOrEqual(35);
-  expect(total).toBeLessThanOrEqual(60);
+  expect(total).toBeLessThanOrEqual(55);
   expect(script.scenes.at(-1)?.visual).toBe('source');
   expect(script.scenes.filter((s) => s.visual === 'chart')).toHaveLength(2);
   const text = buildDescription(facts, script);

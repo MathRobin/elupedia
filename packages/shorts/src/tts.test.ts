@@ -4,6 +4,7 @@ import {
   charactersToWords,
   createElevenLabsProvider,
   elevenLabsFromEnv,
+  parseSpeed,
 } from './tts.js';
 
 describe('charactersToWords', () => {
@@ -82,5 +83,17 @@ describe('elevenLabsFromEnv', () => {
     });
     expect(p?.voiceId).toBe('v');
     expect(p?.modelId).toBe('eleven_flash_v2_5');
+  });
+});
+
+describe('parseSpeed', () => {
+  it('defaults to 0.95 and clamps to the API range', () => {
+    expect(parseSpeed(undefined)).toBe(0.95);
+    expect(parseSpeed('')).toBe(0.95);
+    expect(parseSpeed('vite')).toBe(0.95);
+    expect(parseSpeed('1')).toBe(1);
+    expect(parseSpeed('1.05')).toBe(1.05);
+    expect(parseSpeed('2')).toBe(1.2);
+    expect(parseSpeed('0.1')).toBe(0.7);
   });
 });
