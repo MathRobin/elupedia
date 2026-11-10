@@ -71,6 +71,18 @@ describe('officialSources', () => {
 describe('buildDescription', () => {
   const text = buildDescription(facts, script);
 
+  it('tolerates facts stored before sources existed (scripts of October 2026)', () => {
+    const [ballot] = facts.ballots;
+    const legacy = { ...ballot } as Partial<typeof ballot>;
+    delete legacy.sources;
+    const legacyText = buildDescription(
+      { ...facts, ballots: [legacy as typeof ballot] },
+      script,
+    );
+    expect(legacyText).toContain(`sur Elupedia : ${ballot.url}`);
+    expect(legacyText).not.toContain('assemblee-nationale.fr/dyn/17/scrutins');
+  });
+
   it('starts with the factual summary and states the figures', () => {
     expect(text.startsWith(script.description)).toBe(true);
     expect(text).toContain(

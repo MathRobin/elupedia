@@ -8,6 +8,9 @@ import type { ShortScript } from './script-schema.js';
  * Elupedia du scrutin ET vers les sources officielles des chiffres : le
  * contenu doit pouvoir être vérifié par n'importe qui, sans passer par nous.
  * Même texte à la revue (`<out>/<id>/description.txt`) et à la publication.
+ * Piège : les faits sont figés dans `video_shorts.script` au moment du script ;
+ * ceux écrits avant la mi-octobre 2026 n'ont pas de `sources`, d'où les
+ * `?? []` (le lien Elupedia, lui, est toujours présent).
  */
 
 const YOUTUBE_DESCRIPTION_MAX = 5000;
@@ -35,14 +38,14 @@ export function buildDescription(
   const sourceLines: string[] = ['Sources et vérification :'];
   if (facts.topic) {
     sourceLines.push(`• ${facts.topic.elupediaLabel} : ${facts.topic.url}`);
-    for (const src of facts.topic.sources)
+    for (const src of facts.topic.sources ?? [])
       sourceLines.push(`• ${src.label} : ${src.url}`);
   }
   for (const b of facts.ballots) {
     sourceLines.push(
       `• Le vote de chaque élu·e, scrutin par scrutin, sur Elupedia : ${b.url}`,
     );
-    for (const src of b.sources)
+    for (const src of b.sources ?? [])
       sourceLines.push(`• ${src.label} : ${src.url}`);
   }
   parts.push(sourceLines.join('\n'));
