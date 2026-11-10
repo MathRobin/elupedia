@@ -12,7 +12,12 @@ import type { ShortScript } from './script-schema.js';
  */
 
 export const MIN_TOTAL_SEC = 35;
-export const MAX_TOTAL_SEC = 60;
+/**
+ * Plafond des durées prévues par le script, sous la minute du short : la voix
+ * synthétisée lit 1 à 3 s de plus que prévu par scène et le rendu s'allonge
+ * d'autant (un script à 58 s prévues donnait des vidéos de 60 s).
+ */
+export const MAX_TOTAL_SEC = 55;
 /**
  * Débit de lecture maximal (mots/seconde) : celui de la voix réelle (débit
  * 0.95, environ 2,6 mots/s), sans quoi la voix déborde la durée prévue et la

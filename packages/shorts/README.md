@@ -78,8 +78,9 @@ publier (aperçu avec blocages et dérive des faits), lancer `make`, `script`,
 ## Voix off : ElevenLabs ou enregistrement
 
 Avec `ELEVENLABS_API_KEY` et `ELEVENLABS_VOICE_ID` dans le `.env` de la racine
-(`ELEVENLABS_MODEL_ID` optionnelle, `eleven_multilingual_v2` par défaut), la voix
-est synthétisée : une prise MP3 par scène dans `out/<id>/recordings/`, avec
+(`ELEVENLABS_MODEL_ID` optionnelle, `eleven_multilingual_v2` par défaut ;
+`ELEVENLABS_SPEED` optionnelle, 0,7 à 1,2, 0,95 par défaut), la voix est
+synthétisée : une prise MP3 par scène dans `out/<id>/recordings/`, avec
 l'horodatage exact des mots (`scene-<id>.words.json`), puis importée comme une
 prise enregistrée.
 

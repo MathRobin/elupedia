@@ -81,7 +81,7 @@ describe('staffersScript', () => {
   it('fits a short and ends on the source scene', () => {
     const total = script.scenes.reduce((s, sc) => s + sc.durationSec, 0);
     expect(total).toBeGreaterThanOrEqual(35);
-    expect(total).toBeLessThanOrEqual(60);
+    expect(total).toBeLessThanOrEqual(55);
     expect(script.scenes.at(-1)?.visual).toBe('source');
     expect(script.scenes.filter((s) => s.visual === 'chart')).toHaveLength(2);
     expect(script.scenes.map((s) => s.chart)).toEqual([

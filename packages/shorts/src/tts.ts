@@ -72,6 +72,17 @@ export interface ElevenLabsOptions {
 }
 
 export const ELEVENLABS_DEFAULT_MODEL = 'eleven_multilingual_v2';
+/** Débit par défaut, légèrement ralenti pour un ton posé. */
+export const ELEVENLABS_DEFAULT_SPEED = 0.95;
+const SPEED_MIN = 0.7;
+const SPEED_MAX = 1.2;
+
+/** `ELEVENLABS_SPEED` lue et bornée à ce qu'accepte l'API ; défaut si absente ou invalide. */
+export function parseSpeed(raw: string | undefined): number {
+  const n = Number(raw);
+  if (!raw || !Number.isFinite(n)) return ELEVENLABS_DEFAULT_SPEED;
+  return Math.min(SPEED_MAX, Math.max(SPEED_MIN, n));
+}
 const ELEVENLABS_BASE_URL = 'https://api.elevenlabs.io/v1';
 
 export function createElevenLabsProvider(o: ElevenLabsOptions): TtsProvider {
@@ -98,7 +109,7 @@ export function createElevenLabsProvider(o: ElevenLabsOptions): TtsProvider {
             similarity_boost: 0.8,
             style: 0.0,
             use_speaker_boost: true,
-            speed: o.speed ?? 0.95,
+            speed: o.speed ?? ELEVENLABS_DEFAULT_SPEED,
           },
         }),
       });
@@ -134,5 +145,6 @@ export function elevenLabsFromEnv(
     apiKey: env.ELEVENLABS_API_KEY,
     voiceId: env.ELEVENLABS_VOICE_ID,
     modelId: env.ELEVENLABS_MODEL_ID || undefined,
+    speed: parseSpeed(env.ELEVENLABS_SPEED),
   });
 }
