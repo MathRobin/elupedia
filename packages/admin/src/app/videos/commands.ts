@@ -186,7 +186,7 @@ export function videoCommands(id: string, s: VideoState): VideoCommandGroup[] {
         {
           command: `${P} publish --id ${id}`,
           title: 'Publier maintenant',
-          what: 'Met la vidéo en ligne sur YouTube avec le texte d’accompagnement, enregistre l’identifiant YouTube et passe le short en publié, puis envoie la miniature. Refuse si le short n’est pas approuvé ou si les faits ont changé depuis le script. Nécessite YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET et YOUTUBE_REFRESH_TOKEN.',
+          what: 'Met la vidéo en ligne sur YouTube avec le texte d’accompagnement, enregistre l’identifiant YouTube et passe le short en publié (vignette par défaut de YouTube). Refuse si le short n’est pas approuvé ou si les faits ont changé depuis le script. Nécessite YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET et YOUTUBE_REFRESH_TOKEN.',
           relevant: approved,
           caution:
             'Publication publique par défaut (YOUTUBE_PRIVACY_STATUS ou --privacy pour unlisted/private).',

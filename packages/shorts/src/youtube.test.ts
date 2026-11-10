@@ -128,9 +128,6 @@ describe('createYoutubeUploader', () => {
         if (String(url) === 'https://upload.example/session') {
           return Response.json({ id: 'VIDEO123' });
         }
-        if (String(url).includes('thumbnails/set')) {
-          return new Response(null, { status: 403 });
-        }
         throw new Error(`unexpected ${url}`);
       },
     );
@@ -149,7 +146,7 @@ describe('createYoutubeUploader', () => {
     expect(calls[1].method).toBe('PUT');
     expect(calls[1].headers['Content-Length']).toBe('11');
     expect(calls[1].headers.Authorization).toBe('Bearer tok');
-    expect(await uploader.setThumbnail('VIDEO123', file)).toBe(false);
+    expect(calls).toHaveLength(2);
   });
 
   it('fails clearly when the session init is refused', async () => {

@@ -4,8 +4,10 @@ import { Readable } from 'node:stream';
 /**
  * Client minimal YouTube Data API v3 (fetch natif, pas de SDK) : OAuth 2.0
  * (application installée, redirection loopback), upload « resumable » d'une
- * vidéo, vignette. Une vidéo verticale de moins de 3 minutes est traitée
- * comme un Short par YouTube, sans paramètre spécifique.
+ * vidéo. Une vidéo verticale de moins de 3 minutes est traitée comme un
+ * Short par YouTube, sans paramètre spécifique. Pas de vignette
+ * personnalisée (`thumbnails.set` exige un compte vérifié ; l'image par
+ * défaut convient).
  */
 
 export const YOUTUBE_SCOPE = 'https://www.googleapis.com/auth/youtube.upload';
@@ -13,8 +15,6 @@ const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const UPLOAD_URL =
   'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status';
-const THUMBNAIL_URL =
-  'https://www.googleapis.com/upload/youtube/v3/thumbnails/set';
 
 /** Catégorie « Actualités et politique ». */
 export const CATEGORY_NEWS_POLITICS = '25';
@@ -113,8 +113,6 @@ export interface VideoMetadata {
 
 export interface YoutubeUploader {
   uploadVideo(filePath: string, meta: VideoMetadata): Promise<string>;
-  /** Ne lève pas : une vignette personnalisée exige un compte vérifié. */
-  setThumbnail(videoId: string, filePath: string): Promise<boolean>;
 }
 
 /** Nettoie titre et description aux limites de l'API (100 / 5000 caractères, pas de < >). */
@@ -192,27 +190,6 @@ export function createYoutubeUploader(
         const data = (await res.json()) as { id?: string };
         if (!data.id) throw new Error('YouTube : réponse sans identifiant');
         return data.id;
-      } finally {
-        await handle.close();
-      }
-    },
-
-    async setThumbnail(videoId, filePath) {
-      const handle = await open(filePath, 'r');
-      try {
-        const size = (await handle.stat()).size;
-        const res = await fetchFn(`${THUMBNAIL_URL}?videoId=${videoId}`, {
-          method: 'POST',
-          headers: {
-            ...auth,
-            'Content-Type': 'image/png',
-            'Content-Length': String(size),
-          },
-          body: Readable.toWeb(handle.createReadStream()) as ReadableStream,
-          // @ts-expect-error — requis par Node pour un corps en flux.
-          duplex: 'half',
-        });
-        return res.ok;
       } finally {
         await handle.close();
       }
