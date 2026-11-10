@@ -18,7 +18,7 @@ elupedia/
 │   ├── admin/     # Interface d'administration (Next.js + Auth.js + Mantine, port 3001) : modération des liens, fiches et doublons d'élus, rattachements, ingestions, cohérence, comptes, vidéos (revue, publication, pipeline)
 │   ├── shared/    # Types, helpers et schéma DB partagés
 │   ├── ingest/    # Scripts de collecte de données (APIs ouvertes)
-│   ├── shorts/    # Pipeline de shorts vidéo (sélection, script LLM, voix off enregistrée, rendu Remotion, puis publication)
+│   ├── shorts/    # Pipeline de shorts vidéo (sélection, script LLM, voix off ElevenLabs ou enregistrée, rendu Remotion, puis publication)
 │   ├── site/      # Site public Astro/React
 │   └── e2e/       # Tests end-to-end (Playwright)
 ├── docs/          # Documentation projet
@@ -78,7 +78,8 @@ yarn --cwd packages/ingest ingest:membres-assemblee
 yarn --cwd packages/shorts select --dry-run   # classement seul, rien écrit ; --days, --max-shorts, --min-score
 yarn --cwd packages/shorts script --dry-run   # script LLM des shorts candidate (ANTHROPIC_API_KEY requise) ; --id, --force, --model
 yarn --cwd packages/shorts topic <thème>   # short « thème » sans scrutin : faits calculés, script de gabarit validé, short draft + fiche de lecture ; --dry-run. Thèmes : staffers, questions-ecrites, parrainages-2022, age-deputes, comptes-campagne-2024 (voir packages/shorts/src/topics/)
-yarn --cwd packages/shorts make <id>   # un short de bout en bout : script (si absent) → import de la voix → rendu ; s'arrête avec la fiche de lecture si des prises manquent ; --rescript, --reimport, --force, --silent, --draft, --dry-run
+yarn --cwd packages/shorts make <id>   # un short de bout en bout : script (si absent) → voix (ElevenLabs si ELEVENLABS_* posées, sinon prises enregistrées) → rendu ; sans synthèse, s'arrête avec la fiche de lecture si des prises manquent ; --rescript, --reimport, --recorded, --force, --silent, --draft, --dry-run
+yarn --cwd packages/shorts voiceover generate   # voix ElevenLabs des shorts draft sans voix (ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID) : prises synthétisées puis importées ; --id, --force, --dry-run
 yarn --cwd packages/shorts voiceover sheet   # fiche de lecture des shorts draft sans voix (voix enregistrée par l'équipe, une prise par scène)
 yarn --cwd packages/shorts voiceover import --id <uuid>   # recadre, normalise et horodate les prises recordings/scene-<id>.wav
 yarn --cwd packages/shorts render --draft   # rendu Remotion (1080×1920) des shorts draft avec voix importée, dans packages/shorts/out/<id>/ ; --id, --force, --silent, --out, --dry-run

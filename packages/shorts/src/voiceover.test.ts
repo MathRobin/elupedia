@@ -1,15 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { findFfTools, processRecording } from './audio.js';
 import {
   findRecording,
+  generateTakes,
   importRecordings,
   readingSheet,
   spokenScenes,
 } from './voiceover.js';
+import type { TtsProvider } from './tts.js';
 import type { ShortScript } from './script-schema.js';
 
 vi.mock('./logger.js', () => ({
@@ -172,5 +174,75 @@ describe('importRecordings (real ffmpeg)', () => {
 describe('processRecording', () => {
   it('is exported for direct use', () => {
     expect(typeof processRecording).toBe('function');
+  });
+});
+
+describe('generateTakes + importRecordings (synthesized takes, real ffmpeg)', () => {
+  it('writes one take and its word timings per spoken scene, which the import shifts by the trim', async () => {
+    const out = await mkdtemp(path.join(os.tmpdir(), 'voice-tts-'));
+    // Faux fournisseur : 1 s de silence puis 1 s de « parole », mots connus.
+    const sample = path.join(out, 'sample.wav');
+    makeWav(sample, ['silence', 'tone'], 1);
+    const audio = await readFile(sample);
+    const provider: TtsProvider = {
+      name: 'fake-tts',
+      voiceId: 'voice-1',
+      modelId: 'model-1',
+      synthesize: async (text) => ({
+        audio,
+        durationSec: 2,
+        words: text.split(' ').map((word, i) => ({
+          word,
+          start: 1 + i * 0.2,
+          end: 1 + (i + 1) * 0.2,
+        })),
+      }),
+    };
+    const done = await generateTakes('abc', script, provider, out);
+    expect(done).toEqual(['s1', 's3']);
+    const rec = path.join(out, 'abc', 'recordings');
+    expect(await readdir(rec)).toEqual(
+      expect.arrayContaining([
+        'scene-s1.mp3',
+        'scene-s1.words.json',
+        'scene-s3.mp3',
+        'scene-s3.words.json',
+      ]),
+    );
+
+    const v = await importRecordings('abc', script, { outputDir: out });
+    expect(v.provider).toBe('fake-tts');
+    expect(v.voiceId).toBe('voice-1');
+    expect(v.modelId).toBe('model-1');
+    const s3 = v.scenes.find((s) => s.sceneId === 's3')!;
+    // Le silence de tête (1 s, moins 0,15 s de marge) est retiré : les mots
+    // fournis à 1 s commencent maintenant vers 0,15 s.
+    expect(s3.words.map((w) => w.word)).toEqual([
+      'Le',
+      'texte',
+      'est',
+      'rejeté.',
+    ]);
+    expect(s3.words[0].start).toBeGreaterThan(0.05);
+    expect(s3.words[0].start).toBeLessThan(0.3);
+    expect(s3.words[3].end).toBeLessThanOrEqual(s3.durationSec);
+  });
+
+  it('only regenerates the requested scenes', async () => {
+    const out = await mkdtemp(path.join(os.tmpdir(), 'voice-tts-'));
+    const calls: string[] = [];
+    const provider: TtsProvider = {
+      name: 'fake-tts',
+      voiceId: 'v',
+      modelId: 'm',
+      synthesize: async (text) => {
+        calls.push(text);
+        return { audio: Buffer.from('x'), durationSec: 0, words: [] };
+      },
+    };
+    expect(await generateTakes('abc', script, provider, out, ['s3'])).toEqual([
+      's3',
+    ]);
+    expect(calls).toEqual(['Le texte est rejeté.']);
   });
 });

@@ -37,6 +37,10 @@ export const SHORT_JOBS = {
     label: 'Importer les prises (voiceover import)',
     args: (id: string) => ['voiceover', 'import', '--id', id],
   },
+  generate: {
+    label: 'Synthétiser la voix (voiceover generate)',
+    args: (id: string) => ['voiceover', 'generate', '--id', id],
+  },
   render: {
     label: 'Rendre la vidéo (render --force)',
     args: (id: string) => ['render', '--id', id, '--force'],

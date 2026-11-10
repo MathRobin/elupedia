@@ -1,4 +1,4 @@
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
@@ -8,12 +8,17 @@ import type { StoredScript } from './generate-script.js';
 import type { ShortScript } from './script-schema.js';
 import { MAX_WORDS_PER_SEC, countWords } from './script-validate.js';
 import { processRecording, type ProcessedRecording } from './audio.js';
+import type { TtsProvider } from './tts.js';
 import type { WordTiming } from './words.js';
 
 /**
- * Voix off enregistrée par l'équipe : une fiche de lecture par short, un
- * fichier audio par scène, importé (recadré, normalisé, horodaté) dans
- * `video_shorts.voiceover`. Le rendu cale ensuite chaque scène sur son audio.
+ * Voix off d'un short : une prise audio par scène dans `recordings/`, soit
+ * enregistrée par l'équipe (fiche de lecture `voiceover sheet`), soit
+ * synthétisée par ElevenLabs (`voiceover generate`, tts.ts) ; puis importée
+ * (recadrée, normalisée, horodatée) dans `video_shorts.voiceover`. Le rendu
+ * cale ensuite chaque scène sur son audio. Une prise synthétisée est
+ * accompagnée d'un `scene-<id>.words.json` (horodatage exact des mots) que
+ * l'import préfère à l'estimation par pauses.
  */
 
 export interface VoiceoverScene {
@@ -27,7 +32,7 @@ export interface VoiceoverScene {
 export interface StoredVoiceover {
   version: 1;
   generatedAt: string;
-  /** `recorded` (voix enregistrée) ou `estimated` (sous-titres seuls, rendu muet). */
+  /** `recorded` (voix enregistrée), `elevenlabs` (synthèse) ou `estimated` (sous-titres seuls, rendu muet). */
   provider: string;
   voiceId: string;
   modelId: string;
@@ -37,6 +42,69 @@ export interface StoredVoiceover {
 
 export const DEFAULT_OUTPUT_DIR = 'out';
 export const RECORDING_EXTENSIONS = ['wav', 'mp3', 'm4a', 'aac', 'flac', 'ogg'];
+
+/** Fichier compagnon d'une prise synthétisée : `scene-<id>.words.json`. */
+export interface TakeWords {
+  provider: string;
+  voiceId: string;
+  modelId: string;
+  words: WordTiming[];
+}
+
+export function takeWordsFile(dir: string, sceneId: string): string {
+  return path.join(dir, `scene-${sceneId}.words.json`);
+}
+
+async function readTakeWords(
+  dir: string,
+  sceneId: string,
+): Promise<TakeWords | null> {
+  try {
+    const parsed = JSON.parse(
+      await readFile(takeWordsFile(dir, sceneId), 'utf-8'),
+    ) as TakeWords;
+    return Array.isArray(parsed.words) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Synthétise les prises d'un short dans `recordings/` (MP3 + `.words.json`),
+ * à la place de l'enregistrement par l'équipe. `only` restreint aux scènes
+ * citées (prises manquantes) ; sinon toutes les scènes parlées sont refaites.
+ * Renvoie les identifiants des scènes synthétisées.
+ */
+export async function generateTakes(
+  shortId: string,
+  script: ShortScript,
+  provider: TtsProvider,
+  outputDir: string,
+  only?: string[],
+): Promise<string[]> {
+  const dir = path.join(outputDir, shortId, 'recordings');
+  await mkdir(dir, { recursive: true });
+  const scenes = spokenScenes(script).filter(
+    (s) => !only || only.includes(s.id),
+  );
+  const done: string[] = [];
+  for (const scene of scenes) {
+    const result = await provider.synthesize(scene.voiceover.trim());
+    await writeFile(path.join(dir, `scene-${scene.id}.mp3`), result.audio);
+    const take: TakeWords = {
+      provider: provider.name,
+      voiceId: provider.voiceId,
+      modelId: provider.modelId,
+      words: result.words,
+    };
+    await writeFile(takeWordsFile(dir, scene.id), JSON.stringify(take));
+    logger.info(
+      `  scène ${scene.id} : ${result.durationSec.toFixed(1)} s synthétisées (${provider.name})`,
+    );
+    done.push(scene.id);
+  }
+  return done;
+}
 
 export function spokenScenes(script: ShortScript) {
   return script.scenes.filter((s) => s.voiceover.trim().length > 0);
@@ -111,13 +179,19 @@ export async function importRecordings(
   const outDir = path.join(options.outputDir, shortId);
   await mkdir(outDir, { recursive: true });
   const result: VoiceoverScene[] = [];
+  // Origine des prises : synthèse si toutes ont un .words.json du même
+  // fournisseur, enregistrement sinon.
+  const takeSources: (TakeWords | null)[] = [];
   for (const scene of scenes) {
     const src = path.join(dir, findRecording(files, scene.id)!);
     const file = path.join(shortId, `scene-${scene.id}.wav`);
+    const takeWords = await readTakeWords(dir, scene.id);
+    takeSources.push(takeWords);
     const processed: ProcessedRecording = await process_(
       src,
       path.join(options.outputDir, file),
       scene.voiceover,
+      takeWords?.words,
     );
     result.push({
       sceneId: scene.id,
@@ -131,12 +205,16 @@ export async function importRecordings(
       );
     }
   }
+  const synthesized =
+    takeSources.length > 0 && takeSources.every((t) => t !== null)
+      ? takeSources[0]
+      : null;
   return {
     version: 1,
     generatedAt: new Date().toISOString(),
-    provider: 'recorded',
-    voiceId: '',
-    modelId: '',
+    provider: synthesized?.provider ?? 'recorded',
+    voiceId: synthesized?.voiceId ?? '',
+    modelId: synthesized?.modelId ?? '',
     outputDir: path.resolve(options.outputDir),
     scenes: result,
   };
@@ -147,10 +225,14 @@ export interface SheetTarget {
   script: StoredScript;
 }
 
-/** Shorts à lire : script prêt (draft), pas encore de voix, ou un short précis. */
+/**
+ * Shorts à lire : script prêt (draft), pas encore de voix (ou tous les draft
+ * avec `includeVoiced`), ou un short précis.
+ */
 export async function loadReadingTargets(
   db: NeonHttpDatabase,
   shortId?: string,
+  includeVoiced = false,
 ): Promise<SheetTarget[]> {
   const rows = shortId
     ? await db
@@ -161,11 +243,16 @@ export async function loadReadingTargets(
         .select({ id: videoShorts.id, script: videoShorts.script })
         .from(videoShorts)
         .where(
-          and(
-            eq(videoShorts.status, 'draft'),
-            isNotNull(videoShorts.script),
-            isNull(videoShorts.voiceover),
-          ),
+          includeVoiced
+            ? and(
+                eq(videoShorts.status, 'draft'),
+                isNotNull(videoShorts.script),
+              )
+            : and(
+                eq(videoShorts.status, 'draft'),
+                isNotNull(videoShorts.script),
+                isNull(videoShorts.voiceover),
+              ),
         );
   if (shortId && rows.length === 0) {
     throw new Error(`video_short ${shortId} introuvable`);

@@ -94,8 +94,17 @@ export function videoCommands(id: string, s: VideoState): VideoCommandGroup[] {
       ],
     },
     {
-      label: 'Voix off (enregistrée par vos soins)',
+      label:
+        'Voix off (synthétisée par ElevenLabs, ou enregistrée par vos soins)',
       commands: [
+        {
+          command: `${P} voiceover generate --id ${id}`,
+          title: 'Synthétiser la voix',
+          what: 'Synthétise une prise par scène avec ElevenLabs (ELEVENLABS_API_KEY et ELEVENLABS_VOICE_ID du .env), les dépose dans recordings/ puis les importe. Ce que fait le DAG quotidien ; make le fait aussi quand les clés sont posées.',
+          relevant: needsVoice,
+          caution:
+            'Appel payant à l’API ElevenLabs ; remplace les prises déjà présentes.',
+        },
         {
           command: `${P} voiceover sheet --id ${id}`,
           title: 'Fiche de lecture',
