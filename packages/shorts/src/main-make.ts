@@ -19,11 +19,13 @@ import { factsDrift, formatDrift } from './facts-drift.js';
 import { loadShortFacts } from './script-facts.js';
 import {
   DEFAULT_OUTPUT_DIR,
+  generateTakes,
   importRecordings,
   loadReadingTargets,
   storeVoiceover,
   writeReadingSheet,
 } from './voiceover.js';
+import { elevenLabsFromEnv } from './tts.js';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -34,6 +36,7 @@ const { values, positionals } = parseArgs({
     reimport: { type: 'boolean', default: false },
     force: { type: 'boolean', default: false },
     silent: { type: 'boolean', default: false },
+    recorded: { type: 'boolean', default: false },
     draft: { type: 'boolean', default: false },
     'dry-run': { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
@@ -46,16 +49,19 @@ if (values.help || !shortId) {
     [
       'Usage: yarn --cwd packages/shorts make <id> [options]',
       '',
-      'Enchaîne pour un short : script (si absent) → import de la voix (prises',
-      'recordings/scene-<id>.wav) → rendu vidéo, en sautant ce qui est à jour.',
-      'S’arrête avec la fiche de lecture si des prises manquent. La revue',
-      '(review approve) et la publication restent à part : c’est le gate humain.',
+      'Enchaîne pour un short : script (si absent) → voix (prises',
+      'recordings/scene-<id>.wav, synthétisées par ElevenLabs si ELEVENLABS_API_KEY',
+      'et ELEVENLABS_VOICE_ID sont posées, sinon enregistrées) → rendu vidéo, en',
+      'sautant ce qui est à jour. Sans synthèse, s’arrête avec la fiche de lecture',
+      'si des prises manquent. La revue (review approve) et la publication restent',
+      'à part : c’est le gate humain.',
       '',
       'Options :',
       '  --rescript   Regénère le script (invalide la voix : à ré-enregistrer)',
       '  --reimport   Réimporte les prises même si elles n’ont pas changé',
       '  --force      Rend la vidéo même si rien n’a changé',
       '  --silent     Continue sans voix : muet, sous-titres estimés',
+      '  --recorded   N’appelle pas ElevenLabs : attend les prises enregistrées',
       '  --draft      Rendu rapide basse qualité',
       `  --out <dir>  Dossier de sortie (défaut : $SHORTS_OUTPUT_DIR ou ${DEFAULT_OUTPUT_DIR})`,
       '  --dry-run    Affiche les étapes prévues sans rien exécuter',
@@ -118,7 +124,22 @@ async function main(): Promise<number> {
 
   // Prises : état recalculé sur le script à jour.
   const script = row.script!.script;
-  const takesNow = await inspectRecordings(recordingsDir, script);
+  let takesNow = await inspectRecordings(recordingsDir, script);
+
+  // Synthèse vocale : refait toutes les prises après un nouveau script,
+  // sinon seulement celles qui manquent (une prise enregistrée est gardée).
+  const tts = values.recorded || flags.silent ? null : elevenLabsFromEnv();
+  if (tts && (plan.script || takesNow.missing.length > 0)) {
+    const only = plan.script ? undefined : takesNow.missing;
+    logger.info(
+      `voix synthétisée (${tts.name}) : ${only ? only.map((s) => `scene-${s}`).join(', ') : 'toutes les scènes'}`,
+    );
+    await generateTakes(id, script, tts, outputDir, only);
+    takesNow = await inspectRecordings(recordingsDir, script);
+    plan.importVoice = true;
+    plan.needTakes = false;
+    plan.render = true;
+  }
 
   if (plan.script && takesNow.missing.length > 0 && !flags.silent) {
     // Nouveau script : l'ancienne voix ne correspond plus aux textes.

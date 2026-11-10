@@ -60,6 +60,11 @@ const JOB_BUTTONS: {
     label: 'Fiche de lecture',
     when: (p) => p.hasScript && !p.hasVoiceover,
   },
+  {
+    kind: 'generate',
+    label: 'Synthétiser la voix (ElevenLabs)',
+    when: (p) => p.hasScript,
+  },
   { kind: 'import', label: 'Importer les prises', when: (p) => p.hasScript },
   { kind: 'render', label: 'Rendre la vidéo', when: (p) => p.hasScript },
   {

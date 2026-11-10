@@ -95,6 +95,8 @@ export async function detectSilences(file: string, noiseDb = -35) {
 export interface ProcessedRecording {
   durationSec: number;
   words: WordTiming[];
+  /** Secondes retirées en tête de la prise (silence recadré). */
+  trimStartSec: number;
 }
 
 /** Marge conservée autour de la parole après recadrage. */
@@ -104,11 +106,15 @@ const PAD_SEC = 0.15;
  * Prépare un enregistrement : recadre le silence de tête et de queue, mono
  * 44,1 kHz, volume normalisé (loudnorm, -16 LUFS, usuel pour la vidéo en
  * ligne), écrit en WAV 16 bits ; puis horodate les mots du script dessus.
+ * Avec `knownWords` (horodatage exact fourni par la synthèse vocale, relatif
+ * à la prise d'origine), les mots sont simplement décalés du recadrage au
+ * lieu d'être estimés d'après les pauses.
  */
 export async function processRecording(
   src: string,
   dest: string,
   text: string,
+  knownWords?: WordTiming[],
 ): Promise<ProcessedRecording> {
   const rawDuration = await probeDuration(src);
   const rawSpan = speechSpan(await detectSilences(src), rawDuration);
@@ -140,10 +146,34 @@ export async function processRecording(
     dest,
   ]);
   const durationSec = await probeDuration(dest);
+  const rounded = Math.round(durationSec * 100) / 100;
+  if (knownWords && knownWords.length > 0) {
+    return {
+      durationSec: rounded,
+      words: shiftWords(knownWords, from, rounded),
+      trimStartSec: from,
+    };
+  }
   const span = speechSpan(await detectSilences(dest), durationSec);
   const pauses = internalPauses(await detectSilences(dest), span);
   return {
-    durationSec: Math.round(durationSec * 100) / 100,
+    durationSec: rounded,
     words: alignWords(text, span, pauses),
+    trimStartSec: from,
   };
+}
+
+/** Décale des horodatages de `offset` secondes, bornés à la durée du fichier. */
+export function shiftWords(
+  words: WordTiming[],
+  offset: number,
+  durationSec: number,
+): WordTiming[] {
+  const clamp = (t: number) =>
+    Math.round(Math.min(Math.max(t - offset, 0), durationSec) * 1000) / 1000;
+  return words.map((w) => ({
+    word: w.word,
+    start: clamp(w.start),
+    end: clamp(w.end),
+  }));
 }
