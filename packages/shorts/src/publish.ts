@@ -16,10 +16,12 @@ import type {
 } from './youtube.js';
 
 /**
- * Publication YouTube des shorts `approved`. Un short par exécution par
- * défaut : le DAG tourne tous les jours, ce qui espace naturellement les
- * publications. L'identifiant YouTube est enregistré avant la vignette,
- * pour ne jamais republier une vidéo déjà en ligne si la suite échoue.
+ * Publication YouTube des shorts `approved` (`--max 1` par défaut, `all`
+ * dans le DAG horaire). L'identifiant YouTube est enregistré dès l'upload
+ * réussi, pour ne jamais republier une vidéo déjà en ligne si la suite
+ * échoue. Pas de vignette personnalisée : YouTube choisit une image de la
+ * vidéo (une vignette envoyée exigerait un compte vérifié, choix abandonné
+ * le 10/11/2026) ; `thumbnail.png` reste produite au rendu pour l'admin.
  */
 
 export interface PublishOptions {
@@ -59,7 +61,6 @@ export async function publishShorts(
     script: videoShorts.script,
     voiceover: videoShorts.voiceover,
     videoKey: videoShorts.videoKey,
-    thumbnailKey: videoShorts.thumbnailKey,
     youtubeVideoId: videoShorts.youtubeVideoId,
   };
   const targets = options.shortId
@@ -144,17 +145,6 @@ export async function publishShorts(
       logger.info(
         `short ${target.id} : publié https://youtube.com/shorts/${videoId} (${meta.privacyStatus})`,
       );
-      if (target.thumbnailKey) {
-        const ok = await uploader.setThumbnail(
-          videoId,
-          path.join(options.outputDir, target.thumbnailKey),
-        );
-        if (!ok) {
-          logger.warn(
-            `short ${target.id} : vignette refusée par YouTube (compte non vérifié ?), vidéo publiée quand même`,
-          );
-        }
-      }
       published.push(target.id);
     } catch (error) {
       logger.error(`short ${target.id} : publication échouée — ${error}`);
