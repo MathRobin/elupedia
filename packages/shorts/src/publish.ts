@@ -5,7 +5,8 @@ import { asc, eq } from 'drizzle-orm';
 import { videoShorts } from '@elupedia/shared';
 import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
-import { buildDescription } from './description.js';
+import { buildDescription, isSyntheticVoice } from './description.js';
+import type { StoredVoiceover } from './voiceover.js';
 import { factsDrift, formatDrift } from './facts-drift.js';
 import { loadShortFacts } from './script-facts.js';
 import type {
@@ -34,10 +35,13 @@ export interface PublishOptions {
 export function buildMetadata(
   stored: Pick<StoredScript, 'script' | 'facts'>,
   privacyStatus: PrivacyStatus,
+  voiceover: { provider: string } | null = null,
 ): VideoMetadata {
   return {
     title: stored.script.title,
-    description: buildDescription(stored.facts, stored.script),
+    description: buildDescription(stored.facts, stored.script, {
+      syntheticVoice: isSyntheticVoice(voiceover),
+    }),
     tags: stored.script.hashtags,
     privacyStatus,
   };
@@ -55,6 +59,7 @@ export async function publishShorts(
     id: videoShorts.id,
     status: videoShorts.status,
     script: videoShorts.script,
+    voiceover: videoShorts.voiceover,
     videoKey: videoShorts.videoKey,
     youtubeVideoId: videoShorts.youtubeVideoId,
   };
@@ -114,7 +119,11 @@ export async function publishShorts(
       failed.push(target.id);
       continue;
     }
-    const meta = buildMetadata(stored, options.privacyStatus);
+    const meta = buildMetadata(
+      stored,
+      options.privacyStatus,
+      target.voiceover as StoredVoiceover | null,
+    );
     if (options.dryRun) {
       logger.info(
         `[dry-run] short ${target.id} : « ${meta.title} » (${meta.privacyStatus}) depuis ${videoPath}`,

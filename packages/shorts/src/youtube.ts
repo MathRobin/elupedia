@@ -158,6 +158,9 @@ export function createYoutubeUploader(
           status: {
             privacyStatus: meta.privacyStatus,
             selfDeclaredMadeForKids: false,
+            // Déclaration « contenu modifié ou synthétique » de YouTube :
+            // script par IA et, le plus souvent, voix de synthèse.
+            containsSyntheticMedia: true,
           },
         }),
       });
