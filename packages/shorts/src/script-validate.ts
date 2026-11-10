@@ -62,10 +62,126 @@ export const BANNED_WORDS = [
   'dangereuse',
 ] as const;
 
+/**
+ * Tics de langage de modèle : formules d'explication YouTube, connecteurs
+ * creux, appels à l'engagement, clichés journalistiques. Un script qui en
+ * contient sonne « généré » même quand les faits sont justes. Comparaison
+ * sans accents ni casse, apostrophes unifiées, sur l'expression entière
+ * (bornée par des non-lettres). Liste courte et explicable, comme BANNED_WORDS.
+ */
+export const LLM_PHRASES = [
+  // Annonces et formules d'émission
+  'decryptage',
+  'decryptons',
+  'on decrypte',
+  'decortiquons',
+  'plongeons',
+  'plongee',
+  'zoom sur',
+  'focus sur',
+  'gros plan sur',
+  'retour sur',
+  'dans cette video',
+  'on vous explique',
+  'on vous dit tout',
+  'tout comprendre',
+  'tout savoir',
+  'on fait le point',
+  'faisons le point',
+  'explique en',
+  'expliquee en',
+  'en une minute',
+  'en 60 secondes',
+  'bienvenue',
+  "c'est parti",
+  'allons-y',
+  'voyons',
+  'regardons',
+  'passons',
+  'la suite',
+  'spoiler',
+  'suspense',
+  // Connecteurs et chevilles
+  'en effet',
+  'il est important de',
+  'il est essentiel de',
+  'il convient de',
+  'force est de constater',
+  'notons que',
+  'a noter',
+  'autrement dit',
+  "en d'autres termes",
+  'au final',
+  'in fine',
+  'concretement',
+  'en clair',
+  'pas moins de',
+  'tout simplement',
+  'ni plus ni moins',
+  'purement et simplement',
+  'il faut savoir que',
+  'sachez que',
+  "vous l'aurez compris",
+  'comme vous le savez',
+  'on le sait',
+  // Conclusions
+  "ce qu'il faut retenir",
+  'resumons',
+  'en resume',
+  'pour resumer',
+  'pour conclure',
+  'en conclusion',
+  'en bref',
+  'affaire a suivre',
+  'reste a savoir',
+  'la question se pose',
+  'une question se pose',
+  // Appels à l'engagement
+  "n'hesitez pas",
+  'abonnez-vous',
+  'restez connectes',
+  "qu'en pensez-vous",
+  'en commentaire',
+  'ne manquez pas',
+  // Clichés et dramatisation
+  'sans surprise',
+  'comme prevu',
+  'un chiffre qui',
+  'des chiffres qui',
+  'parle de lui-meme',
+  "parlent d'eux-memes",
+  "ce n'est pas rien",
+  "n'est pas anodin",
+  "loin d'etre",
+  'tout un symbole',
+  'rien de moins',
+  "a l'heure ou",
+  'dans un contexte',
+  'coup de theatre',
+  'bras de fer',
+  'tour de vis',
+  'feu vert',
+  'carton rouge',
+  'un pas de plus',
+  'une nouvelle etape',
+  'dossier brulant',
+  'sujet sensible',
+  'mais pas seulement',
+  "et ce n'est pas tout",
+  'cerise sur le gateau',
+  "le moins que l'on puisse dire",
+  'autant dire',
+  'sans appel',
+  'sans ambiguite',
+  'massivement',
+] as const;
+
 export interface ValidationIssue {
   code:
     | 'unknown_number'
     | 'banned_word'
+    | 'llm_phrase'
+    | 'punctuation'
     | 'too_short'
     | 'too_long'
     | 'too_fast'
@@ -84,6 +200,29 @@ export function normalizeWord(w: string): string {
   // Décomposition NFD puis suppression des marques combinantes (accents).
   return w.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 }
+
+const PHRASE_PATTERNS = LLM_PHRASES.map((phrase) => ({
+  phrase,
+  pattern: new RegExp(
+    `(?<![\\p{L}\\p{N}])${phrase.replace(/[.*+?^$()|[\]{}\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
+    'u',
+  ),
+}));
+
+/** Expressions de LLM_PHRASES présentes dans un texte (forme d'origine de la liste). */
+export function findLlmPhrases(text: string): string[] {
+  const normalized = normalizeWord(text).replace(/[’‘]/g, "'");
+  return PHRASE_PATTERNS.filter((p) => p.pattern.test(normalized)).map(
+    (p) => p.phrase,
+  );
+}
+
+/**
+ * Ponctuation qui trahit un texte écrit pour l'écran et non pour être lu :
+ * question (toujours rhétorique dans un récit factuel), exclamation, points de
+ * suspension, tiret cadratin.
+ */
+export const SPOKEN_PUNCTUATION_BANNED = /[?!…—]|\.\.\./u;
 
 function extractNumbers(text: string): number[] {
   // Les URL (page Elupedia du scrutin) contiennent des identifiants, pas des
@@ -236,6 +375,18 @@ export function validateScript(
           });
         }
       }
+      for (const phrase of findLlmPhrases(text)) {
+        issues.push({
+          code: 'llm_phrase',
+          message: `Scène ${scene.id} (${field}) : formule artificielle « ${phrase} », à dire simplement`,
+        });
+      }
+    }
+    if (SPOKEN_PUNCTUATION_BANNED.test(scene.voiceover)) {
+      issues.push({
+        code: 'punctuation',
+        message: `Scène ${scene.id} (voiceover) : pas de question, d'exclamation, de points de suspension ni de tiret cadratin dans un texte lu`,
+      });
     }
   }
 
@@ -254,6 +405,20 @@ export function validateScript(
         message: `Titre : mot évaluatif proscrit « ${raw} »`,
       });
     }
+  }
+  for (const phrase of findLlmPhrases(script.title)) {
+    issues.push({
+      code: 'llm_phrase',
+      message: `Titre : formule artificielle « ${phrase} »`,
+    });
+  }
+  // Un titre peut poser une question (usage YouTube courant) ; pas
+  // d'exclamation ni de points de suspension.
+  if (/[!…]|\.\.\./u.test(script.title)) {
+    issues.push({
+      code: 'punctuation',
+      message: 'Titre : pas d’exclamation ni de points de suspension',
+    });
   }
 
   // Le résultat officiel est toujours énoncé en toutes lettres.
@@ -341,6 +506,12 @@ export function validateScript(
         message: `Description : mot évaluatif proscrit « ${raw} »`,
       });
     }
+  }
+  for (const phrase of findLlmPhrases(script.description)) {
+    issues.push({
+      code: 'llm_phrase',
+      message: `Description : formule artificielle « ${phrase} »`,
+    });
   }
 
   for (const scene of script.scenes) {

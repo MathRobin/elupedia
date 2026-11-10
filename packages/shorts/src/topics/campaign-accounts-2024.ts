@@ -247,7 +247,7 @@ export function campaignAccountsScript(facts: ShortFacts): ShortScript {
     {
       id: 's1',
       kind: 'hook',
-      voiceover: `Combien coûte une campagne pour devenir député ? Les comptes des législatives de ${n.electionYear} sont publics, contrôlés par la Commission nationale des comptes de campagne.`,
+      voiceover: `Une campagne pour devenir député a un coût, et il est public. Les comptes des législatives de ${n.electionYear} sont contrôlés par la Commission nationale des comptes de campagne.`,
       onScreenText: t.title,
       visual: 'title',
       chart: null,
