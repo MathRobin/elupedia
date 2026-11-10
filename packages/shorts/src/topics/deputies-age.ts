@@ -186,7 +186,7 @@ export function deputiesAgeScript(facts: ShortFacts): ShortScript {
     {
       id: 's1',
       kind: 'hook',
-      voiceover: `Qui siège à l'Assemblée nationale ? Un regard sur l'âge des ${formatInt(n.deputies!)} députés en fonction, d'après les données ouvertes de l'Assemblée au ${t.dateLabel}.`,
+      voiceover: `L'Assemblée nationale compte ${formatInt(n.deputies!)} députés en fonction. Voici leur âge, d'après les données ouvertes de l'Assemblée au ${t.dateLabel}.`,
       onScreenText: t.title,
       visual: 'title',
       chart: null,
