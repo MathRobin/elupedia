@@ -3,8 +3,9 @@
 /**
  * Tableau de bord des ingestions : les DAGs Dagu du dépôt (dagu-dags/*.yaml :
  * nom, cron, commandes) rapprochés des rapports de fin de run écrits par
- * chaque main-*.ts dans packages/ingest (ingest-report-*.json : compteurs,
- * erreurs ; la date du fichier vaut date de fin du dernier run). Lecture sur
+ * chaque main-*.ts dans packages/ingest et par les étapes shorts planifiées
+ * (ingest-report-*.json : compteurs, erreurs ; la date du fichier vaut date
+ * de fin du dernier run). Lecture sur
  * le disque de la machine qui exécute les ingestions, donc celle de l'admin.
  * L'API Dagu locale exige une authentification qui n'est pas configurée ici :
  * l'état « en cours / échoué » de Dagu n'est pas remonté, seuls les rapports
@@ -92,8 +93,9 @@ export async function describeCron(cron: string | null): Promise<string> {
 /**
  * Clés des rapports qu'une commande de DAG peut produire : `ingest:a:b` →
  * `a-b` (fichier ingest-report-a-b.json), `ingest` seul → clé vide
- * (ingest-report.json), et les outils `reconcile` / `merge:duplicate-officials`
- * sous leur propre nom.
+ * (ingest-report.json), les outils `reconcile` / `merge:duplicate-officials`
+ * sous leur propre nom, et les étapes shorts planifiées (`yarn --cwd
+ * packages/shorts publish` → `shorts-publish`, écrit par packages/shorts/src/report.ts).
  */
 function reportKeysFromCommand(command: string): string[] {
   const keys: string[] = [];
@@ -104,6 +106,10 @@ function reportKeysFromCommand(command: string): string[] {
     /yarn --cwd packages\/ingest (reconcile|merge:duplicate-officials)\b/,
   );
   if (tool) keys.push(tool[1].replace(/:/g, '-'));
+  const shorts = command.match(
+    /yarn --cwd packages\/shorts (select|script|voiceover generate|render|publish)\b/,
+  );
+  if (shorts) keys.push(`shorts-${shorts[1].split(' ')[0]}`);
   return keys;
 }
 

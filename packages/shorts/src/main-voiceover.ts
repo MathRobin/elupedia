@@ -11,6 +11,7 @@ import {
   type SheetTarget,
 } from './voiceover.js';
 import { elevenLabsFromEnv } from './tts.js';
+import { writeShortsFailureReport, writeShortsReport } from './report.js';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -76,12 +77,15 @@ async function main(): Promise<void> {
     const targets = await loadReadingTargets(db, values.id, values.force);
     if (targets.length === 0) {
       console.log('Aucun short en attente de voix off.');
+      if (!values['dry-run'])
+        writeShortsReport('voiceover', { done: 0, failed: 0 });
       return;
     }
     logger.info(
       `${targets.length} short(s) à sonoriser (${provider.name}, voix ${provider.voiceId}, modèle ${provider.modelId})`,
     );
     let failed = 0;
+    let done = 0;
     for (const target of targets) {
       const script = target.script.script;
       if (values['dry-run']) {
@@ -104,11 +108,13 @@ async function main(): Promise<void> {
         logger.info(
           `short ${target.id} : ${voiceover.scenes.length} prise(s) synthétisées, ${total.toFixed(1)} s de voix`,
         );
+        done++;
       } catch (error) {
         failed++;
         logger.error(`short ${target.id} : voix off échouée — ${error}`);
       }
     }
+    if (!values['dry-run']) writeShortsReport('voiceover', { done, failed });
     if (failed > 0) throw new Error(`${failed} short(s) sans voix off`);
     return;
   }
@@ -130,5 +136,8 @@ main()
   .then(() => process.exit(0))
   .catch((error) => {
     logger.error(String(error));
+    // Seule `generate` tourne dans un DAG ; sheet et import restent manuels.
+    if (command === 'generate' && !values['dry-run'])
+      writeShortsFailureReport('voiceover');
     process.exit(1);
   });

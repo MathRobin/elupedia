@@ -3,6 +3,7 @@ import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { renderShorts } from './render.js';
 import { DEFAULT_OUTPUT_DIR } from './voiceover.js';
+import { writeShortsFailureReport, writeShortsReport } from './report.js';
 
 const { values } = parseArgs({
   options: {
@@ -49,9 +50,15 @@ renderShorts(createDb(), {
     logger.info(
       `${rendered.length} rendu(s), ${failed.length} échec(s)${values['dry-run'] ? ' (dry-run : rien rendu)' : ''}`,
     );
+    if (!values['dry-run'])
+      writeShortsReport('render', {
+        done: rendered.length,
+        failed: failed.length,
+      });
     process.exit(failed.length > 0 ? 1 : 0);
   })
   .catch((error) => {
     logger.error(`Rendu échoué : ${error}`);
+    if (!values['dry-run']) writeShortsFailureReport('render');
     process.exit(1);
   });

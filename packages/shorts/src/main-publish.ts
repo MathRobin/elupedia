@@ -8,6 +8,7 @@ import {
   refreshAccessToken,
   type PrivacyStatus,
 } from './youtube.js';
+import { writeShortsFailureReport, writeShortsReport } from './report.js';
 
 const { values } = parseArgs({
   options: {
@@ -55,6 +56,7 @@ if (!values['dry-run'] && (!clientId || !clientSecret || !refreshToken)) {
   logger.error(
     'YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET et YOUTUBE_REFRESH_TOKEN sont requises',
   );
+  writeShortsFailureReport('publish');
   process.exit(1);
 }
 
@@ -83,10 +85,16 @@ async function main(): Promise<void> {
   logger.info(
     `${published.length} publié(s), ${failed.length} échec(s)${values['dry-run'] ? ' (dry-run : rien publié)' : ''}`,
   );
+  if (!values['dry-run'])
+    writeShortsReport('publish', {
+      done: published.length,
+      failed: failed.length,
+    });
   process.exit(failed.length > 0 ? 1 : 0);
 }
 
 main().catch((error) => {
   logger.error(`Publication échouée : ${error}`);
+  if (!values['dry-run']) writeShortsFailureReport('publish');
   process.exit(1);
 });
