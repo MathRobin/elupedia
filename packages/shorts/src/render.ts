@@ -32,6 +32,22 @@ import type { ShortScript } from './script-schema.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 /**
+ * Durée visée d'un short. Le script est plafonné plus bas (MAX_TOTAL_SEC,
+ * 55 s) mais la voix lit plus lentement que prévu et chaque scène prend une
+ * respiration : au-delà, on avertit sans bloquer (YouTube accepte jusqu'à
+ * 3 min), la correction étant un nouveau script (`make <id> --rescript`).
+ */
+export const MAX_VIDEO_SEC = 60;
+
+export function overrunWarning(
+  shortId: string,
+  durationSec: number,
+): string | null {
+  if (durationSec <= MAX_VIDEO_SEC) return null;
+  return `short ${shortId} : ${durationSec} s, au-delà des ${MAX_VIDEO_SEC} s visées ; pour raccourcir : yarn --cwd packages/shorts make ${shortId} --rescript`;
+}
+
+/**
  * Le code est écrit avec des imports `./x.js` (convention Node16 de TypeScript)
  * que webpack ne sait pas résoudre vers `x.ts(x)` sans cet alias.
  */
@@ -285,10 +301,13 @@ export async function renderShorts(
         : await fetchProposerPhotos(stored.facts, shortDir),
     };
     const timeline = buildTimeline(props.script, props.voiceover, FPS);
+    const plannedSec = Math.round((timeline.totalFrames / FPS) * 10) / 10;
     if (options.dryRun) {
       logger.info(
-        `[dry-run] short ${target.id} : ${timeline.scenes.length} scènes, ${(timeline.totalFrames / FPS).toFixed(1)} s, ${props.broll.length} image(s) de b-roll`,
+        `[dry-run] short ${target.id} : ${timeline.scenes.length} scènes, ${plannedSec.toFixed(1)} s, ${props.broll.length} image(s) de b-roll`,
       );
+      const overrun = overrunWarning(target.id, plannedSec);
+      if (overrun) logger.warn(overrun);
       rendered.push(target.id);
       continue;
     }
@@ -319,6 +338,8 @@ export async function renderShorts(
       logger.info(
         `short ${target.id} : ${result.durationSec} s rendues dans ${path.join(options.outputDir, result.videoFile)}, description dans ${descriptionFile}`,
       );
+      const overrun = overrunWarning(target.id, result.durationSec);
+      if (overrun) logger.warn(overrun);
       rendered.push(target.id);
     } catch (error) {
       logger.error(`short ${target.id} : rendu échoué — ${error}`);
