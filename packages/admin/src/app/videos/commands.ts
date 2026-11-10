@@ -157,7 +157,7 @@ export function videoCommands(id: string, s: VideoState): VideoCommandGroup[] {
         {
           command: `${P} review approve ${id}`,
           title: 'Approuver',
-          what: 'Passe le short en approuvé : il sera publié par le prochain passage de publish (DAG quotidien ou commande ci-dessous). Refusé sans vidéo rendue.',
+          what: 'Passe le short en approuvé : il sera publié dans l’heure par le DAG publish-shorts (ou tout de suite par la commande ci-dessous). Refusé sans vidéo rendue.',
           relevant: needsReview,
         },
         {

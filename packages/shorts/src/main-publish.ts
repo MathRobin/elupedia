@@ -31,7 +31,7 @@ if (values.help) {
       '',
       'Options:',
       '  --id <uuid>          Un short précis (doit être approved)',
-      '  --max <n>            Shorts publiés au maximum par exécution (défaut : 1)',
+      '  --max <n|all>        Shorts publiés au maximum par exécution (défaut : 1 ; all : tous les approuvés)',
       '  --privacy <status>   public | unlisted | private (défaut : $YOUTUBE_PRIVACY_STATUS ou public)',
       `  --out <dir>          Dossier des vidéos (défaut : $SHORTS_OUTPUT_DIR ou ${DEFAULT_OUTPUT_DIR})`,
       '  --dry-run            Affiche ce qui serait publié, sans appel',
@@ -73,7 +73,10 @@ async function main(): Promise<void> {
       outputDir:
         values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR,
       privacyStatus: privacy,
-      max: Math.max(1, Number.parseInt(values.max, 10) || 1),
+      max:
+        values.max === 'all'
+          ? Number.MAX_SAFE_INTEGER
+          : Math.max(1, Number.parseInt(values.max, 10) || 1),
       dryRun: values['dry-run'],
     },
   );
