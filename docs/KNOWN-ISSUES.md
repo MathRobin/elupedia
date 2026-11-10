@@ -55,6 +55,18 @@ Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 
 - `seed.ts` non idempotent (`an_id` unique) ; ses groupes politiques ne correspondent à aucune clé de `POLITICAL_GROUP_COLORS`.
 - `department-codes.ts` : Saint-Pierre-et-Miquelon (975), Métropole de Lyon et Corse absents, alors que `DOMAINS.md` renvoie à `DEPARTMENT_CODES` pour ces collectivités.
 
+## Contenu de la base (constaté le 9 novembre 2026)
+
+Relevé lors de la vérification des chiffres du guide (`docs/livre-guide/02-chiffres.md`). Comme plus haut : des pistes, pas des diagnostics.
+
+- `ballots` : les scrutins publics de l'Assemblée sont incomplets en décembre 2024 (22 enregistrés, contre 118 à 209 les autres mois d'octobre 2024 à mars 2025). La motion de censure du 4 décembre 2024, adoptée, est absente : toutes les motions de la base sont marquées `rejected`. Cause non cherchée.
+- `mandates` (type `depute`) : 565 mandats actifs pour 565 circonscriptions distinctes, contre 577 sièges. Les 12 manquantes sont des sièges vacants ou une lacune d'ingestion.
+- `mandates` (type `senateur`) : 350 mandats actifs pour 350 personnes, dont 183 débutés en 2026 pour 178 sièges renouvelés. Si le plafond légal est de 348, deux mandats sont périmés. `political_group` est vide pour 332 des 350 sénateurs.
+- `mandates` (type `eurodepute`) : 82 mandats actifs pour 81 sièges français, sans doublon de personne : un remplacement non clos ?
+- `mandates` : 34 parlementaires (11 députés, 23 sénateurs) ont un mandat de maire actif débuté entre le 15 et le 30 mars 2026, aucun maire délégué. Le cumul est interdit depuis 2017 : sans doute des mandats acquis aux municipales dont la date de fin n'est pas saisie.
+- `senatorial_elections` (2026) : le second tour annonce 26 sièges pour 14 départements, mais la base ne compte que 19 élus au second tour (159 au premier, 178 au total).
+- `parliamentary_activity` : `status` est vide pour les 17 367 questions écrites de l'Assemblée ; la réponse se déduit de `response_date`.
+
 ## Sources
 
 - `sources/madada.ts` : la classe de caractères `['']` contient deux apostrophes ASCII identiques, l'apostrophe typographique U+2019 n'est pas convertie ; la branche 301/302 est morte avec `fetch` (redirect: follow).
