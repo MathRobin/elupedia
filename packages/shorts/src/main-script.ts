@@ -7,6 +7,7 @@ import {
   createModelCall,
   generateScriptsForShorts,
 } from './generate-script.js';
+import { writeShortsFailureReport, writeShortsReport } from './report.js';
 
 const { values } = parseArgs({
   options: {
@@ -39,6 +40,7 @@ if (values.help) {
 
 if (!process.env.ANTHROPIC_API_KEY) {
   logger.error('ANTHROPIC_API_KEY manquante');
+  if (!values['dry-run']) writeShortsFailureReport('script');
   process.exit(1);
 }
 
@@ -52,9 +54,15 @@ generateScriptsForShorts(createDb(), createModelCall(new Anthropic()), {
     logger.info(
       `${generated.length} script(s) généré(s), ${failed.length} échec(s)${values['dry-run'] ? ' (dry-run : rien écrit)' : ''}`,
     );
+    if (!values['dry-run'])
+      writeShortsReport('script', {
+        done: generated.length,
+        failed: failed.length,
+      });
     process.exit(failed.length > 0 ? 1 : 0);
   })
   .catch((error) => {
     logger.error(`Génération des scripts échouée : ${error}`);
+    if (!values['dry-run']) writeShortsFailureReport('script');
     process.exit(1);
   });

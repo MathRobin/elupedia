@@ -233,7 +233,7 @@ Photos existantes (`mayor-photos`), coordonnées GPS déjà géocodées, `an_uid
 
 ### Fichiers annexes produits par l'ingestion
 
-- `packages/ingest/ingest-report*.json` : rapports de run (compteurs par étape), un par script planifié (`ingest-report-<script>.json`, `ingest-report.json` pour le run complet) ; la page Ingestions de l'admin en lit la date et le résultat, un script sans rapport y apparaît sans date
+- `packages/ingest/ingest-report*.json` : rapports de run (compteurs par étape), un par script planifié (`ingest-report-<script>.json`, `ingest-report.json` pour le run complet, `ingest-report-shorts-<étape>.json` pour les étapes shorts des DAGs `ingest-votes` et `publish-shorts`, non lus par `rebuild:site`) ; la page Ingestions de l'admin en lit la date et le résultat, un script sans rapport y apparaît sans date
 - `packages/ingest/madada-cache.json` : cache des réponses MaDaDa
 - `~/.elupedia/checkpoints/` : reprises des ingestions longues (maires, adresses mairies)
 - `data_provenance` : outre les provenances, sert de stockage de curseurs d'ingestion incrémentale (`source_table = 'europarl_questions_cursor'`, `'europarl_sittings'`)

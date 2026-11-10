@@ -2,6 +2,7 @@ import { parseArgs } from 'node:util';
 import { createDb } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { formatRanking, selectShortCandidates } from './select-candidates.js';
+import { writeShortsFailureReport, writeShortsReport } from './report.js';
 
 const { values } = parseArgs({
   options: {
@@ -51,9 +52,12 @@ selectShortCandidates(createDb(), {
     logger.info(
       `${created.length} candidat(s) créé(s)${values['dry-run'] ? ' (dry-run : rien écrit)' : ''}`,
     );
+    if (!values['dry-run'])
+      writeShortsReport('select', { done: created.length, failed: 0 });
     process.exit(0);
   })
   .catch((error) => {
     logger.error(`Sélection des shorts échouée : ${error}`);
+    if (!values['dry-run']) writeShortsFailureReport('select');
     process.exit(1);
   });
