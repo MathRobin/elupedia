@@ -13,15 +13,17 @@ import type { ShortScript } from './script-schema.js';
 
 export const MIN_TOTAL_SEC = 35;
 /**
- * Plafond des durées prévues par le script, sous la minute du short : la voix
- * synthétisée lit 1 à 3 s de plus que prévu par scène et le rendu s'allonge
- * d'autant (un script à 58 s prévues donnait des vidéos de 60 s).
+ * Plafond des durées prévues par le script. Un short vise environ une minute,
+ * et peut aller vers 1 min 30 quand le scrutin le demande (décision du
+ * 11/11/2026 : mieux vaut un short un peu long qu'un résultat tronqué). La
+ * voix synthétisée lit 1 à 3 s de plus que prévu par scène : 80 s prévues
+ * donnent une vidéo d'environ 1 min 30, sous MAX_VIDEO_SEC de render.ts.
  */
-export const MAX_TOTAL_SEC = 55;
+export const MAX_TOTAL_SEC = 80;
 /**
  * Débit de lecture maximal (mots/seconde) : celui de la voix réelle (débit
  * 0.95, environ 2,6 mots/s), sans quoi la voix déborde la durée prévue et la
- * vidéo dépasse la minute.
+ * vidéo s'allonge au-delà de ce que le script annonce.
  */
 export const MAX_WORDS_PER_SEC = 2.6;
 export const MAX_TITLE_LENGTH = 70;
