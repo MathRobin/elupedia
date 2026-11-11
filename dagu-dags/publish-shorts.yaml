@@ -14,7 +14,7 @@ env:
   - YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN}
 steps:
   - name: git-pull
-    command: git pull
+    command: flock /tmp/elupedia-git-pull.lock git pull
   - name: enable-corepack
     command: corepack enable
     depends:

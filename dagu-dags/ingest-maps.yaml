@@ -16,7 +16,7 @@ env:
   - AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
 steps:
   - name: git-pull
-    command: git pull
+    command: flock /tmp/elupedia-git-pull.lock git pull
   - name: enable-corepack
     command: corepack enable
     depends:
