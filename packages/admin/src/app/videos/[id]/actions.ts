@@ -5,7 +5,9 @@
  * publication YouTube avec contrôle de dérive des faits, et lancement des
  * commandes longues (make, script, voix, rendu) en tâches détachées
  * (lib/shorts-jobs.ts). La revue est ouverte aux modérateurs ; publier et
- * regénérer un script (dépense) sont réservés aux admins.
+ * regénérer un script (dépense) sont réservés aux admins. Publication et
+ * tâches exigent le disque de rendu : bloquées sur l'admin hébergée
+ * (lib/runtime.ts), la revue reste possible.
  */
 import { eq } from 'drizzle-orm';
 import { createDb, videoShorts } from '@elupedia/shared';
@@ -29,6 +31,7 @@ import {
   type ShortJobState,
 } from '@/lib/shorts-jobs';
 import { shortsOutputDir } from '@/lib/shorts-files';
+import { hasLocalMachine, NO_LOCAL_MACHINE_MESSAGE } from '@/lib/runtime';
 
 const db = createDb();
 
@@ -144,6 +147,7 @@ export async function publishPreview(id: string): Promise<PublishPreview> {
       blockers.push('les faits ont changé depuis le script');
     }
   }
+  if (!hasLocalMachine()) blockers.push(NO_LOCAL_MACHINE_MESSAGE);
   const configured = Boolean(
     process.env.YOUTUBE_CLIENT_ID &&
     process.env.YOUTUBE_CLIENT_SECRET &&
@@ -196,6 +200,8 @@ export async function publishShort(
 }
 
 export interface JobView {
+  /** false sur l'admin hébergée : pas de tâche lançable (lib/runtime.ts). */
+  available: boolean;
   state: ShortJobState | null;
   label: string | null;
   log: string;
@@ -205,6 +211,7 @@ export async function getShortJob(id: string): Promise<JobView> {
   await requireRole(['admin', 'moderator']);
   const state = await readShortJob(id);
   return {
+    available: hasLocalMachine(),
     state,
     label: state ? SHORT_JOBS[state.kind].label : null,
     log: await readShortJobLog(id),

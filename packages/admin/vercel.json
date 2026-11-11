@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "cd ../.. && node .yarn/releases/yarn-4.18.0.cjs install",
+  "buildCommand": "node scripts/next.mjs build --webpack",
+  "outputDirectory": ".next",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../shared ../shorts ../ingest ../../dagu-dags ../../yarn.lock ../../package.json"
+}

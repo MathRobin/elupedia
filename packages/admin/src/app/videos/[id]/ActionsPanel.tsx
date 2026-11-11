@@ -35,6 +35,7 @@ import {
   type PublishPreview,
 } from './actions';
 import type { ShortJobKind } from '@/lib/shorts-jobs';
+import { NO_LOCAL_MACHINE_MESSAGE } from '@/lib/runtime';
 
 interface Props {
   id: string;
@@ -233,33 +234,39 @@ export function ActionsPanel(props: Props) {
           <Text size="sm" fw={500} w={90} pt={4}>
             Pipeline
           </Text>
-          <Group gap="xs">
-            {JOB_BUTTONS.filter((b) => b.when(props)).map((b) => (
+          {job && !job.available ? (
+            <Text size="xs" c="dimmed" pt={6}>
+              {NO_LOCAL_MACHINE_MESSAGE}
+            </Text>
+          ) : (
+            <Group gap="xs">
+              {JOB_BUTTONS.filter((b) => b.when(props)).map((b) => (
+                <Button
+                  key={b.kind}
+                  size="xs"
+                  variant="light"
+                  disabled={busy || running}
+                  onClick={() =>
+                    run(() => launchShortJob(id, b.kind).then(setJob))
+                  }
+                >
+                  {b.label}
+                </Button>
+              ))}
               <Button
-                key={b.kind}
                 size="xs"
                 variant="light"
+                color="grape"
                 disabled={busy || running}
-                onClick={() =>
-                  run(() => launchShortJob(id, b.kind).then(setJob))
-                }
+                onClick={async () => {
+                  setEstimate(await rescriptCostEstimate(id));
+                  rescriptHandlers.open();
+                }}
               >
-                {b.label}
+                {hasScript ? 'Regénérer le script…' : 'Générer le script…'}
               </Button>
-            ))}
-            <Button
-              size="xs"
-              variant="light"
-              color="grape"
-              disabled={busy || running}
-              onClick={async () => {
-                setEstimate(await rescriptCostEstimate(id));
-                rescriptHandlers.open();
-              }}
-            >
-              {hasScript ? 'Regénérer le script…' : 'Générer le script…'}
-            </Button>
-          </Group>
+            </Group>
+          )}
         </Group>
 
         {job?.state ? (

@@ -3,6 +3,7 @@
 /** Tableau de bord des ingestions : DAGs planifiés et derniers rapports de run. */
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   Badge,
   Code,
   Loader,
@@ -63,6 +64,13 @@ export default function IngestionsPage() {
         fin. L&apos;état en direct de Dagu n&apos;est pas remonté (API locale
         authentifiée).
       </Text>
+      {data.reportsAvailable ? null : (
+        <Alert color="yellow">
+          Admin hébergée : les rapports de run sont écrits sur la machine
+          d&apos;ingestion et ne sont pas visibles ici. Seuls les DAGs du dépôt
+          sont listés.
+        </Alert>
+      )}
 
       <Paper withBorder p="md">
         <Title order={4} mb="sm">

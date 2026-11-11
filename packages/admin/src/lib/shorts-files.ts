@@ -3,12 +3,14 @@
  * vignette, texte d'accompagnement. Ils vivent sur la machine qui rend les
  * vidéos, dans `SHORTS_OUTPUT_DIR` (absolu, ou relatif à packages/shorts),
  * sinon dans `packages/shorts/out`, sous la racine donnée par repo-root.ts.
- * L'admin les lit directement : elle tourne sur la même machine. Utilisé par les actions de /videos et par la route
+ * L'admin les lit directement quand elle tourne sur la même machine ; hébergée
+ * sur Vercel (lib/runtime.ts), aucun fichier n'est vu. Utilisé par les actions de /videos et par la route
  * /api/videos/[id]/[file] qui les sert au navigateur.
  */
 import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { repoRoot } from './repo-root';
+import { hasLocalMachine } from './runtime';
 
 export const SHORT_FILES = {
   'short.mp4': 'video/mp4',
@@ -38,6 +40,7 @@ export async function shortFileExists(
   shortId: string,
   file: ShortFileName,
 ): Promise<boolean> {
+  if (!hasLocalMachine()) return false;
   const p = shortFilePath(shortId, file);
   if (!p) return false;
   try {

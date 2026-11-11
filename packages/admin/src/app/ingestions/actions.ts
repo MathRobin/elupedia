@@ -9,13 +9,16 @@
  * le disque de la machine qui exécute les ingestions, donc celle de l'admin.
  * L'API Dagu locale exige une authentification qui n'est pas configurée ici :
  * l'état « en cours / échoué » de Dagu n'est pas remonté, seuls les rapports
- * le sont.
+ * le sont. Sur l'admin hébergée (lib/runtime.ts), les DAGs sont lus dans les
+ * fichiers embarqués au build (outputFileTracingIncludes de next.config.ts)
+ * mais les rapports, écrits sur la machine d'ingestion, sont absents.
  */
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { load as loadYaml } from 'js-yaml';
 import { auth } from '@/lib/auth';
 import { repoRoot } from '@/lib/shorts-jobs';
+import { hasLocalMachine } from '@/lib/runtime';
 
 async function requireAuthenticatedUser() {
   const session = await auth();
@@ -51,6 +54,8 @@ export interface IngestionsDashboard {
   reports: ReportInfo[];
   reportsDir: string;
   dagsDir: string;
+  /** false sur l'admin hébergée : rapports de run non disponibles. */
+  reportsAvailable: boolean;
 }
 
 const DAYS = [
@@ -145,7 +150,9 @@ export async function loadIngestionsDashboard(): Promise<IngestionsDashboard> {
   }
 
   const reports: ReportInfo[] = [];
-  for (const file of (await readdir(reportsDir))
+  const reportsAvailable = hasLocalMachine();
+  const reportFiles = reportsAvailable ? await readdir(reportsDir) : [];
+  for (const file of reportFiles
     .filter((f) => /^ingest-report.*\.json$/.test(f))
     .sort()) {
     try {
@@ -169,5 +176,5 @@ export async function loadIngestionsDashboard(): Promise<IngestionsDashboard> {
       // rapport illisible : ignoré
     }
   }
-  return { dags, reports, reportsDir, dagsDir };
+  return { dags, reports, reportsDir, dagsDir, reportsAvailable };
 }
