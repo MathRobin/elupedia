@@ -175,7 +175,10 @@ yarn --cwd packages/ingest check:coherence               # contrôles métier, l
 yarn --cwd packages/ingest merge:duplicate-officials     # dry-run : fiches AN/Sénat en doublon (même nom + naissance)
 yarn --cwd packages/ingest merge:duplicate-officials --apply   # fusionne : garde la fiche Sénat, supprime la fiche AN
 yarn --cwd packages/ingest rebuild:site --report ingest-report-an.json   # appelle le Deploy Hook Vercel si le rapport a des changements
+yarn --cwd packages/ingest debug:group-directories       # valide la config des annuaires de groupes (src/config/group-directories.ts) et liste les sources activées ; lecture seule, sans réseau
 ```
+
+La config `src/config/group-directories.ts` (ticket #274) décrit, par groupe parlementaire, l'URL de l'annuaire et les sélecteurs CSS des réseaux sociaux. Elle contient 8 groupes vérifiés sur la page de groupe (RN, EPR, SOC, DR, Dem, HOR, LIOT, UDR) ; LFI-NFP, EcoS, GDR et les non-inscrits n'ont pas de liste de membres exploitable et sont absents. Aucune étape d'ingestion ne la lit encore.
 
 `merge:duplicate-officials` corrige un héritage : avant le rapprochement nom + prénom + date de naissance entre sources, un sénateur décrit à la fois par l'open data Sénat et par le jeu AMO30 de l'AN recevait deux fiches. La fiche Sénat est conservée ; elle reçoit l'`an_id`, les champs qu'elle n'avait pas et toutes les lignes dépendantes de la fiche AN, sauf celles qu'elle possède déjà (même clé naturelle par table, voir `NATURAL_KEYS` dans `src/merge-duplicate-officials.ts`). Le slug de la fiche AN disparaît.
 
