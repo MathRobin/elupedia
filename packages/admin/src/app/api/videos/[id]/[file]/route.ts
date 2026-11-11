@@ -4,6 +4,7 @@
  * détail de l'admin. Noms de fichiers sur liste blanche, identifiant UUID
  * exigé ; la session est vérifiée ici en plus du middleware. Les requêtes
  * `Range` sont honorées pour que la lecture vidéo puisse se positionner.
+ * 404 sur l'admin hébergée (lib/runtime.ts) : pas de disque de rendu.
  */
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
@@ -14,6 +15,7 @@ import {
   shortFilePath,
   type ShortFileName,
 } from '@/lib/shorts-files';
+import { hasLocalMachine } from '@/lib/runtime';
 
 export const runtime = 'nodejs';
 
@@ -23,6 +25,10 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user) return new Response('Unauthorized', { status: 401 });
+  if (!hasLocalMachine())
+    return new Response('Fichiers des shorts absents de cet hébergement', {
+      status: 404,
+    });
 
   const { id, file } = await context.params;
   const filePath = shortFilePath(id, file);

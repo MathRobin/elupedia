@@ -193,6 +193,12 @@ Le site est déployé sur Vercel. Chaque push sur `main` déclenche un rebuild. 
 - Analytics : Vercel Web Analytics (`@vercel/analytics`, cookieless, injecté dans le layout)
 - Chaîne ingestion → rebuild : chaque DAG Dagu termine par `yarn --cwd packages/ingest rebuild:site --report <rapports>` (`utils/deploy-hook.ts`), qui appelle le Deploy Hook Vercel (`VERCEL_DEPLOY_HOOK_URL`) si un rapport de run a `hasChanges`, au plus une fois par 20 min (état dans `packages/ingest/.rebuild-site-state.json`). Sans ce déclencheur, les pages statiques ne se rafraîchiraient qu'au merge suivant
 
+#### Admin (`packages/admin`, admin.elupedia.fr)
+
+Projet Vercel distinct, racine `packages/admin`, configuration `packages/admin/vercel.json` (installation depuis la racine du monorepo, `next build --webpack`, `ignoreCommand` qui saute le build si ni l'admin ni ses workspaces n'ont changé). Pas de migration au build : elle reste au projet du site. `next.config.ts` trace depuis la racine du monorepo, embarque `dagu-dags/*.yaml` et envoie `X-Robots-Tag: noindex`.
+
+Hébergée, l'admin n'a ni le disque de la machine d'ingestion et de rendu, ni processus longs (`lib/runtime.ts`, `VERCEL` ou `ADMIN_LOCAL_MACHINE=0`) : la page Ingestions ne liste que les DAGs (pas les rapports de run), et sur /videos la revue fonctionne mais les fichiers (vidéo, vignette), les tâches du pipeline et la publication YouTube sont désactivés, à faire depuis la machine de rendu. Étapes de mise en place : `docs/ADMIN-VERCEL.md`.
+
 ## Guide de lecture du code
 
 Cette section résume les conventions qu'il faut connaître avant de plonger dans le code. Chaque fichier source porte en plus un commentaire d'en-tête (rôle, source des données, appelants, pièges).

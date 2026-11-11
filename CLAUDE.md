@@ -128,3 +128,4 @@ La documentation se trouve dans `docs/` :
 - `INGEST.md` — scripts d'ingestion et leurs options
 - `INGESTION-SCHEDULE.md` — calendrier des DAGs Dagu d'ingestion
 - `KNOWN-ISSUES.md` — anomalies et dettes connues
+- `ADMIN-VERCEL.md` — hébergement de l'admin sur Vercel (admin.elupedia.fr), todolist de mise en place

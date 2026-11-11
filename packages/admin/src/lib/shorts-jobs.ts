@@ -13,6 +13,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { shortsOutputDir } from './shorts-files';
 import { repoRoot } from './repo-root';
+import { hasLocalMachine, NO_LOCAL_MACHINE_MESSAGE } from './runtime';
 
 export { repoRoot };
 
@@ -72,6 +73,7 @@ function jobsDir(shortId: string): string {
 export async function readShortJob(
   shortId: string,
 ): Promise<ShortJobState | null> {
+  if (!hasLocalMachine()) return null;
   try {
     const raw = await readFile(
       path.join(jobsDir(shortId), 'current.json'),
@@ -113,6 +115,7 @@ export async function startShortJob(
   shortId: string,
   kind: ShortJobKind,
 ): Promise<ShortJobState> {
+  if (!hasLocalMachine()) throw new Error(NO_LOCAL_MACHINE_MESSAGE);
   if (!UUID.test(shortId)) throw new Error('Identifiant invalide');
   const job = SHORT_JOBS[kind];
   if (!job) throw new Error('Commande inconnue');
