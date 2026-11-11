@@ -34,6 +34,7 @@
     "ingest:wikipedia": "tsx --env-file-if-exists=../../.env src/main-wikipedia.ts",
     "reconcile": "tsx --env-file-if-exists=../../.env src/main-reconcile.ts",
     "reconcile:decorations": "tsx --env-file-if-exists=../../.env src/main-reconcile-decorations.ts",
+    "debug:group-directories": "tsx src/main-group-directories.ts",
     "dedupe:committees": "tsx --env-file-if-exists=../../.env src/main-dedupe-committees.ts",
     "check:coherence": "tsx --env-file-if-exists=../../.env src/main-check-coherence.ts",
     "merge:duplicate-officials": "tsx --env-file-if-exists=../../.env src/main-merge-duplicate-officials.ts",
