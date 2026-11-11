@@ -1,7 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { buildBallotFacts, type ShortFacts } from './script-facts.js';
 import type { ShortScript } from './script-schema.js';
-import { generateScript, type ModelCall } from './generate-script.js';
+import Anthropic, { AnthropicError } from '@anthropic-ai/sdk';
+import {
+  createModelCall,
+  generateScript,
+  MAX_OUTPUT_TOKENS,
+  type ModelCall,
+} from './generate-script.js';
 
 vi.mock('./logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -139,5 +145,54 @@ describe('generateScript', () => {
     expect(outcome.ok).toBe(false);
     expect(fn.calls).toBe(1);
     if (!outcome.ok) expect(outcome.reason).toContain('refus');
+  });
+});
+
+describe('createModelCall', () => {
+  const clientWith = (parse: (...args: unknown[]) => unknown) =>
+    ({ beta: { messages: { parse } } }) as unknown as Anthropic;
+
+  it('leaves room for thinking plus the JSON script', async () => {
+    const parse = vi.fn().mockResolvedValue({
+      parsed_output: good,
+      content: [],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 10, output_tokens: 20 },
+    });
+    const r = await createModelCall(clientWith(parse))([], 'm');
+    expect(parse.mock.calls[0][0]).toMatchObject({
+      max_tokens: MAX_OUTPUT_TOKENS,
+    });
+    expect(MAX_OUTPUT_TOKENS).toBeGreaterThanOrEqual(16000);
+    expect(r.script).toEqual(good);
+  });
+
+  it('turns an unreadable (truncated) JSON output into a per-short failure', async () => {
+    const parse = vi
+      .fn()
+      .mockRejectedValue(
+        new AnthropicError(
+          'Failed to parse structured output: Unterminated string in JSON',
+        ),
+      );
+    const r = await createModelCall(clientWith(parse))([], 'm');
+    expect(r.script).toBeNull();
+    expect(r.stopReason).toMatch(/illisible/);
+    const outcome = await generateScript(
+      facts,
+      createModelCall(clientWith(parse)),
+    );
+    expect(outcome.ok).toBe(false);
+  });
+
+  it('rethrows API errors', async () => {
+    const parse = vi
+      .fn()
+      .mockRejectedValue(
+        new Anthropic.APIError(500, undefined, 'boom', new Headers()),
+      );
+    await expect(createModelCall(clientWith(parse))([], 'm')).rejects.toThrow(
+      'boom',
+    );
   });
 });
