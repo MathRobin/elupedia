@@ -6,9 +6,16 @@
  * Aucun appel réseau ici : ce module décrit les sources (URL et sélecteurs
  * CSS) et les valide. Le scraping qui les consommera est un ticket à part.
  *
- * Source des valeurs : tableau d'inventaire produit à la main dans le ticket
- * #273 (M25T1). Tant que ce tableau n'est pas posté, `GROUP_DIRECTORY_SOURCES`
- * reste vide : aucune source n'est exploitable.
+ * Source des valeurs : URL des pages de groupes issues du tableau du ticket
+ * #273 (M25T1). Les sélecteurs ont été relevés dans le DOM réel des pages
+ * www2.assemblee-nationale.fr/17/les-groupes-politiques/… (liste des membres)
+ * et de la fiche député (liens sociaux), le 11/11/2026.
+ *
+ * Groupes non inclus faute de liste exploitable sur la page de groupe (aucun
+ * `li[data-acteur-id]` trouvé) : LFI-NFP, EcoS, GDR, députés non inscrits.
+ * Structure à relever à part avant de les ajouter.
+ *
+ * Pas de robots.txt sur www2.assemblee-nationale.fr (404) à cette date.
  *
  * Appelé par : main-group-directories.ts (affichage de debug, validation).
  *
@@ -39,11 +46,107 @@ export interface GroupDirectorySource {
   enabled: boolean;
 }
 
-/**
- * Entrées à compléter depuis le tableau du ticket #273. Vide tant qu'il
- * n'est pas posté.
- */
-export const GROUP_DIRECTORY_SOURCES: GroupDirectorySource[] = [];
+const GROUP_PAGE_BASE =
+  'https://www2.assemblee-nationale.fr/17/les-groupes-politiques/';
+
+/** Liste des membres : un `li[data-acteur-id]` par député. */
+const MEMBER_ITEM_SELECTOR = 'li[data-acteur-id]';
+/** Nom du député, lien vers sa fiche. */
+const MEMBER_NAME_SELECTOR = 'a.instance-composition-nom';
+/** Liens du député sur la fiche (bloc « button-list _vertical », hors menu AN). */
+const FICHE_SOCIAL_SELECTOR = 'ul.button-list._vertical a';
+
+/** Entrées vérifiées sur la page du groupe (voir en-tête). */
+export const GROUP_DIRECTORY_SOURCES: GroupDirectorySource[] = [
+  {
+    groupCode: 'RN',
+    groupName: 'Rassemblement National',
+    listUrl: `${GROUP_PAGE_BASE}rassemblement-national`,
+    listItemSelector: MEMBER_ITEM_SELECTOR,
+    nameSelector: MEMBER_NAME_SELECTOR,
+    socialLinkSelector: FICHE_SOCIAL_SELECTOR,
+    followsToDetailPage: true,
+    detailLinkSelector: MEMBER_NAME_SELECTOR,
+    enabled: true,
+  },
+  {
+    groupCode: 'EPR',
+    groupName: 'Ensemble pour la République',
+    listUrl: `${GROUP_PAGE_BASE}ensemble-pour-la-republique`,
+    listItemSelector: MEMBER_ITEM_SELECTOR,
+    nameSelector: MEMBER_NAME_SELECTOR,
+    socialLinkSelector: FICHE_SOCIAL_SELECTOR,
+    followsToDetailPage: true,
+    detailLinkSelector: MEMBER_NAME_SELECTOR,
+    enabled: true,
+  },
+  {
+    groupCode: 'SOC',
+    groupName: 'Socialistes et apparentés',
+    listUrl: `${GROUP_PAGE_BASE}socialistes-et-apparentes`,
+    listItemSelector: MEMBER_ITEM_SELECTOR,
+    nameSelector: MEMBER_NAME_SELECTOR,
+    socialLinkSelector: FICHE_SOCIAL_SELECTOR,
+    followsToDetailPage: true,
+    detailLinkSelector: MEMBER_NAME_SELECTOR,
+    enabled: true,
+  },
+  {
+    groupCode: 'DR',
+    groupName: 'Droite Républicaine',
+    listUrl: `${GROUP_PAGE_BASE}droite-republicaine`,
+    listItemSelector: MEMBER_ITEM_SELECTOR,
+    nameSelector: MEMBER_NAME_SELECTOR,
+    socialLinkSelector: FICHE_SOCIAL_SELECTOR,
+    followsToDetailPage: true,
+    detailLinkSelector: MEMBER_NAME_SELECTOR,
+    enabled: true,
+  },
+  {
+    groupCode: 'Dem',
+    groupName: 'Les Démocrates',
+    listUrl: `${GROUP_PAGE_BASE}les-democrates`,
+    listItemSelector: MEMBER_ITEM_SELECTOR,
+    nameSelector: MEMBER_NAME_SELECTOR,
+    socialLinkSelector: FICHE_SOCIAL_SELECTOR,
+    followsToDetailPage: true,
+    detailLinkSelector: MEMBER_NAME_SELECTOR,
+    enabled: true,
+  },
+  {
+    groupCode: 'HOR',
+    groupName: 'Horizons & Indépendants',
+    listUrl: `${GROUP_PAGE_BASE}horizons-independants`,
+    listItemSelector: MEMBER_ITEM_SELECTOR,
+    nameSelector: MEMBER_NAME_SELECTOR,
+    socialLinkSelector: FICHE_SOCIAL_SELECTOR,
+    followsToDetailPage: true,
+    detailLinkSelector: MEMBER_NAME_SELECTOR,
+    enabled: true,
+  },
+  {
+    groupCode: 'LIOT',
+    groupName: 'Libertés, Indépendants, Outre-mer et Territoires',
+    listUrl: `${GROUP_PAGE_BASE}libertes-independants-outre-mer-et-territoires`,
+    listItemSelector: MEMBER_ITEM_SELECTOR,
+    nameSelector: MEMBER_NAME_SELECTOR,
+    socialLinkSelector: FICHE_SOCIAL_SELECTOR,
+    followsToDetailPage: true,
+    detailLinkSelector: MEMBER_NAME_SELECTOR,
+    enabled: true,
+  },
+  {
+    groupCode: 'UDR',
+    groupName: 'Union des droites pour la République',
+    listUrl: `${GROUP_PAGE_BASE}union-des-droites-pour-la-republique`,
+    listItemSelector: MEMBER_ITEM_SELECTOR,
+    nameSelector: MEMBER_NAME_SELECTOR,
+    socialLinkSelector: FICHE_SOCIAL_SELECTOR,
+    followsToDetailPage: true,
+    detailLinkSelector: MEMBER_NAME_SELECTOR,
+    enabled: true,
+  },
+];
 
 const SELECTOR_FIELDS = [
   'listItemSelector',
