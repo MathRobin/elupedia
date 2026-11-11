@@ -211,7 +211,7 @@ describe('validateScript', () => {
 
     const tooLong = script();
     tooLong.scenes = [
-      ...tooLong.scenes.map((sc) => ({ ...sc, durationSec: 15 })),
+      ...tooLong.scenes.map((sc) => ({ ...sc, durationSec: 20 })),
       { ...tooLong.scenes[1], id: 's5', durationSec: 5 },
     ];
     expect(validateScript(tooLong, facts).map((i) => i.code)).toContain(

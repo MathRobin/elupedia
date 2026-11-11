@@ -32,12 +32,14 @@ import type { ShortScript } from './script-schema.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Durée visée d'un short. Le script est plafonné plus bas (MAX_TOTAL_SEC,
- * 55 s) mais la voix lit plus lentement que prévu et chaque scène prend une
- * respiration : au-delà, on avertit sans bloquer (YouTube accepte jusqu'à
- * 3 min), la correction étant un nouveau script (`make <id> --rescript`).
+ * Durée au-delà de laquelle un short est signalé. La cible est environ une
+ * minute, et un dépassement jusqu'à 1 min 30 est admis quand le scrutin le
+ * demande. Le script est plafonné plus bas (MAX_TOTAL_SEC, 80 s), mais la
+ * voix lit plus lentement que prévu et chaque scène prend une respiration.
+ * Au-delà, on avertit sans bloquer (YouTube accepte jusqu'à 3 min) ; la
+ * correction est un nouveau script (`make <id> --rescript`).
  */
-export const MAX_VIDEO_SEC = 60;
+export const MAX_VIDEO_SEC = 90;
 
 export function overrunWarning(
   shortId: string,

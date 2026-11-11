@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { buildDescription } from '../description.js';
-import { validateScript } from '../script-validate.js';
+import {
+  MAX_TOTAL_SEC,
+  MIN_TOTAL_SEC,
+  validateScript,
+} from '../script-validate.js';
 import {
   buildStaffersFacts,
   staffersScript,
@@ -80,8 +84,8 @@ describe('staffersScript', () => {
 
   it('fits a short and ends on the source scene', () => {
     const total = script.scenes.reduce((s, sc) => s + sc.durationSec, 0);
-    expect(total).toBeGreaterThanOrEqual(35);
-    expect(total).toBeLessThanOrEqual(55);
+    expect(total).toBeGreaterThanOrEqual(MIN_TOTAL_SEC);
+    expect(total).toBeLessThanOrEqual(MAX_TOTAL_SEC);
     expect(script.scenes.at(-1)?.visual).toBe('source');
     expect(script.scenes.filter((s) => s.visual === 'chart')).toHaveLength(2);
     expect(script.scenes.map((s) => s.chart)).toEqual([
