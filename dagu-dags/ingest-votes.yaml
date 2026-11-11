@@ -21,7 +21,7 @@ env:
   - SHORTS_OUTPUT_DIR: ${SHORTS_OUTPUT_DIR}
 steps:
   - name: git-pull
-    command: git pull
+    command: flock /tmp/elupedia-git-pull.lock git pull
   - name: enable-corepack
     command: corepack enable
     depends:
