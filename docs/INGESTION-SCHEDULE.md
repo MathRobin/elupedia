@@ -29,11 +29,13 @@ Puis `sudo systemctl restart dagu`, et vérifier avec `DAGU_HOME=/var/lib/dagu d
 (les 24 DAGs doivent apparaître). Lancement manuel : `DAGU_HOME=/var/lib/dagu dagu start
 ingest-photos` ; suivi : `dagu status ingest-photos`, `journalctl -u dagu -f`, logs par
 étape dans `/var/lib/dagu/logs/dags/<nom>/`. Le checkout `/usr/airporting/elupedia` doit
-rester sur `main` et propre (chaque DAG commence par `git pull`).
-Le `git pull` est protégé par `flock /tmp/elupedia-git-pull.lock` : deux DAGs lancés à la
-même minute (ex. `publish-shorts` et `ingest-votes` à 17:00) écrivaient en même temps
-dans `.git/FETCH_HEAD` et échouaient avec « Impossible de rebaser sur de multiples
-branches ».
+rester sur `main` et propre (chaque DAG commence par la synchronisation avec `origin/main`).
+Cette synchronisation est `git fetch --no-write-fetch-head origin main` puis
+`git merge --ff-only origin/main`, protégée par `flock /tmp/elupedia-git-pull.lock`.
+Elle n'écrit pas `.git/FETCH_HEAD` : `git pull` le lisait, et deux fetchs concurrents
+(deux DAGs à la même minute, ex. `publish-shorts` et `ingest-votes` à 17:00, ou un
+`git pull` manuel) échouaient avec « Impossible de rebaser sur de multiples
+branches ». Un checkout local divergent fait échouer l'étape au lieu d'être réécrit.
 
 Convention des fichiers : `name` est le slug du fichier (Dagu 2 n'accepte que
 `[A-Za-z0-9._-]`), le libellé lisible est dans `description` (affiché par l'admin).

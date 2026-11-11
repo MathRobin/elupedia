@@ -21,7 +21,7 @@ env:
   - SHORTS_OUTPUT_DIR: ${SHORTS_OUTPUT_DIR}
 steps:
   - name: git-pull
-    command: flock /tmp/elupedia-git-pull.lock git pull
+    command: flock /tmp/elupedia-git-pull.lock sh -c 'git fetch --no-write-fetch-head origin main && git merge --ff-only origin/main'
   - name: enable-corepack
     command: corepack enable
     depends:
