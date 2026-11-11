@@ -13,11 +13,20 @@ import { validateScript, type ValidationIssue } from './script-validate.js';
  * la base (`script-facts.ts`), puis validation mécanique (`script-validate.ts`).
  * En cas d'écart, une seconde passe renvoie les problèmes au modèle (historique
  * conservé tel quel, ajout en fin seulement). Au-delà, le short est laissé en
- * `candidate` avec les problèmes dans `notes` pour relecture humaine.
+ * `candidate` avec les problèmes dans `notes` pour relecture humaine. Une
+ * sortie JSON illisible (tronquée au plafond de tokens) fait échouer le short
+ * concerné seulement ; une erreur d'API arrête le lot.
  */
 
 export const DEFAULT_MODEL = 'claude-opus-5-5';
 export const MAX_ATTEMPTS = 2;
+/**
+ * Plafond de sortie par appel. La réflexion (toujours active, effort high)
+ * compte dans ce plafond : à 8000, elle en mangeait l'essentiel et le JSON du
+ * script sortait tronqué. 16000 reste sous la limite des appels non streamés
+ * du SDK.
+ */
+export const MAX_OUTPUT_TOKENS = 16000;
 
 /**
  * Système figé (mis en cache côté API) : ligne éditoriale et format. Les faits
@@ -80,24 +89,21 @@ export interface ModelCall {
 
 export function createModelCall(client: Anthropic): ModelCall {
   return async (messages, model) => {
-    const response = await client.beta.messages.parse({
-      model,
-      max_tokens: 8000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: {
-        effort: 'high',
-        format: zodOutputFormat(shortScriptSchema),
-      },
-      system: [
-        {
-          type: 'text',
-          text: SYSTEM_PROMPT,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages,
-    });
+    let response;
+    try {
+      response = await parseCall(client, messages, model);
+    } catch (error) {
+      // Erreur d'API (réseau, quota, 5xx…) : remontée telle quelle. Sinon, c'est
+      // le SDK qui n'a pas pu lire le JSON (sortie tronquée au plafond) : le
+      // short échoue seul, avec le motif dans ses notes, sans arrêter le lot.
+      if (error instanceof Anthropic.APIError) throw error;
+      return {
+        script: null,
+        content: [],
+        stopReason: `sortie JSON illisible, probablement tronquée : ${error instanceof Error ? error.message : String(error)}`,
+        usage: { inputTokens: 0, outputTokens: 0 },
+      };
+    }
     return {
       script: response.parsed_output ?? null,
       content: response.content,
@@ -108,6 +114,31 @@ export function createModelCall(client: Anthropic): ModelCall {
       },
     };
   };
+}
+
+function parseCall(
+  client: Anthropic,
+  messages: Anthropic.Beta.BetaMessageParam[],
+  model: string,
+) {
+  return client.beta.messages.parse({
+    model,
+    max_tokens: MAX_OUTPUT_TOKENS,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    output_config: {
+      effort: 'high',
+      format: zodOutputFormat(shortScriptSchema),
+    },
+    system: [
+      {
+        type: 'text',
+        text: SYSTEM_PROMPT,
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages,
+  });
 }
 
 export function factsMessage(facts: ShortFacts): string {
