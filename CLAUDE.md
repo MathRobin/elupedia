@@ -15,7 +15,7 @@ Encyclopédie ouverte des élus français.
 ```
 elupedia/
 ├── packages/
-│   ├── admin/     # Interface d'administration (Next.js + Auth.js + Mantine, port 3001) : modération des liens, fiches et doublons d'élus, rattachements, ingestions, cohérence, comptes, vidéos (revue, publication, pipeline)
+│   ├── admin/     # Interface d'administration (Next.js + Auth.js + Mantine, port 3001) : modération des liens, fiches et doublons d'élus, rattachements, ingestions, journaux Dagu (runs et sorties par étape), cohérence, comptes, vidéos (revue, publication, pipeline)
 │   ├── shared/    # Types, helpers et schéma DB partagés
 │   ├── ingest/    # Scripts de collecte de données (APIs ouvertes)
 │   ├── shorts/    # Pipeline de shorts vidéo (sélection, script LLM, voix off ElevenLabs ou enregistrée, rendu Remotion, puis publication)
