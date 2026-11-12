@@ -75,6 +75,23 @@ describe('Outils d’administration (actions sur les shorts, ingestions, cohére
     expect(src).toContain('ingest-report-');
   });
 
+  it('le déclenchement manuel d’un DAG passe par scripts/trigger-dag.sh, réservé aux admins', () => {
+    const actions = read('src/app/ingestions/actions.ts');
+    expect(actions).toContain('triggerDagAction');
+    expect(actions).toMatch(/role !== 'admin'/);
+    const lib = read('src/lib/dag-trigger.ts');
+    expect(lib).toContain('trigger-dag.sh');
+    expect(lib).toContain('execFile');
+    expect(lib).not.toMatch(/exec\(|execSync\(/);
+    expect(read('src/app/ingestions/page.tsx')).toContain('Lancer');
+    const script = readFileSync(
+      resolve(root, 'scripts/trigger-dag.sh'),
+      'utf-8',
+    );
+    expect(script).toContain('dagu');
+    expect(script).toContain('enqueue');
+  });
+
   it('la cohérence réutilise le contrôle du paquet ingest', () => {
     expect(read('src/app/coherence/actions.ts')).toContain('checkCoherence');
   });
