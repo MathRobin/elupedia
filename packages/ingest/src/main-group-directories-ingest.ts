@@ -60,8 +60,8 @@ for (const s of summaries) {
       `(${s.exact} exact, ${s.probable} probable), taux ${rate}, ` +
       `${s.pagesFetched} fiche(s), ${s.linksFound} lien(s) trouvé(s)` +
       (dryRun
-        ? `, ${s.wouldCreate} créé(s) en écriture`
-        : `, ${s.created} créé(s), ${s.skipped} ignoré(s)`) +
+        ? `, ${s.wouldCreate} écriture(s) prévue(s)`
+        : `, ${s.created} créé(s), ${s.replaced} remplacé(s), ${s.skipped} ignoré(s)`) +
       (s.error ? ` — ERREUR : ${s.error}` : ''),
   );
 }

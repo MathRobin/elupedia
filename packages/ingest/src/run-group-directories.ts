@@ -60,6 +60,8 @@ export interface GroupRunSummary {
   pagesFetched: number;
   linksFound: number;
   created: number;
+  /** Liens existants remplacés par une source plus prioritaire (#278). */
+  replaced: number;
   skipped: number;
   /** Plan seulement, en dry-run : liens qui seraient créés. */
   wouldCreate: number;
@@ -82,6 +84,7 @@ function emptySummary(
     pagesFetched: 0,
     linksFound: 0,
     created: 0,
+    replaced: 0,
     skipped: 0,
     wouldCreate: 0,
   };
@@ -220,7 +223,7 @@ async function applyLinks(
   if (deps.dryRun) {
     const existing = await deps.store.listExisting(officialId);
     summary.wouldCreate += planLinkWrites(existing, links).filter(
-      (item) => item.action === 'insert',
+      (item) => item.action !== 'skip',
     ).length;
     return;
   }
@@ -232,5 +235,6 @@ async function applyLinks(
     provenance,
   );
   summary.created += result.created;
+  summary.replaced += result.replaced;
   summary.skipped += result.skipped;
 }

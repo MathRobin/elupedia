@@ -10,9 +10,12 @@
  * - plateforme déjà présente avec la même URL canonique → ignoré (idempotence) ;
  * - plateforme déjà présente avec `rejected` ou `deleted`, quelle que soit
  *   l'URL → jamais réinséré (anti-resurgence) ;
- * - plateforme déjà présente (autre source ou autre compte) → ignoré pour
- *   l'instant ; la priorité entre sources arrive avec #278 ;
- * - sinon → inséré en `pending`.
+ * - plateforme déjà présente avec une autre URL : la priorité des sources
+ *   tranche (link-source-priority.ts). Si l'annuaire est plus prioritaire que
+ *   le lien existant (pending ou published), le lien existant est remplacé
+ *   et repasse en `pending` ; sinon (ou égalité) le candidat est ignoré et
+ *   le lien existant est conservé ;
+ * - plateforme absente → inséré en `pending`.
  *
  * Le plan ne lit ni n'écrit rien. `upsertGroupDirectoryLinks` applique le plan
  * via un `LinkStore` ; `drizzleLinkStore` est l'implémentation base. Les tests
@@ -26,8 +29,15 @@ import {
   normalizeExternalLinkUrl,
 } from '@elupedia/shared';
 import { writeProvenance } from './provenance.js';
+import {
+  compareLinkSources,
+  linkSourcePriority,
+} from '../link-source-priority.js';
 
 export const GROUP_DIRECTORY_LINK_SOURCE = 'group_directory';
+
+/** Statuts qu'un lien d'une source moins prioritaire peut remplacer. */
+const REPLACEABLE_STATUSES = new Set(['pending', 'published']);
 
 /** Platformes du site : le scraper dit « x », la table et le site disent « twitter ». */
 export function toDbPlatform(platform: string): string {
@@ -59,17 +69,20 @@ export interface GroupDirectoryProvenance {
 
 export type PlannedWrite =
   | { action: 'insert'; link: CandidateLink }
+  | { action: 'replace'; existingId: string; link: CandidateLink }
   | { action: 'skip'; link: CandidateLink; reason: string };
 
 const CLOSED_STATUSES = new Set(['rejected', 'deleted']);
 
 /**
  * Décide, pour chaque lien candidat, ce qu'il faut écrire. Fonction pure.
- * Un même lot ne peut insérer qu'une fois par plateforme.
+ * Un même lot ne peut écrire qu'une fois par plateforme.
+ * `candidateSource` : source du lot (par défaut l'annuaire de groupe).
  */
 export function planLinkWrites(
   existing: ExistingLink[],
   candidates: CandidateLink[],
+  candidateSource: string = GROUP_DIRECTORY_LINK_SOURCE,
 ): PlannedWrite[] {
   const plannedPlatforms = new Set<string>();
   const plan: PlannedWrite[] = [];
@@ -99,15 +112,48 @@ export function planLinkWrites(
       samePlatform.some((row) => externalLinkComparisonKey(row.url) === key)
     ) {
       plan.push({ action: 'skip', link, reason: 'lien déjà présent' });
-    } else if (samePlatform.length > 0) {
-      plan.push({
-        action: 'skip',
-        link,
-        reason: 'plateforme déjà renseignée par une autre source',
-      });
-    } else {
+    } else if (samePlatform.length === 0) {
       plan.push({ action: 'insert', link });
       plannedPlatforms.add(link.platform);
+    } else {
+      // Conflit : même plateforme, autre URL. La source la plus prioritaire
+      // gagne ; le lien le plus prioritaire déjà présent sert de référence.
+      const replaceable = samePlatform.filter((row) =>
+        REPLACEABLE_STATUSES.has(row.status),
+      );
+      const top = replaceable.reduce<ExistingLink | null>(
+        (best, row) =>
+          best === null ||
+          linkSourcePriority(row.source) > linkSourcePriority(best.source)
+            ? row
+            : best,
+        null,
+      );
+      if (top === null) {
+        plan.push({
+          action: 'skip',
+          link,
+          reason: 'plateforme occupée sans lien remplaçable',
+        });
+        continue;
+      }
+      const outcome = compareLinkSources(top.source, candidateSource);
+      if (outcome === 'candidate_wins') {
+        plan.push({ action: 'replace', existingId: top.id, link });
+        plannedPlatforms.add(link.platform);
+      } else if (outcome === 'existing_wins') {
+        plan.push({
+          action: 'skip',
+          link,
+          reason: `source existante plus prioritaire (${top.source}), valeur conservée`,
+        });
+      } else {
+        plan.push({
+          action: 'skip',
+          link,
+          reason: `égalité de priorité avec ${top.source}, valeur conservée`,
+        });
+      }
     }
   }
   return plan;
@@ -121,6 +167,12 @@ export interface LinkStore {
     link: CandidateLink,
     capturedAt: string,
   ): Promise<string>;
+  /** Remplace URL et source d'un lien existant, qui repasse en `pending`. */
+  replacePending(
+    existingId: string,
+    link: CandidateLink,
+    capturedAt: string,
+  ): Promise<void>;
   writeProvenance(
     linkId: string,
     provenance: GroupDirectoryProvenance,
@@ -130,11 +182,15 @@ export interface LinkStore {
 
 export interface GroupDirectoryUpsertResult {
   created: number;
+  replaced: number;
   skipped: number;
   skips: { link: CandidateLink; reason: string }[];
 }
 
-/** Applique le plan : insertion en `pending` puis provenance pour chaque ligne créée. */
+/**
+ * Applique le plan : insertion ou remplacement en `pending`, puis provenance
+ * pour chaque ligne écrite. Les liens perdants sont listés dans `skips`.
+ */
 export async function upsertGroupDirectoryLinks(
   store: LinkStore,
   officialId: string,
@@ -142,7 +198,7 @@ export async function upsertGroupDirectoryLinks(
   provenance: GroupDirectoryProvenance,
 ): Promise<GroupDirectoryUpsertResult> {
   if (candidates.length === 0) {
-    return { created: 0, skipped: 0, skips: [] };
+    return { created: 0, replaced: 0, skipped: 0, skips: [] };
   }
 
   const existing = await store.listExisting(officialId);
@@ -150,20 +206,31 @@ export async function upsertGroupDirectoryLinks(
 
   const skips: { link: CandidateLink; reason: string }[] = [];
   let created = 0;
+  let replaced = 0;
   for (const item of plan) {
     if (item.action === 'skip') {
       skips.push({ link: item.link, reason: item.reason });
       continue;
     }
-    const linkId = await store.insertPending(
-      officialId,
-      item.link,
-      provenance.capturedAt,
-    );
-    await store.writeProvenance(linkId, provenance, item.link);
-    created++;
+    if (item.action === 'insert') {
+      const linkId = await store.insertPending(
+        officialId,
+        item.link,
+        provenance.capturedAt,
+      );
+      await store.writeProvenance(linkId, provenance, item.link);
+      created++;
+    } else {
+      await store.replacePending(
+        item.existingId,
+        item.link,
+        provenance.capturedAt,
+      );
+      await store.writeProvenance(item.existingId, provenance, item.link);
+      replaced++;
+    }
   }
-  return { created, skipped: skips.length, skips };
+  return { created, replaced, skipped: skips.length, skips };
 }
 
 /** Implémentation base (Drizzle). */
@@ -195,6 +262,19 @@ export function drizzleLinkStore(db: NeonHttpDatabase): LinkStore {
         })
         .returning({ id: externalLinks.id });
       return row.id;
+    },
+
+    async replacePending(existingId, link, capturedAt) {
+      await db
+        .update(externalLinks)
+        .set({
+          url: normalizeExternalLinkUrl(link.url),
+          status: 'pending',
+          source: GROUP_DIRECTORY_LINK_SOURCE,
+          capturedAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(externalLinks.id, existingId));
     },
 
     async writeProvenance(linkId, provenance, link) {

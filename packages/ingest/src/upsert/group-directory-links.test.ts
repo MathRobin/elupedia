@@ -42,6 +42,13 @@ function memoryStore() {
       });
       return id;
     },
+    async replacePending(existingId, link) {
+      const row = rows.find((item) => item.id === existingId);
+      if (!row) throw new Error(`lien ${existingId} introuvable`);
+      row.url = link.url;
+      row.status = 'pending';
+      row.source = GROUP_DIRECTORY_LINK_SOURCE;
+    },
     async writeProvenance(linkId, provenanceInput, link) {
       provenance.push({
         linkId,
@@ -138,6 +145,85 @@ describe('planLinkWrites', () => {
   });
 });
 
+describe('planLinkWrites, conflits entre sources (#278)', () => {
+  const CANDIDATE = { platform: 'twitter', url: 'https://x.com/sebchenu' };
+
+  it('remplace un lien d’une source moins prioritaire (Wikipédia) par celui de l’annuaire', () => {
+    const existing: ExistingLink[] = [
+      {
+        id: 'wiki',
+        platform: 'twitter',
+        url: 'https://x.com/ancien',
+        status: 'published',
+        source: 'wikipedia_api',
+      },
+    ];
+    expect(planLinkWrites(existing, [CANDIDATE])).toEqual([
+      { action: 'replace', existingId: 'wiki', link: CANDIDATE },
+    ]);
+  });
+
+  it('conserve un lien officiel face à un lien d’annuaire, et le dit', () => {
+    const existing: ExistingLink[] = [
+      {
+        id: 'official',
+        platform: 'twitter',
+        url: 'https://x.com/officiel',
+        status: 'published',
+        source: 'official',
+      },
+    ];
+    const [item] = planLinkWrites(existing, [CANDIDATE]);
+    expect(item).toMatchObject({ action: 'skip' });
+    expect((item as { reason: string }).reason).toContain('plus prioritaire');
+  });
+
+  it('à priorité égale, garde la valeur existante', () => {
+    const existing: ExistingLink[] = [
+      {
+        id: 'dir',
+        platform: 'twitter',
+        url: 'https://x.com/ancien',
+        status: 'pending',
+        source: 'group_directory',
+      },
+    ];
+    const [item] = planLinkWrites(existing, [CANDIDATE]);
+    expect(item).toMatchObject({ action: 'skip' });
+    expect((item as { reason: string }).reason).toContain('égalité');
+  });
+
+  it('ajoute une plateforme absente même si la source est moins prioritaire que les autres', () => {
+    const existing: ExistingLink[] = [
+      {
+        id: 'official',
+        platform: 'facebook',
+        url: 'https://www.facebook.com/x',
+        status: 'published',
+        source: 'official',
+      },
+    ];
+    expect(planLinkWrites(existing, [CANDIDATE])).toEqual([
+      { action: 'insert', link: CANDIDATE },
+    ]);
+  });
+
+  it('ne remplace jamais un lien rejeté, même d’une source moins prioritaire', () => {
+    const existing: ExistingLink[] = [
+      {
+        id: 'wiki',
+        platform: 'twitter',
+        url: 'https://x.com/ancien',
+        status: 'rejected',
+        source: 'wikipedia_api',
+      },
+    ];
+    expect(planLinkWrites(existing, [CANDIDATE])[0]).toMatchObject({
+      action: 'skip',
+    });
+  });
+});
+
 describe('upsertGroupDirectoryLinks', () => {
   it('deux passes successives ne produisent aucun doublon', async () => {
     const { store, rows, provenance } = memoryStore();
@@ -177,7 +263,12 @@ describe('upsertGroupDirectoryLinks', () => {
       [],
       PROVENANCE,
     );
-    expect(result).toEqual({ created: 0, skipped: 0, skips: [] });
+    expect(result).toEqual({
+      created: 0,
+      replaced: 0,
+      skipped: 0,
+      skips: [],
+    });
     expect(rows).toHaveLength(0);
   });
 });
