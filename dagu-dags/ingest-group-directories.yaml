@@ -1,0 +1,29 @@
+# Ingestion mensuelle des annuaires de groupes parlementaires (tickets #279 et #276-#278).
+# Remplace l'étape GitHub Actions prévue par le ticket #279 : les ingestions
+# tournent désormais sur Dagu, il n'existe plus de workflow d'ingestion GitHub.
+# Cron en UTC : le 1er de chaque mois à 03:00. Déclenchement manuel possible
+# depuis l'interface Dagu.
+#
+# Isolé : DAG propre, son échec n'impacte aucun autre DAG d'ingestion.
+# Pas d'étape de rebuild du site : les liens écrits sont en `pending` et ne
+# sont affichés qu'après validation dans l'admin.
+name: ingest-group-directories
+description: Ingest — Annuaires de groupes parlementaires (liens sociaux, pending)
+schedule: '0 3 1 * *'
+env:
+  - DATABASE_URL: ${DATABASE_URL}
+steps:
+  - name: git-pull
+    command: flock /tmp/elupedia-git-pull.lock sh -c 'git fetch --no-write-fetch-head origin main && git merge --ff-only origin/main'
+  - name: enable-corepack
+    command: corepack enable
+    depends:
+      - git-pull
+  - name: install-dependencies
+    command: yarn install --immutable
+    depends:
+      - enable-corepack
+  - name: ingestion-annuaires-groupes
+    command: yarn --cwd packages/ingest ingest:group-directories
+    depends:
+      - install-dependencies

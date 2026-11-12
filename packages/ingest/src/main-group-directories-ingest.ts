@@ -66,6 +66,24 @@ for (const s of summaries) {
   );
 }
 
+// Résumé de fin de run (ticket #279) : sources crawlées, entrées extraites,
+// taux de rapprochement, liens écrits en pending.
+const crawled = summaries.filter((s) => s.error === null).length;
+const entries = summaries.reduce((sum, s) => sum + s.entries, 0);
+const resolved = summaries.reduce((sum, s) => sum + s.resolved, 0);
+const written = summaries.reduce((sum, s) => sum + s.created, 0);
+const replaced = summaries.reduce((sum, s) => sum + s.replaced, 0);
+const plannedWrites = summaries.reduce((sum, s) => sum + s.wouldCreate, 0);
+const globalRate =
+  entries === 0 ? 'n/a' : `${Math.round((resolved / entries) * 100)} %`;
+console.log(
+  `Résumé : ${crawled}/${summaries.length} source(s) crawlée(s), ` +
+    `${entries} entrée(s) extraite(s), taux de rapprochement ${globalRate}, ` +
+    (dryRun
+      ? `${plannedWrites} écriture(s) prévue(s) en pending`
+      : `${written} lien(s) créé(s) en pending, ${replaced} remplacé(s)`),
+);
+
 const failed = summaries.filter((s) => s.error !== null).length;
 if (failed > 0) {
   console.error(`${failed} groupe(s) en erreur.`);
