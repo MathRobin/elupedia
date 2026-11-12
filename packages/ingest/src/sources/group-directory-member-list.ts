@@ -55,23 +55,41 @@ export function fetchPage(url: string): Promise<string> {
   return fetchWithRetry(url, {});
 }
 
-/** Réessaie les 503 (charge du site) avec une pause croissante, 3 tentatives au total. */
-async function fetchWithRetry(
+/** Pauses avant chaque nouvelle tentative (3 tentatives au total). */
+export const RETRY_DELAYS_MS = [5000, 15000];
+
+/** Statuts qui justifient une nouvelle tentative : charge du site, limitation. */
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+/**
+ * GET ou POST avec User-Agent. Réessaie les erreurs réseau (« fetch failed »,
+ * délai dépassé) et les statuts de RETRYABLE_STATUS ; les autres statuts
+ * échouent tout de suite. Lève la dernière erreur si toutes les tentatives échouent.
+ */
+export async function fetchWithRetry(
   url: string,
   init: { method?: string; headers?: Record<string, string> },
+  delays: number[] = RETRY_DELAYS_MS,
 ): Promise<string> {
-  const attempts = 3;
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    const response = await fetch(url, {
-      ...init,
-      headers: { 'User-Agent': USER_AGENT, ...init.headers },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (response.ok) return response.text();
-    if (response.status !== 503 || attempt === attempts) {
-      throw new Error(`HTTP ${response.status} sur ${url}`);
+  let lastError: Error = new Error(`échec sur ${url}`);
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delays[attempt - 1]));
     }
-    await new Promise((resolve) => setTimeout(resolve, 5000 * attempt));
+    let retryable = true;
+    try {
+      const response = await fetch(url, {
+        ...init,
+        headers: { 'User-Agent': USER_AGENT, ...init.headers },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      if (response.ok) return await response.text();
+      lastError = new Error(`HTTP ${response.status} sur ${url}`);
+      retryable = RETRYABLE_STATUS.has(response.status);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+    if (!retryable) break;
   }
-  throw new Error(`échec sur ${url}`);
+  throw lastError;
 }
