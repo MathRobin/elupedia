@@ -59,6 +59,23 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
   - Titre de l'article, nom de la source, URL de l'article, date de publication
 - **Remarque** : Cette source n'est pas institutionnelle. Les résultats de recherche peuvent contenir des faux positifs (homonymes) et ne sont pas exhaustifs.
 
+### Annuaires de groupes parlementaires (pages des groupes et fiches de députés)
+
+- **Éditeur** : groupes politiques de l'Assemblée nationale (pages de composition publiées sur le site de l'Assemblée)
+- **Nature** : Pages HTML publiques, sans API ni clé
+- **Licence** : Aucune licence ouverte affichée. Ce ne sont pas les données open data de l'Assemblée sous Licence Ouverte 2.0 : elles sont traitées comme le contenu déjà collecté sur les sites personnels des élus
+- **Obligations** :
+  - Ne collecter que les URL de comptes sociaux publics liés à l'élu et son nom, jamais de contenu rédactionnel (publications, bios, photos)
+  - Aucun accès aux plateformes elles-mêmes : seules les pages du groupe et les fiches des députés sont lues
+  - Chaque lien créé garde sa page d'origine et sa date de crawl (`data_provenance`), visibles dans la fiche Sources
+  - Les liens ne sont pas publiés automatiquement : ils passent en `pending` et doivent être validés dans l'admin
+- **URLs** : pages de groupe `https://www2.assemblee-nationale.fr/17/les-groupes-politiques/…` et fiches `…/deputes/fiche/…`
+- **Données collectées** :
+  - Nom du député (tel qu'affiché), URL des comptes X, Facebook, Instagram, YouTube, TikTok, LinkedIn, Bluesky ou Mastodon
+  - Comptes institutionnels (Assemblée nationale) et comptes sans handle exclus
+- **Fréquence** : mensuelle (DAG Dagu `ingest-group-directories`)
+- **Remarque** : Les groupes couverts et leurs exclusions sont listés dans `docs/INGEST.md`. Le rapprochement avec les élus est documenté dans `packages/ingest/src/group-directory-matching.ts`.
+
 ### Wikidata / Wikimedia Commons (photos maires)
 
 - **Éditeur** : Fondation Wikimedia et contributeurs
@@ -210,23 +227,24 @@ Inventaire des sources de données utilisées par Elupedia et de leurs condition
 
 ## Résumé des obligations
 
-| Source              | Licence             | Attribution | Usage commercial | Statut      |
-| ------------------- | ------------------- | ----------- | ---------------- | ----------- |
-| Assemblée nationale | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
-| HATVP               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
-| Sénat               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
-| Google Actualités   | RSS public          | N/A         | Titres + liens   | ✅ active   |
-| Wikidata/Commons    | CC0 / CC BY-SA      | Non / Oui   | Autorisé         | ✅ active   |
-| OpenStreetMap       | ODbL / CC BY-SA 2.0 | Oui         | Autorisé         | ✅ active   |
-| API Adresse         | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
-| CNCCFP              | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
-| Conseil constit.    | Domaine Public      | Non         | Autorisé         | ✅ active   |
-| INSEE               | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
-| data.gouv.fr (élec) | Licence Ouverte 2.0 | Oui         | Autorisé         | ✅ active   |
-| Légion d'honneur    | Données publiques   | Oui         | Non précisé      | ✅ active   |
-| MaDada.fr           | Données publiques   | Oui         | Non précisé      | ✅ active   |
-| Google Fact Check   | Google APIs ToS     | N/A         | Métadonnées only | ✅ active   |
-| Parlement européen  | CC BY 4.0           | Oui         | Autorisé         | ⏳ à câbler |
+| Source               | Licence                  | Attribution       | Usage commercial      | Statut              |
+| -------------------- | ------------------------ | ----------------- | --------------------- | ------------------- |
+| Assemblée nationale  | Licence Ouverte 2.0      | Oui               | Autorisé              | ✅ active           |
+| HATVP                | Licence Ouverte 2.0      | Oui               | Autorisé              | ✅ active           |
+| Sénat                | Licence Ouverte 2.0      | Oui               | Autorisé              | ✅ active           |
+| Google Actualités    | RSS public               | N/A               | Titres + liens        | ✅ active           |
+| Wikidata/Commons     | CC0 / CC BY-SA           | Non / Oui         | Autorisé              | ✅ active           |
+| OpenStreetMap        | ODbL / CC BY-SA 2.0      | Oui               | Autorisé              | ✅ active           |
+| API Adresse          | Licence Ouverte 2.0      | Oui               | Autorisé              | ✅ active           |
+| CNCCFP               | Licence Ouverte 2.0      | Oui               | Autorisé              | ✅ active           |
+| Conseil constit.     | Domaine Public           | Non               | Autorisé              | ✅ active           |
+| INSEE                | Licence Ouverte 2.0      | Oui               | Autorisé              | ✅ active           |
+| data.gouv.fr (élec)  | Licence Ouverte 2.0      | Oui               | Autorisé              | ✅ active           |
+| Légion d'honneur     | Données publiques        | Oui               | Non précisé           | ✅ active           |
+| MaDada.fr            | Données publiques        | Oui               | Non précisé           | ✅ active           |
+| Google Fact Check    | Google APIs ToS          | N/A               | Métadonnées only      | ✅ active           |
+| Parlement européen   | CC BY 4.0                | Oui               | Autorisé              | ⏳ à câbler         |
+| Annuaires de groupes | Aucune (pages publiques) | Oui (page source) | Liens + nom seulement | ✅ active (mensuel) |
 
 ## Licence du code source
 

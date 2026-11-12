@@ -95,6 +95,16 @@ Relevé lors de la vérification des chiffres du guide (`docs/livre-guide/02-chi
 - `ActivityItem` vit dans `sources/an-activite.ts` alors qu'il est partagé AN/Sénat/PE (place logique : `schemas.ts`).
 - `sources/senat.ts` et `sources/senat-adresses.ts` exportent chacun un `GENERAL_URL` identique.
 
+## Annuaires de groupes parlementaires (M25)
+
+- UDR : 0 rapprochement sur 18 entrées (constat du 12/11/2026). Aucune fiche active n'a le libellé `UDR (UDR)` dans `affiliations`. À vérifier côté affiliations AN (`GP_FALLBACK` contient `PO847173`), puis relancer `debug:group-directories:match`.
+- LFI-NFP, EcoS, GDR et les non-inscrits sont absents de la config : leur page de groupe n'a pas été relevée avec la même structure.
+- Rapprochement : un élu absent de la base (ex. Mme Isabelle Delyon, RN) reste `unresolved`, rien n'est créé pour lui.
+- Plateformes : le scraper dit `x`, la base `twitter` (mappé à l'écriture). `bluesky` et `mastodon` ne figurent pas dans `platformEnum` (`schema/external-links.ts`) ; à ajouter si le site doit les afficher.
+- Le groupe « Rassemblement National et Apparentés (RN) » (libellé Sénat) partage le sigle RN avec le groupe AN : le sigle seul ne distingue pas les deux chambres.
+- Tests d'intégration sur base de test non réalisés : le repo n'a pas de base de test configurée, `DATABASE_URL` pointe sur la base de production. Les tests de l'écriture utilisent un store en mémoire.
+- Le ticket #279 demandait un workflow GitHub Actions : l'ingestion tourne sous Dagu, l'étape est donc un DAG Dagu. Son déclenchement réel n'a pas été vérifié.
+
 ## Admin
 
 - `app/moderation/page.tsx` : le lien vers la fiche publique est construit en `prénom-nom` minuscules et non depuis `officials.slug` ; cassé pour les accents, les noms composés et les slugs suffixés (`-1`).

@@ -176,11 +176,24 @@ yarn --cwd packages/ingest merge:duplicate-officials     # dry-run : fiches AN/S
 yarn --cwd packages/ingest merge:duplicate-officials --apply   # fusionne : garde la fiche Sénat, supprime la fiche AN
 yarn --cwd packages/ingest rebuild:site --report ingest-report-an.json   # appelle le Deploy Hook Vercel si le rapport a des changements
 yarn --cwd packages/ingest debug:group-directories       # valide la config des annuaires de groupes (src/config/group-directories.ts) et liste les sources activées ; lecture seule, sans réseau
+yarn --cwd packages/ingest debug:group-directories:match # télécharge les listes de membres, rapproche avec la base et affiche le taux par groupe ; lecture seule (réseau + SELECT)
+yarn --cwd packages/ingest ingest:group-directories --dry-run   # calcule les liens à écrire sans rien écrire
+yarn --cwd packages/ingest ingest:group-directories     # écrit les liens en pending (external_links, data_provenance)
 ```
 
-La config `src/config/group-directories.ts` (ticket #274) décrit, par groupe parlementaire, l'URL de l'annuaire et les sélecteurs CSS des réseaux sociaux. Elle contient 8 groupes vérifiés sur la page de groupe (RN, EPR, SOC, DR, Dem, HOR, LIOT, UDR) ; LFI-NFP, EcoS, GDR et les non-inscrits n'ont pas de liste de membres exploitable et sont absents. Aucune étape d'ingestion ne la lit encore.
+### Annuaires de groupes parlementaires (M25)
 
-L'extracteur `src/sources/group-directory-social-links.ts` (ticket #275) lit ces sélecteurs : `extractSocialLinks` pour une page de liste, `extractPageSocialLinks` pour une fiche député. Il normalise les liens (x.com, facebook, instagram, youtube, tiktok, linkedin, bluesky, mastodon), écarte les comptes de l'Assemblée et accepte une liste d'exclusion. Testé sur des fixtures HTML réelles de `src/sources/fixtures/group-directories/`. Non branché à une commande pour l'instant.
+Config `src/config/group-directories.ts` (ticket #274) : pour chaque groupe, l'URL de la page et les sélecteurs CSS. 8 groupes activés (RN, EPR, SOC, DR, Dem, HOR, LIOT, UDR). LFI-NFP, EcoS, GDR et les non-inscrits n'ont pas de liste de membres exploitable et sont absents.
+
+- Liste des membres : la page du groupe ne contient pas la liste, elle est chargée en AJAX (`sources/group-directory-member-list.ts`).
+- Extraction et normalisation des liens : `sources/group-directory-social-links.ts` (x.com, facebook, instagram, youtube, tiktok, linkedin, bluesky, mastodon ; comptes de l'Assemblée exclus ; liste d'exclusion possible).
+- Rapprochement avec les élus : `group-directory-matching.ts` (`exact`, `probable`, `unresolved`). Un élu rapproché n'est jamais écrit sans fiche unique.
+- Écriture : `upsert/group-directory-links.ts`, en `pending`, avec priorité des sources (`link-source-priority.ts`, voir `docs/ARCHITECTURE.md`).
+- Orchestration : `run-group-directories.ts` ; CLI `main-group-directories-ingest.ts`.
+
+Planification : DAG Dagu `dagu-dags/ingest-group-directories.yaml`, le 1er de chaque mois à 03:00 UTC, déclenchement manuel possible. Le DAG est isolé des autres ingestions.
+
+Résultat du debug au 12/11/2026 (`debug:group-directories:match`) : 358 entrées rapprochées sur 377 (95 %). RN 121/122, EPR 91/91, SOC 69/69, DR 47/47, Dem 38/38, HOR 36/36, LIOT 25/25. UDR 0/18 : aucune fiche active avec le libellé UDR dans la base. Voir `docs/KNOWN-ISSUES.md`.
 
 `merge:duplicate-officials` corrige un héritage : avant le rapprochement nom + prénom + date de naissance entre sources, un sénateur décrit à la fois par l'open data Sénat et par le jeu AMO30 de l'AN recevait deux fiches. La fiche Sénat est conservée ; elle reçoit l'`an_id`, les champs qu'elle n'avait pas et toutes les lignes dépendantes de la fiche AN, sauf celles qu'elle possède déjà (même clé naturelle par table, voir `NATURAL_KEYS` dans `src/merge-duplicate-officials.ts`). Le slug de la fiche AN disparaît.
 

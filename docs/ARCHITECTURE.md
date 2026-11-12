@@ -28,41 +28,54 @@ Scripts Node.js (tsx) lancés par des DAGs **Dagu** (`dagu-dags/`, calendrier da
 
 #### Clients de données
 
-| Client                           | Fichier                            | Source                                     | Format        | Statut   |
-| -------------------------------- | ---------------------------------- | ------------------------------------------ | ------------- | -------- |
-| Députés (tous)                   | `sources/assemblee-nationale.ts`   | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
-| Collaborateurs AN                | `sources/an-collaborateurs.ts`     | data.assemblee-nationale.fr                | CSV           | ✅ actif |
-| Adresses/contacts AN             | `sources/an-adresses.ts`           | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
-| Activité parlementaire           | `sources/an-activite.ts`           | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
-| Commissions/délégations          | `sources/an-commissions.ts`        | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
-| Intérêts (HATVP)                 | `sources/hatvp.ts`                 | hatvp.fr                                   | XML streaming | ✅ actif |
-| Sénateurs                        | `sources/senat.ts`                 | data.senat.fr                              | JSON API      | ✅ actif |
-| Scrutins Sénat                   | `sources/senat-scrutins.ts`        | data.senat.fr                              | JSON API      | ✅ actif |
-| Groupes Sénat                    | `sources/senat-groupes.ts`         | data.senat.fr                              | JSON API      | ✅ actif |
-| Collaborateurs Sénat             | `sources/senat-collaborateurs.ts`  | data.senat.fr                              | JSON API      | ✅ actif |
-| Adresses Sénat                   | `sources/senat-adresses.ts`        | data.senat.fr                              | JSON API      | ✅ actif |
-| Historique électoral Sénat       | `sources/senat-elections.ts`       | data.senat.fr                              | JSON API      | ✅ actif |
-| Commissions Sénat                | `sources/senat-commissions.ts`     | data.senat.fr                              | JSON API      | ✅ actif |
-| Réseaux sociaux Sénat            | `sources/senat-reseaux-sociaux.ts` | senat.fr                                   | JSON + HTML   | ✅ actif |
-| Scrutins AN                      | `sources/an-scrutins.ts`           | data.assemblee-nationale.fr                | ZIP/JSON      | ✅ actif |
-| Presse (Google News)             | `sources/google-news.ts`           | news.google.com                            | RSS/XML       | ✅ actif |
-| Maires (RNE)                     | `sources/rne-maires.ts`            | data.gouv.fr                               | CSV           | ✅ actif |
-| Conseillers dép. (RNE)           | `sources/rne-conseillers-dep.ts`   | data.gouv.fr                               | CSV           | ✅ actif |
-| Conseillers communautaires (RNE) | `sources/rne-conseillers-epci.ts`  | data.gouv.fr                               | CSV           | ✅ actif |
-| Conseillers rég. (RNE)           | `sources/rne-conseillers-reg.ts`   | data.gouv.fr                               | CSV           | ✅ actif |
-| Conseillers arr. (RNE)           | `sources/rne-conseillers-arr.ts`   | data.gouv.fr                               | CSV           | ✅ actif |
-| Membres assemblée (RNE)          | `sources/rne-membres-assemblee.ts` | data.gouv.fr                               | CSV           | ✅ actif |
-| Mairies (DILA)                   | `sources/dila-mairies.ts`          | service-public.fr                          | JSON API      | ✅ actif |
-| Parrainages présidentiels        | `sources/parrainages.ts`           | data.gouv.fr                               | CSV           | ✅ actif |
-| Signatures RIP                   | `sources/rip-signatures.ts`        | AN / Sénat                                 | HTML          | ✅ actif |
-| Photos maires (Wikidata)         | `sources/wikidata-mayor-photos.ts` | query.wikidata.org + commons.wikimedia.org | SPARQL/JSON   | ✅ actif |
-| Élections municipales            | `sources/municipal-elections.ts`   | data.gouv.fr                               | CSV streaming | ✅ actif |
-| Élections législatives           | `sources/legislative-elections.ts` | data.gouv.fr                               | CSV streaming | ✅ actif |
-| Élections sénatoriales           | `sources/senatorial-elections.ts`  | data.gouv.fr                               | CSV streaming | ✅ actif |
-| Comptes de campagne CNCCFP       | `sources/cnccfp.ts`                | data.gouv.fr                               | CSV           | ✅ actif |
-| Statut HATVP (fiches)            | `sources/hatvp-status.ts`          | hatvp.fr                                   | HTML scraping | ✅ actif |
-| Décorations (Légion d'h.)        | `sources/legion-honneur.ts`        | archives.legiondhonneur.fr                 | JSON API      | ✅ actif |
-| Transparence (MaDada.fr)         | `sources/madada.ts`                | madada.fr                                  | JSON API      | ✅ actif |
+| Client                           | Fichier                                                                             | Source                                                | Format           | Statut             |
+| -------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------- | ------------------ |
+| Députés (tous)                   | `sources/assemblee-nationale.ts`                                                    | data.assemblee-nationale.fr                           | ZIP/JSON         | ✅ actif           |
+| Collaborateurs AN                | `sources/an-collaborateurs.ts`                                                      | data.assemblee-nationale.fr                           | CSV              | ✅ actif           |
+| Adresses/contacts AN             | `sources/an-adresses.ts`                                                            | data.assemblee-nationale.fr                           | ZIP/JSON         | ✅ actif           |
+| Activité parlementaire           | `sources/an-activite.ts`                                                            | data.assemblee-nationale.fr                           | ZIP/JSON         | ✅ actif           |
+| Commissions/délégations          | `sources/an-commissions.ts`                                                         | data.assemblee-nationale.fr                           | ZIP/JSON         | ✅ actif           |
+| Intérêts (HATVP)                 | `sources/hatvp.ts`                                                                  | hatvp.fr                                              | XML streaming    | ✅ actif           |
+| Sénateurs                        | `sources/senat.ts`                                                                  | data.senat.fr                                         | JSON API         | ✅ actif           |
+| Scrutins Sénat                   | `sources/senat-scrutins.ts`                                                         | data.senat.fr                                         | JSON API         | ✅ actif           |
+| Groupes Sénat                    | `sources/senat-groupes.ts`                                                          | data.senat.fr                                         | JSON API         | ✅ actif           |
+| Collaborateurs Sénat             | `sources/senat-collaborateurs.ts`                                                   | data.senat.fr                                         | JSON API         | ✅ actif           |
+| Adresses Sénat                   | `sources/senat-adresses.ts`                                                         | data.senat.fr                                         | JSON API         | ✅ actif           |
+| Historique électoral Sénat       | `sources/senat-elections.ts`                                                        | data.senat.fr                                         | JSON API         | ✅ actif           |
+| Commissions Sénat                | `sources/senat-commissions.ts`                                                      | data.senat.fr                                         | JSON API         | ✅ actif           |
+| Réseaux sociaux Sénat            | `sources/senat-reseaux-sociaux.ts`                                                  | senat.fr                                              | JSON + HTML      | ✅ actif           |
+| Scrutins AN                      | `sources/an-scrutins.ts`                                                            | data.assemblee-nationale.fr                           | ZIP/JSON         | ✅ actif           |
+| Presse (Google News)             | `sources/google-news.ts`                                                            | news.google.com                                       | RSS/XML          | ✅ actif           |
+| Maires (RNE)                     | `sources/rne-maires.ts`                                                             | data.gouv.fr                                          | CSV              | ✅ actif           |
+| Conseillers dép. (RNE)           | `sources/rne-conseillers-dep.ts`                                                    | data.gouv.fr                                          | CSV              | ✅ actif           |
+| Conseillers communautaires (RNE) | `sources/rne-conseillers-epci.ts`                                                   | data.gouv.fr                                          | CSV              | ✅ actif           |
+| Conseillers rég. (RNE)           | `sources/rne-conseillers-reg.ts`                                                    | data.gouv.fr                                          | CSV              | ✅ actif           |
+| Conseillers arr. (RNE)           | `sources/rne-conseillers-arr.ts`                                                    | data.gouv.fr                                          | CSV              | ✅ actif           |
+| Membres assemblée (RNE)          | `sources/rne-membres-assemblee.ts`                                                  | data.gouv.fr                                          | CSV              | ✅ actif           |
+| Mairies (DILA)                   | `sources/dila-mairies.ts`                                                           | service-public.fr                                     | JSON API         | ✅ actif           |
+| Parrainages présidentiels        | `sources/parrainages.ts`                                                            | data.gouv.fr                                          | CSV              | ✅ actif           |
+| Signatures RIP                   | `sources/rip-signatures.ts`                                                         | AN / Sénat                                            | HTML             | ✅ actif           |
+| Photos maires (Wikidata)         | `sources/wikidata-mayor-photos.ts`                                                  | query.wikidata.org + commons.wikimedia.org            | SPARQL/JSON      | ✅ actif           |
+| Élections municipales            | `sources/municipal-elections.ts`                                                    | data.gouv.fr                                          | CSV streaming    | ✅ actif           |
+| Élections législatives           | `sources/legislative-elections.ts`                                                  | data.gouv.fr                                          | CSV streaming    | ✅ actif           |
+| Élections sénatoriales           | `sources/senatorial-elections.ts`                                                   | data.gouv.fr                                          | CSV streaming    | ✅ actif           |
+| Comptes de campagne CNCCFP       | `sources/cnccfp.ts`                                                                 | data.gouv.fr                                          | CSV              | ✅ actif           |
+| Statut HATVP (fiches)            | `sources/hatvp-status.ts`                                                           | hatvp.fr                                              | HTML scraping    | ✅ actif           |
+| Décorations (Légion d'h.)        | `sources/legion-honneur.ts`                                                         | archives.legiondhonneur.fr                            | JSON API         | ✅ actif           |
+| Transparence (MaDada.fr)         | `sources/madada.ts`                                                                 | madada.fr                                             | JSON API         | ✅ actif           |
+| Annuaires de groupes (AN)        | `sources/group-directory-member-list.ts`, `sources/group-directory-social-links.ts` | www2.assemblee-nationale.fr (pages de groupe, fiches) | HTML + AJAX POST | ✅ actif (mensuel) |
+
+#### Annuaires de groupes parlementaires (M25)
+
+Étape mensuelle, DAG Dagu `dagu-dags/ingest-group-directories.yaml` (`ingest:group-directories`), isolée des autres DAG. Pour chaque groupe activé dans `config/group-directories.ts` :
+
+1. `fetchGroupMemberList` : GET de la page du groupe, lecture de l'identifiant du bloc « Composition », POST AJAX vers `/layout/set/ajax/content/view/embed/<id>` ;
+2. `extractMemberPages` (liste) : nom et URL de fiche de chaque député ;
+3. `matchOfficial` : rapprochement avec `officials` par nom et groupe actif (`affiliations`), niveaux `exact`, `probable` ou `unresolved` ; homonymes non tranchés (`group-directory-matching.ts`) ;
+4. pour les seuls élus rapprochés, GET de la fiche (délai entre requêtes) et `extractPageSocialLinks` ;
+5. `planLinkWrites` puis `upsertGroupDirectoryLinks` : écriture en `external_links` en `pending`, `source = 'group_directory'`, et une ligne `data_provenance` par lien (`upsert/group-directory-links.ts`).
+
+Le mode `--dry-run` s'arrête après le plan. Aucune étape ne reconstruit le site : les liens ne sont visibles qu'après validation dans l'admin.
 
 #### Upsert / Diff
 
@@ -232,6 +245,22 @@ Deux outils complètent ces règles a posteriori :
 ### Historisation des mandats locaux (RNE)
 
 Pour maires, conseillers (dép./rég./arr.), membres d'assemblée et AFE : si la date de prise de fonction du fichier est postérieure au mandat actif, on clôt l'ancien et on ouvre une nouvelle ligne ; si elle est antérieure, on corrige en place. Les titulaires disparus du fichier sont clos à la date du run. Une violation de l'index unique (code Postgres 23505) est absorbée. Le sens de `district`/`department`/`commune_code` dépend du type de mandat (secteur pour arrondissement, région + section pour les régionaux, libellé fixe pour les FDE) ; voir les en-têtes de `packages/shared/src/schema/mandates.ts` et des upserts concernés.
+
+### Priorité des sources de liens externes
+
+Quand deux sources proposent une URL différente pour la même plateforme d'un élu, la source la plus prioritaire gagne (`packages/ingest/src/link-source-priority.ts`, valeur numérique par source) :
+
+| Source (`external_links.source`)                      | Priorité |
+| ----------------------------------------------------- | -------- |
+| `official` (open data et pages officielles AN, Sénat) | 100      |
+| `scraped_personal_website` (site personnel déclaré)   | 80       |
+| `group_directory` (annuaire de groupe parlementaire)  | 60       |
+| autres (`wikipedia_api`, valeur inconnue)             | 10       |
+
+- Une source moins prioritaire peut **ajouter** une plateforme absente.
+- Un lien d'une source plus prioritaire **remplace** un lien `pending` ou `published` d'une source moins prioritaire, qui repasse en `pending`.
+- À égalité, ou si la valeur existante est plus prioritaire, le candidat n'est pas écrit et le motif est journalisé.
+- Un lien `rejected` ou `deleted` n'est jamais réinséré ni remplacé.
 
 ### Ce qui n'est jamais écrasé par une ingestion
 
