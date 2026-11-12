@@ -197,7 +197,9 @@ Le site est déployé sur Vercel. Chaque push sur `main` déclenche un rebuild. 
 
 Projet Vercel distinct, racine `packages/admin`, configuration `packages/admin/vercel.json` (installation depuis la racine du monorepo, `next build --webpack`, `ignoreCommand` qui saute le build si ni l'admin ni ses workspaces n'ont changé). Pas de migration au build : elle reste au projet du site. `next.config.ts` trace depuis la racine du monorepo, embarque `dagu-dags/*.yaml` et envoie `X-Robots-Tag: noindex`.
 
-Hébergée, l'admin n'a ni le disque de la machine d'ingestion et de rendu, ni processus longs (`lib/runtime.ts`, `VERCEL` ou `ADMIN_LOCAL_MACHINE=0`) : la page Ingestions ne liste que les DAGs (pas les rapports de run), et sur /videos la revue fonctionne mais les fichiers (vidéo, vignette), les tâches du pipeline et la publication YouTube sont désactivés, à faire depuis la machine de rendu. Étapes de mise en place : `docs/ADMIN-VERCEL.md`.
+Hébergée, l'admin n'a ni le disque de la machine d'ingestion et de rendu, ni processus longs (`lib/runtime.ts`, `VERCEL` ou `ADMIN_LOCAL_MACHINE=0`) : la page Ingestions ne liste que les DAGs (pas les rapports de run) et la page Journaux Dagu (`/logs`, admins) est vide, et sur /videos la revue fonctionne mais les fichiers (vidéo, vignette), les tâches du pipeline et la publication YouTube sont désactivés, à faire depuis la machine de rendu. Étapes de mise en place : `docs/ADMIN-VERCEL.md`.
+
+Sur la machine d'ingestion, `/logs` (admins seulement) lit directement les fichiers de Dagu (`DAGU_HOME`, défaut `/var/lib/dagu` : `data/dag-runs/<dag>/…/status.jsonl` pour le statut des runs et des étapes, `logs/<dag>/<run>/` pour les sorties) : DAGs du dépôt avec leur dernier run, 50 derniers runs d'un DAG, détail par étape et fin du journal (256 Ko max, rafraîchi toutes les 5 s pour un run en cours). Code : `packages/admin/src/lib/dagu-logs.ts` ; les noms de DAG et de run sont validés et les chemins de journaux vérifiés dans `logs/<dag>/<run>/`.
 
 ## Guide de lecture du code
 
