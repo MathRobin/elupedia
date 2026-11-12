@@ -5,3 +5,4 @@ dist/
 **/public/tarteaucitron/
 packages/shorts/out/
 packages/book/out/
+packages/ingest/src/sources/fixtures/
