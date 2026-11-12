@@ -26,8 +26,11 @@ catchup_window: '' # sinon tout cron manqué dans les 6 h est rejoué au redéma
 ```
 
 Puis `sudo systemctl restart dagu`, et vérifier avec `DAGU_HOME=/var/lib/dagu dagu ls`
-(les 24 DAGs doivent apparaître). Lancement manuel : `DAGU_HOME=/var/lib/dagu dagu start
-ingest-photos` ; suivi : `dagu status ingest-photos`, `journalctl -u dagu -f`, logs par
+(les 24 DAGs doivent apparaître). Lancement manuel : `scripts/trigger-dag.sh ingest-photos` (met un run en file via
+`dagu enqueue`, exécuté par le scheduler avec le même environnement que les runs planifiés ;
+`--list` liste les DAGs) — c'est aussi ce que fait le bouton « Lancer » de `/ingestions` dans
+l'admin (admins, machine d'ingestion) — ou `DAGU_HOME=/var/lib/dagu dagu start
+ingest-photos` en direct ; suivi : `dagu status ingest-photos`, `journalctl -u dagu -f`, logs par
 étape dans `/var/lib/dagu/logs/dags/<nom>/`. Le checkout `/usr/airporting/elupedia` doit
 rester sur `main` et propre (chaque DAG commence par la synchronisation avec `origin/main`).
 Cette synchronisation est `git fetch --no-write-fetch-head origin main` puis

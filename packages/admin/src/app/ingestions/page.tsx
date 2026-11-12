@@ -1,10 +1,16 @@
 'use client';
 
-/** Tableau de bord des ingestions : DAGs planifiés et derniers rapports de run. */
+/**
+ * Tableau de bord des ingestions : DAGs planifiés et derniers rapports de run.
+ * Chaque DAG a un bouton « Lancer » (admins, machine d'ingestion seulement)
+ * qui met un run en file via triggerDagAction ; l'avancement se suit dans l'UI Dagu.
+ */
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   Alert,
   Badge,
+  Button,
   Code,
   Loader,
   Paper,
@@ -13,11 +19,51 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { loadIngestionsDashboard, type IngestionsDashboard } from './actions';
+import {
+  loadIngestionsDashboard,
+  triggerDagAction,
+  type IngestionsDashboard,
+} from './actions';
 import { formatDate } from '../videos/status';
+
+function TriggerButton({ file, name }: { file: string; name: string }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(
+    null,
+  );
+  const launch = async () => {
+    if (!window.confirm(`Lancer « ${name} » maintenant ?`)) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      setResult(await triggerDagAction(file));
+    } catch (e) {
+      setResult({ ok: false, message: (e as Error).message });
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <Stack gap={4} align="flex-start">
+      <Button size="xs" variant="light" loading={loading} onClick={launch}>
+        Lancer
+      </Button>
+      {result ? (
+        <Text size="xs" c={result.ok ? 'green' : 'red'}>
+          {result.ok ? '✓ ' : '✗ '}
+          {result.message}
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
 
 export default function IngestionsPage() {
   const [data, setData] = useState<IngestionsDashboard | null>(null);
+  const { data: session } = useSession();
+  const canTrigger =
+    (session?.user as { role?: string } | undefined)?.role === 'admin' &&
+    data?.reportsAvailable === true;
   useEffect(() => {
     loadIngestionsDashboard().then(setData);
   }, []);
@@ -61,8 +107,9 @@ export default function IngestionsPage() {
         <Code>{data.reportsDir}</Code>. La date d&apos;un rapport est celle de
         la fin du dernier run de la commande, planifié ou lancé à la main. Les
         DAGs sont triés du dernier run au plus ancien, ceux sans rapport à la
-        fin. L&apos;état en direct de Dagu n&apos;est pas remonté (API locale
-        authentifiée).
+        fin. Le bouton « Lancer » (admins) met un run en file dans Dagu (
+        <Code>scripts/trigger-dag.sh</Code>). L&apos;état en direct de Dagu
+        n&apos;est pas remonté (API locale authentifiée).
       </Text>
       {data.reportsAvailable ? null : (
         <Alert color="yellow">
@@ -84,6 +131,7 @@ export default function IngestionsPage() {
               <Table.Th>Commandes</Table.Th>
               <Table.Th>Dernier rapport</Table.Th>
               <Table.Th>Résultat</Table.Th>
+              {canTrigger ? <Table.Th>Action</Table.Th> : null}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -153,6 +201,11 @@ export default function IngestionsPage() {
                       </Stack>
                     ) : null}
                   </Table.Td>
+                  {canTrigger ? (
+                    <Table.Td>
+                      <TriggerButton file={d.file} name={d.name} />
+                    </Table.Td>
+                  ) : null}
                 </Table.Tr>
               );
             })}
