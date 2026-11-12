@@ -368,6 +368,30 @@ export function extractSocialLinks(
   return members;
 }
 
+/**
+ * Page de liste : pour chaque entrée, le nom et l'URL brute de sa fiche
+ * (`detailLinkSelector`, relative ou absolue : à résoudre par l'appelant).
+ * Sert aux groupes dont les liens sociaux sont sur la fiche du député.
+ */
+export function extractMemberPages(
+  html: string,
+  source: Pick<ExtractionSelectors, 'listItemSelector' | 'nameSelector'> & {
+    detailLinkSelector: string;
+  },
+): { name: string | null; detailHref: string | null }[] {
+  const $ = cheerio.load(html);
+  const members: { name: string | null; detailHref: string | null }[] = [];
+  $(source.listItemSelector).each((_, item) => {
+    const $item = $(item);
+    const name =
+      cleanText($item.find(source.nameSelector).first().text()) || null;
+    const detailHref =
+      $item.find(source.detailLinkSelector).first().attr('href') ?? null;
+    members.push({ name, detailHref });
+  });
+  return members;
+}
+
 /** Fiche individuelle : les liens sociaux de la page entière. */
 export function extractPageSocialLinks(
   html: string,

@@ -50,6 +50,11 @@ export async function fetchGroupMemberList(listUrl: string): Promise<string> {
   );
 }
 
+/** HTML d'une fiche de député (GET, même politesse que la liste). */
+export function fetchPage(url: string): Promise<string> {
+  return fetchWithRetry(url, {});
+}
+
 /** Réessaie les 503 (charge du site) avec une pause croissante, 3 tentatives au total. */
 async function fetchWithRetry(
   url: string,
