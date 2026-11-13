@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { createDb } from '@elupedia/shared';
+import { createDb, envValue } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { renderShorts } from './render.js';
 import { DEFAULT_OUTPUT_DIR } from './voiceover.js';
@@ -44,7 +44,7 @@ renderShorts(createDb(), {
   draft: values.draft,
   silent: values.silent,
   dryRun: values['dry-run'],
-  outputDir: values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR,
+  outputDir: values.out ?? envValue('SHORTS_OUTPUT_DIR') ?? DEFAULT_OUTPUT_DIR,
 })
   .then(({ rendered, failed }) => {
     logger.info(

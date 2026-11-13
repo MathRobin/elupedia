@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { createDb } from '@elupedia/shared';
+import { createDb, envValue } from '@elupedia/shared';
 import { logger } from './logger.js';
 import {
   DEFAULT_OUTPUT_DIR,
@@ -51,7 +51,7 @@ if (values.help || !['sheet', 'import', 'generate'].includes(command ?? '')) {
 }
 
 const outputDir =
-  values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR;
+  values.out ?? envValue('SHORTS_OUTPUT_DIR') ?? DEFAULT_OUTPUT_DIR;
 const db = createDb();
 
 async function main(): Promise<void> {

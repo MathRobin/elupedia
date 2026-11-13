@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util';
 import path from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
-import { createDb } from '@elupedia/shared';
+import { createDb, envValue } from '@elupedia/shared';
 import { logger } from './logger.js';
 import {
   DEFAULT_MODEL,
@@ -71,7 +71,7 @@ if (values.help || !shortId) {
 }
 
 const outputDir =
-  values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR;
+  values.out ?? envValue('SHORTS_OUTPUT_DIR') ?? DEFAULT_OUTPUT_DIR;
 const db = createDb();
 
 async function main(): Promise<number> {
@@ -106,7 +106,7 @@ async function main(): Promise<number> {
   if (values['dry-run']) return 0;
 
   if (plan.script) {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!envValue('ANTHROPIC_API_KEY')) {
       throw new Error(
         'ANTHROPIC_API_KEY manquante : impossible de générer le script',
       );

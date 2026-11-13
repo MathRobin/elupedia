@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 import Anthropic from '@anthropic-ai/sdk';
-import { createDb } from '@elupedia/shared';
+import { createDb, envValue } from '@elupedia/shared';
 import { logger } from './logger.js';
 import {
   DEFAULT_MODEL,
@@ -38,7 +38,7 @@ if (values.help) {
   process.exit(0);
 }
 
-if (!process.env.ANTHROPIC_API_KEY) {
+if (!envValue('ANTHROPIC_API_KEY')) {
   logger.error('ANTHROPIC_API_KEY manquante');
   if (!values['dry-run']) writeShortsFailureReport('script');
   process.exit(1);

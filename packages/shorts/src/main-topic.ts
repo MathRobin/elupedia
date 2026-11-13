@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { createDb, videoShorts } from '@elupedia/shared';
+import { createDb, envValue, videoShorts } from '@elupedia/shared';
 import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
 import { validateScript } from './script-validate.js';
@@ -46,7 +46,7 @@ if (values.help || !topic) {
 }
 
 const outputDir =
-  values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR;
+  values.out ?? envValue('SHORTS_OUTPUT_DIR') ?? DEFAULT_OUTPUT_DIR;
 
 async function main(): Promise<number> {
   const db = createDb();

@@ -4,6 +4,7 @@ import {
   charactersToWords,
   createElevenLabsProvider,
   elevenLabsFromEnv,
+  ELEVENLABS_DEFAULT_MODEL,
   parseSpeed,
 } from './tts.js';
 
@@ -83,6 +84,25 @@ describe('elevenLabsFromEnv', () => {
     });
     expect(p?.voiceId).toBe('v');
     expect(p?.modelId).toBe('eleven_flash_v2_5');
+  });
+
+  // Dagu exporte `${NOM}` tel quel quand la variable manque au .env : le
+  // modèle et le débit doivent retomber sur leurs valeurs par défaut au lieu
+  // d'être envoyés tels quels à l'API (HTTP 400).
+  it('ignore les gabarits ${NOM} laissés par Dagu', () => {
+    const p = elevenLabsFromEnv({
+      ELEVENLABS_API_KEY: 'k',
+      ELEVENLABS_VOICE_ID: 'v',
+      ELEVENLABS_MODEL_ID: '${ELEVENLABS_MODEL_ID}',
+      ELEVENLABS_SPEED: '${ELEVENLABS_SPEED}',
+    });
+    expect(p?.modelId).toBe(ELEVENLABS_DEFAULT_MODEL);
+    expect(
+      elevenLabsFromEnv({
+        ELEVENLABS_API_KEY: '${ELEVENLABS_API_KEY}',
+        ELEVENLABS_VOICE_ID: 'v',
+      }),
+    ).toBeNull();
   });
 });
 
