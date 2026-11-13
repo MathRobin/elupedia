@@ -10,18 +10,19 @@
 # hiver, 14:10 UTC en été) alors que les autres DAGs sont écrits en UTC. Chevauche
 # le tick `ingest-press-maires` de 15:00 UTC en hiver — voir
 # docs/INGESTION-SCHEDULE.md.
+# Les variables optionnelles (VERCEL_DEPLOY_HOOK_URL, ELEVENLABS_MODEL_ID,
+# ELEVENLABS_SPEED, SHORTS_OUTPUT_DIR) ne sont pas déclarées ici, comme dans
+# publish-shorts.yaml : Dagu laisse « ${VAR} » littéral quand la variable manque
+# au .env, et cette valeur du shell prime sur le --env-file de tsx. Les scripts
+# lisent eux-mêmes le .env de la racine.
 name: ingest-votes
 description: Ingest — Votes AN + Sénat, puis short du jour
 schedule: 'CRON_TZ=Europe/Paris 10 16 * * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}
-  - VERCEL_DEPLOY_HOOK_URL: ${VERCEL_DEPLOY_HOOK_URL}
   - ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
   - ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
   - ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID}
-  - ELEVENLABS_MODEL_ID: ${ELEVENLABS_MODEL_ID}
-  - ELEVENLABS_SPEED: ${ELEVENLABS_SPEED}
-  - SHORTS_OUTPUT_DIR: ${SHORTS_OUTPUT_DIR}
 steps:
   - name: git-pull
     command: flock /tmp/elupedia-git-pull.lock sh -c 'git fetch --no-write-fetch-head origin main && git merge --ff-only origin/main'

@@ -2,6 +2,17 @@
 
 Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 2026. Aucun n'a été corrigé à cette occasion : chaque ligne est une piste à vérifier, pas un diagnostic confirmé. Retirer une entrée quand elle est traitée.
 
+## Variables optionnelles absentes du `.env` de la machine d'ingestion
+
+Quatre variables présentes dans `.env.example` manquent au `.env` de la machine
+d'ingestion : `ELEVENLABS_MODEL_ID`, `ELEVENLABS_SPEED`, `SHORTS_OUTPUT_DIR` et
+`VERCEL_DEPLOY_HOOK_URL`. Les trois premières ont une valeur par défaut
+utilisable, et `envValue` (`packages/shared/src/env-value.ts`) garantit désormais
+qu'on y retombe. `VERCEL_DEPLOY_HOOK_URL` n'a pas de défaut : tant qu'elle
+manque, aucune ingestion ne déclenche la reconstruction du site, qui attend le
+prochain merge. Le hook se crée dans le projet Vercel (Settings → Git → Deploy
+Hooks, branche `main`).
+
 ## Rapprochement d'élus (homonymes)
 
 - Le rapprochement AN ↔ Sénat (nom + prénom + date de naissance) n'est tenté qu'à la création d'une fiche : les doublons créés avant son existence ne se résorbent pas seuls. Outil de rattrapage : `yarn --cwd packages/ingest merge:duplicate-officials` (48 paires en octobre 2026).

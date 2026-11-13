@@ -9,6 +9,7 @@
  */
 import { access } from 'node:fs/promises';
 import path from 'node:path';
+import { envValue } from '@elupedia/shared';
 import { repoRoot } from './repo-root';
 import { hasLocalMachine } from './runtime';
 
@@ -22,7 +23,7 @@ export type ShortFileName = keyof typeof SHORT_FILES;
 
 export function shortsOutputDir(): string {
   const shortsDir = path.join(repoRoot(), 'packages', 'shorts');
-  const configured = process.env.SHORTS_OUTPUT_DIR;
+  const configured = envValue('SHORTS_OUTPUT_DIR');
   return configured
     ? path.resolve(shortsDir, configured)
     : path.join(shortsDir, 'out');
