@@ -19,6 +19,26 @@ describe('Auth email/password (#140)', () => {
     expect(auth).toContain('authorize');
   });
 
+  it('la recherche du compte ignore la casse et les espaces, comme set-password', () => {
+    const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
+    expect(auth).toContain('email.trim().toLowerCase()');
+    expect(auth).toContain('lower(${users.email})');
+    const invite = readFileSync(
+      resolve(adminDir, 'src/app/users/actions.ts'),
+      'utf-8',
+    );
+    expect(invite).toContain('email.trim().toLowerCase()');
+  });
+
+  it('la page de connexion distingue un identifiant refusé d’une panne serveur', () => {
+    const login = readFileSync(
+      resolve(adminDir, 'src/app/login/page.tsx'),
+      'utf-8',
+    );
+    expect(login).toContain("result.error === 'CredentialsSignin'");
+    expect(login).toContain('Connexion impossible');
+  });
+
   it('auth.ts verifies password with bcrypt', () => {
     const auth = readFileSync(resolve(adminDir, 'src/lib/auth.ts'), 'utf-8');
     expect(auth).toContain('compare');
