@@ -5,11 +5,14 @@
 # script, voix off ElevenLabs, rendu. Les shorts sans voix (clé ElevenLabs
 # absente, voix à enregistrer) ne sont pas rendus ; la revue humaine et la
 # publication (publish-shorts, 16:00 UTC le lendemain) restent à part.
-# Cron en UTC (17:00 = 18:00 Paris en hiver, 19:00 en été) — voir
+# Cron en heure de Paris : CRON_TZ=Europe/Paris, honoré par Dagu et prioritaire
+# sur le `tz: UTC` global, pour garder 16:10 locales toute l'année (15:10 UTC en
+# hiver, 14:10 UTC en été) alors que les autres DAGs sont écrits en UTC. Chevauche
+# le tick `ingest-press-maires` de 15:00 UTC en hiver — voir
 # docs/INGESTION-SCHEDULE.md.
 name: ingest-votes
 description: Ingest — Votes AN + Sénat, puis short du jour
-schedule: '0 17 * * *'
+schedule: 'CRON_TZ=Europe/Paris 10 16 * * *'
 env:
   - DATABASE_URL: ${DATABASE_URL}
   - VERCEL_DEPLOY_HOOK_URL: ${VERCEL_DEPLOY_HOOK_URL}

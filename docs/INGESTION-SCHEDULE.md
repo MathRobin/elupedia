@@ -13,7 +13,7 @@ le pointer sur `dagu-dags/` et lui donner le répertoire de travail et les secre
 ```yaml
 # /var/lib/dagu/config.yaml (à créer)
 dags_dir: /usr/airporting/elupedia/dagu-dags
-tz: UTC # les crons des DAGs sont en UTC
+tz: UTC # fuseau par défaut des crons ; `ingest-votes` le surcharge (CRON_TZ)
 auth:
   mode: none # UI servie sur 127.0.0.1 uniquement ; sinon créer un compte via /setup
 ```
@@ -26,14 +26,14 @@ catchup_window: '' # sinon tout cron manqué dans les 6 h est rejoué au redéma
 ```
 
 Puis `sudo systemctl restart dagu`, et vérifier avec `DAGU_HOME=/var/lib/dagu dagu ls`
-(les 24 DAGs doivent apparaître). Lancement manuel : `DAGU_HOME=/var/lib/dagu dagu start
+(les 25 DAGs doivent apparaître). Lancement manuel : `DAGU_HOME=/var/lib/dagu dagu start
 ingest-photos` ; suivi : `dagu status ingest-photos`, `journalctl -u dagu -f`, logs par
 étape dans `/var/lib/dagu/logs/dags/<nom>/`. Le checkout `/usr/airporting/elupedia` doit
 rester sur `main` et propre (chaque DAG commence par la synchronisation avec `origin/main`).
 Cette synchronisation est `git fetch --no-write-fetch-head origin main` puis
 `git merge --ff-only origin/main`, protégée par `flock /tmp/elupedia-git-pull.lock`.
 Elle n'écrit pas `.git/FETCH_HEAD` : `git pull` le lisait, et deux fetchs concurrents
-(deux DAGs à la même minute, ex. `publish-shorts` et `ingest-votes` à 17:00, ou un
+(deux DAGs à la même minute, ex. `publish-shorts` et `ingest-press-maires` à 15:00, ou un
 `git pull` manuel) échouaient avec « Impossible de rebaser sur de multiples
 branches ». Un checkout local divergent fait échouer l'étape au lieu d'être réécrit.
 
@@ -157,7 +157,7 @@ Petits volumes, largement avant le tick `press:maires` de 05:00.
 | Samedi   | `ingest:hatvp-status`                                                   |
 | Dimanche | `ingest --only geocode` (géocode les adresses ingérées dans la semaine) |
 
-## Créneau quotidien — votes AN + Sénat puis short du jour, 17:00 UTC
+## Créneau quotidien — votes AN + Sénat puis short du jour, 16:10 heure de Paris
 
 - `ingest:an --only votes,ballot-proposers` puis `ingest:senat --only senat-votes`
   (DAG `ingest-votes.yaml`, les deux étapes en séquence) — les scrutins publics
@@ -166,9 +166,10 @@ Petits volumes, largement avant le tick `press:maires` de 05:00.
   retard, trop pour exploiter un vote récent (fiches à jour, génération de
   contenus). Ne touche que `ballots`/`votes`/`ballot_group_positions`, pas
   `officials` ni `mandates` : pas de contention avec les jobs RNE. Placé à
-  17:00 UTC (18:00 Paris en hiver, 19:00 en été) : après la séance de
-  l'après-midi, entre le tick `press:maires` de 15:00 (fini vers 16:15) et celui
-  de 20:00.
+  16:10 heure de Paris : c'est le seul DAG dont le cron est écrit dans un fuseau
+  local (`CRON_TZ=Europe/Paris`, préfixe honoré par Dagu et prioritaire sur le
+  `tz: UTC` global), pour que l'horaire ne dérive pas d'une heure entre l'été et
+  l'hiver — soit 15:10 UTC en hiver et 14:10 UTC en été.
 - Enchaîne ensuite la génération du short du jour : `yarn --cwd packages/shorts
 select` (sélection des scrutins candidats, quelques requêtes), `script`
   (script des candidats via l'API Claude, `ANTHROPIC_API_KEY`), `voiceover
@@ -179,7 +180,14 @@ generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
   des shorts dont la voix est en base. Voir `docs/DOMAINS.md`. Le short est
   ensuite relu dans l'admin, puis publié dans l'heure qui suit l'approbation
   (DAG horaire `publish-shorts`).
-- Cron `0 17 * * *`.
+- En hiver, le créneau chevauche le tick `press:maires` de 15:00 UTC (fini vers
+  16:15) : c'est la contrepartie assumée d'un horaire fixé en heure locale, le
+  créneau 16:00–17:15 Paris étant occupé par ce tick. Le démarrage est décalé de
+  10 min pour éviter deux `git pull` + `yarn install` simultanés, mais les deux
+  jobs tournent ensuite en parallèle sur le même compute Neon. `press:maires` est
+  limité par son délai de 3 s entre élus, donc sa charge base reste faible. En
+  été (14:10 UTC), aucun recouvrement.
+- Cron `CRON_TZ=Europe/Paris 10 16 * * *`.
 
 ## Créneau horaire — publication des shorts
 
