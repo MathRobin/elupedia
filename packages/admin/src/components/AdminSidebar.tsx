@@ -31,6 +31,7 @@ const navItems = [
     label: 'Données',
     children: [
       { label: 'Ingestions', href: '/ingestions' },
+      { label: 'Journaux Dagu', href: '/logs' },
       { label: 'Cohérence', href: '/coherence' },
     ],
   },

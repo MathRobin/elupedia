@@ -12,6 +12,7 @@
  * le sont. Sur l'admin hébergée (lib/runtime.ts), les DAGs sont lus dans les
  * fichiers embarqués au build (outputFileTracingIncludes de next.config.ts)
  * mais les rapports, écrits sur la machine d'ingestion, sont absents.
+ * Chaque DAG peut aussi être lancé à la main (triggerDagAction).
  */
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -19,12 +20,32 @@ import { load as loadYaml } from 'js-yaml';
 import { auth } from '@/lib/auth';
 import { repoRoot } from '@/lib/shorts-jobs';
 import { hasLocalMachine } from '@/lib/runtime';
+import { triggerDag } from '@/lib/dag-trigger';
 
 async function requireAuthenticatedUser() {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (!role || (role !== 'admin' && role !== 'moderator')) {
     throw new Error('Forbidden');
+  }
+}
+
+/**
+ * Lance un DAG à la main (bouton « Lancer » de la page) : mise en file via
+ * scripts/trigger-dag.sh (lib/dag-trigger.ts). Réservé aux admins (une
+ * ingestion écrit en base et consomme des quotas), machine d'ingestion seulement.
+ */
+export async function triggerDagAction(
+  file: string,
+): Promise<{ ok: boolean; message: string }> {
+  const session = await auth();
+  if ((session?.user as { role?: string } | undefined)?.role !== 'admin') {
+    throw new Error('Forbidden');
+  }
+  try {
+    return { ok: true, message: await triggerDag(file.replace(/\.yaml$/, '')) };
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
   }
 }
 

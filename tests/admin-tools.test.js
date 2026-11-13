@@ -16,6 +16,11 @@ describe('Outils d’administration (actions sur les shorts, ingestions, cohére
       'src/app/videos/derive/page.tsx',
       'src/app/ingestions/actions.ts',
       'src/app/ingestions/page.tsx',
+      'src/lib/dagu-logs.ts',
+      'src/app/logs/actions.ts',
+      'src/app/logs/page.tsx',
+      'src/app/logs/[dag]/page.tsx',
+      'src/app/logs/[dag]/[run]/page.tsx',
       'src/app/coherence/actions.ts',
       'src/app/coherence/page.tsx',
       'src/app/rattachements/actions.ts',
@@ -35,6 +40,7 @@ describe('Outils d’administration (actions sur les shorts, ingestions, cohére
       '/rattachements',
       '/videos/derive',
       '/ingestions',
+      '/logs',
       '/coherence',
     ]) {
       expect(sidebar, href).toContain(href);
@@ -73,6 +79,41 @@ describe('Outils d’administration (actions sur les shorts, ingestions, cohére
     const src = read('src/app/ingestions/actions.ts');
     expect(src).toContain('dagu-dags');
     expect(src).toContain('ingest-report-');
+  });
+
+  it('les journaux Dagu sont lus sur le disque, réservés aux admins, sans chemin fourni par le navigateur', () => {
+    const lib = read('src/lib/dagu-logs.ts');
+    expect(lib).toContain('status.jsonl');
+    expect(lib).toContain('RUN_ID');
+    expect(lib).toContain('startsWith(allowed)');
+    expect(lib).not.toMatch(/exec\(|execSync\(/);
+    const actions = read('src/app/logs/actions.ts');
+    expect(actions).toMatch(/role !== 'admin'|=== 'admin'/);
+    expect(actions).toContain('assertKnownDag');
+    for (const f of [
+      'src/app/logs/page.tsx',
+      'src/app/logs/[dag]/page.tsx',
+      'src/app/logs/[dag]/[run]/page.tsx',
+    ]) {
+      expect(read(f), f).toContain('RequireRole');
+    }
+  });
+
+  it('le déclenchement manuel d’un DAG passe par scripts/trigger-dag.sh, réservé aux admins', () => {
+    const actions = read('src/app/ingestions/actions.ts');
+    expect(actions).toContain('triggerDagAction');
+    expect(actions).toMatch(/role !== 'admin'/);
+    const lib = read('src/lib/dag-trigger.ts');
+    expect(lib).toContain('trigger-dag.sh');
+    expect(lib).toContain('execFile');
+    expect(lib).not.toMatch(/exec\(|execSync\(/);
+    expect(read('src/app/ingestions/page.tsx')).toContain('Lancer');
+    const script = readFileSync(
+      resolve(root, 'scripts/trigger-dag.sh'),
+      'utf-8',
+    );
+    expect(script).toContain('dagu');
+    expect(script).toContain('enqueue');
   });
 
   it('la cohérence réutilise le contrôle du paquet ingest', () => {
