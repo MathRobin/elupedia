@@ -14,7 +14,7 @@
  * élu ayant un mandat en cours. Sans GOOGLE_FACTCHECK_API_KEY, le run est
  * ignoré (log d'erreur, aucun StepResult, code de sortie 0 côté main).
  */
-import { createDb, officials, mandates } from '@elupedia/shared';
+import { createDb, envValue, mandates, officials } from '@elupedia/shared';
 import { isNull, eq, or } from 'drizzle-orm';
 
 import { logger } from './logger.js';
@@ -29,7 +29,7 @@ const PROGRESS_LOG_EVERY = 100;
 
 /** Lance l'ingestion des fact-checks (une seule étape). Écrit en base. */
 export async function runFactChecks(): Promise<StepResult[]> {
-  const apiKey = process.env.GOOGLE_FACTCHECK_API_KEY;
+  const apiKey = envValue('GOOGLE_FACTCHECK_API_KEY');
   if (!apiKey) {
     logger.error('GOOGLE_FACTCHECK_API_KEY is not set');
     return [];

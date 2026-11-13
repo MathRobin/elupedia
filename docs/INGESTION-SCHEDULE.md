@@ -218,3 +218,13 @@ de DAG) dans le `.env` de la racine via `base.yaml` ; `ingest-votes` y lit aussi
 attendent en plus `MAPS_S3_BUCKET`, `MAPS_S3_REGION`, `AWS_ACCESS_KEY_ID`,
 `AWS_SECRET_ACCESS_KEY` (et `MAPS_BASE_URL` pour les cartes) — tous déjà présents
 dans les secrets du dépôt.
+
+Chaque DAG déclare ses variables sous la forme `- NOM: ${NOM}`. Quand la
+variable manque au `.env`, Dagu n'exporte pas une valeur vide mais la chaîne
+littérale `${NOM}`, qui masque en plus le `--env-file` de tsx (les variables du
+shell priment). Le code lit donc ces variables via `envValue`
+(`packages/shared/src/env-value.ts`), qui traite un tel gabarit comme une
+variable absente : les optionnelles (`ELEVENLABS_MODEL_ID`, `ELEVENLABS_SPEED`,
+`SHORTS_OUTPUT_DIR`, `VERCEL_DEPLOY_HOOK_URL`) retombent sur leur valeur par
+défaut au lieu de faire échouer l'étape (HTTP 400 d'ElevenLabs, URL de hook
+impossible à analyser).

@@ -19,7 +19,7 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
-import { officials } from '@elupedia/shared';
+import { envValue, officials } from '@elupedia/shared';
 import { isNotNull, eq } from 'drizzle-orm';
 import { logger } from '../logger.js';
 
@@ -31,8 +31,8 @@ const DELAY_MS = 200;
 const MIN_PHOTO_BYTES = 100;
 
 function getS3Config() {
-  const bucket = process.env.MAPS_S3_BUCKET;
-  const region = process.env.MAPS_S3_REGION ?? process.env.AWS_REGION;
+  const bucket = envValue('MAPS_S3_BUCKET');
+  const region = envValue('MAPS_S3_REGION') ?? envValue('AWS_REGION');
   if (!bucket) throw new Error('MAPS_S3_BUCKET is required');
   if (!region) throw new Error('MAPS_S3_REGION or AWS_REGION is required');
   return { bucket, region };

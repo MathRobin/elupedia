@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { createDb } from '@elupedia/shared';
+import { createDb, envValue } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { publishShorts } from './publish.js';
 import { DEFAULT_OUTPUT_DIR } from './voiceover.js';
@@ -42,16 +42,16 @@ if (values.help) {
 }
 
 const privacy = (values.privacy ??
-  process.env.YOUTUBE_PRIVACY_STATUS ??
+  envValue('YOUTUBE_PRIVACY_STATUS') ??
   'public') as PrivacyStatus;
 if (!['public', 'unlisted', 'private'].includes(privacy)) {
   logger.error(`--privacy invalide : ${privacy}`);
   process.exit(1);
 }
 
-const clientId = process.env.YOUTUBE_CLIENT_ID;
-const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+const clientId = envValue('YOUTUBE_CLIENT_ID');
+const clientSecret = envValue('YOUTUBE_CLIENT_SECRET');
+const refreshToken = envValue('YOUTUBE_REFRESH_TOKEN');
 if (!values['dry-run'] && (!clientId || !clientSecret || !refreshToken)) {
   logger.error(
     'YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET et YOUTUBE_REFRESH_TOKEN sont requises',
@@ -73,7 +73,7 @@ async function main(): Promise<void> {
     {
       shortId: values.id,
       outputDir:
-        values.out ?? process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR,
+        values.out ?? envValue('SHORTS_OUTPUT_DIR') ?? DEFAULT_OUTPUT_DIR,
       privacyStatus: privacy,
       max:
         values.max === 'all'

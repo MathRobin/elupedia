@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { createDb } from '@elupedia/shared';
+import { createDb, envValue } from '@elupedia/shared';
 import { logger } from './logger.js';
 import { formatReviewRow, listShorts, reviewShort } from './review.js';
 import { DEFAULT_OUTPUT_DIR } from './voiceover.js';
@@ -35,7 +35,7 @@ if (
 }
 
 const db = createDb();
-const outputDir = process.env.SHORTS_OUTPUT_DIR ?? DEFAULT_OUTPUT_DIR;
+const outputDir = envValue('SHORTS_OUTPUT_DIR') ?? DEFAULT_OUTPUT_DIR;
 
 async function main(): Promise<void> {
   if (command === undefined || command === 'list') {

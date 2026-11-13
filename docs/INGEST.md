@@ -197,7 +197,7 @@ Résultat du debug au 12/11/2026 (`debug:group-directories:match`) : 358 entrée
 
 `merge:duplicate-officials` corrige un héritage : avant le rapprochement nom + prénom + date de naissance entre sources, un sénateur décrit à la fois par l'open data Sénat et par le jeu AMO30 de l'AN recevait deux fiches. La fiche Sénat est conservée ; elle reçoit l'`an_id`, les champs qu'elle n'avait pas et toutes les lignes dépendantes de la fiche AN, sauf celles qu'elle possède déjà (même clé naturelle par table, voir `NATURAL_KEYS` dans `src/merge-duplicate-officials.ts`). Le slug de la fiche AN disparaît.
 
-`rebuild:site` est l'étape finale de chaque DAG Dagu : il lit les rapports `ingest-report-*.json` passés en `--report` et, si l'un d'eux a `hasChanges`, fait un POST sur `VERCEL_DEPLOY_HOOK_URL` pour reconstruire les pages statiques du site. Pas plus d'un déclenchement par 20 minutes (état dans `.rebuild-site-state.json`, ignoré par git) ; variable absente ou rapport illisible = simple avertissement, seul un échec de l'appel HTTP fait sortir en erreur.
+`rebuild:site` est l'étape finale de chaque DAG Dagu : il lit les rapports `ingest-report-*.json` passés en `--report` et, si l'un d'eux a `hasChanges`, fait un POST sur `VERCEL_DEPLOY_HOOK_URL` pour reconstruire les pages statiques du site. Pas plus d'un déclenchement par 20 minutes (état dans `.rebuild-site-state.json`, ignoré par git) ; variable absente — ou laissée au gabarit `${VERCEL_DEPLOY_HOOK_URL}` par un DAG Dagu, voir `envValue` dans `packages/shared` — ou rapport illisible = simple avertissement, seul un échec de l'appel HTTP fait sortir en erreur.
 
 ## Planification
 

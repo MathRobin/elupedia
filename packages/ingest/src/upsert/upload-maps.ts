@@ -18,7 +18,7 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
-import { addresses } from '@elupedia/shared';
+import { addresses, envValue } from '@elupedia/shared';
 import { isNotNull, and } from 'drizzle-orm';
 import { generateStaticMap, mapCacheKey } from '../services/static-map.js';
 import { logger } from '../logger.js';
@@ -38,8 +38,8 @@ const MAP_WIDTH = 400;
 const MAP_HEIGHT = 200;
 
 function getS3Config() {
-  const bucket = process.env.MAPS_S3_BUCKET;
-  const region = process.env.MAPS_S3_REGION ?? process.env.AWS_REGION;
+  const bucket = envValue('MAPS_S3_BUCKET');
+  const region = envValue('MAPS_S3_REGION') ?? envValue('AWS_REGION');
   if (!bucket) throw new Error('MAPS_S3_BUCKET is required');
   if (!region) throw new Error('MAPS_S3_REGION or AWS_REGION is required');
   return { bucket, region };

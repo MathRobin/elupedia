@@ -9,9 +9,14 @@
  *
  * Appelants : `voiceover generate` (main-voiceover.ts), `make` (main-make.ts),
  * étape `voiceover-shorts` du DAG ingest-votes. Variables : ELEVENLABS_API_KEY,
- * ELEVENLABS_VOICE_ID, ELEVENLABS_MODEL_ID (optionnelle). Sans clé ni voix,
- * `elevenLabsFromEnv` renvoie null et la voix reste à enregistrer à la main.
+ * ELEVENLABS_VOICE_ID, ELEVENLABS_MODEL_ID et ELEVENLABS_SPEED (optionnelles).
+ * Sans clé ni voix, `elevenLabsFromEnv` renvoie null et la voix reste à
+ * enregistrer à la main. Les variables passent par `envValue`
+ * (@elupedia/shared) : un DAG Dagu exporte `${NOM}` tel quel quand la variable
+ * manque au `.env`, et un modèle ou un débit à l'état de gabarit ferait
+ * répondre HTTP 400 à ElevenLabs au lieu de reprendre la valeur par défaut.
  */
+import { envValue } from '@elupedia/shared';
 import type { WordTiming } from './words.js';
 
 export interface TtsResult {
@@ -140,11 +145,13 @@ export function createElevenLabsProvider(o: ElevenLabsOptions): TtsProvider {
 export function elevenLabsFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): TtsProvider | null {
-  if (!env.ELEVENLABS_API_KEY || !env.ELEVENLABS_VOICE_ID) return null;
+  const apiKey = envValue('ELEVENLABS_API_KEY', env);
+  const voiceId = envValue('ELEVENLABS_VOICE_ID', env);
+  if (!apiKey || !voiceId) return null;
   return createElevenLabsProvider({
-    apiKey: env.ELEVENLABS_API_KEY,
-    voiceId: env.ELEVENLABS_VOICE_ID,
-    modelId: env.ELEVENLABS_MODEL_ID || undefined,
-    speed: parseSpeed(env.ELEVENLABS_SPEED),
+    apiKey,
+    voiceId,
+    modelId: envValue('ELEVENLABS_MODEL_ID', env),
+    speed: parseSpeed(envValue('ELEVENLABS_SPEED', env)),
   });
 }

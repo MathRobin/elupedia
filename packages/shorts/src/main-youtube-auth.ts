@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { logger } from './logger.js';
 import { buildAuthUrl, exchangeCode } from './youtube.js';
+import { envValue } from '@elupedia/shared';
 
 /**
  * Autorisation YouTube, à faire une seule fois : ouvre une URL Google dans le
@@ -13,8 +14,8 @@ import { buildAuthUrl, exchangeCode } from './youtube.js';
  * « Application de bureau » → YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET.
  */
 
-const clientId = process.env.YOUTUBE_CLIENT_ID;
-const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+const clientId = envValue('YOUTUBE_CLIENT_ID');
+const clientSecret = envValue('YOUTUBE_CLIENT_SECRET');
 if (!clientId || !clientSecret) {
   logger.error('YOUTUBE_CLIENT_ID et YOUTUBE_CLIENT_SECRET sont requises');
   process.exit(1);
