@@ -26,7 +26,7 @@ catchup_window: '' # sinon tout cron manqué dans les 6 h est rejoué au redéma
 ```
 
 Puis `sudo systemctl restart dagu`, et vérifier avec `DAGU_HOME=/var/lib/dagu dagu ls`
-(les 25 DAGs doivent apparaître). Lancement manuel : `scripts/trigger-dag.sh ingest-photos` (met un run en file via
+(les 26 DAGs doivent apparaître). Lancement manuel : `scripts/trigger-dag.sh ingest-photos` (met un run en file via
 `dagu enqueue`, exécuté par le scheduler avec le même environnement que les runs planifiés ;
 `--list` liste les DAGs) — c'est aussi ce que fait le bouton « Lancer » de `/ingestions` dans
 l'admin (admins, machine d'ingestion) — ou `DAGU_HOME=/var/lib/dagu dagu start
@@ -202,6 +202,21 @@ generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
   `yarn install --immutable` compris). Dagu n'empile pas deux exécutions du
   même DAG : une publication longue décale simplement le tick suivant.
 - Cron `0 * * * *`.
+
+## Sans cron — short sur les votes à la demande
+
+- `shorts-votes.yaml` — reprend les quatre étapes shorts de `ingest-votes`
+  (`select`, `script`, `voiceover generate`, `render`) sans rejouer l'ingestion
+  des scrutins : de quoi refaire un short sur des votes déjà en base, après un
+  rejet en revue ou un changement de script, sans attendre le créneau quotidien.
+  Pas de `schedule` : le DAG ne part que sur déclenchement manuel, depuis
+  l'interface Dagu, `scripts/trigger-dag.sh shorts-votes` ou le bouton
+  « Lancer » de `/ingestions`.
+- Son étape `rebuild-site` lit les rapports `ingest-report-an.json` et
+  `ingest-report-senat.json` laissés par la dernière ingestion, puisque ce DAG
+  n'en produit aucun : si ces rapports annoncent des changements, le hook Vercel
+  part pour des données déjà publiées. Sans conséquence autre qu'un build de
+  plus, borné à un déclenchement par 20 min.
 
 ## Créneau mensuel — 1er du mois, 06:30 UTC
 

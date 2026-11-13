@@ -5,19 +5,21 @@
 # La revue humaine et la publication (publish-shorts) restent à part.
 #
 # Attention : rebuild-site lit les rapports ingest-report-an.json et
-# ingest-report-senat.json laissés par la dernière ingestion. Si ces rapports
-# annoncent des changements, le deploy hook part (au plus une fois par 20 min).
+# ingest-report-senat.json laissés par la dernière ingestion, puisque ce DAG
+# n'en produit aucun. Si ces rapports annoncent des changements, le deploy hook
+# part (au plus une fois par 20 min) pour des données déjà publiées.
+# Les variables optionnelles (VERCEL_DEPLOY_HOOK_URL, ELEVENLABS_MODEL_ID,
+# ELEVENLABS_SPEED, SHORTS_OUTPUT_DIR) ne sont pas déclarées, comme dans
+# ingest-votes.yaml et publish-shorts.yaml : Dagu laisse « ${VAR} » littéral
+# quand la variable manque au .env, et cette valeur du shell prime sur le
+# --env-file de tsx. Les scripts lisent eux-mêmes le .env de la racine.
 name: shorts-votes
 description: Shorts — Vidéo sur les votes, sans ingestion (déclenchement manuel)
 env:
   - DATABASE_URL: ${DATABASE_URL}
-  - VERCEL_DEPLOY_HOOK_URL: ${VERCEL_DEPLOY_HOOK_URL}
   - ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
   - ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
   - ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID}
-  - ELEVENLABS_MODEL_ID: ${ELEVENLABS_MODEL_ID}
-  - ELEVENLABS_SPEED: ${ELEVENLABS_SPEED}
-  - SHORTS_OUTPUT_DIR: ${SHORTS_OUTPUT_DIR}
 steps:
   - name: git-pull
     command: flock /tmp/elupedia-git-pull.lock sh -c 'git fetch --no-write-fetch-head origin main && git merge --ff-only origin/main'
