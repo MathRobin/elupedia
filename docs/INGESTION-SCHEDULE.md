@@ -136,15 +136,15 @@ Convention des fichiers : `name` est le slug du fichier (Dagu 2 n'accepte que
 Choisi à 1h30 après le tick `press:maires` de 00:00 (qui peut tourner jusqu'à ~75 min)
 et 3h30 avant celui de 05:00 — large marge dans les deux sens.
 
-| Jour     | Commande           | Pourquoi ce jour                                                                      |
-| -------- | ------------------ | ------------------------------------------------------------------------------------- |
-| Lundi    | `ingest:an`        | Votes/activité AN à jour en début de semaine                                          |
-| Mardi    | `ingest:senat`     | Décalé d'un jour vs AN (tables `officials`/`mandates` partagées)                      |
-| Mercredi | `ingest:europe`    | Volume plus petit (~700 votants/scrutin), milieu de semaine                           |
-| Jeudi    | `reconcile`        | Rattache les officials/élections ajoutés par AN/Sénat/Europe plus tôt dans la semaine |
-| Vendredi | `ingest:interests` | Déclarations HATVP, volume indépendant des mandats                                    |
-| Samedi   | `ingest:press`     | Presse parlementaires (~1000 élus, passe complète hebdomadaire)                       |
-| Dimanche | `ingest:photos`    | Sauvegarde S3 des photos, jour calme                                                  |
+| Jour     | Commande           | Pourquoi ce jour                                                                                         |
+| -------- | ------------------ | -------------------------------------------------------------------------------------------------------- |
+| Lundi    | `ingest:an`        | Votes/activité AN à jour en début de semaine                                                             |
+| Mardi    | `ingest:senat`     | Décalé d'un jour vs AN (tables `officials`/`mandates` partagées), puis recensement des fiches en doublon |
+| Mercredi | `ingest:europe`    | Volume plus petit (~700 votants/scrutin), milieu de semaine                                              |
+| Jeudi    | `reconcile`        | Rattache les officials/élections ajoutés par AN/Sénat/Europe plus tôt dans la semaine                    |
+| Vendredi | `ingest:interests` | Déclarations HATVP, volume indépendant des mandats                                                       |
+| Samedi   | `ingest:press`     | Presse parlementaires (~1000 élus, passe complète hebdomadaire)                                          |
+| Dimanche | `ingest:photos`    | Sauvegarde S3 des photos, jour calme                                                                     |
 
 ## Créneau secondaire — un job léger par jour, 03:30 UTC
 

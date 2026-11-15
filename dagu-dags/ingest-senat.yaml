@@ -24,8 +24,29 @@ steps:
     command: yarn --cwd packages/ingest ingest:senat
     depends:
       - install-dependencies
+  # Une même personne peut recevoir deux fiches `officials` quand une seconde
+  # source la crée avant que le rapprochement nom + date de naissance joue.
+  # Ce rapprochement n'a lieu qu'à la création, donc les doublons anciens ne se
+  # résorbent jamais : cette étape les recense en fin de run, pour qu'ils
+  # apparaissent dans les logs Dagu du mardi.
+  #
+  # Volontairement SANS --apply : la fusion supprime des lignes dépendantes
+  # déjà présentes sur la fiche conservée (mandats, déclarations HATVP, articles
+  # de presse). Le dry-run du 15/11/2026 annonçait 10 paires, 1121 lignes
+  # déplacées et 129 supprimées, sur des fiches qui n'ont pas d'`an_id` — donc
+  # pas les doublons AN/Sénat que merge-duplicate-officials.ts décrit. Tant que
+  # cet écart n'est pas tranché, la fusion reste un geste manuel, à lancer
+  # après relecture de la liste (voir docs/INGEST.md).
+  - name: merge-duplicate-officials
+    command: yarn --cwd packages/ingest merge:duplicate-officials
+    depends:
+      - ingestion-senat
+    # Recensement en lecture seule : son échec ne doit pas faire échouer le run.
+    continue_on:
+      failure: true
   # Rebuild Vercel des pages statiques si l'ingestion a changé quelque chose
   # (utils/deploy-hook.ts : hook VERCEL_DEPLOY_HOOK_URL, 20 min minimum entre deux).
+  # Dépend de l'ingestion, pas du recensement, qui n'écrit rien.
   - name: rebuild-site
     command: yarn --cwd packages/ingest rebuild:site --report ingest-report-senat.json
     depends:

@@ -2,6 +2,23 @@
 
 Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 2026. Aucun n'a été corrigé à cette occasion : chaque ligne est une piste à vérifier, pas un diagnostic confirmé. Retirer une entrée quand elle est traitée.
 
+## `merge:duplicate-officials` ne fusionne plus la population qu'il décrit
+
+L'en-tête de `packages/ingest/src/merge-duplicate-officials.ts` décrit des
+doublons entre l'open data Sénat et le jeu AMO30 de l'AN, et une règle de
+conservation fondée là-dessus : matricule Sénat, sinon identifiant AN.
+
+Le dry-run du 15/11/2026 annonce 10 paires, 1121 lignes déplacées et 129
+supprimées, mais **aucune des fiches à supprimer n'a d'`an_id`**. Ce sont pour
+l'essentiel d'anciens ministres (Dati, Schiappa, Vallaud-Belkacem, Cosse,
+Penchard), vraisemblablement une fiche de mandat gouvernemental face à une fiche
+de mandat local — pas le cas de figure pour lequel la règle a été écrite.
+
+En conséquence, l'étape `merge-duplicate-officials` du DAG `ingest-senat` tourne
+sans `--apply` : elle recense les paires dans les logs du mardi, et la fusion
+reste manuelle. À trancher avant de l'automatiser : d'où viennent ces doublons,
+et la règle de conservation est-elle la bonne pour eux.
+
 ## Variables optionnelles absentes du `.env` de la machine d'ingestion
 
 Quatre variables présentes dans `.env.example` manquent au `.env` de la machine
