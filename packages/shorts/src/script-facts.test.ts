@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBallotFacts } from './script-facts.js';
+import { buildBallotFacts, spokenGroupName } from './script-facts.js';
 
 const group = (
   groupName: string,
@@ -59,5 +59,18 @@ describe('blocs', () => {
       ],
     });
     expect(b.blocs).toEqual({ left: null, right: null });
+  });
+});
+
+describe('spokenGroupName', () => {
+  it('drops the acronym and says « & » as « et »', () => {
+    expect(spokenGroupName('Horizons & Indépendants (HOR)')).toBe(
+      'Horizons et Indépendants',
+    );
+    expect(spokenGroupName('Ensemble pour la République (EPR)')).toBe(
+      'Ensemble pour la République',
+    );
+    // Sigle prononçable : dit tel quel.
+    expect(spokenGroupName('La France insoumise (LFI-NFP)')).toBe('LFI-NFP');
   });
 });

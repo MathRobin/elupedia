@@ -61,11 +61,6 @@ export function formatDecimal(v: number, decimals = 1, spoken = false): string {
   return spoken ? s.replace(/,0+$/, '') : s;
 }
 
-/** Nom d'un groupe à voix haute : nom complet (ou sigle prononçable), « & » dit « et ». */
-export function spokenGroup(name: string): string {
-  return spokenGroupName(name).replace(/\s*&\s*/g, ' et ');
-}
-
 /** Barre d'un groupe parlementaire : sigle à l'écran, nom complet à la voix, couleur du groupe. */
 export function groupBar(
   name: string,
@@ -74,7 +69,7 @@ export function groupBar(
 ): ChartBar {
   return {
     label: groupAcronym(name) ?? name,
-    spokenLabel: spokenGroup(name),
+    spokenLabel: spokenGroupName(name),
     value,
     group: name,
     count,

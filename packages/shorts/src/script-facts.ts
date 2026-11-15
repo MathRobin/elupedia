@@ -172,11 +172,18 @@ export interface ShortFacts {
  */
 export const PRONOUNCEABLE_ACRONYMS: readonly string[] = ['LFI-NFP', 'LIOT'];
 
-/** Ce qu'on dit à voix haute : sigle s'il se prononce, sinon nom complet. */
+/**
+ * Ce qu'on dit à voix haute : sigle s'il se prononce, sinon nom complet, et
+ * « & » remplacé par « et » (« Horizons & Indépendants »). La synthèse vocale
+ * prononce le signe « and », en anglais, au milieu d'une phrase française :
+ * il est donc écarté ici, à la source des faits, et interdit dans la voix par
+ * `validateScript`.
+ */
 export function spokenGroupName(name: string): string {
   const acronym = name.match(/\(([^)]+)\)\s*$/)?.[1];
   if (acronym && PRONOUNCEABLE_ACRONYMS.includes(acronym)) return acronym;
-  return name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name;
+  const full = name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name;
+  return full.replace(/\s*&\s*/g, ' et ');
 }
 
 export function groupAcronym(name: string): string | null {

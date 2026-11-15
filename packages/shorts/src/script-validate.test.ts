@@ -202,6 +202,27 @@ describe('validateScript', () => {
     expect(codes.filter((c) => c === 'punctuation')).toHaveLength(2);
   });
 
+  // ElevenLabs prononce « & » « and » : le signe n'a rien à faire dans un
+  // texte lu, mais reste admis à l'écran, dans le titre et la description.
+  it('rejects « & » in the voiceover only', () => {
+    const s = script();
+    s.scenes[0].voiceover =
+      'Horizons & Indépendants a voté pour, Les Démocrates aussi.';
+    s.scenes[1].onScreenText = 'Horizons & Indépendants';
+    s.title = 'Horizons & Indépendants face au budget';
+    s.description = 'Horizons & Indépendants a voté pour. Le texte est adopté.';
+    const issues = validateScript(s, facts);
+    expect(
+      issues.filter((i) => i.code === 'spoken_ampersand').map((i) => i.message),
+    ).toEqual([expect.stringContaining('Scène s1 (voiceover)')]);
+
+    s.scenes[0].voiceover =
+      'Horizons et Indépendants a voté pour, Les Démocrates aussi.';
+    expect(
+      validateScript(s, facts).filter((i) => i.code === 'spoken_ampersand'),
+    ).toEqual([]);
+  });
+
   it('enforces total duration and reading speed', () => {
     const tooShort = script();
     tooShort.scenes = tooShort.scenes.map((sc) => ({ ...sc, durationSec: 3 }));

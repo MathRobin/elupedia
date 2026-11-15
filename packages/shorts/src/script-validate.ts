@@ -189,6 +189,7 @@ export interface ValidationIssue {
     | 'banned_word'
     | 'llm_phrase'
     | 'punctuation'
+    | 'spoken_ampersand'
     | 'too_short'
     | 'too_long'
     | 'too_fast'
@@ -230,6 +231,14 @@ export function findLlmPhrases(text: string): string[] {
  * suspension, tiret cadratin.
  */
 export const SPOKEN_PUNCTUATION_BANNED = /[?!…—]|\.\.\./u;
+
+/**
+ * « & » est interdit dans un texte lu : ElevenLabs le prononce « and », en
+ * anglais, au milieu d'une phrase française. Il s'écrit « et » dans la voix
+ * (les noms de groupes le font déjà, voir `spokenGroupName`). Le signe reste
+ * permis à l'écran, dans le titre et dans la description, qui ne sont pas lus.
+ */
+export const SPOKEN_AMPERSAND = /&/u;
 
 function extractNumbers(text: string): number[] {
   // Les URL (page Elupedia du scrutin) contiennent des identifiants, pas des
@@ -393,6 +402,12 @@ export function validateScript(
       issues.push({
         code: 'punctuation',
         message: `Scène ${scene.id} (voiceover) : pas de question, d'exclamation, de points de suspension ni de tiret cadratin dans un texte lu`,
+      });
+    }
+    if (SPOKEN_AMPERSAND.test(scene.voiceover)) {
+      issues.push({
+        code: 'spoken_ampersand',
+        message: `Scène ${scene.id} (voiceover) : pas de « & » dans un texte lu, écrire « et » (la synthèse vocale le prononce « and »)`,
       });
     }
   }

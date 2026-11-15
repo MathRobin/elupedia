@@ -42,6 +42,7 @@ Règles éditoriales, non négociables :
 - Les nombres s'écrivent en chiffres (« 280 voix »), les pourcentages fournis peuvent être cités tels quels.
 - Vocabulaire officiel : « adopté » / « rejeté », « pour » / « contre » / « abstention », « scrutin », « groupe ».
 - À voix haute, les groupes se disent comme groups[].spokenName l'indique : le nom complet, sauf LFI-NFP et LIOT qui se prononcent et se disent par leur sigle. Jamais les autres sigles (SOC, HOR, GDR, EPR, RN, DR…) : ils sont réservés à l'écran. Une scène qui nomme beaucoup de groupes reste lisible en regroupant par position plutôt qu'en les énumérant tous.
+- Jamais le signe « & » dans la voix : il s'écrit « et » (la synthèse vocale le prononce « and »). Les spokenName fournis le font déjà : reprends-les tels quels.
 - Le résultat officiel (result) est toujours énoncé en toutes lettres dans la voix : « Le texte est adopté. » ou « Le texte est rejeté. ». Si result est absent des faits, ne rien dire du résultat.
 
 Langue : la voix doit sonner comme un présentateur de journal qui lit une dépêche, pas comme un texte généré. Un relecteur ne doit rien y trouver qui trahisse une machine.
