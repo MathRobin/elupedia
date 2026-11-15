@@ -80,4 +80,24 @@ describe('Auth email/password (#140)', () => {
     );
     expect(page).toContain('incorrect');
   });
+
+  // Le mot de passe de confirmation s'est déjà affiché en clair : le flux de
+  // sortie de readline porte l'écho des frappes, il doit rester muet du début
+  // à la fin, sans drapeau remis à faux (une interface fermée reçoit encore
+  // les saisies suivantes et les réafficherait).
+  it('set-password n’affiche jamais la saisie', () => {
+    const script = readFileSync(
+      resolve(adminDir, 'scripts/set-password.mjs'),
+      'utf-8',
+    );
+    // Le flux confié à readline jette tout ce qu'on lui écrit.
+    expect(script).toMatch(/output:\s*muet/);
+    expect(script).toMatch(/write\(_chunk, _enc, cb\) \{\s*cb\(\);/);
+    // Aucun drapeau de masquage, donc aucune fenêtre où l'écho repasse.
+    expect(script).not.toContain('muted');
+    // Le prompt est écrit à la main, puisque readline ne peut plus l'afficher.
+    expect(script).toContain('process.stdout.write(question)');
+    // Sans terminal, on refuse au lieu de lire une entrée non masquable.
+    expect(script).toContain('input.isTTY');
+  });
 });
