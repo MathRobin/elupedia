@@ -27,6 +27,17 @@ import { logger } from './logger.js';
  *
  * Les scrutins du Parlement européen sont exclus : seule la délégation
  * française est ingérée, le résultat ne peut pas en être déduit.
+ *
+ * Seuil dégressif : le DAG `ingest-votes` attend un short par jour, mais une
+ * semaine sans vote marquant ne produit que des amendements et des articles,
+ * tous sous le seuil nominal (constaté : meilleur scrutin à 19 points pour un
+ * seuil à 50, donc aucun candidat). Quand rien n'atteint `minScore`, le seuil
+ * redescend donc par paliers de SCORE_LADDER_STEP jusqu'à `minScoreFloor`, et
+ * le premier palier qui donne un scrutin l'emporte — un seul, le meilleur :
+ * un jour creux ne doit pas remplir la file de scrutins anecdotiques. Le
+ * palier retenu est consigné dans `score_details.selection`, pour qu'un short
+ * faible se reconnaisse à la relecture. Égaliser `minScoreFloor` et
+ * `minScore` rétablit l'ancien comportement, tout ou rien.
  */
 
 /** Effectif de référence quand la source ne donne pas la taille de l'assemblée. */
@@ -36,6 +47,23 @@ export const CHAMBER_SIZE_FALLBACK: Record<'an' | 'senat', number> = {
 };
 
 const CLOSENESS_FULL_WEIGHT_VOTERS = 150;
+
+/** Pas de la descente du seuil quand aucun scrutin n'atteint `minScore`. */
+export const SCORE_LADDER_STEP = 10;
+
+/**
+ * Seuils à essayer, du plus exigeant au plus permissif : `minScore`, puis les
+ * multiples de SCORE_LADDER_STEP strictement en dessous, puis le plancher.
+ * Un plancher supérieur ou égal au seuil demandé ne donne qu'un palier.
+ */
+export function thresholdLadder(minScore: number, floor: number): number[] {
+  const ladder = [minScore];
+  if (floor >= minScore) return ladder;
+  let next = Math.floor((minScore - 1) / SCORE_LADDER_STEP) * SCORE_LADDER_STEP;
+  for (; next > floor; next -= SCORE_LADDER_STEP) ladder.push(next);
+  ladder.push(floor);
+  return ladder;
+}
 
 export interface BallotForScoring {
   id: string;
@@ -201,8 +229,23 @@ export interface SelectionOptions {
   maxShorts: number;
   /** Score minimal pour devenir candidat. */
   minScore: number;
+  /**
+   * Plancher sous lequel le seuil ne descend pas quand rien n'atteint
+   * `minScore`. Égal à `minScore` : pas de descente.
+   */
+  minScoreFloor: number;
   dryRun: boolean;
   now?: Date;
+}
+
+/** Comment le seuil a été atteint, consigné dans `score_details.selection`. */
+export interface SelectionTrace {
+  /** Seuil demandé (`--min-score`). */
+  requested: number;
+  /** Seuil qui a effectivement retenu ce scrutin. */
+  applied: number;
+  /** true quand le scrutin n'aurait pas passé le seuil demandé. */
+  degraded: boolean;
 }
 
 export interface RankedBallot {
@@ -291,6 +334,28 @@ export function rankBallots(
     );
 }
 
+/**
+ * Scrutins retenus et seuil qui les a retenus. Au seuil demandé, jusqu'à
+ * `maxShorts` ; en dessous, un seul (le mieux noté), parce qu'un jour creux
+ * n'a pas à remplir la file de scrutins secondaires.
+ */
+export function chooseCandidates(
+  ranked: RankedBallot[],
+  options: Pick<SelectionOptions, 'minScore' | 'minScoreFloor' | 'maxShorts'>,
+): { chosen: RankedBallot[]; applied: number } {
+  const available = ranked.filter((r) => !r.alreadyUsed);
+  const ladder = thresholdLadder(options.minScore, options.minScoreFloor);
+  for (const [index, threshold] of ladder.entries()) {
+    const eligible = available.filter((r) => r.details.total >= threshold);
+    if (eligible.length === 0) continue;
+    return {
+      chosen: eligible.slice(0, index === 0 ? options.maxShorts : 1),
+      applied: threshold,
+    };
+  }
+  return { chosen: [], applied: options.minScore };
+}
+
 export async function selectShortCandidates(
   db: NeonHttpDatabase,
   options: SelectionOptions,
@@ -320,9 +385,17 @@ export async function selectShortCandidates(
   }
 
   const ranked = rankBallots(recent, used);
-  const chosen = ranked
-    .filter((r) => !r.alreadyUsed && r.details.total >= options.minScore)
-    .slice(0, options.maxShorts);
+  const { chosen, applied } = chooseCandidates(ranked, options);
+  if (applied < options.minScore) {
+    logger.warn(
+      `aucun scrutin à ${options.minScore} points : seuil ramené à ${applied}, 1 short retenu`,
+    );
+  }
+  const trace: SelectionTrace = {
+    requested: options.minScore,
+    applied,
+    degraded: applied < options.minScore,
+  };
 
   const created: string[] = [];
   for (const r of chosen) {
@@ -337,7 +410,7 @@ export async function selectShortCandidates(
       .values({
         status: 'candidate',
         score: r.details.total,
-        scoreDetails: r.details,
+        scoreDetails: { ...r.details, selection: trace },
       })
       .returning({ id: videoShorts.id });
     await db.insert(videoShortBallots).values({
