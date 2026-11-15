@@ -28,7 +28,9 @@ export const factChecks = pgTable('fact_checks', {
   reviewerName: varchar('reviewer_name', { length: 255 }).notNull(),
   reviewerUrl: varchar('reviewer_url', { length: 2048 }),
   // Verdict textuel libre du vérificateur (« Faux », « Trompeur »...).
-  rating: varchar('rating', { length: 100 }),
+  // `text` et non `varchar` : certains vérificateurs écrivent une phrase
+  // entière, et 100 caractères faisaient échouer l'insertion.
+  rating: text('rating'),
   datePublished: date('date_published'),
   languageCode: varchar('language_code', { length: 10 })
     .notNull()
