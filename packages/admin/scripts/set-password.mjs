@@ -100,32 +100,55 @@ function loadEnv(file) {
   }
 }
 
+/**
+ * Demande une ligne au clavier sans rien afficher de la frappe.
+ *
+ * Le flux de sortie confié à readline n'écrit jamais rien : c'est lui qui
+ * porte l'écho des caractères, et le prompt est donc affiché à la main sur
+ * stdout. Une version précédente coupait l'écho par un drapeau remis à faux
+ * en fin de saisie ; comme `rl.close()` ne détache pas readline de stdin, la
+ * première interface recevait encore la deuxième saisie et la réaffichait par
+ * son flux redevenu bavard : le mot de passe de confirmation apparaissait en
+ * clair. Un flux muet en permanence supprime cette fenêtre.
+ *
+ * stdin passe en mode « raw », où le terminal n'envoie plus SIGINT : Ctrl+C et
+ * Ctrl+D sont donc traités à la main, sinon la saisie serait impossible à
+ * interrompre.
+ */
 function promptHidden(question) {
   return new Promise((resolvePrompt) => {
-    let muted = false;
-    const output = new Writable({
-      write(chunk, _enc, cb) {
-        if (!muted) process.stdout.write(chunk);
+    const input = process.stdin;
+    if (!input.isTTY) {
+      console.error('Saisie impossible : pas de terminal interactif');
+      process.exit(1);
+    }
+
+    const muet = new Writable({
+      write(_chunk, _enc, cb) {
         cb();
       },
     });
-    const rl = createInterface({
-      input: process.stdin,
-      output,
-      terminal: true,
-    });
+
+    process.stdout.write(question);
+    const rl = createInterface({ input, output: muet, terminal: true });
+
     rl.on('close', () => {
-      // Entrée fermée (stdin non interactif) : rien à faire sans mot de passe.
+      // Ctrl+D ou entrée fermée : rien à faire sans mot de passe.
       console.error('\nSaisie interrompue');
       process.exit(1);
     });
-    rl.question(question, (answer) => {
-      muted = false;
-      process.stdout.write('\n');
+    rl.on('SIGINT', () => {
       rl.removeAllListeners('close');
       rl.close();
+      console.error('\nSaisie annulée');
+      process.exit(130);
+    });
+
+    rl.question('', (answer) => {
+      rl.removeAllListeners('close');
+      rl.close();
+      process.stdout.write('\n');
       resolvePrompt(answer);
     });
-    muted = true;
   });
 }
