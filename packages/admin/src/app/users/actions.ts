@@ -46,6 +46,9 @@ export async function inviteUser(email: string, role: string) {
   if (role !== 'admin' && role !== 'moderator') {
     throw new Error('Invalid role');
   }
-  await db.insert(users).values({ email, role });
+  // Email normalisé comme à la connexion (lib/auth.ts) et dans
+  // scripts/set-password.mjs : une majuscule stockée ici ferait un compte
+  // qu'aucune des deux ne retrouve de la même façon.
+  await db.insert(users).values({ email: email.trim().toLowerCase(), role });
   revalidatePath('/users');
 }

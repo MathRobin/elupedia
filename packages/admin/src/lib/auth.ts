@@ -1,6 +1,7 @@
 /**
  * Configuration Auth.js (NextAuth v5) de l'admin : fournisseur `credentials`
- * (email + mot de passe comparé au `users.password_hash` bcrypt), session
+ * (email normalisé — minuscules, espaces retirés — + mot de passe comparé au
+ * `users.password_hash` bcrypt), session
  * JWT, page de connexion /login. Le rôle est lu dans `users` à la connexion
  * (callback `jwt`) puis recopié dans `session.user.role` : un changement de
  * rôle ne prend effet qu'à la reconnexion. Exporte handlers (route
@@ -11,7 +12,7 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import {
   createDb,
@@ -41,10 +42,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (typeof email !== 'string' || typeof password !== 'string')
           return null;
 
+        // Comparaison insensible à la casse et aux espaces, comme
+        // `scripts/set-password.mjs` : sans cela, un email saisi « Nom@… » ou
+        // complété par le navigateur avec une majuscule ne trouve aucune
+        // ligne et la page affiche « mot de passe incorrect ».
+        const normalizedEmail = email.trim().toLowerCase();
         const rows = await db
           .select()
           .from(users)
-          .where(eq(users.email, email))
+          .where(sql`lower(${users.email}) = ${normalizedEmail}`)
           .limit(1);
         if (rows.length === 0) return null;
 
