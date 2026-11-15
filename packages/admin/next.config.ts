@@ -9,6 +9,13 @@ import type { NextConfig } from 'next';
  * « Can't resolve './db.js' »). Les scripts `dev` et `build` passent donc
  * `--webpack` explicitement.
  *
+ * Développement local : Next refuse le WebSocket HMR venant d'une origine non
+ * déclarée dans `allowedDevOrigins`. Sur http://127.0.0.1:3001 (seul
+ * `localhost` est autorisé par défaut) le client ne démarrait jamais, la page
+ * /login restait non hydratée et son formulaire partait en GET natif, sans
+ * jamais appeler `authorize` : la connexion semblait refuser un mot de passe
+ * correct alors qu'il n'était pas envoyé.
+ *
  * Hébergement Vercel (admin.elupedia.fr, packages/admin/vercel.json) : la
  * racine de traçage est celle du monorepo, pour embarquer les workspaces dans
  * les fonctions, et les DAGs `dagu-dags/*.yaml` (lus à l'exécution par la page
@@ -17,6 +24,8 @@ import type { NextConfig } from 'next';
 const repoRoot = path.resolve(process.cwd(), '..', '..');
 
 const nextConfig: NextConfig = {
+  // Origines de dev autorisées en plus de `localhost` (voir l'en-tête).
+  allowedDevOrigins: ['127.0.0.1', '[::1]'],
   transpilePackages: [
     '@elupedia/shared',
     '@elupedia/shorts',
