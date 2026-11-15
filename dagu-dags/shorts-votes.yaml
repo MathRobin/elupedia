@@ -3,6 +3,11 @@
 # de ingest-votes sans les étapes `votes` et `senat-votes`.
 # Pas de planification : déclenchement manuel depuis l'interface Dagu.
 # La revue humaine et la publication (publish-shorts) restent à part.
+# `select` descend son seuil tant qu'un scrutin reste à prendre (voir
+# select-candidates.ts), donc ce DAG sort un short dès qu'un vote est en base.
+# Pas d'étape `topic-fallback` ici, contrairement à ingest-votes : ce DAG parle
+# des votes et se déclenche à la main ; pour un short sans scrutin, lancer
+# `yarn --cwd packages/shorts topic <thème>`.
 #
 # Attention : rebuild-site lit les rapports ingest-report-an.json et
 # ingest-report-senat.json laissés par la dernière ingestion, puisque ce DAG

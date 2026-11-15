@@ -183,6 +183,15 @@ generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
   des shorts dont la voix est en base. Voir `docs/DOMAINS.md`. Le short est
   ensuite relu dans l'admin, puis publié dans l'heure qui suit l'approbation
   (DAG horaire `publish-shorts`).
+- Le créneau sort une vidéo par jour quel que soit l'ordre du jour parlementaire.
+  `select` redescend son seuil par paliers de 10 tant qu'un scrutin reste à
+  prendre (`--min-score-floor`, 0 par défaut) : une semaine d'amendements donne
+  donc un short, signalé comme dégradé dans `score_details.selection`. Et si la
+  fenêtre ne contient aucun scrutin exploitable — congés, semaine de
+  circonscription — l'étape `topic-fallback` (`topic --auto --if-none-today`)
+  crée un short « thème » sans scrutin, par rotation des thèmes. Elle ne fait
+  rien si la journée a déjà son short : relancer le DAG à la main n'en empile
+  pas.
 - En hiver, le créneau chevauche le tick `press:maires` de 15:00 UTC (fini vers
   16:15) : c'est la contrepartie assumée d'un horaire fixé en heure locale, le
   créneau 16:00–17:15 Paris étant occupé par ce tick. Le démarrage est décalé de
@@ -206,7 +215,9 @@ generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
 ## Sans cron — short sur les votes à la demande
 
 - `shorts-votes.yaml` — reprend les quatre étapes shorts de `ingest-votes`
-  (`select`, `script`, `voiceover generate`, `render`) sans rejouer l'ingestion
+  (`select`, `script`, `voiceover generate`, `render`), sans son étape
+  `topic-fallback` (ce DAG parle des votes ; pour un short sans scrutin,
+  lancer `topic <thème>` à la main) et sans rejouer l'ingestion
   des scrutins : de quoi refaire un short sur des votes déjà en base, après un
   rejet en revue ou un changement de script, sans attendre le créneau quotidien.
   Pas de `schedule` : le DAG ne part que sur déclenchement manuel, depuis

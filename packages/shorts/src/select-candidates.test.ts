@@ -2,9 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   type BallotForScoring,
   chamberOf,
+  chooseCandidates,
   rankBallots,
   scoreBallot,
   scoreSubject,
+  thresholdLadder,
 } from './select-candidates.js';
 
 vi.mock('./logger.js', () => ({
@@ -210,5 +212,94 @@ describe('rankBallots', () => {
     expect(ranked.map((r) => r.ballot.id)).toEqual(['b', 'a', 'c']);
     expect(ranked[1].alreadyUsed).toBe(true);
     expect(ranked[0].alreadyUsed).toBe(false);
+  });
+});
+
+describe('thresholdLadder', () => {
+  it('descends by steps of ten down to the floor', () => {
+    expect(thresholdLadder(50, 0)).toEqual([50, 40, 30, 20, 10, 0]);
+  });
+
+  it('starts below the requested score even when it is not a multiple of ten', () => {
+    // 45 demandé : le palier suivant est 40, pas 45 une seconde fois.
+    expect(thresholdLadder(45, 0)).toEqual([45, 40, 30, 20, 10, 0]);
+  });
+
+  it('stops at the floor without going under', () => {
+    expect(thresholdLadder(50, 25)).toEqual([50, 40, 30, 25]);
+  });
+
+  it('gives a single rung when the floor disables the descent', () => {
+    expect(thresholdLadder(50, 50)).toEqual([50]);
+    expect(thresholdLadder(50, 80)).toEqual([50]);
+  });
+});
+
+describe('chooseCandidates', () => {
+  const options = { minScore: 50, minScoreFloor: 0, maxShorts: 2 };
+
+  it('takes up to maxShorts at the requested threshold', () => {
+    const ranked = rankBallots(
+      [ballot({ id: 'a' }), ballot({ id: 'b' }), ballot({ id: 'c' })],
+      new Set(),
+    );
+    const { chosen, applied } = chooseCandidates(ranked, options);
+    expect(applied).toBe(50);
+    expect(chosen.map((r) => r.ballot.id)).toEqual(['a', 'b']);
+  });
+
+  it('lowers the threshold and keeps a single ballot when nothing reaches it', () => {
+    // Deux amendements : le cas qui laissait le DAG sans short à scripter.
+    const faibles = [
+      ballot({
+        id: 'faible1',
+        title: "l'amendement n° 1",
+        type: 'scrutin public ordinaire',
+        counts: { for: 30, against: 25, abstain: 2, absent: 520 },
+      }),
+      ballot({
+        id: 'faible2',
+        title: "l'amendement n° 2",
+        type: 'scrutin public ordinaire',
+        counts: { for: 20, against: 18, abstain: 1, absent: 538 },
+      }),
+    ];
+    const ranked = rankBallots(faibles, new Set());
+    expect(ranked[0].details.total).toBeLessThan(50);
+
+    const { chosen, applied } = chooseCandidates(ranked, options);
+    expect(applied).toBeLessThan(50);
+    expect(chosen).toHaveLength(1);
+    expect(chosen[0].ballot.id).toBe(ranked[0].ballot.id);
+    expect(ranked[0].details.total).toBeGreaterThanOrEqual(applied);
+  });
+
+  it('never picks a ballot already covered by a short', () => {
+    const ranked = rankBallots([ballot({ id: 'deja' })], new Set(['deja']));
+    expect(chooseCandidates(ranked, options).chosen).toEqual([]);
+  });
+
+  it('picks nothing when the floor equals the requested score', () => {
+    const ranked = rankBallots(
+      [
+        ballot({
+          id: 'faible',
+          title: "l'amendement n° 1",
+          type: 'scrutin public ordinaire',
+          counts: { for: 30, against: 25, abstain: 2, absent: 520 },
+        }),
+      ],
+      new Set(),
+    );
+    const { chosen, applied } = chooseCandidates(ranked, {
+      ...options,
+      minScoreFloor: 50,
+    });
+    expect(chosen).toEqual([]);
+    expect(applied).toBe(50);
+  });
+
+  it('picks nothing when there is no ballot at all', () => {
+    expect(chooseCandidates([], options).chosen).toEqual([]);
   });
 });
