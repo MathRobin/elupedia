@@ -3,6 +3,7 @@ import {
   type BallotForScoring,
   chamberOf,
   chooseCandidates,
+  freshnessFloorDate,
   rankBallots,
   scoreBallot,
   scoreSubject,
@@ -236,7 +237,14 @@ describe('thresholdLadder', () => {
 });
 
 describe('chooseCandidates', () => {
-  const options = { minScore: 50, minScoreFloor: 0, maxShorts: 2 };
+  // Les paliers dégradés n'acceptent qu'un scrutin de moins de 36 h : « now »
+  // est fixé au lendemain du scrutin de référence (2026-10-08).
+  const options = {
+    minScore: 50,
+    minScoreFloor: 0,
+    maxShorts: 2,
+    now: new Date('2026-10-09T16:10:00Z'),
+  };
 
   it('takes up to maxShorts at the requested threshold', () => {
     const ranked = rankBallots(
@@ -274,6 +282,42 @@ describe('chooseCandidates', () => {
     expect(ranked[0].details.total).toBeGreaterThanOrEqual(applied);
   });
 
+  // Un scrutin secondaire ne se raconte que tant qu'il est d'actualité : passé
+  // 36 h, le palier dégradé ne le reprend pas et le DAG bascule sur un thème.
+  it('refuses a ballot older than 36 h at a degraded threshold', () => {
+    const faible = ballot({
+      id: 'faible',
+      title: "l'amendement n° 1",
+      type: 'scrutin public ordinaire',
+      counts: { for: 30, against: 25, abstain: 2, absent: 520 },
+    });
+    const ranked = rankBallots([faible], new Set());
+    expect(ranked[0].details.total).toBeLessThan(50);
+
+    // Scrutin du 8 au matin, exécution du 10 à 16 h 10 : plus de 36 h.
+    expect(
+      chooseCandidates(ranked, {
+        ...options,
+        now: new Date('2026-10-10T16:10:00Z'),
+      }).chosen,
+    ).toEqual([]);
+    // Le lendemain, il passe encore.
+    expect(chooseCandidates(ranked, options).chosen).toHaveLength(1);
+  });
+
+  // Le seuil nominal n'est pas concerné : un vote marquant reste racontable
+  // sur toute la fenêtre « days ».
+  it('keeps an old ballot that reaches the requested threshold', () => {
+    const ranked = rankBallots([ballot({ id: 'fort' })], new Set());
+    expect(ranked[0].details.total).toBeGreaterThanOrEqual(50);
+    const { chosen, applied } = chooseCandidates(ranked, {
+      ...options,
+      now: new Date('2026-10-15T16:10:00Z'),
+    });
+    expect(applied).toBe(50);
+    expect(chosen.map((r) => r.ballot.id)).toEqual(['fort']);
+  });
+
   it('never picks a ballot already covered by a short', () => {
     const ranked = rankBallots([ballot({ id: 'deja' })], new Set(['deja']));
     expect(chooseCandidates(ranked, options).chosen).toEqual([]);
@@ -301,5 +345,22 @@ describe('chooseCandidates', () => {
 
   it('picks nothing when there is no ballot at all', () => {
     expect(chooseCandidates([], options).chosen).toEqual([]);
+  });
+});
+
+describe('freshnessFloorDate', () => {
+  // `ballots.date` n'a pas d'heure : l'âge court depuis la fin de la journée
+  // du scrutin, donc la comparaison se fait de date à date.
+  it('gives the oldest date a degraded threshold accepts', () => {
+    expect(freshnessFloorDate(new Date('2026-10-09T16:10:00Z'))).toBe(
+      '2026-10-08',
+    );
+    // Avant midi, l'avant-veille reste dans la fenêtre.
+    expect(freshnessFloorDate(new Date('2026-10-09T10:00:00Z'))).toBe(
+      '2026-10-07',
+    );
+    expect(freshnessFloorDate(new Date('2026-10-09T16:10:00Z'), 12)).toBe(
+      '2026-10-09',
+    );
   });
 });

@@ -4,8 +4,9 @@
  *
  * `--min-score-floor` existe pour le DAG `ingest-votes`, qui veut un short par
  * jour : sans scrutin au-dessus de `--min-score`, le seuil redescend jusqu'au
- * plancher. Reste le cas d'une fenêtre sans aucun scrutin exploitable (congés
- * parlementaires), que cette commande ne peut pas combler : le DAG enchaîne
+ * plancher, et ne reprend qu'un scrutin de moins de 36 h. Restent les cas
+ * d'une fenêtre sans aucun scrutin exploitable (congés parlementaires) ou sans
+ * scrutin récent, que cette commande ne peut pas combler : le DAG enchaîne
  * alors sur un short « thème » (main-topic.ts).
  *
  * Usage : yarn --cwd packages/shorts select [--days n] [--max-shorts n]
@@ -43,8 +44,9 @@ if (values.help) {
       '  --min-score-floor <n>',
       '                    Quand aucun scrutin n’atteint --min-score, le seuil',
       '                    redescend par paliers de 10 jusqu’à cette valeur et',
-      '                    un seul short est retenu (défaut : 0). Mettre la même',
-      '                    valeur que --min-score pour ne pas descendre.',
+      '                    un seul short est retenu, à condition qu’il ait moins',
+      '                    de 36 h (défaut : 0). Mettre la même valeur que',
+      '                    --min-score pour ne pas descendre.',
       '  --dry-run         Affiche le classement sans rien écrire',
     ].join('\n'),
   );

@@ -184,11 +184,13 @@ generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
   ensuite relu dans l'admin, puis publié dans l'heure qui suit l'approbation
   (DAG horaire `publish-shorts`).
 - Le créneau sort une vidéo par jour quel que soit l'ordre du jour parlementaire.
-  `select` redescend son seuil par paliers de 10 tant qu'un scrutin reste à
-  prendre (`--min-score-floor`, 0 par défaut) : une semaine d'amendements donne
-  donc un short, signalé comme dégradé dans `score_details.selection`. Et si la
-  fenêtre ne contient aucun scrutin exploitable — congés, semaine de
-  circonscription — l'étape `topic-fallback` (`topic --auto --if-none-today`)
+  `select` redescend son seuil par paliers de 10 tant qu'un scrutin de moins de
+  36 h reste à prendre (`--min-score-floor`, 0 par défaut) : une semaine
+  d'amendements donne donc un short, signalé comme dégradé dans
+  `score_details.selection`, mais un amendement de la semaine dernière n'est
+  plus repris. Et si la fenêtre ne contient aucun scrutin exploitable ou récent
+  — congés, semaine de circonscription — l'étape `topic-fallback`
+  (`topic --auto --if-none-today`)
   crée un short « thème » sans scrutin, par rotation des thèmes. Elle ne fait
   rien si la journée a déjà son short : relancer le DAG à la main n'en empile
   pas.
