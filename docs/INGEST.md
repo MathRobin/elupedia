@@ -123,7 +123,9 @@ Pas d'options. Ingère les 3 propositions RIP configurées (ADP 2019, retraites 
 yarn --cwd packages/ingest ingest:europe
 ```
 
-Eurodéputés français, votes nominatifs et questions écrites (API open data du Parlement européen). Curseur de pagination des questions stocké dans `data_provenance`.
+Eurodéputés français, votes nominatifs, questions écrites et registre de présence des séances plénières (API open data du Parlement européen). Curseur de pagination des questions stocké dans `data_provenance`.
+
+Étapes (`--only` / `--skip`) : `eurodeputes`, `eurodeputes-votes`, `eurodeputes-questions`, `eurodeputes-presence`. La dernière écrit les signatures du registre dans `europarl_attendance`, ferme au passage les mandats `eurodepute` des sortants restés ouverts (`closeDepartedMepMandates`, préalable au calcul) et journalise le rapport d'écart de participation (compteurs par élu, anomalies « vote sans signature », mandats sans identifiant europarl). Méthode et choix assumés : voir `docs/DOMAINS.md`, section « Eurodéputés », « Registre de présence et écart de participation ».
 
 ### `ingest:conseillers-dep`, `ingest:conseillers-epci`, `ingest:conseillers-reg`, `ingest:conseillers-arr`, `ingest:conseillers-fde`, `ingest:membres-assemblee`, `ingest:membres-afe` — RNE
 

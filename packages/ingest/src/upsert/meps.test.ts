@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { FrenchMep, MepDetail } from '../sources/parlement-europeen.js';
-import { normalizeName } from './meps.js';
+import { normalizeName, closeDepartedMepMandates } from './meps.js';
 
 vi.mock('../logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -327,5 +327,108 @@ describe('upsertMeps', () => {
     ]);
 
     expect(summary).toEqual({ created: 0, linked: 0, errors: 1 });
+  });
+});
+
+describe('closeDepartedMepMandates', () => {
+  /**
+   * Mock dédié : un seul `select(...).from(...).innerJoin(...).where(...)`
+   * (les mandats ouverts), puis des `update(...).set(...).where(...)` dont on
+   * capture les valeurs.
+   */
+  function createMandateDb(openMandates: Record<string, unknown>[]) {
+    const updates: Record<string, unknown>[] = [];
+    const db = {
+      select: () => ({
+        from: () => ({
+          innerJoin: () => ({
+            where: () => Promise.resolve(openMandates),
+          }),
+        }),
+      }),
+      update: () => ({
+        set: (values: Record<string, unknown>) => ({
+          where: () => {
+            updates.push(values);
+            return Promise.resolve();
+          },
+        }),
+      }),
+    };
+    return {
+      db: db as unknown as Parameters<typeof closeDepartedMepMandates>[0],
+      updates,
+    };
+  }
+
+  const openMandates = [
+    {
+      mandateId: 'mandate-sortant',
+      officialId: 'official-sortant',
+      europarlId: '256921',
+      startDate: '2024-07-16',
+    },
+    {
+      mandateId: 'mandate-en-exercice',
+      officialId: 'official-en-exercice',
+      europarlId: '256912',
+      startDate: '2024-07-16',
+    },
+  ];
+
+  it('closes the mandate of an MEP who is no longer in office', async () => {
+    const { db, updates } = createMandateDb(openMandates);
+    const fetchEndDate = vi.fn().mockResolvedValue('2026-09-26');
+
+    const summary = await closeDepartedMepMandates(
+      db,
+      new Set(['256912']),
+      fetchEndDate,
+    );
+
+    expect(fetchEndDate).toHaveBeenCalledExactlyOnceWith('256921');
+    expect(summary.closed).toBe(1);
+    expect(summary.unknownEndDate).toBe(0);
+    expect(summary.mandates).toEqual([
+      {
+        mandateId: 'mandate-sortant',
+        officialId: 'official-sortant',
+        europarlId: '256921',
+        startDate: '2024-07-16',
+        endDate: '2026-09-26',
+      },
+    ]);
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({ endDate: '2026-09-26' });
+  });
+
+  it('leaves the mandate open when the API publishes no end date', async () => {
+    const { db, updates } = createMandateDb(openMandates);
+    const fetchEndDate = vi.fn().mockResolvedValue(null);
+
+    const summary = await closeDepartedMepMandates(
+      db,
+      new Set(['256912']),
+      fetchEndDate,
+    );
+
+    expect(summary.closed).toBe(0);
+    expect(summary.unknownEndDate).toBe(1);
+    expect(updates).toHaveLength(0);
+  });
+
+  it('touches nothing when every open mandate is in office', async () => {
+    const { db, updates } = createMandateDb(openMandates);
+    const fetchEndDate = vi.fn();
+
+    const summary = await closeDepartedMepMandates(
+      db,
+      new Set(['256921', '256912']),
+      fetchEndDate,
+    );
+
+    expect(fetchEndDate).not.toHaveBeenCalled();
+    expect(summary).toEqual({ closed: 0, unknownEndDate: 0, mandates: [] });
+    expect(updates).toHaveLength(0);
   });
 });

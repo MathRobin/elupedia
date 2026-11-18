@@ -302,6 +302,13 @@
       "when": 1794746183559,
       "tag": "0042_curved_roxanne_simpson",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795031738369,
+      "tag": "0043_europarl_attendance",
+      "breakpoints": true
     }
   ]
 }

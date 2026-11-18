@@ -1,7 +1,8 @@
 /**
  * Orchestration de l'ingestion du Parlement européen : eurodéputés français
  * de la législature en cours (fiche + parti national), votes par appel
- * nominal en plénière, questions parlementaires.
+ * nominal en plénière, questions parlementaires, registre de présence des
+ * séances plénières.
  *
  * Convention du package : les `run-*.ts` portent la logique testable — pas
  * de parsing d'arguments, pas de process.exit() — et sont lancés par le
@@ -24,13 +25,28 @@ import {
   fetchMepDetail,
   fetchOrganizationLabel,
 } from './sources/parlement-europeen.js';
-import { upsertMeps, type MepUpsertInput } from './upsert/meps.js';
+import {
+  upsertMeps,
+  closeDepartedMepMandates,
+  type MepUpsertInput,
+} from './upsert/meps.js';
 import {
   fetchPlenarySittings,
   fetchRollcallDecisions,
+  type PlenarySitting,
 } from './sources/parlement-europeen-votes.js';
-import { upsertEuropeVotes } from './upsert/europe-votes.js';
+import { fetchSittingAttendance } from './sources/parlement-europeen-presence.js';
+import {
+  upsertEuropeVotes,
+  loadOfficialIdsByEuroparlId,
+} from './upsert/europe-votes.js';
+import { upsertEuropePresence } from './upsert/europe-presence.js';
 import { upsertEuropeQuestions } from './upsert/europe-questions.js';
+import {
+  loadMepGapInputs,
+  buildMepGapReport,
+  formatMepGapReport,
+} from './compute/mep-gap-report.js';
 
 // Législature 10 : mandats à partir du 16/07/2024. Les séances plénières
 // sont récupérées année par année depuis cette date.
@@ -40,8 +56,35 @@ const LEGISLATURE_10_START_YEAR = 2024;
 // 429 observés en rafale).
 const RATE_LIMIT_DELAY_MS = 150;
 
+// L'étape « présence » parcourt les 126 séances de la législature sur le SEUL
+// endpoint /meetings/{id} : à 150 ms, l'API répond 429 au bout d'une soixantaine
+// d'appels (constaté le 18/11/2026). La limite documentée est de 500 requêtes
+// par 5 minutes et par endpoint, soit 600 ms en moyenne soutenue : même délai
+// que l'étape « questions ». Seul le premier run paie ce prix, les séances
+// définitives étant ensuite marquées et sautées sans appel réseau.
+const PRESENCE_RATE_LIMIT_DELAY_MS = 700;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Séances plénières de la législature 10, année par année depuis 2024 :
+ * l'API ne filtre que par année. Partagé par les étapes « votes » et
+ * « présence », qui parcourent les mêmes séances.
+ */
+async function fetchLegislatureSittings(): Promise<PlenarySitting[]> {
+  const currentYear = new Date().getFullYear();
+  const sittings: PlenarySitting[] = [];
+  for (let year = LEGISLATURE_10_START_YEAR; year <= currentYear; year++) {
+    const yearSittings = await withRetry(
+      () => fetchPlenarySittings(fetch, year),
+      { source: `parlement-europeen-meetings-${year}` },
+    );
+    sittings.push(...yearSittings);
+    await sleep(RATE_LIMIT_DELAY_MS);
+  }
+  return sittings;
 }
 
 /**
@@ -123,20 +166,7 @@ export async function runEurope(
     logger.info('[1/1] Votes en plénière...');
     results.push(
       await runStep('eurodeputes-votes', async () => {
-        const currentYear = new Date().getFullYear();
-        const sittings = [];
-        for (
-          let year = LEGISLATURE_10_START_YEAR;
-          year <= currentYear;
-          year++
-        ) {
-          const yearSittings = await withRetry(
-            () => fetchPlenarySittings(fetch, year),
-            { source: `parlement-europeen-meetings-${year}` },
-          );
-          sittings.push(...yearSittings);
-          await sleep(RATE_LIMIT_DELAY_MS);
-        }
+        const sittings = await fetchLegislatureSittings();
         logger.info(`  ${sittings.length} séances plénières à vérifier`);
 
         // L'upsert décide lui-même quelles séances re-télécharger (déjà en
@@ -160,6 +190,75 @@ export async function runEurope(
           created: upsert.ballots,
           updated: upsert.votes,
           durationMs: 0,
+        };
+      }),
+    );
+  }
+
+  if (enabled('eurodeputes-presence')) {
+    logger.info('[1/1] Registre de présence en plénière...');
+    results.push(
+      await runStep('eurodeputes-presence', async () => {
+        // 1. Réconciliation des mandats avant tout calcul : `upsertMeps` ne
+        // voit que les élus en exercice et laisse ouvert le mandat d'un
+        // sortant. Une fenêtre de mandat fausse donnerait des compteurs faux,
+        // d'où la clôture ici plutôt que dans l'étape « eurodeputes », qui
+        // n'est pas forcément jouée avec celle-ci.
+        const currentMeps = await withRetry(() => fetchCurrentFrenchMeps(), {
+          source: 'parlement-europeen',
+        });
+        const closed = await closeDepartedMepMandates(
+          db,
+          new Set(currentMeps.map((mep) => mep.id)),
+          async (europarlId) => {
+            const detail = await withRetry(
+              () => fetchMepDetail(fetch, europarlId),
+              { source: `parlement-europeen-mep-${europarlId}` },
+            );
+            await sleep(RATE_LIMIT_DELAY_MS);
+            return detail.currentParliamentaryMandate?.endDate ?? null;
+          },
+        );
+        if (closed.closed > 0 || closed.unknownEndDate > 0) {
+          logger.info(
+            `  ${closed.closed} mandat(s) de sortant fermé(s), ${closed.unknownEndDate} sans date de fin publiée`,
+          );
+        }
+
+        // 2. Signatures du registre, séance par séance.
+        const sittings = await fetchLegislatureSittings();
+        logger.info(`  ${sittings.length} séances plénières à vérifier`);
+
+        const officialIdByEuroparlId = await loadOfficialIdsByEuroparlId(db);
+        const upsert = await upsertEuropePresence(
+          db,
+          sittings,
+          async (sittingId) => {
+            const attendance = await withRetry(
+              () => fetchSittingAttendance(fetch, sittingId),
+              { source: `parlement-europeen-presence-${sittingId}` },
+            );
+            await sleep(PRESENCE_RATE_LIMIT_DELAY_MS);
+            return attendance;
+          },
+          officialIdByEuroparlId,
+        );
+
+        // 3. Rapport d'écart de participation (lecture seule) : compteurs par
+        // élu et anomalies, pour vérifier le résultat sans ouvrir la base.
+        const report = buildMepGapReport(await loadMepGapInputs(db));
+        for (const line of formatMepGapReport(report)) logger.info(line);
+
+        // created = signatures écrites, updated = mandats de sortants fermés.
+        return {
+          source: 'eurodeputes-presence',
+          created: upsert.signatures,
+          updated: closed.closed,
+          durationMs: 0,
+          error:
+            report.unmatched.length > 0
+              ? `${report.unmatched.length} mandat(s) sans identifiant europarl`
+              : undefined,
         };
       }),
     );
