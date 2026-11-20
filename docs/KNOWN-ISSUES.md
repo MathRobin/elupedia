@@ -8,16 +8,19 @@ L'en-tête de `packages/ingest/src/merge-duplicate-officials.ts` décrit des
 doublons entre l'open data Sénat et le jeu AMO30 de l'AN, et une règle de
 conservation fondée là-dessus : matricule Sénat, sinon identifiant AN.
 
-Le dry-run du 15/11/2026 annonce 10 paires, 1121 lignes déplacées et 129
-supprimées, mais **aucune des fiches à supprimer n'a d'`an_id`**. Ce sont pour
-l'essentiel d'anciens ministres (Dati, Schiappa, Vallaud-Belkacem, Cosse,
-Penchard), vraisemblablement une fiche de mandat gouvernemental face à une fiche
-de mandat local — pas le cas de figure pour lequel la règle a été écrite.
+Le dry-run du 20/11/2026 annonce 12 paires, 989 lignes déplacées et 636
+supprimées, mais **une seule des fiches à supprimer a un identifiant source**
+(Brice Hortefeux, `europarl_id`, fusionnée le 20/11/2026 avec `--slug`). Les
+onze autres sont pour l'essentiel d'anciens ministres (Dati, Schiappa,
+Vallaud-Belkacem, Cosse, Penchard), vraisemblablement une fiche de mandat
+gouvernemental face à une fiche de mandat local — pas le cas de figure pour
+lequel la règle a été écrite.
 
 En conséquence, l'étape `merge-duplicate-officials` du DAG `ingest-senat` tourne
 sans `--apply` : elle recense les paires dans les logs du mardi, et la fusion
-reste manuelle. À trancher avant de l'automatiser : d'où viennent ces doublons,
-et la règle de conservation est-elle la bonne pour eux.
+reste manuelle, paire par paire (`--slug <slug>`). À trancher avant de
+l'automatiser : d'où viennent ces doublons, et la règle de conservation est-elle
+la bonne pour eux.
 
 ## Variables optionnelles absentes du `.env` de la machine d'ingestion
 
@@ -32,7 +35,7 @@ Hooks, branche `main`).
 
 ## Rapprochement d'élus (homonymes)
 
-- Le rapprochement AN ↔ Sénat (nom + prénom + date de naissance) n'est tenté qu'à la création d'une fiche : les doublons créés avant son existence ne se résorbent pas seuls. Outil de rattrapage : `yarn --cwd packages/ingest merge:duplicate-officials` (48 paires en octobre 2026).
+- Le rapprochement AN ↔ Sénat (nom + prénom + date de naissance) n'est tenté qu'à la création d'une fiche : les doublons créés avant son existence ne se résorbent pas seuls. Outil de rattrapage : `yarn --cwd packages/ingest merge:duplicate-officials` (48 paires en octobre 2026, 11 au 20/11/2026 après fusions).
 - Les fichiers RNE se contredisent parfois sur la date de naissance d'une même personne (année erronée dans un fichier) : l'ingestion recréait alors un doublon à chaque passe. La table `official_aliases` (clé nom + prénom + date → fiche cible, alimentée par les fusions de l'admin et à la main depuis la fiche élu) est désormais consultée par les upserts RNE ; les upserts AN/Sénat, parrainages et candidats ne la consultent pas encore.
 
 - Plusieurs modules rattachent une personne par nom + prénom seulement, sans date de naissance : `upsert/municipal-elections.ts`, `senat-candidacies.ts`, `senatorial-elections.ts`, `senat-resultats-2026.ts`, `senat-mandats-2026.ts`, `sponsorships.ts`, `declaration-snapshots.ts`, `interests.ts`, `legislative-elections.ts`, `reconcile-elections.ts`. En cas d'homonymie stricte, le dernier élu chargé écrase le précédent dans l'index, silencieusement.
@@ -44,7 +47,7 @@ Hooks, branche `main`).
 ## Annuaire du livre (`packages/book`)
 
 - Appartenances de groupe des sénateurs (`affiliations`, `kind = 'group'`, `end_date is null`) : plusieurs lignes restent ouvertes pour une même personne (anciens députés devenus sénateurs, groupes renommés). L'annuaire retient la plus récente par date de début, ce qui écarte les groupes de l'Assemblée mais laisse deux libellés pour le centre (« Union Centriste » et « Union Centriste et Indépendants », 29 et 34 sénateurs) et 3 sénateurs sans groupe. À vérifier avant impression.
-- Deux fiches d'élus en fonction ont un nom de famille tout en majuscules (« HERVE » pour un sénateur, probablement « Hervé » ; « HORTEFEUX »). L'annuaire les met en casse de titre mais ne peut pas restaurer l'accent : à corriger dans la base.
+- Une fiche d'élu en fonction a un nom de famille tout en majuscules : « HERVE » pour un sénateur, probablement « Hervé ». L'annuaire le met en casse de titre mais ne peut pas restaurer l'accent : à corriger dans la base. (La fiche « HORTEFEUX » a disparu avec la fusion du 20/11/2026, qui a gardé la graphie de l'AN.)
 - Commissions permanentes de l'Assemblée : seuls 143 des 565 députés en fonction en ont une en cours dans `committees` ; les sénateurs ont des doublons (« commission des affaires étrangères » deux fois). L'annuaire du livre n'en reprend donc pas.
 - Décorations : seules 173 fiches sont rattachées (date de naissance identique), toutes à d'anciens élus ; aucun parlementaire en fonction n'a de décoration vérifiée, donc l'annuaire n'en affiche pas. Environ 6 700 anciens rattachements non confirmables (fiche décorée sans date de naissance publique) ont été détachés, dont 336 à qualité politique (maire, député, sénateur…) à examiner à la main ; la sauvegarde des rattachements détachés est dans le dossier de notes de la session du 9 novembre 2026.
 

@@ -174,8 +174,9 @@ yarn --cwd packages/ingest ingest:wikipedia     # lien Wikipédia via Wikidata
 yarn --cwd packages/ingest reconcile                     # rattache candidats et parrainages aux élus ; marque le reste no_match / ambiguous
 yarn --cwd packages/ingest dedupe:committees --dry-run   # fusionne « nom » et « nom (abrégé) »
 yarn --cwd packages/ingest check:coherence               # contrôles métier, lecture seule
-yarn --cwd packages/ingest merge:duplicate-officials     # dry-run : fiches AN/Sénat en doublon (même nom + naissance)
-yarn --cwd packages/ingest merge:duplicate-officials --apply   # fusionne : garde la fiche Sénat, supprime la fiche AN
+yarn --cwd packages/ingest merge:duplicate-officials     # dry-run : fiches en doublon (même nom + naissance)
+yarn --cwd packages/ingest merge:duplicate-officials --apply   # fusionne : garde la fiche la plus sourcée, supprime l'autre
+yarn --cwd packages/ingest merge:duplicate-officials --apply --slug brice-hortefeux   # une seule paire (slug d'une des deux fiches)
 yarn --cwd packages/ingest rebuild:site --report ingest-report-an.json   # appelle le Deploy Hook Vercel si le rapport a des changements
 yarn --cwd packages/ingest debug:group-directories       # valide la config des annuaires de groupes (src/config/group-directories.ts) et liste les sources activées ; lecture seule, sans réseau
 yarn --cwd packages/ingest debug:group-directories:match # télécharge les listes de membres, rapproche avec la base et affiche le taux par groupe ; lecture seule (réseau + SELECT)
@@ -197,7 +198,9 @@ Planification : DAG Dagu `dagu-dags/ingest-group-directories.yaml`, le 1er de ch
 
 Résultat du debug au 12/11/2026 (`debug:group-directories:match`) : 358 entrées rapprochées sur 377 (95 %). RN 121/122, EPR 91/91, SOC 69/69, DR 47/47, Dem 38/38, HOR 36/36, LIOT 25/25. UDR 0/18 : aucune fiche active avec le libellé UDR dans la base. Voir `docs/KNOWN-ISSUES.md`.
 
-`merge:duplicate-officials` corrige un héritage : avant le rapprochement nom + prénom + date de naissance entre sources, un sénateur décrit à la fois par l'open data Sénat et par le jeu AMO30 de l'AN recevait deux fiches. La fiche Sénat est conservée ; elle reçoit l'`an_id`, les champs qu'elle n'avait pas et toutes les lignes dépendantes de la fiche AN, sauf celles qu'elle possède déjà (même clé naturelle par table, voir `NATURAL_KEYS` dans `src/merge-duplicate-officials.ts`). Le slug de la fiche AN disparaît.
+`merge:duplicate-officials` corrige un héritage : avant le rapprochement nom + prénom + date de naissance entre sources, un sénateur décrit à la fois par l'open data Sénat et par le jeu AMO30 de l'AN recevait deux fiches. La fiche Sénat est conservée ; elle reçoit les identifiants source de l'autre (`an_id`, `europarl_id`), les champs qu'elle n'avait pas et toutes les lignes dépendantes, sauf celles qu'elle possède déjà (même clé naturelle par table, voir `NATURAL_KEYS` dans `src/merge-duplicate-officials.ts`) ; un mandat en doublon lui cède tout de même sa date de fin si elle l'avait laissée vide. Le slug de la fiche supprimée disparaît, sauf s'il est la forme canonique de celui conservé (`brice-hortefeux` vs `brice-hortefeux-1`), que la fiche conservée reprend alors.
+
+Le même outil sert aux doublons d'autres origines (fiche d'eurodéputé face à une fiche AN, deux écritures RNE du même élu local). `--slug <slug>` limite le run à la paire dont une des deux fiches porte ce slug : les 12 paires du 20/11/2026 représentent près de 1000 lignes déplacées, à fusionner une par une après vérification plutôt qu'en bloc.
 
 `rebuild:site` est l'étape finale de chaque DAG Dagu : il lit les rapports `ingest-report-*.json` passés en `--report` et, si l'un d'eux a `hasChanges`, fait un POST sur `VERCEL_DEPLOY_HOOK_URL` pour reconstruire les pages statiques du site. Pas plus d'un déclenchement par 20 minutes (état dans `.rebuild-site-state.json`, ignoré par git) ; variable absente — ou laissée au gabarit `${VERCEL_DEPLOY_HOOK_URL}` par un DAG Dagu, voir `envValue` dans `packages/shared` — ou rapport illisible = simple avertissement, seul un échec de l'appel HTTP fait sortir en erreur.
 
