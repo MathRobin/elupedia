@@ -52,13 +52,22 @@ import {
 // sont récupérées année par année depuis cette date.
 const LEGISLATURE_10_START_YEAR = 2024;
 
+// Les séances sont demandées par année : 2024 renvoie aussi celles de la
+// législature 9 (15/01 → 25/04/2024). L'étape « présence » les écarte, parce
+// que tous les mandats `eurodepute` en base commencent le 16/07/2024 ou
+// après : aucune de ces signatures n'entre dans une fenêtre de calcul, et les
+// écrire remplirait la table de lignes qu'aucun compteur ne lit. L'étape
+// « votes » garde l'année entière, ses scrutins antérieurs étant déjà en base.
+const LEGISLATURE_10_START_DATE = '2024-07-16';
+
 // Pause après chaque appel à l'API du PE (pas de quota documenté, mais des
 // 429 observés en rafale).
 const RATE_LIMIT_DELAY_MS = 150;
 
-// L'étape « présence » parcourt les 126 séances de la législature sur le SEUL
-// endpoint /meetings/{id} : à 150 ms, l'API répond 429 au bout d'une soixantaine
-// d'appels (constaté le 18/11/2026). La limite documentée est de 500 requêtes
+// L'étape « présence » parcourt les séances de la législature sur le SEUL
+// endpoint /meetings/{id} (134 au 20/11/2026, dont 8 encore à venir) : à
+// 150 ms, l'API répond 429 au bout d'une soixantaine d'appels (constaté le
+// 18/11/2026). La limite documentée est de 500 requêtes
 // par 5 minutes et par endpoint, soit 600 ms en moyenne soutenue : même délai
 // que l'étape « questions ». Seul le premier run paie ce prix, les séances
 // définitives étant ensuite marquées et sautées sans appel réseau.
@@ -225,8 +234,10 @@ export async function runEurope(
           );
         }
 
-        // 2. Signatures du registre, séance par séance.
-        const sittings = await fetchLegislatureSittings();
+        // 2. Signatures du registre, séance par séance (législature 10 seule).
+        const sittings = (await fetchLegislatureSittings()).filter(
+          (sitting) => sitting.date >= LEGISLATURE_10_START_DATE,
+        );
         logger.info(`  ${sittings.length} séances plénières à vérifier`);
 
         const officialIdByEuroparlId = await loadOfficialIdsByEuroparlId(db);
