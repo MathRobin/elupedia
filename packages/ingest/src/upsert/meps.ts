@@ -15,10 +15,17 @@
  * Idempotent. Jamais écrasés : une `photo_url` déjà connue (la photo AN /
  * Sénat prime sur celle du PE), une date de naissance connue quand l'API n'en
  * fournit pas, et le nom/prénom d'un official déjà rattaché.
+ *
+ * `upsertMeps` ne voit que les eurodéputés EN EXERCICE (`/meps/show-current`) :
+ * un élu qui quitte le Parlement n'est plus dans le lot et son mandat
+ * resterait ouvert indéfiniment. `closeDepartedMepMandates` ferme ces mandats
+ * en relisant la fiche de l'élu (date de fin publiée par l'API), ce qui
+ * maintient le compte des mandats `eurodepute` actifs égal au nombre de
+ * sièges français.
  */
 import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { officials, mandates, affiliations } from '@elupedia/shared';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull } from 'drizzle-orm';
 import type { FrenchMep, MepDetail } from '../sources/parlement-europeen.js';
 import { CURRENT_LEGISLATURE } from '../sources/parlement-europeen.js';
 import { writeProvenance } from './provenance.js';
@@ -323,6 +330,99 @@ export async function upsertMeps(
       );
       summary.errors++;
     }
+  }
+
+  return summary;
+}
+
+export interface DepartedMepMandate {
+  mandateId: string;
+  officialId: string;
+  europarlId: string;
+  startDate: string;
+  /** Date de fin publiée par l'API, null si la fiche n'en donne pas. */
+  endDate: string | null;
+}
+
+export interface CloseDepartedSummary {
+  /** Mandats fermés avec la date de fin de l'API. */
+  closed: number;
+  /** Sortants dont l'API ne publie pas de date de fin : laissés ouverts. */
+  unknownEndDate: number;
+  /** Détail, pour le journal de l'étape. */
+  mandates: DepartedMepMandate[];
+}
+
+/**
+ * Ferme les mandats `eurodepute` encore ouverts dont l'élu n'est plus en
+ * exercice. `currentEuroparlIds` est l'ensemble des identifiants renvoyés par
+ * `/meps/show-current` (périmètre France) ; `fetchEndDate` relit la fiche de
+ * l'élu pour en tirer la date de fin du mandat de la législature.
+ *
+ * Un mandat dont l'API ne publie aucune date de fin est laissé ouvert : mieux
+ * vaut un mandat périmé qu'une date inventée (la date du jour, par exemple,
+ * serait fausse pour un départ ancien). Le compteur `unknownEndDate` le
+ * signale à l'appelant.
+ */
+export async function closeDepartedMepMandates(
+  db: NeonHttpDatabase,
+  currentEuroparlIds: ReadonlySet<string>,
+  fetchEndDate: (europarlId: string) => Promise<string | null>,
+): Promise<CloseDepartedSummary> {
+  const summary: CloseDepartedSummary = {
+    closed: 0,
+    unknownEndDate: 0,
+    mandates: [],
+  };
+
+  // Les mandats ouverts d'eurodéputés, joints à leur identifiant EP. Le
+  // filtrage « plus en exercice » se fait en mémoire : 81 lignes.
+  const openMandates = await db
+    .select({
+      mandateId: mandates.id,
+      officialId: officials.id,
+      europarlId: officials.europarlId,
+      startDate: mandates.startDate,
+    })
+    .from(mandates)
+    .innerJoin(officials, eq(officials.id, mandates.officialId))
+    .where(
+      and(
+        eq(mandates.type, 'eurodepute'),
+        isNull(mandates.endDate),
+        isNotNull(officials.europarlId),
+      ),
+    );
+
+  for (const mandate of openMandates) {
+    const europarlId = mandate.europarlId!;
+    if (currentEuroparlIds.has(europarlId)) continue;
+
+    const endDate = await fetchEndDate(europarlId);
+    summary.mandates.push({
+      mandateId: mandate.mandateId,
+      officialId: mandate.officialId,
+      europarlId,
+      startDate: mandate.startDate,
+      endDate,
+    });
+
+    if (!endDate) {
+      summary.unknownEndDate++;
+      logger.warn(
+        `Mandat eurodepute ${mandate.mandateId} (europarl ${europarlId}) : élu plus en exercice mais aucune date de fin publiée, mandat laissé ouvert`,
+      );
+      continue;
+    }
+
+    await db
+      .update(mandates)
+      .set({ endDate, updatedAt: new Date() })
+      .where(eq(mandates.id, mandate.mandateId));
+    summary.closed++;
+    logger.info(
+      `Mandat eurodepute ${mandate.mandateId} (europarl ${europarlId}) fermé au ${endDate}`,
+    );
   }
 
   return summary;

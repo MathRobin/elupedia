@@ -91,6 +91,7 @@ export const EUROPE_STEP_NAMES = [
   'eurodeputes',
   'eurodeputes-votes',
   'eurodeputes-questions',
+  'eurodeputes-presence',
 ] as const;
 
 export type EuropeStepName = (typeof EUROPE_STEP_NAMES)[number];

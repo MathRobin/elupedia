@@ -10,7 +10,11 @@
  * et de la base (votes par élu) ; ce module ne fait que comparer des ensembles
  * de dates.
  *
- * Appelé par : étape « eurodeputes-presence » de run-europe.ts (à venir).
+ * Vit dans `@elupedia/shared` parce que deux packages l'appellent : l'étape
+ * « eurodeputes-presence » de `packages/ingest/src/run-europe.ts`, qui ingère
+ * le registre de présence, et la fiche élu du site
+ * (`packages/site/src/pages/elus/[slug]/index.astro`), qui affiche les
+ * compteurs. Le site ne dépend que de ce package.
  *
  * Pièges :
  * - `rollcallDays` doit contenir les jours de TOUS les scrutins nominatifs,
