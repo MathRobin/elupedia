@@ -4,7 +4,8 @@
 # short vidéo du jour (packages/shorts) : sélection des scrutins candidats,
 # script, voix off ElevenLabs, rendu. Les shorts sans voix (clé ElevenLabs
 # absente, voix à enregistrer) ne sont pas rendus ; la revue humaine et la
-# publication (publish-shorts, 16:00 UTC le lendemain) restent à part.
+# publication (publish-shorts, DAG horaire) restent à part : un short n'est mis
+# en ligne qu'une fois approuvé en revue, à l'heure pleine qui suit.
 # Uniquement des shorts de scrutin : `select` redescend son seuil par paliers
 # tant qu'un scrutin reste à prendre (--min-score-floor, select-candidates.ts),
 # et quand la fenêtre n'en contient aucun — congés, semaine de circonscription —
