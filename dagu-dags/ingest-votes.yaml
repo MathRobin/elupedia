@@ -5,12 +5,12 @@
 # script, voix off ElevenLabs, rendu. Les shorts sans voix (clé ElevenLabs
 # absente, voix à enregistrer) ne sont pas rendus ; la revue humaine et la
 # publication (publish-shorts, 16:00 UTC le lendemain) restent à part.
-# Une vidéo par jour, quel que soit l'ordre du jour parlementaire : `select`
-# redescend son seuil par paliers tant qu'un scrutin reste à prendre
-# (--min-score-floor, select-candidates.ts), et si la semaine n'en contient
-# aucun — congés, semaine de circonscription — `topic-fallback` crée un short
-# « thème » sans scrutin, par rotation des thèmes. Cette étape ne fait rien si
-# la journée a déjà son short, donc une relance manuelle n'en empile pas.
+# Uniquement des shorts de scrutin : `select` redescend son seuil par paliers
+# tant qu'un scrutin reste à prendre (--min-score-floor, select-candidates.ts),
+# et quand la fenêtre n'en contient aucun — congés, semaine de circonscription —
+# la journée n'a pas de vidéo. Pas de repli « thème » : l'étape `topic-fallback`
+# a été retirée le 23/11/2026, les shorts sans scrutin n'étant pas voulus. La
+# commande `topic` reste disponible à la main pour un short ponctuel.
 # Cron en heure de Paris : CRON_TZ=Europe/Paris, honoré par Dagu et prioritaire
 # sur le `tz: UTC` global, pour garder 16:10 locales toute l'année (15:10 UTC en
 # hiver, 14:10 UTC en été) alors que les autres DAGs sont écrits en UTC. Chevauche
@@ -52,14 +52,10 @@ steps:
     command: yarn --cwd packages/shorts select
     depends:
       - votes-senat
-  - name: topic-fallback
-    command: yarn --cwd packages/shorts topic --auto --if-none-today
-    depends:
-      - select-shorts
   - name: script-shorts
     command: yarn --cwd packages/shorts script
     depends:
-      - topic-fallback
+      - select-shorts
   - name: voiceover-shorts
     command: yarn --cwd packages/shorts voiceover generate
     depends:

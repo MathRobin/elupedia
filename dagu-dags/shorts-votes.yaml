@@ -5,8 +5,9 @@
 # La revue humaine et la publication (publish-shorts) restent à part.
 # `select` descend son seuil tant qu'un scrutin reste à prendre (voir
 # select-candidates.ts), donc ce DAG sort un short dès qu'un vote est en base.
-# Pas d'étape `topic-fallback` ici, contrairement à ingest-votes : ce DAG parle
-# des votes et se déclenche à la main ; pour un short sans scrutin, lancer
+# Comme ingest-votes, aucun repli sans scrutin : les deux DAGs ne produisent
+# que des shorts de vote (l'étape `topic-fallback` d'ingest-votes a été retirée
+# le 23/11/2026). Pour un short sans scrutin, lancer à la main
 # `yarn --cwd packages/shorts topic <thème>`.
 #
 # Attention : rebuild-site lit les rapports ingest-report-an.json et

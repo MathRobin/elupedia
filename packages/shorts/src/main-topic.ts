@@ -19,17 +19,16 @@ import {
  * base, script de gabarit validé, short inséré en `draft` avec sa fiche de
  * lecture. Ensuite : enregistrer les prises, puis `make <id>`.
  *
- * `--auto` et `--if-none-today` servent au DAG `ingest-votes`, qui doit sortir
- * une vidéo par jour : `select` descend son seuil tant qu'un scrutin reste à
- * prendre, et quand la fenêtre n'en contient aucun (congés parlementaires),
- * c'est ce repli qui fournit le sujet. Le thème est alors choisi par rotation
- * et l'étape ne fait rien si la journée a déjà son short
- * (topic-rotation.ts).
+ * Commande manuelle : depuis le 23/11/2026, aucun DAG ne l'appelle. Le DAG
+ * `ingest-votes` ne produit que des shorts de scrutin (étape `topic-fallback`
+ * retirée), et une journée sans scrutin exploitable n'a pas de vidéo. Ce
+ * fichier reste pour un short ponctuel demandé à la main.
  *
- * Avec `--auto`, un thème dont le gabarit ne passe pas la validation est écarté
- * et le suivant de la rotation est essayé : la journée garde son short, et un
- * gabarit cassé ne gèle pas le repli jour après jour. Un thème demandé
- * explicitement, lui, échoue sans repli — c'est celui-là qu'on voulait.
+ * `--auto` choisit le thème par rotation (topic-rotation.ts) et `--if-none-today`
+ * ne crée rien si la journée a déjà son short. Avec `--auto`, un thème dont le
+ * gabarit ne passe pas la validation est écarté et le suivant est essayé ; un
+ * thème demandé explicitement, lui, échoue sans repli — c'est celui-là qu'on
+ * voulait.
  *
  * Usage : yarn --cwd packages/shorts topic <thème> [--dry-run] [--out <dir>]
  *         yarn --cwd packages/shorts topic --auto [--if-none-today]

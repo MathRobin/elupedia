@@ -1,19 +1,19 @@
 /**
  * Choix du thème d'un short « thème » de repli, pour le DAG `ingest-votes`.
  *
- * Le DAG veut une vidéo par jour. `select` sait déjà descendre son seuil
- * (select-candidates.ts), mais une fenêtre sans aucun scrutin exploitable
- * — congés parlementaires, semaine de circonscription — ne lui laisse rien à
- * retenir. Le DAG enchaîne alors sur `topic --auto --if-none-today`, qui crée
- * un short « thème » sans scrutin (main-topic.ts).
+ * Sert `topic --auto`, lancé à la main (main-topic.ts) : depuis le 23/11/2026
+ * aucun DAG ne crée de short sans scrutin, l'étape `topic-fallback` de
+ * `ingest-votes` ayant été retirée. Une fenêtre sans scrutin exploitable
+ * — congés parlementaires, semaine de circonscription — donne donc une journée
+ * sans vidéo, et non un short « thème ».
  *
  * Deux décisions sont prises ici :
  * - quel thème : celui qui n'a jamais servi, sinon le moins récemment servi,
  *   pour que la rotation ne repasse pas deux jours de suite sur le même ; la
  *   liste entière est rendue, pour que l'appelant puisse passer au suivant
  *   quand un gabarit échoue ;
- * - faut-il en créer un : non si un short existe déjà pour la journée, sinon
- *   le DAG en empilerait un chaque fois qu'il est relancé à la main.
+ * - faut-il en créer un : non si un short existe déjà pour la journée
+ *   (`--if-none-today`), pour qu'une relance n'en empile pas.
  *
  * Les shorts « thème » portent `score_details = {kind:'topic', topic:<clé>}`
  * (main-topic.ts) : c'est la seule trace du thème employé, d'où la lecture par
@@ -32,10 +32,9 @@ import { videoShorts } from '@elupedia/shared';
  * L'ordre complet, et pas seulement le premier choix, parce qu'un gabarit peut
  * ne pas passer la validation — un nom de groupe ponctué, un fait manquant.
  * `main-topic.ts` descend alors la liste au lieu de laisser la journée sans
- * short. Sans cela, un thème jamais utilisé qui échoue reste le premier choix
- * tous les jours et gèle le repli : constaté le 23/11/2026, « questions-ecrites »
- * rejeté sur la ponctuation du groupe « À Droite ! », DAG `ingest-votes` en
- * échec et aucun short produit.
+ * short. Sans cela, un thème jamais utilisé qui échoue reste le premier choix à
+ * chaque appel : constaté le 23/11/2026, « questions-ecrites » rejeté sur la
+ * ponctuation du groupe « À Droite ! ».
  */
 export function orderTopicKeys(
   keys: string[],
