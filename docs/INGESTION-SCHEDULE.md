@@ -191,9 +191,9 @@ generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
   plus repris. Et si la fenêtre ne contient aucun scrutin exploitable ou récent
   — congés, semaine de circonscription — l'étape `topic-fallback`
   (`topic --auto --if-none-today`)
-  crée un short « thème » sans scrutin, par rotation des thèmes. Elle ne fait
-  rien si la journée a déjà son short : relancer le DAG à la main n'en empile
-  pas.
+  crée un short « thème » sans scrutin, par rotation des thèmes, en passant au
+  thème suivant si un gabarit ne passe pas la validation. Elle ne fait rien si
+  la journée a déjà son short : relancer le DAG à la main n'en empile pas.
 - En hiver, le créneau chevauche le tick `press:maires` de 15:00 UTC (fini vers
   16:15) : c'est la contrepartie assumée d'un horaire fixé en heure locale, le
   créneau 16:00–17:15 Paris étant occupé par ce tick. Le démarrage est décalé de

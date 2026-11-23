@@ -59,6 +59,11 @@ Hooks, branche `main`).
 - Le tableau de bord des ingestions (`/ingestions`) n'interroge pas Dagu (API authentifiée, DAG du dépôt non déployés dans `/var/lib/dagu/dags` sur la machine locale) : il lit les YAML et les rapports JSON locaux. Le bouton « Lancer » met un run en file mais n'en suit pas l'avancement (UI Dagu).
 - Les jobs lancés depuis l'admin (`shorts-jobs.ts`) tournent sur la machine qui héberge l'admin et supposent le dépôt complet, Yarn et les clés dans le `.env` de la racine ; un redémarrage de l'admin ne tue pas le job mais perd son suivi si `current.json` n'a pas été finalisé.
 
+## Short du jour : le seuil nominal et la règle des 36 h laissent des trous
+
+- `select` ne retient qu'un scrutin de moins de 36 h en dessous de son seuil nominal de 50 points (`MAX_DEGRADED_AGE_HOURS`, `select-candidates.ts`). Dès que l'Assemblée ne vote plus pendant deux jours, la fenêtre de 7 jours devient inexploitable même quand elle contient un scrutin correct : le 23/11/2026, l'article premier de la PPL « confiance et équilibre » du 19/11 était à 48 points, libre, et n'a pas été repris. Le repli « thème » prend la journée à sa place. À arbitrer : assouplir l'âge pour les paliers hauts (40, 30 points) ou abaisser le seuil nominal.
+- Le barème plafonne les scrutins ordinaires vers 35–48 points : la participation réelle (30–45 % de l'assemblée) ne rapporte que 6 à 9 points sur 20, et l'objet « amendement » vaut 0. Seuls « l'ensemble du texte », les motions et les scrutins solennels atteignent 50 sans aide.
+
 ## Site : listes d'élus embarquées
 
 - L'accueil (`HeroSearch`) et `/elus` embarquent la liste complète des élus, une ligne par mandat actif (accueil) ou par couple (élu, type de mandat) (annuaire). L'ingestion des conseillers communautaires (`ingest:conseillers-epci`, ticket #289) y ajoutera ~62 000 lignes dont ~30 000 personnes déjà listées comme maires, qui apparaîtront deux fois : poids des pages et doublons de recherche à arbitrer avant la première exécution (exclure ce type de la recherche, une carte par élu…). `OfficialsList` n'a pas de filtre dédié.

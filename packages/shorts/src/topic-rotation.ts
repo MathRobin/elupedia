@@ -9,7 +9,9 @@
  *
  * Deux décisions sont prises ici :
  * - quel thème : celui qui n'a jamais servi, sinon le moins récemment servi,
- *   pour que la rotation ne repasse pas deux jours de suite sur le même ;
+ *   pour que la rotation ne repasse pas deux jours de suite sur le même ; la
+ *   liste entière est rendue, pour que l'appelant puisse passer au suivant
+ *   quand un gabarit échoue ;
  * - faut-il en créer un : non si un short existe déjà pour la journée, sinon
  *   le DAG en empilerait un chaque fois qu'il est relancé à la main.
  *
@@ -24,20 +26,39 @@ import { gte, sql } from 'drizzle-orm';
 import { videoShorts } from '@elupedia/shared';
 
 /**
- * Thème à produire : jamais utilisé d'abord (dans l'ordre du registre), sinon
- * le plus anciennement utilisé. `null` si le registre est vide.
+ * Thèmes à essayer, dans l'ordre : ceux qui n'ont jamais servi d'abord (ordre
+ * du registre), puis les autres, du plus anciennement utilisé au plus récent.
+ *
+ * L'ordre complet, et pas seulement le premier choix, parce qu'un gabarit peut
+ * ne pas passer la validation — un nom de groupe ponctué, un fait manquant.
+ * `main-topic.ts` descend alors la liste au lieu de laisser la journée sans
+ * short. Sans cela, un thème jamais utilisé qui échoue reste le premier choix
+ * tous les jours et gèle le repli : constaté le 23/11/2026, « questions-ecrites »
+ * rejeté sur la ponctuation du groupe « À Droite ! », DAG `ingest-votes` en
+ * échec et aucun short produit.
+ */
+export function orderTopicKeys(
+  keys: string[],
+  lastUsed: Map<string, string>,
+): string[] {
+  const jamais = keys.filter((k) => !lastUsed.has(k));
+  const deja = keys
+    .filter((k) => lastUsed.has(k))
+    .sort((a, b) =>
+      (lastUsed.get(a) ?? '').localeCompare(lastUsed.get(b) ?? ''),
+    );
+  return [...jamais, ...deja];
+}
+
+/**
+ * Premier thème à produire (voir `orderTopicKeys`). `null` si le registre est
+ * vide.
  */
 export function pickTopicKey(
   keys: string[],
   lastUsed: Map<string, string>,
 ): string | null {
-  const jamais = keys.find((k) => !lastUsed.has(k));
-  if (jamais !== undefined) return jamais;
-  return (
-    [...keys].sort((a, b) =>
-      (lastUsed.get(a) ?? '').localeCompare(lastUsed.get(b) ?? ''),
-    )[0] ?? null
-  );
+  return orderTopicKeys(keys, lastUsed)[0] ?? null;
 }
 
 /** Dernière utilisation de chaque thème (ISO), lue dans `score_details`. */

@@ -1,14 +1,16 @@
 import { parseArgs } from 'node:util';
+import { type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { createDb, envValue, videoShorts } from '@elupedia/shared';
 import { logger } from './logger.js';
 import type { StoredScript } from './generate-script.js';
 import { validateScript } from './script-validate.js';
 import { DEFAULT_OUTPUT_DIR, writeReadingSheet } from './voiceover.js';
+import type { TopicDefinition } from './topics/common.js';
 import { TOPICS } from './topics/index.js';
 import {
   countShortsCreatedSince,
   loadTopicLastUse,
-  pickTopicKey,
+  orderTopicKeys,
   startOfDay,
 } from './topic-rotation.js';
 
@@ -23,6 +25,11 @@ import {
  * c'est ce repli qui fournit le sujet. Le thème est alors choisi par rotation
  * et l'étape ne fait rien si la journée a déjà son short
  * (topic-rotation.ts).
+ *
+ * Avec `--auto`, un thème dont le gabarit ne passe pas la validation est écarté
+ * et le suivant de la rotation est essayé : la journée garde son short, et un
+ * gabarit cassé ne gèle pas le repli jour après jour. Un thème demandé
+ * explicitement, lui, échoue sans repli — c'est celui-là qu'on voulait.
  *
  * Usage : yarn --cwd packages/shorts topic <thème> [--dry-run] [--out <dir>]
  *         yarn --cwd packages/shorts topic --auto [--if-none-today]
@@ -66,47 +73,26 @@ if (values.help || (!values.auto && !topicKey)) {
 const outputDir =
   values.out ?? envValue('SHORTS_OUTPUT_DIR') ?? DEFAULT_OUTPUT_DIR;
 
-async function main(): Promise<number> {
-  const db = createDb();
-
-  if (values['if-none-today']) {
-    const since = startOfDay(new Date());
-    const dejaFaits = await countShortsCreatedSince(db, since);
-    if (dejaFaits > 0) {
-      logger.info(
-        `${dejaFaits} short(s) déjà créé(s) depuis ${since.toISOString()} : rien à faire`,
-      );
-      return 0;
-    }
-  }
-
-  let key = topicKey;
-  if (values.auto) {
-    const choisi = pickTopicKey(
-      Object.keys(TOPICS),
-      await loadTopicLastUse(db),
-    );
-    if (!choisi) {
-      logger.error('aucun thème disponible dans le registre');
-      return 1;
-    }
-    key = choisi;
-    logger.info(`thème retenu par rotation : ${key}`);
-  }
-
-  const topic = key ? TOPICS[key] : undefined;
-  if (!topic) {
-    logger.error(`thème inconnu : ${key}`);
-    return 2;
-  }
-
+/**
+ * Produit le short d'un thème : faits, script de gabarit, validation, écriture
+ * et fiche de lecture. Lève si le gabarit ne passe pas la validation — les
+ * problèmes sont dans le message, l'appelant décidant de passer au thème
+ * suivant (`--auto`) ou d'échouer.
+ */
+async function produceTopic(
+  db: NeonHttpDatabase,
+  topic: TopicDefinition<unknown>,
+): Promise<number> {
   const shortId = values['dry-run'] ? 'dry-run' : crypto.randomUUID();
   const facts = topic.build(shortId, await topic.load(db));
   const script = topic.script(facts);
   const issues = validateScript(script, facts);
   if (issues.length > 0) {
-    for (const i of issues) logger.error(`${i.code} : ${i.message}`);
-    throw new Error('script non conforme');
+    throw new Error(
+      `script non conforme : ${issues
+        .map((i) => `${i.code} (${i.message})`)
+        .join(' · ')}`,
+    );
   }
   const total = script.scenes.reduce((s, sc) => s + sc.durationSec, 0);
   logger.info(
@@ -141,6 +127,51 @@ async function main(): Promise<number> {
     `étape suivante : enregistrer les prises dans ${outputDir}/${shortId}/recordings/ puis yarn --cwd packages/shorts make ${shortId}`,
   );
   return 0;
+}
+
+async function main(): Promise<number> {
+  const db = createDb();
+
+  if (values['if-none-today']) {
+    const since = startOfDay(new Date());
+    const dejaFaits = await countShortsCreatedSince(db, since);
+    if (dejaFaits > 0) {
+      logger.info(
+        `${dejaFaits} short(s) déjà créé(s) depuis ${since.toISOString()} : rien à faire`,
+      );
+      return 0;
+    }
+  }
+
+  if (values.auto) {
+    const ordre = orderTopicKeys(
+      Object.keys(TOPICS),
+      await loadTopicLastUse(db),
+    );
+    if (ordre.length === 0) {
+      logger.error('aucun thème disponible dans le registre');
+      return 1;
+    }
+    for (const key of ordre) {
+      logger.info(`thème essayé par rotation : ${key}`);
+      try {
+        return await produceTopic(db, TOPICS[key]!);
+      } catch (error) {
+        logger.warn(`thème ${key} écarté : ${error}`);
+      }
+    }
+    logger.error(
+      `aucun thème ne produit un short conforme (${ordre.length} essayé(s))`,
+    );
+    return 1;
+  }
+
+  const topic = topicKey ? TOPICS[topicKey] : undefined;
+  if (!topic) {
+    logger.error(`thème inconnu : ${topicKey}`);
+    return 2;
+  }
+  return produceTopic(db, topic);
 }
 
 main()

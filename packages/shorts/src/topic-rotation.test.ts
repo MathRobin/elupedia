@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickTopicKey, startOfDay } from './topic-rotation.js';
+import { orderTopicKeys, pickTopicKey, startOfDay } from './topic-rotation.js';
 
 describe('pickTopicKey', () => {
   const keys = ['staffers', 'questions-ecrites', 'age-deputes'];
@@ -31,6 +31,29 @@ describe('pickTopicKey', () => {
 
   it('returns null when the registry is empty', () => {
     expect(pickTopicKey([], new Map())).toBeNull();
+  });
+});
+
+describe('orderTopicKeys', () => {
+  const keys = ['staffers', 'questions-ecrites', 'age-deputes'];
+
+  it('lists the never-used first, then the least recently used', () => {
+    const lastUsed = new Map([
+      ['staffers', '2026-11-10 10:00:00'],
+      ['age-deputes', '2026-11-02 10:00:00'],
+    ]);
+    expect(orderTopicKeys(keys, lastUsed)).toEqual([
+      'questions-ecrites',
+      'age-deputes',
+      'staffers',
+    ]);
+  });
+
+  it('gives every topic, so a failing template is not the only choice', () => {
+    // Le repli du DAG descend cette liste : un gabarit cassé ne doit pas
+    // geler la rotation jour après jour.
+    expect(orderTopicKeys(keys, new Map())).toEqual(keys);
+    expect(orderTopicKeys([], new Map())).toEqual([]);
   });
 });
 

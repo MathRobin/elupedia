@@ -173,17 +173,33 @@ export interface ShortFacts {
 export const PRONOUNCEABLE_ACRONYMS: readonly string[] = ['LFI-NFP', 'LIOT'];
 
 /**
+ * Ponctuation qu'un nom de groupe ne peut pas emporter dans la voix : la règle
+ * `punctuation` de `validateScript` interdit « ? ! … — » dans un texte lu, et
+ * un nom de groupe peut en porter — « À Droite ! (AD) ». Elle disparaît donc
+ * ici, à la source, sans quoi toute scène citant le groupe est rejetée et le
+ * short entier échoue (constaté le 23/11/2026 : le thème « questions-ecrites »
+ * cite le groupe le mieux et le moins bien répondu, et bloquait le repli du
+ * DAG `ingest-votes`). Le libellé affiché, lui, garde sa ponctuation : il
+ * n'est pas lu.
+ */
+const SPOKEN_NAME_PUNCTUATION = /[?!…—]|\.\.\./gu;
+
+/**
  * Ce qu'on dit à voix haute : sigle s'il se prononce, sinon nom complet, et
  * « & » remplacé par « et » (« Horizons & Indépendants »). La synthèse vocale
  * prononce le signe « and », en anglais, au milieu d'une phrase française :
  * il est donc écarté ici, à la source des faits, et interdit dans la voix par
- * `validateScript`.
+ * `validateScript`, comme la ponctuation de SPOKEN_NAME_PUNCTUATION.
  */
 export function spokenGroupName(name: string): string {
   const acronym = name.match(/\(([^)]+)\)\s*$/)?.[1];
   if (acronym && PRONOUNCEABLE_ACRONYMS.includes(acronym)) return acronym;
   const full = name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name;
-  return full.replace(/\s*&\s*/g, ' et ');
+  return full
+    .replace(/\s*&\s*/g, ' et ')
+    .replace(SPOKEN_NAME_PUNCTUATION, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 export function groupAcronym(name: string): string | null {
