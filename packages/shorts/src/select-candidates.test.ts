@@ -6,6 +6,7 @@ import {
   freshnessFloorDate,
   rankBallots,
   scoreBallot,
+  scoreBonuses,
   scoreSubject,
   thresholdLadder,
 } from './select-candidates.js';
@@ -87,7 +88,9 @@ describe('scoreBallot', () => {
     // marge 20/540 ≈ 3,7 % → 19 points
     expect(d.closeness.points).toBe(19);
     expect(d.division.points).toBe(0);
-    expect(d.total).toBe(93);
+    // + 15 : vote sur l'ensemble d'un projet de loi de finances.
+    expect(d.bonuses.map((b) => b.points)).toEqual([15]);
+    expect(d.total).toBe(108);
   });
 
   it('scores an ordinary amendment with few voters low', () => {
@@ -197,6 +200,119 @@ describe('scoreBallot', () => {
     expect(d.participation.points).toBe(0);
     expect(d.closeness.margin).toBeNull();
     expect(d.closeness.points).toBe(0);
+  });
+});
+
+describe('scoreBonuses', () => {
+  const labels = (b: BallotForScoring) => scoreBonuses(b).map((x) => x.label);
+  const points = (b: BallotForScoring) =>
+    scoreBonuses(b).reduce((n, x) => n + x.points, 0);
+
+  it('gives nothing to an ordinary ballot', () => {
+    expect(
+      scoreBonuses(
+        ballot({
+          title: "l'amendement n° 12 à l'article 3 de la proposition de loi",
+          counts: { for: 80, against: 40, abstain: 2, absent: 10 },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it('rewards a margin of a few votes, more when it is two or fewer', () => {
+    const base = {
+      title: "l'amendement n° 12 à l'article 3 de la proposition de loi",
+    };
+    // 25 contre 23 : le ratio d'écart sature, l'écart absolu non.
+    expect(
+      points(
+        ballot({
+          ...base,
+          counts: { for: 25, against: 23, abstain: 0, absent: 0 },
+        }),
+      ),
+    ).toBe(15);
+    expect(
+      points(
+        ballot({
+          ...base,
+          counts: { for: 30, against: 26, abstain: 0, absent: 0 },
+        }),
+      ),
+    ).toBe(10);
+    expect(
+      points(
+        ballot({
+          ...base,
+          counts: { for: 40, against: 20, abstain: 0, absent: 0 },
+        }),
+      ),
+    ).toBe(0);
+  });
+
+  it('names a tie as such', () => {
+    expect(
+      labels(
+        ballot({
+          title: "l'amendement n° 12 à l'article 3 de la proposition de loi",
+          counts: { for: 24, against: 24, abstain: 0, absent: 0 },
+        }),
+      ),
+    ).toEqual(['égalité des voix']);
+  });
+
+  it('flags the Gouvernement beaten on its own amendment', () => {
+    const rejete = ballot({
+      title: "l'amendement n° 386 du Gouvernement à l'article 2",
+      result: 'rejected',
+      counts: { for: 100, against: 180, abstain: 0, absent: 0 },
+    });
+    expect(labels(rejete)).toEqual(['amendement du Gouvernement rejeté']);
+    // Adopté : rien, le Gouvernement n'est pas mis en minorité.
+    expect(scoreBonuses({ ...rejete, result: 'adopted' })).toEqual([]);
+  });
+
+  it('rewards unanimity only once the chamber showed up', () => {
+    const unanime = (f: number) =>
+      ballot({
+        title: "l'ensemble de la proposition de loi sur les sapeurs-pompiers",
+        counts: { for: f, against: 0, abstain: 0, absent: 0 },
+      });
+    expect(points(unanime(120))).toBe(10);
+    // Sous le seuil : séance clairsemée, pas un accord de l'assemblée.
+    expect(scoreBonuses(unanime(40))).toEqual([]);
+  });
+
+  it('rewards the final vote on a budget bill, not its amendments', () => {
+    expect(
+      labels(
+        ballot({
+          title:
+            "l'ensemble du projet de loi de financement de la sécurité sociale pour 2027",
+          counts: { for: 280, against: 260, abstain: 0, absent: 0 },
+        }),
+      ),
+    ).toEqual(["ensemble d'un texte budgétaire"]);
+    expect(
+      scoreBonuses(
+        ballot({
+          title:
+            "l'amendement n° 12 à l'article 3 du projet de loi de finances pour 2027",
+          counts: { for: 280, against: 240, abstain: 0, absent: 0 },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it('adds up when several criteria apply', () => {
+    const d = scoreBallot(
+      ballot({
+        title: "l'ensemble du projet de loi de finances pour 2027",
+        counts: { for: 271, against: 270, abstain: 0, absent: 36 },
+      }),
+    );
+    // Écart d'une voix (15) + ensemble d'un texte budgétaire (15).
+    expect(d.bonuses.map((b) => b.points)).toEqual([15, 15]);
   });
 });
 

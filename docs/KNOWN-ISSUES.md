@@ -62,7 +62,8 @@ Hooks, branche `main`).
 ## Short du jour : le seuil nominal et la règle des 36 h laissent des trous
 
 - `select` ne retient qu'un scrutin de moins de 36 h en dessous de son seuil nominal de 50 points (`MAX_DEGRADED_AGE_HOURS`, `select-candidates.ts`). Dès que l'Assemblée ne vote plus pendant deux jours, la fenêtre de 7 jours devient inexploitable même quand elle contient un scrutin correct : le 23/11/2026, l'article premier de la PPL « confiance et équilibre » du 19/11 était à 48 points, libre, et n'a pas été repris. Le repli « thème » prend la journée à sa place. À arbitrer : assouplir l'âge pour les paliers hauts (40, 30 points) ou abaisser le seuil nominal.
-- Le barème plafonne les scrutins ordinaires vers 35–48 points : la participation réelle (30–45 % de l'assemblée) ne rapporte que 6 à 9 points sur 20, et l'objet « amendement » vaut 0. Seuls « l'ensemble du texte », les motions et les scrutins solennels atteignent 50 sans aide.
+- Le barème plafonne les scrutins ordinaires vers 35–48 points : la participation réelle (30–45 % de l'assemblée) ne rapporte que 6 à 9 points sur 20, et l'objet « amendement » vaut 0. Seuls « l'ensemble du texte », les motions, les scrutins solennels et les critères spécifiques de `scoreBonuses` atteignent 50 sans aide.
+- Un vote très serré est noté deux fois : l'écart en ratio (jusqu'à +20, saturé à 150 votants) et le bonus d'écart absolu (+15 à deux voix près) se cumulent, donc un scrutin à une voix près prend jusqu'à 35 points sur ces deux seuls critères (constaté le 23/11/2026 : amendement n° 163 du 17/11 à 49 points, dont 35 d'écart). Voulu — un vote à une voix est le fait le plus parlant qui soit — mais à revoir si les shorts d'amendement serré prennent trop de place : il suffirait de réserver le bonus aux scrutins de moins de 150 votants exprimés, là où le ratio sature.
 
 ## Site : listes d'élus embarquées
 
