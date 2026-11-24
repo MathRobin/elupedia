@@ -82,3 +82,4 @@ export {
   officialAliasSources,
   type OfficialAliasSource,
 } from './official-aliases.js';
+export { europarlAttendance } from './europarl-attendance.js';

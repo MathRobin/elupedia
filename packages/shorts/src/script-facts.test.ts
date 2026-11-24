@@ -73,4 +73,11 @@ describe('spokenGroupName', () => {
     // Sigle prononçable : dit tel quel.
     expect(spokenGroupName('La France insoumise (LFI-NFP)')).toBe('LFI-NFP');
   });
+
+  it('drops the punctuation a read text cannot carry', () => {
+    // « À Droite ! » rejetait toute scène citant le groupe (règle punctuation).
+    expect(spokenGroupName('À Droite ! (AD)')).toBe('À Droite');
+    expect(spokenGroupName('Groupe ? (G)')).toBe('Groupe');
+    expect(spokenGroupName('Les X — Y (XY)')).toBe('Les X Y');
+  });
 });

@@ -67,9 +67,11 @@ const cadicPair = {
   kept_id: 'kept-1',
   kept_slug: 'olivier-cadic-1',
   kept_an_id: null as string | null,
+  kept_europarl_id: null as string | null,
   dup_id: 'dup-1',
   dup_slug: 'olivier-cadic-2',
   dup_an_id: 'PA703525' as string | null,
+  dup_europarl_id: null as string | null,
 };
 
 function createMockDb(pair = cadicPair) {
@@ -99,8 +101,10 @@ describe('finalSlug', () => {
     birthDate: '',
     keptId: 'k',
     keptAnId: null,
+    keptEuroparlId: null,
     dupId: 'd',
     dupAnId: null,
+    dupEuroparlId: null,
   };
   it('takes over the canonical slug when the kept one is a suffixed variant', () => {
     expect(
@@ -146,14 +150,31 @@ describe('mergeDuplicateOfficials', () => {
     await mergeDuplicateOfficials(db as never, { dryRun: false });
 
     const writes = statements.filter((s) => /^\s*(delete|update)/.test(s));
-    // Par table : un delete (doublons) puis un update (réaffectation).
-    const firstTableWrites = writes.slice(0, 2);
-    expect(firstTableWrites[0]).toMatch(/^\s*delete from "mandates"/);
-    expect(firstTableWrites[1]).toMatch(/^\s*update "mandates"/);
+    // D'abord la reprise des dates de fin, que la suppression des mandats
+    // en doublon rendrait impossible ensuite.
+    expect(writes[0]).toMatch(/^\s*update mandates kept\s+set end_date/);
+    // Puis, par table : un delete (doublons) puis un update (réaffectation).
+    expect(writes[1]).toMatch(/^\s*delete from "mandates"/);
+    expect(writes[2]).toMatch(/^\s*update "mandates"/);
     // Fin : libération de l'an_id, pose sur la fiche conservée, suppression.
     const last = writes.slice(-3);
-    expect(last[0]).toMatch(/update officials set an_id = null/);
-    expect(last[1]).toMatch(/update officials set an_id = \$\d/);
+    expect(last[0]).toMatch(/update officials set "an_id" = null/);
+    expect(last[1]).toMatch(/update officials set "an_id" = \$\d/);
+    expect(last[2]).toMatch(/delete from officials where id = \$\d/);
+  });
+
+  it('transfers the europarl_id of the deleted official', async () => {
+    const { db, statements } = createMockDb({
+      ...cadicPair,
+      dup_an_id: null,
+      dup_europarl_id: '5565',
+    });
+    await mergeDuplicateOfficials(db as never, { dryRun: false });
+
+    const writes = statements.filter((s) => /^\s*(delete|update)/.test(s));
+    const last = writes.slice(-3);
+    expect(last[0]).toMatch(/update officials set "europarl_id" = null/);
+    expect(last[1]).toMatch(/update officials set "europarl_id" = \$\d/);
     expect(last[2]).toMatch(/delete from officials where id = \$\d/);
   });
 
@@ -162,6 +183,19 @@ describe('mergeDuplicateOfficials', () => {
       ...cadicPair,
       kept_an_id: 'PA1',
       dup_an_id: 'PA2',
+    });
+    const summary = await mergeDuplicateOfficials(db as never, {
+      dryRun: false,
+    });
+    expect(summary).toMatchObject({ pairs: 0, skipped: 1 });
+    expect(statements).toHaveLength(1);
+  });
+
+  it('skips a pair whose two sides carry different europarl_id', async () => {
+    const { db, statements } = createMockDb({
+      ...cadicPair,
+      kept_europarl_id: '1',
+      dup_europarl_id: '2',
     });
     const summary = await mergeDuplicateOfficials(db as never, {
       dryRun: false,

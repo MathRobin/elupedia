@@ -40,3 +40,10 @@ export {
   officialBallotSources,
   type BallotSourceLink,
 } from './ballot-sources.js';
+export {
+  computeMepGap,
+  MIN_ROLLCALL_DAYS,
+  type MandateWindow,
+  type MepDays,
+  type MepAttendanceGap,
+} from './attendance-gap.js';

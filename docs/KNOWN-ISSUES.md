@@ -8,16 +8,19 @@ L'en-tête de `packages/ingest/src/merge-duplicate-officials.ts` décrit des
 doublons entre l'open data Sénat et le jeu AMO30 de l'AN, et une règle de
 conservation fondée là-dessus : matricule Sénat, sinon identifiant AN.
 
-Le dry-run du 15/11/2026 annonce 10 paires, 1121 lignes déplacées et 129
-supprimées, mais **aucune des fiches à supprimer n'a d'`an_id`**. Ce sont pour
-l'essentiel d'anciens ministres (Dati, Schiappa, Vallaud-Belkacem, Cosse,
-Penchard), vraisemblablement une fiche de mandat gouvernemental face à une fiche
-de mandat local — pas le cas de figure pour lequel la règle a été écrite.
+Le dry-run du 20/11/2026 annonce 12 paires, 989 lignes déplacées et 636
+supprimées, mais **une seule des fiches à supprimer a un identifiant source**
+(Brice Hortefeux, `europarl_id`, fusionnée le 20/11/2026 avec `--slug`). Les
+onze autres sont pour l'essentiel d'anciens ministres (Dati, Schiappa,
+Vallaud-Belkacem, Cosse, Penchard), vraisemblablement une fiche de mandat
+gouvernemental face à une fiche de mandat local — pas le cas de figure pour
+lequel la règle a été écrite.
 
 En conséquence, l'étape `merge-duplicate-officials` du DAG `ingest-senat` tourne
 sans `--apply` : elle recense les paires dans les logs du mardi, et la fusion
-reste manuelle. À trancher avant de l'automatiser : d'où viennent ces doublons,
-et la règle de conservation est-elle la bonne pour eux.
+reste manuelle, paire par paire (`--slug <slug>`). À trancher avant de
+l'automatiser : d'où viennent ces doublons, et la règle de conservation est-elle
+la bonne pour eux.
 
 ## Variables optionnelles absentes du `.env` de la machine d'ingestion
 
@@ -32,7 +35,7 @@ Hooks, branche `main`).
 
 ## Rapprochement d'élus (homonymes)
 
-- Le rapprochement AN ↔ Sénat (nom + prénom + date de naissance) n'est tenté qu'à la création d'une fiche : les doublons créés avant son existence ne se résorbent pas seuls. Outil de rattrapage : `yarn --cwd packages/ingest merge:duplicate-officials` (48 paires en octobre 2026).
+- Le rapprochement AN ↔ Sénat (nom + prénom + date de naissance) n'est tenté qu'à la création d'une fiche : les doublons créés avant son existence ne se résorbent pas seuls. Outil de rattrapage : `yarn --cwd packages/ingest merge:duplicate-officials` (48 paires en octobre 2026, 11 au 20/11/2026 après fusions).
 - Les fichiers RNE se contredisent parfois sur la date de naissance d'une même personne (année erronée dans un fichier) : l'ingestion recréait alors un doublon à chaque passe. La table `official_aliases` (clé nom + prénom + date → fiche cible, alimentée par les fusions de l'admin et à la main depuis la fiche élu) est désormais consultée par les upserts RNE ; les upserts AN/Sénat, parrainages et candidats ne la consultent pas encore.
 
 - Plusieurs modules rattachent une personne par nom + prénom seulement, sans date de naissance : `upsert/municipal-elections.ts`, `senat-candidacies.ts`, `senatorial-elections.ts`, `senat-resultats-2026.ts`, `senat-mandats-2026.ts`, `sponsorships.ts`, `declaration-snapshots.ts`, `interests.ts`, `legislative-elections.ts`, `reconcile-elections.ts`. En cas d'homonymie stricte, le dernier élu chargé écrase le précédent dans l'index, silencieusement.
@@ -44,7 +47,7 @@ Hooks, branche `main`).
 ## Annuaire du livre (`packages/book`)
 
 - Appartenances de groupe des sénateurs (`affiliations`, `kind = 'group'`, `end_date is null`) : plusieurs lignes restent ouvertes pour une même personne (anciens députés devenus sénateurs, groupes renommés). L'annuaire retient la plus récente par date de début, ce qui écarte les groupes de l'Assemblée mais laisse deux libellés pour le centre (« Union Centriste » et « Union Centriste et Indépendants », 29 et 34 sénateurs) et 3 sénateurs sans groupe. À vérifier avant impression.
-- Deux fiches d'élus en fonction ont un nom de famille tout en majuscules (« HERVE » pour un sénateur, probablement « Hervé » ; « HORTEFEUX »). L'annuaire les met en casse de titre mais ne peut pas restaurer l'accent : à corriger dans la base.
+- Une fiche d'élu en fonction a un nom de famille tout en majuscules : « HERVE » pour un sénateur, probablement « Hervé ». L'annuaire le met en casse de titre mais ne peut pas restaurer l'accent : à corriger dans la base. (La fiche « HORTEFEUX » a disparu avec la fusion du 20/11/2026, qui a gardé la graphie de l'AN.)
 - Commissions permanentes de l'Assemblée : seuls 143 des 565 députés en fonction en ont une en cours dans `committees` ; les sénateurs ont des doublons (« commission des affaires étrangères » deux fois). L'annuaire du livre n'en reprend donc pas.
 - Décorations : seules 173 fiches sont rattachées (date de naissance identique), toutes à d'anciens élus ; aucun parlementaire en fonction n'a de décoration vérifiée, donc l'annuaire n'en affiche pas. Environ 6 700 anciens rattachements non confirmables (fiche décorée sans date de naissance publique) ont été détachés, dont 336 à qualité politique (maire, député, sénateur…) à examiner à la main ; la sauvegarde des rattachements détachés est dans le dossier de notes de la session du 9 novembre 2026.
 
@@ -55,6 +58,12 @@ Hooks, branche `main`).
 - Les corrections manuelles de fiches (`/elus/[id]`) ne sont pas protégées contre l'ingestion : une passe AN/Sénat/décorations peut réécrire `birth_date`, `photo_url`, `death_date`, et le rapprochement de mandats rouvrir un mandat clos à la main. Seule la trace `data_provenance` (« Admin Elupedia ») permet de le voir. Un verrou par champ (« valeur fixée à la main ») reste à concevoir.
 - Le tableau de bord des ingestions (`/ingestions`) n'interroge pas Dagu (API authentifiée, DAG du dépôt non déployés dans `/var/lib/dagu/dags` sur la machine locale) : il lit les YAML et les rapports JSON locaux. Le bouton « Lancer » met un run en file mais n'en suit pas l'avancement (UI Dagu).
 - Les jobs lancés depuis l'admin (`shorts-jobs.ts`) tournent sur la machine qui héberge l'admin et supposent le dépôt complet, Yarn et les clés dans le `.env` de la racine ; un redémarrage de l'admin ne tue pas le job mais perd son suivi si `current.json` n'a pas été finalisé.
+
+## Short du jour : le seuil nominal et la règle des 36 h laissent des trous
+
+- `select` ne retient qu'un scrutin de moins de 36 h en dessous de son seuil nominal de 50 points (`MAX_DEGRADED_AGE_HOURS`, `select-candidates.ts`). Dès que l'Assemblée ne vote plus pendant deux jours, la fenêtre de 7 jours devient inexploitable même quand elle contient un scrutin correct : le 23/11/2026, l'article premier de la PPL « confiance et équilibre » du 19/11 était à 48 points, libre, et n'a pas été repris. Depuis le retrait des shorts « thème » (24/11/2026), ces jours-là n'ont pas de vidéo du tout. À arbitrer : assouplir l'âge pour les paliers hauts (40, 30 points) ou abaisser le seuil nominal.
+- Le barème plafonne les scrutins ordinaires vers 35–48 points : la participation réelle (30–45 % de l'assemblée) ne rapporte que 6 à 9 points sur 20, et l'objet « amendement » vaut 0. Seuls « l'ensemble du texte », les motions, les scrutins solennels et les critères spécifiques de `scoreBonuses` atteignent 50 sans aide.
+- Un vote très serré est noté deux fois : l'écart en ratio (jusqu'à +20, saturé à 150 votants) et le bonus d'écart absolu (+15 à deux voix près) se cumulent, donc un scrutin à une voix près prend jusqu'à 35 points sur ces deux seuls critères (constaté le 23/11/2026 : amendement n° 163 du 17/11 à 49 points, dont 35 d'écart). Voulu — un vote à une voix est le fait le plus parlant qui soit — mais à revoir si les shorts d'amendement serré prennent trop de place : il suffirait de réserver le bonus aux scrutins de moins de 150 votants exprimés, là où le ratio sature.
 
 ## Site : listes d'élus embarquées
 
@@ -98,7 +107,7 @@ Relevé lors de la vérification des chiffres du guide (`docs/livre-guide/02-chi
 - `ballots` : les scrutins publics de l'Assemblée sont incomplets en décembre 2024 (22 enregistrés, contre 118 à 209 les autres mois d'octobre 2024 à mars 2025). La motion de censure du 4 décembre 2024, adoptée, est absente : toutes les motions de la base sont marquées `rejected`. Cause non cherchée.
 - `mandates` (type `depute`) : 565 mandats actifs pour 565 circonscriptions distinctes, contre 577 sièges. Les 12 manquantes sont des sièges vacants ou une lacune d'ingestion.
 - `mandates` (type `senateur`) : 350 mandats actifs pour 350 personnes, dont 183 débutés en 2026 pour 178 sièges renouvelés. Si le plafond légal est de 348, deux mandats sont périmés. `political_group` est vide pour 332 des 350 sénateurs.
-- `mandates` (type `eurodepute`) : 82 mandats actifs pour 81 sièges français, sans doublon de personne : un remplacement non clos ?
+- `europarl_attendance` (source) : Valérie Hayer (`europarl_id` 135511) n'a **aucune** signature au registre de présence du Parlement européen sur toute la législature 10, alors qu'elle a voté par appel nominal 98 des 116 jours de scrutin ; elle n'y figure ni comme présente ni comme excusée — vérifié sur l'API et sur le PDF officiel de l'annexe. Les autres eurodéputés sont entre 0 et 3 jours. Ces jours sont traités comme des anomalies de source, jamais comme des absences (cf. `docs/DOMAINS.md`). Cause non cherchée côté Parlement européen.
 - `mandates` : 34 parlementaires (11 députés, 23 sénateurs) ont un mandat de maire actif débuté entre le 15 et le 30 mars 2026, aucun maire délégué. Le cumul est interdit depuis 2017 : sans doute des mandats acquis aux municipales dont la date de fin n'est pas saisie.
 - `senatorial_elections` (2026) : le second tour annonce 26 sièges pour 14 départements, mais la base ne compte que 19 élus au second tour (159 au premier, 178 au total).
 - `parliamentary_activity` : `status` est vide pour les 17 367 questions écrites de l'Assemblée ; la réponse se déduit de `response_date`.

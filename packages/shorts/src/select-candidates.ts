@@ -24,6 +24,13 @@ import { logger } from './logger.js';
  * - écart pour/contre (un vote serré est plus parlant)
  * - division interne des groupes (AN uniquement : le Sénat ne publie pas de
  *   position par groupe)
+ * - critères spécifiques et rares (voir `scoreBonuses`) : écart en voix,
+ *   Gouvernement mis en minorité sur son propre amendement, unanimité,
+ *   ensemble d'un texte budgétaire. Ils se cumulent, n'apparaissent dans
+ *   `score_details.bonuses` que lorsqu'ils s'appliquent, et rattrapent ce que
+ *   les cinq critères généraux manquent : un vote à deux voix près en séance
+ *   clairsemée, que le ratio d'écart sature à quelques points, et un vote
+ *   unanime, que ce même ratio met à zéro alors qu'il se raconte.
  *
  * Les scrutins du Parlement européen sont exclus : seule la délégation
  * française est ingérée, le résultat ne peut pas en être déduit.
@@ -54,6 +61,34 @@ export const CHAMBER_SIZE_FALLBACK: Record<'an' | 'senat', number> = {
 };
 
 const CLOSENESS_FULL_WEIGHT_VOTERS = 150;
+
+/** Écart en voix d'un scrutin « à quelques voix près » (voir `scoreBonuses`). */
+export const TIGHT_MARGIN_VOTES = 5;
+/** Écart en voix d'un scrutin joué à presque rien. */
+export const VERY_TIGHT_MARGIN_VOTES = 2;
+/**
+ * Voix « pour » minimales pour qu'une unanimité compte : sous ce seuil, un vote
+ * sans opposition n'est qu'une séance clairsemée, pas un accord de l'assemblée.
+ */
+export const UNANIMITY_MIN_VOTES = 50;
+
+/**
+ * Vote sur l'ensemble d'un texte. Sert deux fois : au critère d'objet et au
+ * critère budgétaire, qui doivent rester d'accord sur ce qu'est un vote
+ * d'ensemble.
+ */
+const ENSEMBLE_PATTERN =
+  /l'ensemble (du|de la|de l')\s*(projet|proposition|texte)|ensemble du texte/i;
+
+/** Textes financiers : loi de finances, loi de financement de la sécurité sociale. */
+const BUDGET_PATTERN = /loi de finances|financement de la sécurité sociale/i;
+
+/**
+ * Amendement déposé ou repris par le Gouvernement. Un titre peut citer
+ * plusieurs amendements identiques : le Gouvernement cosignataire d'un
+ * amendement rejeté compte aussi comme mis en minorité.
+ */
+const GOVERNMENT_AMENDMENT = /amendements?\b[\s\S]*\bdu Gouvernement\b/i;
 
 /** Pas de la descente du seuil quand aucun scrutin n'atteint `minScore`. */
 export const SCORE_LADDER_STEP = 10;
@@ -109,12 +144,23 @@ export interface BallotForScoring {
   }[];
 }
 
+/**
+ * Critère spécifique déclenché par un scrutin. Rare par construction : la
+ * liste est vide pour la grande majorité des scrutins, et un ancien
+ * `score_details` n'a pas le champ du tout (lecture tolérante attendue).
+ */
+export interface ScoreBonus {
+  label: string;
+  points: number;
+}
+
 export interface ScoreDetails {
   subject: { label: string; points: number };
   ballotType: { label: string; points: number };
   participation: { ratio: number; points: number };
   closeness: { margin: number | null; points: number };
   division: { group: string | null; minorityShare: number; points: number };
+  bonuses: ScoreBonus[];
   total: number;
 }
 
@@ -139,12 +185,7 @@ const SUBJECT_RULES: SubjectRule[] = [
       /déclaration du gouvernement|question de confiance|49[\s.,-]*(alinéa\s*)?3\b|engag\w* (de )?(la |sa )?responsabilité/i,
     points: 45,
   },
-  {
-    label: 'ensemble du texte',
-    pattern:
-      /l'ensemble (du|de la|de l')\s*(projet|proposition|texte)|ensemble du texte/i,
-    points: 40,
-  },
+  { label: 'ensemble du texte', pattern: ENSEMBLE_PATTERN, points: 40 },
   {
     label: 'proposition de résolution',
     pattern: /proposition de résolution/i,
@@ -174,6 +215,50 @@ export function scoreBallotType(type: string): ScoreDetails['ballotType'] {
   if (t.includes('motion de censure')) return { label: type, points: 15 };
   if (t.includes('solennel')) return { label: type, points: 15 };
   return { label: type, points: 0 };
+}
+
+/**
+ * Critères spécifiques, cumulables, qui ne s'appliquent presque jamais (sur les
+ * 1 079 scrutins AN/Sénat de septembre à novembre 2026 : 115 scrutins à cinq
+ * voix près dont 56 à deux, 44 unanimités, 8 amendements du Gouvernement
+ * rejetés, 2 votes sur l'ensemble d'un texte budgétaire).
+ *
+ * Ils existent parce que les critères généraux manquent deux situations :
+ * l'écart en ratio sature un vote serré joué à deux voix dans un hémicycle
+ * clairsemé (25 contre 23 ne vaut que quelques points), et il met à zéro un
+ * vote unanime, qui est pourtant un fait en soi.
+ */
+export function scoreBonuses(ballot: BallotForScoring): ScoreBonus[] {
+  const bonuses: ScoreBonus[] = [];
+  const decided = ballot.counts.for + ballot.counts.against;
+  const gap = Math.abs(ballot.counts.for - ballot.counts.against);
+  if (decided > 0 && gap <= TIGHT_MARGIN_VOTES) {
+    bonuses.push({
+      label: gap === 0 ? 'égalité des voix' : `écart de ${gap} voix`,
+      points: gap <= VERY_TIGHT_MARGIN_VOTES ? 15 : 10,
+    });
+  }
+  // Le Gouvernement battu sur son propre amendement : un fait notable que le
+  // critère d'objet note 0, « amendement » étant la matière ordinaire.
+  if (ballot.result === 'rejected' && GOVERNMENT_AMENDMENT.test(ballot.title)) {
+    bonuses.push({
+      label: 'amendement du Gouvernement rejeté',
+      points: 20,
+    });
+  }
+  if (ballot.counts.against === 0 && ballot.counts.for >= UNANIMITY_MIN_VOTES) {
+    bonuses.push({
+      label: `unanimité (${ballot.counts.for} voix pour, aucune contre)`,
+      points: 10,
+    });
+  }
+  if (
+    ENSEMBLE_PATTERN.test(ballot.title) &&
+    BUDGET_PATTERN.test(ballot.title)
+  ) {
+    bonuses.push({ label: "ensemble d'un texte budgétaire", points: 15 });
+  }
+  return bonuses;
 }
 
 export function scoreBallot(ballot: BallotForScoring): ScoreDetails {
@@ -235,14 +320,24 @@ export function scoreBallot(ballot: BallotForScoring): ScoreDetails {
     }
   }
 
+  const bonuses = scoreBonuses(ballot);
   const total =
     subject.points +
     ballotType.points +
     participation.points +
     closeness.points +
-    division.points;
+    division.points +
+    bonuses.reduce((sum, b) => sum + b.points, 0);
 
-  return { subject, ballotType, participation, closeness, division, total };
+  return {
+    subject,
+    ballotType,
+    participation,
+    closeness,
+    division,
+    bonuses,
+    total,
+  };
 }
 
 function round(n: number): number {
@@ -482,7 +577,7 @@ export function formatRanking(ranked: RankedBallot[], limit = 15): string {
         : r.ballot.title;
     return [
       `${String(i + 1).padStart(2)}. ${d.total.toString().padStart(3)}  ${r.ballot.date}  ${chamberOf(r.ballot.anId).toUpperCase().padEnd(5)} ${title}${flag}`,
-      `      objet ${d.subject.points} (${d.subject.label}) · type ${d.ballotType.points} · participation ${d.participation.points} (${Math.round(d.participation.ratio * 100)} %) · écart ${d.closeness.points}${d.closeness.margin === null ? '' : ` (marge ${Math.round(d.closeness.margin * 100)} %)`} · division ${d.division.points}${d.division.group ? ` (${d.division.group}, ${Math.round(d.division.minorityShare * 100)} %)` : ''} · résultat ${r.ballot.result ?? '?'}`,
+      `      objet ${d.subject.points} (${d.subject.label}) · type ${d.ballotType.points} · participation ${d.participation.points} (${Math.round(d.participation.ratio * 100)} %) · écart ${d.closeness.points}${d.closeness.margin === null ? '' : ` (marge ${Math.round(d.closeness.margin * 100)} %)`} · division ${d.division.points}${d.division.group ? ` (${d.division.group}, ${Math.round(d.division.minorityShare * 100)} %)` : ''}${(d.bonuses ?? []).map((b) => ` · +${b.points} ${b.label}`).join('')} · résultat ${r.ballot.result ?? '?'}`,
     ].join('\n');
   });
   return lines.join('\n');

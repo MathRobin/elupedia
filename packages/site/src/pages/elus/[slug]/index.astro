@@ -18,10 +18,18 @@
  * - Règle d'affichage : aucune section vide ; chaque section est conditionnée
  *   au type de mandat (isParliamentary, isEurodepute, isMaire) et à la
  *   présence de données.
+ * - « Écart de participation » (eurodéputés) : deux compteurs et leur total de
+ *   référence, calculés à l'affichage par `computeMepGap` sur la fenêtre du
+ *   mandat européen. Masquée tant que `europarl_attendance` est vide (sinon
+ *   tous les jours de scrutin paraîtraient non signés). Jamais de taux, de score ni de classement, et jamais le
+ *   mot « fantôme » : ce sont deux faits, pas un jugement. En dessous de
+ *   MIN_ROLLCALL_DAYS jours de scrutin, les compteurs sont remplacés par
+ *   « pas assez de scrutins » (`insufficientData`), seul cas où un élu n'a pas
+ *   ses chiffres.
  */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getDb } from '../../../lib/db.js';
-import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText, MANDATE_TYPE_LABELS, MANDATE_TYPE_DESCRIPTIONS, GOVERNMENT_MANDATE_TYPES, pickPrimaryMandate } from '@elupedia/shared';
+import { officials, mandates, votes, ballots, affiliations, staffers, interests, pressMentions, addresses, externalLinks, parliamentaryActivity, committees, electoralResults, declarationSnapshots, campaignAccounts, sponsorships, municipalElections, municipalCandidates, decorations, factChecks, communeTransparency, madadaRequests, europarlAttendance, DEPARTMENT_CODES, POLITICAL_GROUP_COLORS, POLITICAL_GROUP_URLS, buildHatvpUrl, slugifyText, MANDATE_TYPE_LABELS, MANDATE_TYPE_DESCRIPTIONS, GOVERNMENT_MANDATE_TYPES, pickPrimaryMandate, computeMepGap, MIN_ROLLCALL_DAYS } from '@elupedia/shared';
 import { eq, isNull, desc, and, isNotNull, or, inArray, gte, lte, sql, count } from 'drizzle-orm';
 import { differenceInYears } from 'date-fns';
 import { createHash } from 'node:crypto';
@@ -143,6 +151,66 @@ const deputyVotes = voteRows
   .filter(Boolean)
   .sort((a, b) => b!.ballotDate.localeCompare(a!.ballotDate))
   .slice(0, RECENT_ITEMS_LIMIT) as { officialId: string; ballotId: string; position: string; ballotTitle: string; ballotDate: string; updatedAt: Date }[];
+
+// Écart de participation (eurodéputés) : trois ensembles de dates comparés
+// par computeMepGap (@elupedia/shared), sur la fenêtre du mandat européen.
+// `rollcallDates` porte TOUS les jours de scrutin nominatif de la législature,
+// pas seulement ceux où un français a voté : un jour où seuls des non-français
+// ont voté reste un jour de scrutin. Les scrutins de `ballots` sont écrits
+// pour toutes les décisions nominatives, le filtre français ne touche que
+// `votes` (voir upsert/europe-votes.ts).
+const europarlMandate = deputyMandates.find((m) => m.type === 'eurodepute') ?? null;
+const europarlGap = europarlMandate
+  ? await (async () => {
+      const [rollcallDates, signedRows, votedRows, anySignature] = await Promise.all([
+        db
+          .selectDistinct({ date: ballots.date })
+          .from(ballots)
+          .where(eq(ballots.type, 'europarl')),
+        db
+          .select({ date: europarlAttendance.sittingDate, pvUrl: europarlAttendance.pvUrl, updatedAt: europarlAttendance.updatedAt })
+          .from(europarlAttendance)
+          .where(eq(europarlAttendance.officialId, officialId)),
+        db
+          .selectDistinct({ date: ballots.date })
+          .from(votes)
+          .innerJoin(ballots, eq(ballots.id, votes.ballotId))
+          .where(and(eq(votes.officialId, officialId), eq(ballots.type, 'europarl'))),
+        // Le registre a-t-il déjà été ingéré ? Sans cette sonde, une table
+        // vide ferait afficher « tous les jours de scrutin sans signature »,
+        // ce qui serait faux et accusatoire : la section est masquée tant que
+        // l'étape `eurodeputes-presence` n'a rien écrit.
+        db.select({ id: europarlAttendance.id }).from(europarlAttendance).limit(1),
+      ]);
+
+      if (anySignature.length === 0) return null;
+
+      const gap = computeMepGap(
+        rollcallDates.map((row) => row.date),
+        {
+          officialId,
+          window: { start: europarlMandate.startDate, end: europarlMandate.endDate },
+          signedDates: signedRows.map((row) => row.date),
+          votedDates: votedRows.map((row) => row.date),
+        },
+      );
+
+      // Annexe de présence la plus récente : pièce justificative citée en
+      // source. Null si aucune signature enregistrée.
+      const latestSigned = signedRows
+        .filter((row) => row.pvUrl)
+        .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+
+      // maxUpdatedAt() est défini plus bas dans le fichier : le max est fait
+      // ici à la main pour garder cette requête groupée avec les autres.
+      const updatedAt = signedRows.reduce<Date | null>(
+        (max, row) => (!max || row.updatedAt > max ? row.updatedAt : max),
+        null,
+      );
+
+      return { ...gap, pvUrl: latestSigned?.pvUrl ?? null, updatedAt };
+    })()
+  : null;
 
 const deputyAffiliations = await db
   .select({ officialId: affiliations.officialId, partyOrGroup: affiliations.partyOrGroup, kind: affiliations.kind, startDate: affiliations.startDate, endDate: affiliations.endDate, updatedAt: affiliations.updatedAt })
@@ -850,6 +918,7 @@ function maxUpdatedAt(items: { updatedAt: Date }[]): Date | null {
 
 const sectionDates = {
   mandates: maxUpdatedAt(deputyMandates),
+  participation: europarlGap?.updatedAt ?? null,
   affiliations: maxUpdatedAt(deputyAffiliations),
   staffers: maxUpdatedAt(deputyStaffers),
   activities: maxUpdatedAt(deputyActivities),
@@ -896,6 +965,13 @@ const openDataVotesNote = deputy.mandateType === 'depute'
   : isEurodepute
     ? 'Seuls les scrutins par appel nominal du Parlement européen publient une position individuelle ; les votes à main levée ne sont pas repris ici (voir docs/DOMAINS.md).'
     : 'Les données de scrutins du Sénat sont disponibles depuis 2014 environ.';
+// Méthode de l'écart de participation : expliquée en clair sous les
+// compteurs. Deux faits distincts, aucun taux, aucun score, aucun classement :
+// un pourcentage de « présence » n'aurait pas de sens (le registre se signe
+// une fois par jour, les scrutins sont groupés et un élu peut être en mission
+// officielle). Un vote enregistré un jour sans signature est traité comme une
+// anomalie de la source, pas comme une absence : il ne compte nulle part.
+const europarlGapNote = 'Le Parlement européen publie deux choses pour chaque jour de séance : les signatures du registre de présence, et les positions exprimées lors des scrutins par appel nominal. Le premier compteur est le nombre de jours où un scrutin a eu lieu sans que l\'élu ait signé le registre ; le second, le nombre de jours où il a signé sans exprimer aucune position. Un jour sans scrutin par appel nominal n\'est jamais compté. Ces compteurs ne mesurent pas le travail parlementaire, qui se fait aussi en commission, en délégation ou en mission.';
 const europarlDeclarationUrl = isEurodepute && deputy.europarlId
   ? `https://www.europarl.europa.eu/meps/fr/${deputy.europarlId}/x/declarations`
   : null;
@@ -1127,6 +1203,7 @@ for (const sp of deputySponsorships) {
         {deputyCampaignAccounts.length > 0 && <li><a href="#financement" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Financement</a></li>}
         <li><a href="#interets" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts déclarés</a></li>
         {showAffiliationsAndVotes && <li><a href="#votes" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Historique des votes</a></li>}
+        {europarlGap && <li><a href="#participation" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Écart de participation</a></li>}
         <li><a href="#presse" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Dans la presse</a></li>
         <li><a href="#liens" class="text-slate-600 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Liens extérieurs</a></li>
       </ul>
@@ -1173,6 +1250,7 @@ for (const sp of deputySponsorships) {
           {deputyCampaignAccounts.length > 0 && <li><a href="#financement" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Financement</a></li>}
           <li><a href="#interets" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Intérêts</a></li>
           {showAffiliationsAndVotes && <li><a href="#votes" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Votes</a></li>}
+          {europarlGap && <li><a href="#participation" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Participation</a></li>}
           <li><a href="#presse" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Presse</a></li>
           <li><a href="#liens" class="text-slate-500 hover:text-indigo-600 transition-colors no-underline dark:text-slate-400 dark:hover:text-indigo-400">Liens</a></li>
         </ul>
@@ -2092,6 +2170,36 @@ for (const sp of deputySponsorships) {
       )}
       <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{openDataVotesNote}</p>
       <p class="mt-1 text-xs text-slate-400">Source : {nominativeUrl && <Fragment><a href={nominativeUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Fiche de l'élu</a>{' · '}</Fragment>}<a href={parliamentSource.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">{parliamentSource.name}</a>{fmtRetrieval(sectionDates.votes)}</p>
+    </section>}
+
+    {europarlGap && <section id="participation" class="mt-8 scroll-mt-12">
+      <h2 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3 dark:text-white">
+        Écart de participation
+      </h2>
+
+      {europarlGap.insufficientData ? (
+        <p class="mt-4 text-slate-500 dark:text-slate-400">
+          Pas assez de scrutins : la fenêtre du mandat ne compte que {europarlGap.rollcallDays} jour{europarlGap.rollcallDays > 1 ? 's' : ''} de scrutin par appel nominal, en dessous des {MIN_ROLLCALL_DAYS} jours nécessaires pour que ces compteurs veuillent dire quelque chose.
+        </p>
+      ) : (
+        <dl class="mt-4 grid gap-4 sm:grid-cols-3">
+          <div class="rounded border border-slate-200 p-4 dark:border-slate-700">
+            <dt class="text-sm text-slate-600 dark:text-slate-400">Jours de scrutin sans signature du registre</dt>
+            <dd class="mt-1 text-2xl font-semibold tabular-nums dark:text-white">{europarlGap.daysWithoutSignature}</dd>
+          </div>
+          <div class="rounded border border-slate-200 p-4 dark:border-slate-700">
+            <dt class="text-sm text-slate-600 dark:text-slate-400">Jours signés sans aucune position exprimée</dt>
+            <dd class="mt-1 text-2xl font-semibold tabular-nums dark:text-white">{europarlGap.signedDaysWithoutVote}</dd>
+          </div>
+          <div class="rounded border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+            <dt class="text-sm text-slate-600 dark:text-slate-400">Jours de scrutin par appel nominal pendant le mandat</dt>
+            <dd class="mt-1 text-2xl font-semibold tabular-nums dark:text-white">{europarlGap.rollcallDays}</dd>
+          </div>
+        </dl>
+      )}
+
+      <p class="mt-3 text-xs italic text-slate-400 dark:text-slate-500">{europarlGapNote}</p>
+      <p class="mt-1 text-xs text-slate-400">Source : {europarlGap.pvUrl && <Fragment><a href={europarlGap.pvUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Liste de présence (annexe au procès-verbal)</a>{' · '}</Fragment>}<a href="https://data.europarl.europa.eu" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-600">Parlement européen - Open Data</a>{fmtRetrieval(sectionDates.participation)}</p>
     </section>}
 
     <section id="presse" class="mt-8 scroll-mt-12">

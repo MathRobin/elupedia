@@ -10,13 +10,20 @@
  * 48 paires, surtout des sénateurs des Français établis hors de France et
  * d'outre-mer.
  *
+ * Le même mécanisme sert aux doublons d'autres origines : une fiche
+ * d'eurodéputé (`europarl_id`) en face d'une fiche AN, par exemple, ou deux
+ * écritures RNE du même élu local.
+ *
  * Règle de fusion : la fiche la plus « sourcée » est conservée (matricule
  * Sénat, sinon identifiant AN ; voir findDuplicateOfficialPairs) ; l'autre
- * lui cède son `an_id`, ses champs encore vides sur la fiche conservée, et
- * toutes ses lignes dépendantes. Une ligne dépendante déjà présente sur la fiche
+ * lui cède ses identifiants source (`an_id`, `europarl_id`), ses champs encore
+ * vides sur la fiche conservée, et toutes ses lignes dépendantes. Une ligne
+ * dépendante déjà présente sur la fiche
  * conservée (même clé naturelle, voir NATURAL_KEYS) est supprimée plutôt que
  * déplacée : les deux sources ont souvent ingéré le même mandat ou le même
- * article. La fiche AN est ensuite supprimée ; son slug (URL publique) cesse
+ * article — à une exception près, la date de fin d'un mandat, reprise quand
+ * la fiche conservée l'a laissée vide (voir fillKeptMandateEndDates). La
+ * fiche AN est ensuite supprimée ; son slug (URL publique) cesse
  * d'exister, sauf s'il est la forme canonique du slug conservé
  * (`marie-pierre-mouton` vs `marie-pierre-mouton-1`) : la fiche conservée le
  * reprend alors, et c'est l'URL suffixée qui disparaît.
@@ -58,6 +65,7 @@ export const NATURAL_KEYS: Record<string, readonly string[]> = {
   sponsorships: ['type', 'election_year', 'candidate_name'],
   decorations: ['arko_ref', 'order_name'],
   official_aliases: ['alias_key'],
+  europarl_attendance: ['sitting_date'],
   // Candidats : `official_id` est un rattachement facultatif (sans FK) posé
   // par reconcile ; une personne n'est candidate qu'une fois par scrutin.
   municipal_candidates: ['election_id'],
@@ -72,9 +80,11 @@ export interface DuplicatePair {
   keptId: string;
   keptSlug: string | null;
   keptAnId: string | null;
+  keptEuroparlId: string | null;
   dupId: string;
   dupSlug: string | null;
   dupAnId: string | null;
+  dupEuroparlId: string | null;
 }
 
 /** Ce qui arrive aux lignes d'une table pour une paire. */
@@ -130,6 +140,7 @@ export async function findDuplicateOfficialPairs(
     with ranked as (
       select
         id, first_name, last_name, birth_date, slug, an_id, senat_id,
+        europarl_id,
         ${normalizedNameSql(sql`first_name`)} as first_name_key,
         ${normalizedNameSql(sql`last_name`)} as last_name_key,
         (case when senat_id is not null then 2 else 0 end)
@@ -154,9 +165,11 @@ export async function findDuplicateOfficialPairs(
       kept.id as kept_id,
       kept.slug as kept_slug,
       kept.an_id as kept_an_id,
+      kept.europarl_id as kept_europarl_id,
       dup.id as dup_id,
       dup.slug as dup_slug,
-      dup.an_id as dup_an_id
+      dup.an_id as dup_an_id,
+      dup.europarl_id as dup_europarl_id
     from ranked kept
     join ranked dup
       on dup.last_name_key = kept.last_name_key
@@ -197,9 +210,11 @@ export async function findDuplicateOfficialPairs(
     keptId: row.kept_id as string,
     keptSlug: (row.kept_slug as string | null) ?? null,
     keptAnId: (row.kept_an_id as string | null) ?? null,
+    keptEuroparlId: (row.kept_europarl_id as string | null) ?? null,
     dupId: row.dup_id as string,
     dupSlug: (row.dup_slug as string | null) ?? null,
     dupAnId: (row.dup_an_id as string | null) ?? null,
+    dupEuroparlId: (row.dup_europarl_id as string | null) ?? null,
   }));
 }
 
@@ -270,8 +285,9 @@ async function applyTableMerge(
 /**
  * Transfère sur la fiche conservée ce qu'elle n'a pas encore (naissance, photo, décès,
  * statut HATVP, dates de vérification). `full` (JSON brut de la source) n'est
- * pas touché : la fiche conservée garde celui du Sénat. L'`an_id` est traité
- * à part (transferAnId) à cause de sa contrainte unique.
+ * pas touché : la fiche conservée garde celui du Sénat. Les identifiants
+ * source sont traités à part (transferSourceIds) à cause de leur contrainte
+ * unique.
  */
 async function fillKeptOfficialFromDup(
   db: NeonHttpDatabase,
@@ -294,25 +310,72 @@ async function fillKeptOfficialFromDup(
 }
 
 /**
- * Pose l'`an_id` de la fiche AN sur la fiche conservée. La colonne est
- * unique : la fiche AN doit le libérer d'abord. La valeur vient de `pair`
- * (lue avant toute écriture), si bien qu'une interruption entre les deux
- * requêtes se rattrape en relançant le script : la paire est retrouvée tant
- * que la fiche AN existe, et l'an_id est reposé depuis `pair.dupAnId`… qui,
- * lui, serait alors null. D'où le `coalesce` : au pire la fiche conservée
- * reste sans an_id et l'ingestion AN la rattachera (nom + prénom + naissance).
+ * Pose sur la fiche conservée les identifiants source que porte la fiche
+ * supprimée (`an_id` de l'AN, `europarl_id` du Parlement européen). Chaque
+ * colonne est unique : la fiche supprimée doit la libérer d'abord. Sans ce
+ * transfert, la source concernée ne retrouverait plus la personne —
+ * l'ingestion PE rattache ses votes et ses signatures de présence sur le seul
+ * `europarl_id` (voir upsert/europe-votes.ts).
+ *
+ * Les valeurs viennent de `pair` (lue avant toute écriture), si bien qu'une
+ * interruption entre les deux requêtes se rattrape en relançant le script :
+ * la paire est retrouvée tant que la fiche supprimée existe, et l'identifiant
+ * est reposé depuis `pair`… qui, lui, serait alors null. D'où le
+ * `is null` final : au pire la fiche conservée reste sans identifiant et
+ * l'ingestion la rattachera (nom + prénom + naissance).
+ *
+ * `senat_id` n'est pas concerné : findDuplicateOfficialPairs ne supprime
+ * jamais une fiche qui en porte un.
  */
-async function transferAnId(
+async function transferSourceIds(
   db: NeonHttpDatabase,
   pair: DuplicatePair,
 ): Promise<void> {
-  if (!pair.dupAnId || pair.keptAnId) return;
+  const columns: { column: string; kept: string | null; dup: string | null }[] =
+    [
+      { column: 'an_id', kept: pair.keptAnId, dup: pair.dupAnId },
+      {
+        column: 'europarl_id',
+        kept: pair.keptEuroparlId,
+        dup: pair.dupEuroparlId,
+      },
+    ];
+  for (const { column, kept, dup } of columns) {
+    if (!dup || kept) continue;
+    const name = sql.identifier(column);
+    await db.execute(sql`
+      update officials set ${name} = null where id = ${pair.dupId}
+    `);
+    await db.execute(sql`
+      update officials set ${name} = ${dup}, updated_at = now()
+      where id = ${pair.keptId} and ${name} is null
+    `);
+  }
+}
+
+/**
+ * Avant la suppression des mandats en doublon : la fiche conservée reprend la
+ * date de fin que son doublon porte et qu'elle a laissée vide. Sans cela, un
+ * mandat clos d'un côté et resté ouvert de l'autre (deux ingestions RNE
+ * passées à des dates différentes sur les deux fiches) ressortirait « en
+ * cours » après la fusion. L'inverse n'est pas vrai : une date de fin absente
+ * ne dit pas que le mandat se poursuit, seule l'information présente est
+ * reprise. Idempotent.
+ */
+async function fillKeptMandateEndDates(
+  db: NeonHttpDatabase,
+  pair: DuplicatePair,
+): Promise<void> {
   await db.execute(sql`
-    update officials set an_id = null where id = ${pair.dupId}
-  `);
-  await db.execute(sql`
-    update officials set an_id = ${pair.dupAnId}, updated_at = now()
-    where id = ${pair.keptId} and an_id is null
+    update mandates kept
+    set end_date = dup.end_date, updated_at = now()
+    from mandates dup
+    where kept.official_id = ${pair.keptId}
+      and dup.official_id = ${pair.dupId}
+      and dup.type = kept.type
+      and dup.start_date = kept.start_date
+      and kept.end_date is null
+      and dup.end_date is not null
   `);
 }
 
@@ -329,14 +392,27 @@ export function finalSlug(pair: DuplicatePair): string | null {
 }
 
 /**
- * Fusionne toutes les paires trouvées. En dry-run, affiche le plan et
- * n'écrit rien. Retourne un bilan.
+ * Fusionne les paires trouvées, ou la seule qui porte `slug` d'un côté ou de
+ * l'autre (`--slug`) : fusionner une paire précise sans toucher aux autres,
+ * un run complet écrivant des milliers de lignes d'un coup. En dry-run,
+ * affiche le plan et n'écrit rien. Retourne un bilan.
  */
 export async function mergeDuplicateOfficials(
   db: NeonHttpDatabase,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; slug?: string },
 ): Promise<MergeSummary> {
-  const pairs = await findDuplicateOfficialPairs(db);
+  const allPairs = await findDuplicateOfficialPairs(db);
+  const pairs = options.slug
+    ? allPairs.filter(
+        (pair) =>
+          pair.keptSlug === options.slug || pair.dupSlug === options.slug,
+      )
+    : allPairs;
+  if (options.slug) {
+    logger.info(
+      `Filtre --slug ${options.slug} : ${pairs.length} paire(s) retenue(s) sur ${allPairs.length}`,
+    );
+  }
   const summary: MergeSummary = {
     pairs: 0,
     skipped: 0,
@@ -349,9 +425,19 @@ export async function mergeDuplicateOfficials(
   );
 
   for (const pair of pairs) {
-    if (pair.keptAnId && pair.dupAnId && pair.keptAnId !== pair.dupAnId) {
+    // Deux identifiants différents pour la même source : ce ne sont
+    // peut-être pas les deux fiches d'une seule personne (homonymes de même
+    // date de naissance). On ne tranche pas à sa place.
+    const conflict = (
+      [
+        ['an_id', pair.keptAnId, pair.dupAnId],
+        ['europarl_id', pair.keptEuroparlId, pair.dupEuroparlId],
+      ] as const
+    ).find(([, kept, dup]) => kept && dup && kept !== dup);
+    if (conflict) {
+      const [column, kept, dup] = conflict;
       logger.warn(
-        `  ${pair.name} (${pair.birthDate}) : deux an_id différents (${pair.keptAnId} / ${pair.dupAnId}), paire ignorée — à vérifier à la main`,
+        `  ${pair.name} (${pair.birthDate}) : deux ${column} différents (${kept} / ${dup}), paire ignorée — à vérifier à la main`,
       );
       summary.skipped++;
       continue;
@@ -369,16 +455,26 @@ export async function mergeDuplicateOfficials(
       .join(', ');
     const slug = finalSlug(pair);
     const slugNote = slug !== pair.keptSlug ? ` (reprend le slug ${slug})` : '';
+    const ids =
+      [
+        pair.dupAnId ? `an_id ${pair.dupAnId}` : null,
+        pair.dupEuroparlId ? `europarl_id ${pair.dupEuroparlId}` : null,
+      ]
+        .filter(Boolean)
+        .join(', ') || 'aucun identifiant source';
     logger.info(
-      `  ${pair.name} (${pair.birthDate}) : garde ${pair.keptSlug} ← supprime ${pair.dupSlug} (an_id ${pair.dupAnId ?? '—'})${slugNote} : ${moved} déplacées, ${dropped} supprimées [${details || 'rien à déplacer'}]`,
+      `  ${pair.name} (${pair.birthDate}) : garde ${pair.keptSlug} ← supprime ${pair.dupSlug} (${ids})${slugNote} : ${moved} déplacées, ${dropped} supprimées [${details || 'rien à déplacer'}]`,
     );
 
     if (!options.dryRun) {
+      // Avant toute suppression de ligne : les mandats en doublon ne seront
+      // plus là pour livrer leur date de fin.
+      await fillKeptMandateEndDates(db, pair);
       for (const table of Object.keys(NATURAL_KEYS)) {
         await applyTableMerge(db, pair, table);
       }
       await fillKeptOfficialFromDup(db, pair);
-      await transferAnId(db, pair);
+      await transferSourceIds(db, pair);
       await db.execute(sql`delete from officials where id = ${pair.dupId}`);
       if (slug !== pair.keptSlug) {
         await db.execute(sql`
