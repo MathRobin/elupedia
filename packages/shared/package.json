@@ -9,11 +9,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.2.0",
+    "@neondatabase/serverless": "^1.2.1",
     "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.11",
-    "vitest": "^5.0.4"
+    "vitest": "^5.1.1"
   }
 }
