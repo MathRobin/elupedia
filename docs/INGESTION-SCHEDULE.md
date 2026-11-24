@@ -191,7 +191,8 @@ generate` (voix off ElevenLabs des shorts draft sans voix, `ELEVENLABS_API_KEY`
   plus repris. Et si la fenêtre ne contient aucun scrutin exploitable ou récent
   — congés, semaine de circonscription — la journée n'a pas de vidéo : l'étape
   `topic-fallback`, qui créait un short « thème » sans scrutin, a été retirée le
-  23/11/2026. Seuls les shorts de scrutin sont produits automatiquement.
+  23/11/2026, et tout le mécanisme des thèmes le 24/11/2026. Un short porte
+  toujours sur un scrutin, et rien ne comble les jours sans scrutin.
 - En hiver, le créneau chevauche le tick `press:maires` de 15:00 UTC (fini vers
   16:15) : c'est la contrepartie assumée d'un horaire fixé en heure locale, le
   créneau 16:00–17:15 Paris étant occupé par ce tick. Le démarrage est décalé de

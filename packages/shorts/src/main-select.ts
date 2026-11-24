@@ -2,12 +2,12 @@
  * CLI : sélectionne les scrutins AN/Sénat récents candidats à un short vidéo
  * et les écrit en `candidate` (select-candidates.ts, qui porte le barème).
  *
- * `--min-score-floor` existe pour le DAG `ingest-votes`, qui veut un short par
- * jour : sans scrutin au-dessus de `--min-score`, le seuil redescend jusqu'au
- * plancher, et ne reprend qu'un scrutin de moins de 36 h. Restent les cas
- * d'une fenêtre sans aucun scrutin exploitable (congés parlementaires) ou sans
- * scrutin récent, que cette commande ne peut pas combler : le DAG enchaîne
- * alors sur un short « thème » (main-topic.ts).
+ * `--min-score-floor` existe pour le DAG `ingest-votes`, qui cherche un short
+ * par jour : sans scrutin au-dessus de `--min-score`, le seuil redescend
+ * jusqu'au plancher, et ne reprend qu'un scrutin de moins de 36 h. Quand la
+ * fenêtre ne contient aucun scrutin exploitable (congés parlementaires) ou
+ * aucun scrutin récent, la journée n'a pas de vidéo : il n'existe plus de repli
+ * « thème » depuis le 24/11/2026, seuls les scrutins font un short.
  *
  * Usage : yarn --cwd packages/shorts select [--days n] [--max-shorts n]
  *         [--min-score n] [--min-score-floor n] [--dry-run]

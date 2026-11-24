@@ -51,19 +51,13 @@ yarn --cwd packages/shorts review approve <id>    # ou : reject <id> --note "mot
 yarn --cwd packages/shorts publish --dry-run      # puis sans --dry-run
 ```
 
-## Un short « thème » (sans scrutin)
+## Seuls les scrutins parlementaires
 
-```bash
-yarn --cwd packages/shorts topic --help               # liste des thèmes
-yarn --cwd packages/shorts topic staffers --dry-run   # faits + script, rien écrit
-yarn --cwd packages/shorts topic staffers             # short draft + fiche de lecture
-```
-
-Faits calculés depuis la base et repris de pages officielles, script de gabarit
-validé comme un script généré. Ensuite : enregistrer les prises d'après la fiche,
-puis `make <id>` comme pour un short de scrutin. Thèmes dans `src/topics/` :
-`staffers`, `questions-ecrites`, `parrainages-2022`, `age-deputes`,
-`comptes-campagne-2024`.
+Un short porte toujours sur un scrutin de l'Assemblée nationale ou du Sénat.
+Le mécanisme des shorts « thème » (chiffres sans scrutin : collaborateurs,
+questions écrites, parrainages…) a été retiré le 24/11/2026 : `src/topics/`,
+`main-topic.ts` et la commande `topic` n'existent plus. Sans scrutin
+exploitable dans la fenêtre, la journée n'a pas de vidéo.
 
 ## Voir les shorts dans l'admin
 
