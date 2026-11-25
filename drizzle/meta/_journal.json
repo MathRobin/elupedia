@@ -309,6 +309,13 @@
       "when": 1795031738369,
       "tag": "0043_europarl_attendance",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795601597365,
+      "tag": "0044_municipal_and_mandates_index",
+      "breakpoints": true
     }
   ]
 }
