@@ -2,16 +2,6 @@
 
 Points relevés à la lecture du code lors de la passe de lisibilité d'octobre 2026. Aucun n'a été corrigé à cette occasion : chaque ligne est une piste à vérifier, pas un diagnostic confirmé. Retirer une entrée quand elle est traitée.
 
-## Migrations Drizzle : vérifications restantes
-
-Le registre de la base de production (`drizzle.__drizzle_migrations`) est réconcilié avec le journal : 45 lignes, de `0000` à `0044`. Le contrôle `scripts/check-migrations.mjs` (`yarn db:check`) et `yarn db:migrate` ne tournent pas dans le build Vercel du site : le `vercel.json` racine n'est pas lu (Root Directory `packages/site`). Le job `deploy` de `.github/workflows/ci.yml` les lance avant `vercel build`. Restent à vérifier :
-
-- Le run du job `deploy` sur `e6f97a3`, premier run avec cette étape, doit passer `db:check` puis `db:migrate` sans rejouer de migration. Le build du commit `d300763` a réussi sans les lancer.
-- `0019_early_crusher_hogan` : le hash du fichier diffère de celui du registre, car le fichier a été modifié par le commit `fcb32dc` après application. Sans effet sur le migrator ; toléré par `LEGACY_HASH_MISMATCH`.
-- `0010` et `0011` : leur `when` est inférieur à celui de `0009`. Toléré par `LEGACY_NON_MONOTONIC`.
-
-Retirer cette section quand le build est vérifié.
-
 ## `merge:duplicate-officials` ne fusionne plus la population qu'il décrit
 
 L'en-tête de `packages/ingest/src/merge-duplicate-officials.ts` décrit des
