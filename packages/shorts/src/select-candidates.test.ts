@@ -4,6 +4,7 @@ import {
   chamberOf,
   chooseCandidates,
   freshnessFloorDate,
+  maxAgeHours,
   rankBallots,
   scoreBallot,
   scoreBonuses,
@@ -353,8 +354,9 @@ describe('thresholdLadder', () => {
 });
 
 describe('chooseCandidates', () => {
-  // Les paliers dégradés n'acceptent qu'un scrutin de moins de 36 h : « now »
-  // est fixé au lendemain du scrutin de référence (2026-10-08).
+  // Les paliers dégradés exigent un scrutin encore d'actualité, d'autant plus
+  // longtemps qu'il est noté (maxAgeHours) : « now » est fixé au lendemain du
+  // scrutin de référence (2026-10-08).
   const options = {
     minScore: 50,
     minScoreFloor: 0,
@@ -398,9 +400,9 @@ describe('chooseCandidates', () => {
     expect(ranked[0].details.total).toBeGreaterThanOrEqual(applied);
   });
 
-  // Un scrutin secondaire ne se raconte que tant qu'il est d'actualité : passé
-  // 36 h, le palier dégradé ne le reprend pas et le DAG bascule sur un thème.
-  it('refuses a ballot older than 36 h at a degraded threshold', () => {
+  // Un scrutin anecdotique ne se raconte que tant qu'il est d'actualité :
+  // à 19 points, la limite reste 36 h et la journée se passe de vidéo.
+  it('refuses a low-scoring ballot older than 36 h at a degraded threshold', () => {
     const faible = ballot({
       id: 'faible',
       title: "l'amendement n° 1",
@@ -461,6 +463,76 @@ describe('chooseCandidates', () => {
 
   it('picks nothing when there is no ballot at all', () => {
     expect(chooseCandidates([], options).chosen).toEqual([]);
+  });
+
+  // Le cas qui a laissé deux journées sans vidéo (23 et 24/11/2026) : un
+  // article de loi à 48 points, libre, écarté par l'ancienne limite unique de
+  // 36 h. À ce score il tient maintenant cinq jours.
+  it('keeps a 40+ ballot for five days at a degraded threshold', () => {
+    const article = ballot({
+      id: 'article',
+      title:
+        "l'article premier de la proposition de loi sur les rapports locatifs",
+      type: 'scrutin public ordinaire',
+    });
+    const ranked = rankBallots([article], new Set());
+    expect(ranked[0].details.total).toBe(48);
+
+    // Quatre jours après le scrutin : repris, au palier 40.
+    const { chosen, applied } = chooseCandidates(ranked, {
+      ...options,
+      now: new Date('2026-10-12T16:10:00Z'),
+    });
+    expect(applied).toBe(40);
+    expect(chosen.map((r) => r.ballot.id)).toEqual(['article']);
+
+    // Six jours après : trop vieux même pour son score.
+    expect(
+      chooseCandidates(ranked, {
+        ...options,
+        now: new Date('2026-10-14T16:10:00Z'),
+      }).chosen,
+    ).toEqual([]);
+  });
+
+  // La limite se lit scrutin par scrutin, pas une fois pour le palier : un
+  // amendement d'il y a quatre jours ne passe pas parce qu'un article du même
+  // palier passe.
+  it('applies the age limit per ballot, not per threshold', () => {
+    const ranked = rankBallots(
+      [
+        ballot({
+          id: 'article',
+          title:
+            "l'article premier de la proposition de loi sur les rapports locatifs",
+          type: 'scrutin public ordinaire',
+        }),
+        ballot({
+          id: 'amendement',
+          title: "l'amendement n° 1",
+          type: 'scrutin public ordinaire',
+          counts: { for: 30, against: 25, abstain: 2, absent: 520 },
+        }),
+      ],
+      new Set(),
+    );
+    const { chosen } = chooseCandidates(ranked, {
+      ...options,
+      now: new Date('2026-10-12T16:10:00Z'),
+    });
+    expect(chosen.map((r) => r.ballot.id)).toEqual(['article']);
+  });
+});
+
+describe('maxAgeHours', () => {
+  it('loosens the age limit as the score rises', () => {
+    expect(maxAgeHours(79)).toBe(120);
+    expect(maxAgeHours(48)).toBe(120);
+    expect(maxAgeHours(40)).toBe(120);
+    expect(maxAgeHours(39)).toBe(72);
+    expect(maxAgeHours(30)).toBe(72);
+    expect(maxAgeHours(29)).toBe(36);
+    expect(maxAgeHours(0)).toBe(36);
   });
 });
 

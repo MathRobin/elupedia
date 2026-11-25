@@ -46,12 +46,16 @@ import { logger } from './logger.js';
  * faible se reconnaisse à la relecture. Égaliser `minScoreFloor` et
  * `minScore` rétablit l'ancien comportement, tout ou rien.
  *
- * Un palier dégradé exige en plus un scrutin récent : moins de
- * MAX_DEGRADED_AGE_HOURS heures (voir `freshnessFloorDate`). Un scrutin
- * secondaire ne se raconte que tant qu'il est d'actualité ; passé ce délai,
- * mieux vaut laisser le DAG basculer sur un short « thème ». Le seuil nominal
- * n'est pas concerné : un vote marquant reste racontable sur toute la fenêtre
- * `days`.
+ * Un palier dégradé exige en plus un scrutin encore d'actualité, mais la
+ * limite dépend du score : DEGRADED_AGE_LADDER (voir `maxAgeHours`). Un
+ * amendement à 20 points ne se raconte que deux jours, un scrutin à 48 points
+ * tient cinq jours. L'ancienne limite unique de 36 h, pensée quand un repli
+ * « thème » prenait la journée à défaut, laissait des semaines entières sans
+ * vidéo dès que l'Assemblée ne votait plus pendant deux jours : constaté le
+ * 23 et le 24/11/2026, où un article de loi à 48 points attendait, libre et
+ * inutilisé (anomalie corrigée le 24/11/2026). Le seuil nominal n'est
+ * toujours pas concerné : un vote marquant reste racontable sur toute la
+ * fenêtre `days`.
  */
 
 /** Effectif de référence quand la source ne donne pas la taille de l'assemblée. */
@@ -95,6 +99,25 @@ export const SCORE_LADDER_STEP = 10;
 
 /** Âge maximal, en heures, d'un scrutin retenu par un palier dégradé. */
 export const MAX_DEGRADED_AGE_HOURS = 36;
+
+/**
+ * Âge maximal accepté hors du seuil nominal, selon le score du scrutin : plus
+ * il est noté, plus il reste racontable longtemps. Lu du plus exigeant au plus
+ * permissif, le premier palier dont `minTotal` est atteint gagne.
+ */
+export const DEGRADED_AGE_LADDER: { minTotal: number; hours: number }[] = [
+  { minTotal: 40, hours: 120 },
+  { minTotal: 30, hours: 72 },
+  { minTotal: 0, hours: MAX_DEGRADED_AGE_HOURS },
+];
+
+/** Âge maximal, en heures, pour un scrutin de ce score hors seuil nominal. */
+export function maxAgeHours(total: number): number {
+  return (
+    DEGRADED_AGE_LADDER.find((p) => total >= p.minTotal)?.hours ??
+    MAX_DEGRADED_AGE_HOURS
+  );
+}
 
 /**
  * Date la plus ancienne qu'un palier dégradé accepte, au format
@@ -459,8 +482,8 @@ export function rankBallots(
 /**
  * Scrutins retenus et seuil qui les a retenus. Au seuil demandé, jusqu'à
  * `maxShorts` ; en dessous, un seul (le mieux noté), parce qu'un jour creux
- * n'a pas à remplir la file de scrutins secondaires, et seulement s'il a
- * moins de MAX_DEGRADED_AGE_HOURS heures.
+ * n'a pas à remplir la file de scrutins secondaires, et seulement s'il tient
+ * dans la limite d'âge de son score (`maxAgeHours`).
  */
 export function chooseCandidates(
   ranked: RankedBallot[],
@@ -470,14 +493,19 @@ export function chooseCandidates(
   >,
 ): { chosen: RankedBallot[]; applied: number } {
   const available = ranked.filter((r) => !r.alreadyUsed);
-  const freshSince = freshnessFloorDate(options.now ?? new Date());
+  const now = options.now ?? new Date();
   const ladder = thresholdLadder(options.minScore, options.minScoreFloor);
   for (const [index, threshold] of ladder.entries()) {
-    // Palier dégradé : au score près, le scrutin doit encore être d'actualité.
+    // Palier dégradé : le scrutin doit encore être d'actualité, et la limite
+    // se desserre avec son score (DEGRADED_AGE_LADDER).
     const pool =
       index === 0
         ? available
-        : available.filter((r) => r.ballot.date >= freshSince);
+        : available.filter(
+            (r) =>
+              r.ballot.date >=
+              freshnessFloorDate(now, maxAgeHours(r.details.total)),
+          );
     const eligible = pool.filter((r) => r.details.total >= threshold);
     if (eligible.length === 0) continue;
     return {
@@ -528,7 +556,9 @@ export async function selectShortCandidates(
     ranked.some((r) => !r.alreadyUsed)
   ) {
     logger.warn(
-      `aucun scrutin à ${options.minScore} points, et aucun de moins de ${MAX_DEGRADED_AGE_HOURS} h (depuis le ${freshnessFloorDate(now)}) sous le seuil : rien retenu`,
+      `aucun scrutin à ${options.minScore} points, et aucun assez récent pour son score sous le seuil (${DEGRADED_AGE_LADDER.map(
+        (p) => `${p.hours} h à partir de ${p.minTotal}`,
+      ).join(', ')}) : rien retenu`,
     );
   }
   const trace: SelectionTrace = {

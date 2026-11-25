@@ -76,7 +76,7 @@ yarn --cwd packages/ingest ingest:conseillers-arr
 yarn --cwd packages/ingest ingest:membres-assemblee
 
 # Sélection des scrutins candidats à un short vidéo (voir docs/DOMAINS.md)
-yarn --cwd packages/shorts select --dry-run   # classement seul, rien écrit ; --days, --max-shorts, --min-score, --min-score-floor (seuil dégressif : sans scrutin au-dessus de --min-score, il redescend par paliers de 10 jusqu'au plancher et retient 1 short, de moins de 36 h ; défaut 0)
+yarn --cwd packages/shorts select --dry-run   # classement seul, rien écrit ; --days, --max-shorts, --min-score, --min-score-floor (seuil dégressif : sans scrutin au-dessus de --min-score, il redescend par paliers de 10 jusqu'au plancher et retient 1 short, s'il est encore d'actualité pour son score : 120 h à partir de 40 points, 72 h à partir de 30, 36 h sinon ; défaut 0)
 yarn --cwd packages/shorts script --dry-run   # script LLM des shorts candidate (ANTHROPIC_API_KEY requise) ; --id, --force, --model
 yarn --cwd packages/shorts make <id>   # un short de bout en bout : script (si absent) → voix (ElevenLabs si ELEVENLABS_* posées, sinon prises enregistrées) → rendu ; sans synthèse, s'arrête avec la fiche de lecture si des prises manquent ; --rescript, --reimport, --recorded, --force, --silent, --draft, --dry-run
 yarn --cwd packages/shorts voiceover generate   # voix ElevenLabs des shorts draft sans voix (ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID) : prises synthétisées puis importées ; --id, --force, --dry-run
