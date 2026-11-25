@@ -4,7 +4,9 @@
  *
  * `--min-score-floor` existe pour le DAG `ingest-votes`, qui cherche un short
  * par jour : sans scrutin au-dessus de `--min-score`, le seuil redescend
- * jusqu'au plancher, et ne reprend qu'un scrutin de moins de 36 h. Quand la
+ * jusqu'au plancher, et ne reprend qu'un scrutin encore d'actualité — la
+ * limite dépendant de son score (120 h à 40 points et plus, 72 h à 30, 36 h
+ * sinon, `DEGRADED_AGE_LADDER`). Quand la
  * fenêtre ne contient aucun scrutin exploitable (congés parlementaires) ou
  * aucun scrutin récent, la journée n'a pas de vidéo : il n'existe plus de repli
  * « thème » depuis le 24/11/2026, seuls les scrutins font un short.
@@ -44,8 +46,10 @@ if (values.help) {
       '  --min-score-floor <n>',
       '                    Quand aucun scrutin n’atteint --min-score, le seuil',
       '                    redescend par paliers de 10 jusqu’à cette valeur et',
-      '                    un seul short est retenu, à condition qu’il ait moins',
-      '                    de 36 h (défaut : 0). Mettre la même valeur que',
+      '                    un seul short est retenu, à condition d’être encore',
+      '                    d’actualité pour son score : 120 h à partir de 40',
+      '                    points, 72 h à partir de 30, 36 h sinon (défaut du',
+      '                    plancher : 0). Mettre la même valeur que',
       '                    --min-score pour ne pas descendre.',
       '  --dry-run         Affiche le classement sans rien écrire',
     ].join('\n'),
