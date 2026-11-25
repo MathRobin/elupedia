@@ -125,6 +125,19 @@ jobs:
         with:
           node-version: 26
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # Avant le build : le build Vercel du site ne lit pas le vercel.json
+      # racine (Root Directory = packages/site), donc la migration n'y tourne pas.
+      - name: Contrôle et migrations de la base
+        run: |
+          yarn db:check
+          yarn db:migrate
+
       - run: npm install --global vercel@latest
 
       - name: Récupérer la configuration du projet
