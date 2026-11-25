@@ -7,8 +7,8 @@
 # select-candidates.ts), donc ce DAG sort un short dès qu'un vote est en base.
 # Comme ingest-votes, aucun repli sans scrutin : les deux DAGs ne produisent
 # que des shorts de vote (l'étape `topic-fallback` d'ingest-votes a été retirée
-# le 23/11/2026). Pour un short sans scrutin, lancer à la main
-# `yarn --cwd packages/shorts topic <thème>`.
+# le 23/11/2026, puis tout le mécanisme « thème » le 24/11/2026). Sans scrutin
+# exploitable, il n'y a pas de vidéo : rien ne remplace un short de vote.
 #
 # Attention : rebuild-site lit les rapports ingest-report-an.json et
 # ingest-report-senat.json laissés par la dernière ingestion, puisque ce DAG
