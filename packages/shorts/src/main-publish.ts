@@ -16,6 +16,7 @@ const { values } = parseArgs({
     out: { type: 'string' },
     max: { type: 'string', default: '1' },
     privacy: { type: 'string' },
+    'no-comment': { type: 'boolean', default: false },
     'dry-run': { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
@@ -35,6 +36,7 @@ if (values.help) {
       '  --max <n|all>        Shorts publiés au maximum par exécution (défaut : 1 ; all : tous les approuvés)',
       '  --privacy <status>   public | unlisted | private (défaut : $YOUTUBE_PRIVACY_STATUS ou public)',
       `  --out <dir>          Dossier des vidéos (défaut : $SHORTS_OUTPUT_DIR ou ${DEFAULT_OUTPUT_DIR})`,
+      '  --no-comment         Ne pas recopier la description en commentaire',
       '  --dry-run            Affiche ce qui serait publié, sans appel',
     ].join('\n'),
   );
@@ -80,6 +82,7 @@ async function main(): Promise<void> {
           ? Number.MAX_SAFE_INTEGER
           : Math.max(1, Number.parseInt(values.max, 10) || 1),
       dryRun: values['dry-run'],
+      comment: !values['no-comment'],
     },
   );
   logger.info(

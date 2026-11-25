@@ -85,8 +85,8 @@ yarn --cwd packages/shorts voiceover import --id <uuid>   # recadre, normalise e
 yarn --cwd packages/shorts render --draft   # rendu Remotion (1080×1920) des shorts draft avec voix importée, dans packages/shorts/out/<id>/ ; --id, --force, --silent, --out, --dry-run
 yarn --cwd packages/shorts preview   # Remotion Studio pour retoucher la composition (src/remotion/)
 yarn --cwd packages/shorts review   # revue humaine : liste les draft ; review approve <id> / review reject <id> --note "…"
-yarn --cwd packages/shorts youtube-auth   # une fois : autorisation OAuth YouTube, affiche YOUTUBE_REFRESH_TOKEN
-yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approved (YOUTUBE_*) ; --id, --max, --privacy
+yarn --cwd packages/shorts youtube-auth   # autorisation OAuth YouTube, affiche YOUTUBE_REFRESH_TOKEN ; à relancer après le 24/11/2026 (scope youtube.force-ssl ajouté pour commenter)
+yarn --cwd packages/shorts publish --dry-run   # met en ligne les shorts approved puis recopie la description en commentaire (YOUTUBE_*) ; --id, --max, --privacy, --no-comment
 
 # Livre (tableaux depuis la base en lecture seule, puis PDF Typst ; le binaire `typst` est requis pour build)
 yarn --cwd packages/book data    # écrit packages/book/out/data.json (date de gel = date du jour)
