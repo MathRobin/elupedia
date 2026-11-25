@@ -32,6 +32,10 @@ elupedia/
 - Clés primaires : `id` (UUID ou serial selon le contexte)
 - Timestamps : `created_at`, `updated_at`
 - Les migrations sont gérées par Drizzle Kit
+- Changement de schéma : `yarn db:generate`, puis commit du `.sql`, du journal et du snapshot, puis `yarn db:migrate`
+- Ne jamais utiliser `drizzle-kit push` sur une base partagée, ni modifier un fichier de migration déjà appliqué
+- Une nouvelle entrée du journal doit avoir un `when` supérieur à toutes les précédentes : sinon le migrator la saute en prod
+- `scripts/check-migrations.mjs` contrôle journal, fichiers, snapshots et registre prod ; il tourne avant `db:migrate` dans `vercel.json`
 
 ## Commandes
 
@@ -42,6 +46,7 @@ yarn lint:fix         # ESLint avec auto-fix
 yarn format           # Vérifier le formatage Prettier
 yarn format:fix       # Appliquer le formatage Prettier
 yarn typecheck        # Vérification TypeScript (tsc --build)
+yarn db:check         # Contrôle des migrations contre DATABASE_URL (lecture seule)
 yarn test             # Lancer les tests (Vitest)
 yarn test:e2e         # Tests end-to-end (Playwright, navigateur réel) — nécessite le site en dev sur :4321
 yarn test:e2e:ui      # Idem, avec l'UI interactive Playwright

@@ -20,7 +20,7 @@
     "typecheck": "tsc --build",
     "db:generate": "node --env-file-if-exists=.env ./node_modules/.bin/drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env ./node_modules/.bin/drizzle-kit migrate",
-    "db:push": "node --env-file-if-exists=.env ./node_modules/.bin/drizzle-kit push --force",
+    "db:check": "node --env-file-if-exists=.env scripts/check-migrations.mjs --db",
     "db:seed": "tsx --env-file-if-exists=.env packages/shared/src/seed.ts",
     "smoke-test": "bash scripts/smoke-test.sh",
     "commit": "cz",
