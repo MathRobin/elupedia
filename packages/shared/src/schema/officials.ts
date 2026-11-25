@@ -46,8 +46,7 @@ export const officials = pgTable('officials', {
   // Dernière fois où l'ingestion presse a vérifié cet élu (qu'un nouvel
   // article ait été trouvé ou non). Sert à prioriser le lot suivant
   // (ingest:press:maires) sur les élus jamais/plus anciennement vérifiés,
-  // plutôt qu'un tirage aléatoire. Colonne ajoutée directement en base
-  // (ALTER TABLE), le pipeline drizzle-kit migrate étant cassé.
+  // plutôt qu'un tirage aléatoire. Colonne ajoutée par la migration 0034.
   pressCheckedAt: timestamp('press_checked_at', { withTimezone: true }),
   // Dernière fois où l'ingestion fact-checks a interrogé cet élu (qu'un
   // signalement ait été trouvé ou non). Même logique que pressCheckedAt.

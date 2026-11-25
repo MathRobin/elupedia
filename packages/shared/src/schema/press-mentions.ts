@@ -39,9 +39,8 @@ export const pressMentions = pgTable(
   },
   (table) => [
     // Vérifiée par upsertPressMentions à chaque mention ingérée (~1M lignes) :
-    // sans cet index, chaque appel scannait la table entière. Créé
-    // directement en base (CREATE INDEX CONCURRENTLY) plutôt que via
-    // drizzle-kit migrate, le pipeline de migration étant cassé.
+    // sans cet index, chaque appel scannait la table entière. Créé par la
+    // migration 0034.
     index('press_mentions_official_source_idx').on(
       table.officialId,
       table.sourceUrl,

@@ -274,7 +274,7 @@ Photos existantes (`mayor-photos`), coordonnées GPS déjà géocodées, `an_uid
 - `packages/ingest/madada-cache.json` : cache des réponses MaDaDa
 - `~/.elupedia/checkpoints/` : reprises des ingestions longues (maires, adresses mairies)
 - `data_provenance` : outre les provenances, sert de stockage de curseurs d'ingestion incrémentale (`source_table = 'europarl_questions_cursor'`, `'europarl_sittings'`)
-- Colonnes/index ajoutés à la main en base hors drizzle-kit : `officials.press_checked_at`, `officials.factchecks_checked_at`, index `press_mentions_official_source_idx`
+- Colonnes et index ajoutés d'abord hors migration, puis rattachés à drizzle (migration `0034_narrow_galactus`) : `officials.press_checked_at`, `officials.factchecks_checked_at`, index `press_mentions_official_source_idx`
 
 ### Site : conventions à connaître
 
