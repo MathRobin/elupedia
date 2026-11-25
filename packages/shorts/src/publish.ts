@@ -30,6 +30,8 @@ export interface PublishOptions {
   privacyStatus: PrivacyStatus;
   max: number;
   dryRun: boolean;
+  /** Recopier la description en commentaire après l'upload (défaut : true). */
+  comment?: boolean;
 }
 
 export function buildMetadata(
@@ -126,7 +128,11 @@ export async function publishShorts(
     );
     if (options.dryRun) {
       logger.info(
-        `[dry-run] short ${target.id} : « ${meta.title} » (${meta.privacyStatus}) depuis ${videoPath}`,
+        `[dry-run] short ${target.id} : « ${meta.title} » (${meta.privacyStatus}) depuis ${videoPath}${
+          options.comment === false
+            ? ''
+            : `, puis description en commentaire (${meta.description.length} caractères)`
+        }`,
       );
       published.push(target.id);
       continue;
@@ -146,6 +152,22 @@ export async function publishShorts(
         `short ${target.id} : publié https://youtube.com/shorts/${videoId} (${meta.privacyStatus})`,
       );
       published.push(target.id);
+      if (options.comment !== false) {
+        // La vidéo est en ligne : un commentaire raté ne doit rien annuler.
+        try {
+          const commentId = await uploader.postComment(
+            videoId,
+            meta.description,
+          );
+          logger.info(
+            `short ${target.id} : description recopiée en commentaire (${commentId}) — épinglage à faire à la main dans Studio`,
+          );
+        } catch (error) {
+          logger.warn(
+            `short ${target.id} : publié, mais commentaire non posté — ${error}`,
+          );
+        }
+      }
     } catch (error) {
       logger.error(`short ${target.id} : publication échouée — ${error}`);
       failed.push(target.id);

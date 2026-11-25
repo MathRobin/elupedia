@@ -4,17 +4,35 @@ import { Readable } from 'node:stream';
 /**
  * Client minimal YouTube Data API v3 (fetch natif, pas de SDK) : OAuth 2.0
  * (application installée, redirection loopback), upload « resumable » d'une
- * vidéo. Une vidéo verticale de moins de 3 minutes est traitée comme un
- * Short par YouTube, sans paramètre spécifique. Pas de vignette
- * personnalisée (`thumbnails.set` exige un compte vérifié ; l'image par
- * défaut convient).
+ * vidéo, et commentaire de la chaîne sous la vidéo publiée. Une vidéo
+ * verticale de moins de 3 minutes est traitée comme un Short par YouTube,
+ * sans paramètre spécifique. Pas de vignette personnalisée
+ * (`thumbnails.set` exige un compte vérifié ; l'image par défaut convient).
+ *
+ * Deux scopes, et c'est un piège : `youtube.upload` ne permet QUE d'envoyer
+ * une vidéo. `commentThreads.insert` exige `youtube.force-ssl`, bien plus
+ * large (il couvre la gestion de la chaîne). Un `YOUTUBE_REFRESH_TOKEN`
+ * obtenu avant le 24/11/2026 ne porte que le premier : le commentaire
+ * échouera en 403 `insufficientPermissions` jusqu'à ce que
+ * `yarn --cwd packages/shorts youtube-auth` soit relancé et le consentement
+ * redonné. L'épinglage n'existe pas dans l'API (action manuelle dans
+ * Studio) : le commentaire est posté, pas épinglé.
  */
 
-export const YOUTUBE_SCOPE = 'https://www.googleapis.com/auth/youtube.upload';
+export const YOUTUBE_SCOPES = [
+  'https://www.googleapis.com/auth/youtube.upload',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
+];
+export const YOUTUBE_SCOPE = YOUTUBE_SCOPES.join(' ');
+
+/** Limite d'un commentaire YouTube ; la description plafonne à 5 000. */
+export const MAX_COMMENT_LENGTH = 10000;
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const UPLOAD_URL =
   'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status';
+const COMMENT_URL =
+  'https://www.googleapis.com/youtube/v3/commentThreads?part=snippet';
 
 /** Catégorie « Actualités et politique ». */
 export const CATEGORY_NEWS_POLITICS = '25';
@@ -113,6 +131,8 @@ export interface VideoMetadata {
 
 export interface YoutubeUploader {
   uploadVideo(filePath: string, meta: VideoMetadata): Promise<string>;
+  /** Commentaire de la chaîne sous une vidéo ; renvoie l'identifiant du fil. */
+  postComment(videoId: string, text: string): Promise<string>;
 }
 
 /** Nettoie titre et description aux limites de l'API (100 / 5000 caractères, pas de < >). */
@@ -196,6 +216,34 @@ export function createYoutubeUploader(
       } finally {
         await handle.close();
       }
+    },
+
+    async postComment(videoId, text) {
+      const body = text.trim().slice(0, MAX_COMMENT_LENGTH);
+      if (body.length === 0) throw new Error('commentaire vide');
+      const res = await fetchFn(COMMENT_URL, {
+        method: 'POST',
+        headers: { ...auth, 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify({
+          snippet: {
+            videoId,
+            topLevelComment: { snippet: { textOriginal: body } },
+          },
+        }),
+      });
+      if (!res.ok) {
+        const detail = (await res.text()).slice(0, 300);
+        const indice =
+          res.status === 403
+            ? " — si c'est insufficientPermissions, le refresh token n'a pas le scope youtube.force-ssl : relancer youtube-auth"
+            : '';
+        throw new Error(
+          `YouTube commentaire HTTP ${res.status} : ${detail}${indice}`,
+        );
+      }
+      const data = (await res.json()) as { id?: string };
+      if (!data.id) throw new Error('YouTube : commentaire sans identifiant');
+      return data.id;
     },
   };
 }

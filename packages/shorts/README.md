@@ -19,7 +19,7 @@ auto     auto     manuel       auto     manuel        auto
 3. **Voix** (à la main) : tu lis le script et enregistres une prise par scène.
 4. **Rendu** : vidéo 1080×1920 avec sous-titres, hémicycle, barres par groupe.
 5. **Revue** (à la main) : seul gate avant publication.
-6. **Publication** (DAG `publish-shorts`, toutes les heures) : YouTube, dans l'heure qui suit l'approbation.
+6. **Publication** (DAG `publish-shorts`, toutes les heures) : YouTube, dans l'heure qui suit l'approbation, puis la description recopiée en commentaire de la chaîne.
 
 ## Un short de bout en bout : `make`
 
@@ -50,6 +50,16 @@ yarn --cwd packages/shorts review                 # liste les shorts à relire
 yarn --cwd packages/shorts review approve <id>    # ou : reject <id> --note "motif"
 yarn --cwd packages/shorts publish --dry-run      # puis sans --dry-run
 ```
+
+La publication recopie la description en commentaire de la chaîne sous la
+vidéo (`--no-comment` pour s'en passer) : sur un Short, personne ne déplie la
+description, alors que le panneau des commentaires s'ouvre d'un geste — c'est
+là que les sources du scrutin doivent être lisibles. Deux limites : **l'API ne
+permet pas d'épingler**, à faire à la main dans Studio, et le commentaire exige
+le scope `youtube.force-ssl`, donc un `YOUTUBE_REFRESH_TOKEN` antérieur au
+24/11/2026 doit être refait avec `youtube-auth`. Un commentaire raté ne remet
+pas la publication en cause : la vidéo reste en ligne et l'incident est
+journalisé.
 
 ## Seuls les scrutins parlementaires
 
@@ -108,18 +118,18 @@ silence de tête et de queue, normalise le volume (-16 LUFS) et horodate les mot
 
 ## Commandes
 
-| Commande                                            | Rôle                                             |
-| --------------------------------------------------- | ------------------------------------------------ |
-| `select [--dry-run]`                                | classe les scrutins récents, crée les candidats  |
-| `script [--id <id>] [--dry-run]`                    | génère le script d'un ou des candidats           |
-| `voiceover generate [--id <id>] [--force]`          | voix ElevenLabs, prises synthétisées + importées |
-| `voiceover sheet` / `voiceover import --id <id>`    | fiche de lecture / import des prises             |
-| `render [--id <id>] [--force] [--silent] [--draft]` | rend la vidéo et la vignette                     |
-| `make <id>`                                         | script → voix → rendu pour un short              |
-| `review [list\|approve\|reject]`                    | revue humaine                                    |
-| `publish [--max n] [--dry-run]`                     | publication YouTube des shorts approuvés         |
-| `youtube-auth`                                      | autorisation OAuth YouTube, une seule fois       |
-| `preview`                                           | Remotion Studio pour retoucher la composition    |
+| Commande                                            | Rôle                                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------------------- |
+| `select [--dry-run]`                                | classe les scrutins récents, crée les candidats                           |
+| `script [--id <id>] [--dry-run]`                    | génère le script d'un ou des candidats                                    |
+| `voiceover generate [--id <id>] [--force]`          | voix ElevenLabs, prises synthétisées + importées                          |
+| `voiceover sheet` / `voiceover import --id <id>`    | fiche de lecture / import des prises                                      |
+| `render [--id <id>] [--force] [--silent] [--draft]` | rend la vidéo et la vignette                                              |
+| `make <id>`                                         | script → voix → rendu pour un short                                       |
+| `review [list\|approve\|reject]`                    | revue humaine                                                             |
+| `publish [--max n] [--no-comment] [--dry-run]`      | publication YouTube des shorts approuvés, puis description en commentaire |
+| `youtube-auth`                                      | autorisation OAuth YouTube, une seule fois                                |
+| `preview`                                           | Remotion Studio pour retoucher la composition                             |
 
 Chaque commande accepte `--help`.
 
